@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -7,7 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FileText, CheckCircle, Clock, XCircle, MessageCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { FileText, CheckCircle, Clock, XCircle, MessageCircle, DollarSign } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 
@@ -15,6 +18,9 @@ export default function CompanyApplications() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const [conversionDialogOpen, setConversionDialogOpen] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [saleAmount, setSaleAmount] = useState("");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -115,6 +121,32 @@ export default function CompanyApplications() {
     },
   });
 
+  const recordConversionMutation = useMutation({
+    mutationFn: async ({ applicationId, saleAmount }: { applicationId: string; saleAmount?: string }) => {
+      const body = saleAmount ? { saleAmount: parseFloat(saleAmount) } : {};
+      const response = await apiRequest('POST', `/api/conversions/${applicationId}`, body);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/company/applications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/company"] });
+      setConversionDialogOpen(false);
+      setSaleAmount("");
+      setSelectedApplication(null);
+      toast({
+        title: "Conversion Recorded",
+        description: "Conversion and payment have been created successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to record conversion",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleMarkComplete = (applicationId: string, creatorName: string) => {
     if (confirm(`Mark work as complete for ${creatorName}? This action cannot be undone.`)) {
       completeApplicationMutation.mutate(applicationId);
@@ -135,6 +167,34 @@ export default function CompanyApplications() {
 
   const handleMessageCreator = (applicationId: string) => {
     startConversationMutation.mutate(applicationId);
+  };
+
+  const handleRecordConversion = (application: any) => {
+    setSelectedApplication(application);
+    setSaleAmount("");
+    setConversionDialogOpen(true);
+  };
+
+  const handleSubmitConversion = () => {
+    if (!selectedApplication) return;
+
+    // For per_sale commission types, require a sale amount
+    if (selectedApplication.offer?.commissionType === 'per_sale') {
+      const amount = parseFloat(saleAmount);
+      if (isNaN(amount) || amount <= 0) {
+        toast({
+          title: "Invalid Amount",
+          description: "Please enter a valid sale amount greater than 0.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    recordConversionMutation.mutate({
+      applicationId: selectedApplication.id,
+      saleAmount: selectedApplication.offer?.commissionType === 'per_sale' ? saleAmount : undefined,
+    });
   };
 
   const getStatusIcon = (status: string) => {
@@ -275,30 +335,46 @@ export default function CompanyApplications() {
                   </div>
                 )}
 
-                {/* Message and Complete buttons for approved applications */}
+                {/* Message, Record Conversion, and Complete buttons for approved applications */}
                 {(app.status === 'approved' || app.status === 'rejected') && (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => handleMessageCreator(app.id)}
-                      variant="outline"
-                      className="flex-1"
-                      disabled={startConversationMutation.isPending}
-                      data-testid={`button-message-creator-${app.id}`}
-                    >
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      {startConversationMutation.isPending ? 'Opening...' : 'Message Creator'}
-                    </Button>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleMessageCreator(app.id)}
+                        variant="outline"
+                        className="flex-1"
+                        disabled={startConversationMutation.isPending}
+                        data-testid={`button-message-creator-${app.id}`}
+                      >
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        {startConversationMutation.isPending ? 'Opening...' : 'Message Creator'}
+                      </Button>
 
+                      {app.status === 'approved' && !app.completedAt && (
+                        <Button
+                          onClick={() => handleMarkComplete(app.id, app.creator?.firstName || 'this creator')}
+                          variant="default"
+                          className="flex-1"
+                          disabled={completeApplicationMutation.isPending}
+                          data-testid={`button-mark-complete-${app.id}`}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          {completeApplicationMutation.isPending ? 'Processing...' : 'Mark Work Complete'}
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Record Conversion button for approved applications */}
                     {app.status === 'approved' && !app.completedAt && (
                       <Button
-                        onClick={() => handleMarkComplete(app.id, app.creator?.firstName || 'this creator')}
-                        variant="default"
-                        className="flex-1"
-                        disabled={completeApplicationMutation.isPending}
-                        data-testid={`button-mark-complete-${app.id}`}
+                        onClick={() => handleRecordConversion(app)}
+                        variant="secondary"
+                        className="w-full"
+                        disabled={recordConversionMutation.isPending}
+                        data-testid={`button-record-conversion-${app.id}`}
                       >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        {completeApplicationMutation.isPending ? 'Processing...' : 'Mark Work Complete'}
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Record Conversion
                       </Button>
                     )}
                   </div>
@@ -317,6 +393,103 @@ export default function CompanyApplications() {
           ))}
         </div>
       )}
+
+      {/* Record Conversion Dialog */}
+      <Dialog open={conversionDialogOpen} onOpenChange={setConversionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record Conversion</DialogTitle>
+            <DialogDescription>
+              Record a new conversion for {selectedApplication?.creator?.firstName || 'this creator'}.
+              {selectedApplication?.offer?.commissionType === 'per_sale'
+                ? " Enter the sale amount to calculate the commission."
+                : " This will create a payment based on the fixed commission amount."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Offer</Label>
+              <p className="text-sm text-muted-foreground">
+                {selectedApplication?.offer?.title || 'N/A'}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Commission Type</Label>
+              <p className="text-sm text-muted-foreground capitalize">
+                {selectedApplication?.offer?.commissionType?.replace('_', ' ') || 'N/A'}
+              </p>
+            </div>
+
+            {selectedApplication?.offer?.commissionType === 'per_sale' && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Commission Rate</Label>
+                <p className="text-sm text-muted-foreground">
+                  {selectedApplication?.offer?.commissionPercentage}%
+                </p>
+              </div>
+            )}
+
+            {selectedApplication?.offer?.commissionType !== 'per_sale' && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Commission Amount</Label>
+                <p className="text-sm text-muted-foreground">
+                  ${selectedApplication?.offer?.commissionAmount || '0.00'}
+                </p>
+              </div>
+            )}
+
+            {selectedApplication?.offer?.commissionType === 'per_sale' && (
+              <div className="space-y-2">
+                <Label htmlFor="saleAmount">Sale Amount ($) *</Label>
+                <Input
+                  id="saleAmount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Enter sale amount (e.g., 1000.00)"
+                  value={saleAmount}
+                  onChange={(e) => setSaleAmount(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSubmitConversion();
+                    }
+                  }}
+                />
+                {saleAmount && parseFloat(saleAmount) > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Commission will be: ${(parseFloat(saleAmount) * (parseFloat(selectedApplication?.offer?.commissionPercentage || '0') / 100)).toFixed(2)}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="bg-muted/50 p-3 rounded-md space-y-1">
+              <p className="text-xs font-medium">Fee Breakdown:</p>
+              <p className="text-xs text-muted-foreground">• Platform Fee: 4%</p>
+              <p className="text-xs text-muted-foreground">• Stripe Fee: 3%</p>
+              <p className="text-xs text-muted-foreground">• Creator Receives: 93%</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConversionDialogOpen(false)}
+              disabled={recordConversionMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitConversion}
+              disabled={recordConversionMutation.isPending}
+            >
+              {recordConversionMutation.isPending ? 'Recording...' : 'Record Conversion'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
