@@ -14,6 +14,10 @@
  * 6. Creates payments with correct fee calculations (4% + 3% = 7%)
  */
 
+// Load environment variables from .env file
+import dotenv from "dotenv";
+dotenv.config();
+
 import { db } from "../server/db.js";
 import {
   users,
