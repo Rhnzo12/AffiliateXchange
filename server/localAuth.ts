@@ -48,26 +48,31 @@ export async function setupAuth(app: Express) {
   
   // Configure Passport Local Strategy
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        const user = await storage.getUserByUsername(username);
-        
-        if (!user) {
-          return done(null, false, { message: "Invalid username or password" });
-        }
-
-        const isValidPassword = await bcrypt.compare(password, user.password);
-        
-        if (!isValidPassword) {
-          return done(null, false, { message: "Invalid username or password" });
-        }
-
-        return done(null, user);
-      } catch (error) {
-        return done(error);
+  new LocalStrategy(async (username, password, done) => {
+    try {
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user) {
+        return done(null, false, { message: "Invalid username or password" });
       }
-    })
-  );
+
+      // Check if user has a password (OAuth users might not have one)
+      if (!user.password) {
+        return done(null, false, { message: "Please sign in with Google" });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      
+      if (!isValidPassword) {
+        return done(null, false, { message: "Invalid username or password" });
+      }
+
+      return done(null, user);
+    } catch (error) {
+      return done(error);
+    }
+  })
+);
 
   // Serialize user to session
   passport.serializeUser((user: any, done) => {
