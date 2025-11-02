@@ -379,6 +379,8 @@ export const clickEvents = pgTable("click_events", {
   referer: text("referer"),
   country: varchar("country"),
   city: varchar("city"),
+  fraudScore: integer("fraud_score").default(0), // 0-100, higher = more suspicious
+  fraudFlags: text("fraud_flags"), // Comma-separated fraud indicators
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
