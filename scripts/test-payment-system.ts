@@ -9,6 +9,10 @@
  * 4. All user roles can access their payment data
  */
 
+// Load environment variables from .env file
+import dotenv from "dotenv";
+dotenv.config();
+
 import { db } from "../server/db.js";
 import { payments, users, offers, applications, companyProfiles } from "../shared/schema.js";
 import { eq, desc } from "drizzle-orm";
