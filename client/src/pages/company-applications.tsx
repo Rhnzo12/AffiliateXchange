@@ -170,6 +170,20 @@ export default function CompanyApplications() {
   };
 
   const handleRecordConversion = (application: any) => {
+    // Show warning if this creator already has conversions
+    if (application.conversionCount > 0) {
+      const conversionText = application.conversionCount === 1 ? 'conversion' : 'conversions';
+      const confirmed = confirm(
+        `${application.creator?.firstName || 'This creator'} already has ${application.conversionCount} ${conversionText} recorded.\n\n` +
+        `Total earnings so far: $${application.totalEarnings || '0.00'}\n\n` +
+        `Do you want to record another conversion?`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
     setSelectedApplication(application);
     setSaleAmount("");
     setConversionDialogOpen(true);
