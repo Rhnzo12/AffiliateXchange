@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -43,6 +44,14 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 export function AppSidebar() {
   const { user } = useAuth();
   const [location] = useLocation();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  // Close sidebar on mobile when navigation link is clicked
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const creatorItems = [
     {
@@ -185,7 +194,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link href="/">
+          <Link href="/" onClick={handleNavClick}>
             <div className="flex items-center gap-2 cursor-pointer">
               <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover" />
               <span className="font-bold text-lg">AffiliateXchange</span>
@@ -205,7 +214,7 @@ export function AppSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={location === item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}>
-                    <Link href={item.url}>
+                    <Link href={item.url} onClick={handleNavClick}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -222,7 +231,7 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={location === '/settings'} data-testid="nav-settings">
-                  <Link href="/settings">
+                  <Link href="/settings" onClick={handleNavClick}>
                     <Settings className="h-4 w-4" />
                     <span>Settings</span>
                   </Link>
@@ -250,7 +259,7 @@ export function AppSidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem asChild>
-              <Link href="/settings">
+              <Link href="/settings" onClick={handleNavClick}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </Link>
