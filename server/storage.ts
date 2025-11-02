@@ -1132,6 +1132,9 @@ export class DatabaseStorage implements IStorage {
         id: applications.id,
         offerId: applications.offerId,
         offerTitle: offers.title,
+        offerCommissionType: offers.commissionType,
+        offerCommissionPercentage: offers.commissionPercentage,
+        offerCommissionAmount: offers.commissionAmount,
         creatorId: applications.creatorId,
         creatorName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.email})`,
         creatorEmail: users.email,
@@ -1183,6 +1186,13 @@ export class DatabaseStorage implements IStorage {
       clickCount: app.clickCount,
       conversionCount: app.conversionCount,
       totalEarnings: app.totalEarnings,
+      offer: {
+        id: app.offerId,
+        title: app.offerTitle,
+        commissionType: app.offerCommissionType,
+        commissionPercentage: app.offerCommissionPercentage,
+        commissionAmount: app.offerCommissionAmount,
+      },
       creator: {
         id: app.creatorId,
         firstName: app.creatorFirstName,
