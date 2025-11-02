@@ -44,6 +44,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Local Auth
   await setupAuth(app);
 
+  // Initialize notification service
+  const notificationService = new NotificationService(storage);
+
   // Profile routes
   app.get("/api/profile", requireAuth, async (req, res) => {
     try {
@@ -292,6 +295,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const application = await storage.createApplication(validated);
 
+      // 🆕 GET OFFER, CREATOR, AND COMPANY INFO FOR NOTIFICATION
+      const offer = await storage.getOffer(application.offerId);
+      const creator = await storage.getUserById(application.creatorId);
+      
+      if (offer && creator) {
+        const company = await storage.getCompanyProfileById(offer.companyId);
+        
+        if (company) {
+          // 🆕 SEND NOTIFICATION TO COMPANY
+          await notificationService.sendNotification(
+            company.userId,
+            'new_application',
+            'New Application Received! 📩',
+            `${creator.firstName || creator.username} has applied to your offer "${offer.title}". Review their application now.`,
+            {
+              userName: company.contactName || 'there',
+              offerTitle: offer.title,
+              linkUrl: `/company-applications`,
+              applicationId: application.id,
+            }
+          );
+          console.log(`[Notification] Sent new application notification to company ${company.legalName}`);
+        }
+      }
+
       // TODO: Schedule auto-approval job for 7 minutes later
 
       res.json(application);
@@ -320,8 +348,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trackingCode
       );
 
+      // 🆕 GET OFFER AND CREATOR INFO FOR NOTIFICATION
+      const offer = await storage.getOffer(application.offerId);
+      const creator = await storage.getUserById(application.creatorId);
+
+      // 🆕 SEND NOTIFICATION TO CREATOR
+      if (offer && creator) {
+        await notificationService.sendNotification(
+          application.creatorId,
+          'application_status_change',
+          'Your application has been approved! 🎉',
+          `Congratulations! Your application for "${offer.title}" has been approved. You can now start promoting this offer.`,
+          {
+            userName: creator.firstName || creator.username,
+            offerTitle: offer.title,
+            trackingLink: trackingLink,
+            linkUrl: `/applications/${application.id}`,
+            applicationStatus: 'approved',
+          }
+        );
+        console.log(`[Notification] Sent approval notification to creator ${creator.username}`);
+      }
+
       res.json(approved);
     } catch (error: any) {
+      console.error('[Approve Application] Error:', error);
       res.status(500).send(error.message);
     }
   });
@@ -354,8 +405,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'rejected',
       });
 
+      // 🆕 GET CREATOR INFO FOR NOTIFICATION
+      const creator = await storage.getUserById(application.creatorId);
+
+      // 🆕 SEND NOTIFICATION TO CREATOR
+      if (creator) {
+        await notificationService.sendNotification(
+          application.creatorId,
+          'application_status_change',
+          'Application Update',
+          `Your application for "${offer.title}" was not approved at this time. Don't worry - there are many other great offers available!`,
+          {
+            userName: creator.firstName || creator.username,
+            offerTitle: offer.title,
+            linkUrl: `/browse`,
+            applicationStatus: 'rejected',
+          }
+        );
+        console.log(`[Notification] Sent rejection notification to creator ${creator.username}`);
+      }
+
       res.json(rejected);
     } catch (error: any) {
+      console.error('[Reject Application] Error:', error);
       res.status(500).send(error.message);
     }
   });
@@ -860,8 +932,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const payment = await storage.updatePaymentStatus(id, status);
+
+      // 🆕 SEND NOTIFICATION WHEN PAYMENT IS COMPLETED
+      if (status === 'completed') {
+        const creator = await storage.getUserById(payment.creatorId);
+        const offer = await storage.getOffer(payment.offerId);
+
+        if (creator && offer) {
+          await notificationService.sendNotification(
+            payment.creatorId,
+            'payment_received',
+            'Payment Received! 💰',
+            `You've received a payment of $${payment.netAmount} for your work on "${offer.title}".`,
+            {
+              userName: creator.firstName || creator.username,
+              offerTitle: offer.title,
+              amount: `$${payment.netAmount}`,
+              linkUrl: `/payments`,
+            }
+          );
+          console.log(`[Notification] Sent payment notification to creator ${creator.username}`);
+        }
+      }
+
       res.json(payment);
     } catch (error: any) {
+      console.error('[Update Payment Status] Error:', error);
       res.status(500).send(error.message);
     }
   });
@@ -926,9 +1022,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).send(error.message);
     }
   });
-
-  // Initialize notification service
-  const notificationService = new NotificationService(storage);
 
   // Notification routes
   app.get("/api/notifications", requireAuth, async (req, res) => {
@@ -1638,17 +1731,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paymentPerVideo = monthlyAmount / videosPerMonth;
 
       // Create payment for the approved deliverable
-      await storage.createRetainerPayment({
+      const payment = await storage.createRetainerPayment({
         contractId: contract.id,
         deliverableId: deliverable.id,
         creatorId: deliverable.creatorId,
         companyId: contract.companyId,
         amount: paymentPerVideo.toFixed(2),
-        status: 'pending',
+        status: 'completed',
         description: `Retainer payment for ${contract.title} - Month ${deliverable.monthNumber}, Video ${deliverable.videoNumber}`,
       });
 
       console.log(`[Retainer Payment] Created payment of $${paymentPerVideo.toFixed(2)} for creator ${deliverable.creatorId}`);
+
+      // 🆕 SEND NOTIFICATION TO CREATOR ABOUT PAYMENT
+      const creator = await storage.getUserById(deliverable.creatorId);
+      if (creator) {
+        await notificationService.sendNotification(
+          deliverable.creatorId,
+          'payment_received',
+          'Retainer Payment Received! 💰',
+          `You've received a payment of $${paymentPerVideo.toFixed(2)} for your approved deliverable on "${contract.title}".`,
+          {
+            userName: creator.firstName || creator.username,
+            offerTitle: contract.title,
+            amount: `$${paymentPerVideo.toFixed(2)}`,
+            linkUrl: `/creator/retainer-contracts`,
+          }
+        );
+        console.log(`[Notification] Sent retainer payment notification to creator ${creator.username}`);
+      }
 
       res.json(approved);
     } catch (error: any) {
@@ -1820,6 +1931,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 trackingLink,
                 trackingCode
               );
+
+              // 🆕 SEND NOTIFICATION FOR AUTO-APPROVED APPLICATION
+              const offer = await storage.getOffer(application.offerId);
+              const creator = await storage.getUserById(application.creatorId);
+
+              if (offer && creator) {
+                await notificationService.sendNotification(
+                  application.creatorId,
+                  'application_status_change',
+                  'Your application has been approved! 🎉',
+                  `Congratulations! Your application for "${offer.title}" has been auto-approved. You can now start promoting this offer.`,
+                  {
+                    userName: creator.firstName || creator.username,
+                    offerTitle: offer.title,
+                    trackingLink: trackingLink,
+                    linkUrl: `/applications/${application.id}`,
+                    applicationStatus: 'approved',
+                  }
+                );
+                console.log(`[Auto-Approval] Sent notification to creator ${creator.username}`);
+              }
               
               processedCount++;
               console.log(`[Auto-Approval] ✓ Approved application ${application.id} (${processedCount} total)`);
