@@ -233,10 +233,10 @@ export default function CompanyApplications() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Applications</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl sm:text-3xl font-bold">Applications</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Review and manage creator applications for your offers
         </p>
       </div>
@@ -261,32 +261,33 @@ export default function CompanyApplications() {
         <div className="space-y-4">
           {applications.map((app: any) => (
             <Card key={app.id} className="border-card-border" data-testid={`card-application-${app.id}`}>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
+              <CardHeader className="pb-3 sm:pb-6">
+                <div className="flex items-start justify-between gap-2 sm:gap-4">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
                       <AvatarImage src={app.creator?.profileImageUrl} />
                       <AvatarFallback>
                         {app.creator?.firstName?.[0] || 'C'}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <CardTitle className="text-lg">
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-base sm:text-lg truncate">
                         {app.creator?.firstName || 'Creator'}
                       </CardTitle>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
                         {app.offer?.title || 'Offer'}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(app.status)}
-                    <Badge 
+                  <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                    <span className="hidden sm:inline">{getStatusIcon(app.status)}</span>
+                    <Badge
                       variant={
-                        app.status === 'approved' ? 'default' : 
-                        app.status === 'pending' ? 'secondary' : 
+                        app.status === 'approved' ? 'default' :
+                        app.status === 'pending' ? 'secondary' :
                         'destructive'
                       }
+                      className="text-xs"
                       data-testid={`badge-status-${app.id}`}
                     >
                       {app.status}
@@ -295,41 +296,41 @@ export default function CompanyApplications() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-sm">
                   <div>
-                    <div className="text-muted-foreground mb-1">Applied</div>
-                    <div className="font-medium">
+                    <div className="text-muted-foreground text-xs sm:text-sm mb-1">Applied</div>
+                    <div className="font-medium text-xs sm:text-sm">
                       {formatDistanceToNow(new Date(app.createdAt), { addSuffix: true })}
                     </div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground mb-1">Total Clicks</div>
-                    <div className="font-medium">{app.clickCount || 0}</div>
+                    <div className="text-muted-foreground text-xs sm:text-sm mb-1">Clicks</div>
+                    <div className="font-medium text-xs sm:text-sm">{app.clickCount || 0}</div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground mb-1">Conversions</div>
-                    <div className="font-medium">{app.conversionCount || 0}</div>
+                    <div className="text-muted-foreground text-xs sm:text-sm mb-1">Conversions</div>
+                    <div className="font-medium text-xs sm:text-sm">{app.conversionCount || 0}</div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground mb-1">Earnings</div>
-                    <div className="font-medium">${app.totalEarnings || '0.00'}</div>
+                    <div className="text-muted-foreground text-xs sm:text-sm mb-1">Earnings</div>
+                    <div className="font-medium text-xs sm:text-sm">${app.totalEarnings || '0.00'}</div>
                   </div>
                 </div>
 
                 {app.trackingLink && (
-                  <div className="p-3 bg-muted/50 rounded-md">
+                  <div className="p-2 sm:p-3 bg-muted/50 rounded-md">
                     <div className="text-xs text-muted-foreground mb-1">Tracking Link</div>
-                    <code className="text-xs break-all">{app.trackingLink}</code>
+                    <code className="text-[10px] sm:text-xs break-all leading-relaxed">{app.trackingLink}</code>
                   </div>
                 )}
 
                 {/* Approve/Reject buttons for pending applications */}
                 {app.status === 'pending' && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       onClick={() => handleApprove(app.id)}
                       variant="default"
-                      className="flex-1"
+                      className="flex-1 w-full sm:w-auto"
                       disabled={approveApplicationMutation.isPending}
                       data-testid={`button-approve-${app.id}`}
                     >
@@ -339,7 +340,7 @@ export default function CompanyApplications() {
                     <Button
                       onClick={() => handleReject(app.id)}
                       variant="destructive"
-                      className="flex-1"
+                      className="flex-1 w-full sm:w-auto"
                       disabled={rejectApplicationMutation.isPending}
                       data-testid={`button-reject-${app.id}`}
                     >
@@ -352,28 +353,30 @@ export default function CompanyApplications() {
                 {/* Message, Record Conversion, and Complete buttons for approved applications */}
                 {(app.status === 'approved' || app.status === 'rejected') && (
                   <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Button
                         onClick={() => handleMessageCreator(app.id)}
                         variant="outline"
-                        className="flex-1"
+                        className="flex-1 w-full sm:w-auto"
                         disabled={startConversationMutation.isPending}
                         data-testid={`button-message-creator-${app.id}`}
                       >
                         <MessageCircle className="h-4 w-4 mr-2" />
-                        {startConversationMutation.isPending ? 'Opening...' : 'Message Creator'}
+                        <span className="hidden sm:inline">{startConversationMutation.isPending ? 'Opening...' : 'Message Creator'}</span>
+                        <span className="sm:hidden">{startConversationMutation.isPending ? 'Opening...' : 'Message'}</span>
                       </Button>
 
                       {app.status === 'approved' && !app.completedAt && (
                         <Button
                           onClick={() => handleMarkComplete(app.id, app.creator?.firstName || 'this creator')}
                           variant="default"
-                          className="flex-1"
+                          className="flex-1 w-full sm:w-auto"
                           disabled={completeApplicationMutation.isPending}
                           data-testid={`button-mark-complete-${app.id}`}
                         >
                           <CheckCircle className="h-4 w-4 mr-2" />
-                          {completeApplicationMutation.isPending ? 'Processing...' : 'Mark Work Complete'}
+                          <span className="hidden sm:inline">{completeApplicationMutation.isPending ? 'Processing...' : 'Mark Work Complete'}</span>
+                          <span className="sm:hidden">{completeApplicationMutation.isPending ? 'Processing...' : 'Complete'}</span>
                         </Button>
                       )}
                     </div>
@@ -410,10 +413,10 @@ export default function CompanyApplications() {
 
       {/* Record Conversion Dialog */}
       <Dialog open={conversionDialogOpen} onOpenChange={setConversionDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Record Conversion</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Record Conversion</DialogTitle>
+            <DialogDescription className="text-sm">
               Record a new conversion for {selectedApplication?.creator?.firstName || 'this creator'}.
               {selectedApplication?.offer?.commissionType === 'per_sale'
                 ? " Enter the sale amount to calculate the commission."
@@ -421,7 +424,7 @@ export default function CompanyApplications() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-2 sm:py-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Offer</Label>
               <p className="text-sm text-muted-foreground">
@@ -487,17 +490,19 @@ export default function CompanyApplications() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setConversionDialogOpen(false)}
               disabled={recordConversionMutation.isPending}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSubmitConversion}
               disabled={recordConversionMutation.isPending}
+              className="w-full sm:w-auto"
             >
               {recordConversionMutation.isPending ? 'Recording...' : 'Record Conversion'}
             </Button>
