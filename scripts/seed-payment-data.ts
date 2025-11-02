@@ -29,6 +29,7 @@ import {
 } from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
+import { randomUUID } from "crypto";
 
 interface SeedData {
   users: Array<{
@@ -67,8 +68,7 @@ interface SeedData {
 }
 
 function generateId(): string {
-  return Math.random().toString(36).substring(2, 15) +
-         Math.random().toString(36).substring(2, 15);
+  return randomUUID();
 }
 
 function calculateFees(grossAmount: number) {
@@ -102,31 +102,31 @@ async function seedData() {
     const seedData: SeedData = {
       users: [
         {
-          id: `creator-${generateId()}`,
+          id: generateId(),
           username: "john_creator",
           email: "john@creator.com",
           role: "creator" as const,
         },
         {
-          id: `creator-${generateId()}`,
+          id: generateId(),
           username: "sarah_influencer",
           email: "sarah@influencer.com",
           role: "creator" as const,
         },
         {
-          id: `company-${generateId()}`,
+          id: generateId(),
           username: "techcorp",
           email: "contact@techcorp.com",
           role: "company" as const,
         },
         {
-          id: `company-${generateId()}`,
+          id: generateId(),
           username: "brandco",
           email: "partnerships@brandco.com",
           role: "company" as const,
         },
         {
-          id: `admin-${generateId()}`,
+          id: generateId(),
           username: "admin",
           email: "admin@platform.com",
           role: "admin" as const,
@@ -172,7 +172,7 @@ async function seedData() {
     const companyUsers = seedData.users.filter((u) => u.role === "company");
 
     for (const companyUser of companyUsers) {
-      const companyId = `profile-${generateId()}`;
+      const companyId = generateId();
 
       const existing = await db
         .select()
@@ -243,7 +243,7 @@ async function seedData() {
     for (let i = 0; i < offerTemplates.length; i++) {
       const template = offerTemplates[i];
       const company = seedData.companies[i % seedData.companies.length];
-      const offerId = `offer-${generateId()}`;
+      const offerId = generateId();
 
       await db.insert(offers).values({
         id: offerId,
@@ -277,7 +277,7 @@ async function seedData() {
 
     for (const creator of creatorUsers) {
       for (const offer of seedData.offers) {
-        const applicationId = `app-${generateId()}`;
+        const applicationId = generateId();
 
         await db.insert(applications).values({
           id: applicationId,
@@ -321,7 +321,7 @@ async function seedData() {
       const fees = calculateFees(scenario.gross);
 
       await db.insert(payments).values({
-        id: `payment-${generateId()}`,
+        id: generateId(),
         applicationId: application.id,
         creatorId: application.creatorId,
         companyId: company.id,
@@ -345,7 +345,7 @@ async function seedData() {
       const randomEarnings = Math.floor(Math.random() * 500) + 100;
 
       await db.insert(analytics).values({
-        id: `analytics-${generateId()}`,
+        id: generateId(),
         applicationId: application.id,
         offerId: application.offerId,
         creatorId: application.creatorId,
