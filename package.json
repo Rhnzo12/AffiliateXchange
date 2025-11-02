@@ -10,8 +10,8 @@
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "payment:seed": "tsx scripts/seed-payment-data.ts",
-    "payment:test": "tsx scripts/test-payment-system.ts"
+    "payment:seed": "tsx --env-file=.env scripts/seed-payment-data.ts",
+    "payment:test": "tsx --env-file=.env scripts/test-payment-system.ts"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.17.2",
