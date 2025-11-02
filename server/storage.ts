@@ -640,7 +640,14 @@ export interface IStorage {
   getAnalyticsByApplication(applicationId: string): Promise<any[]>;
   logTrackingClick(
     applicationId: string,
-    clickData: { ip: string; userAgent: string; referer: string; timestamp: Date },
+    clickData: {
+      ip: string;
+      userAgent: string;
+      referer: string;
+      timestamp: Date;
+      fraudScore?: number;
+      fraudFlags?: string;
+    },
   ): Promise<void>;
   recordConversion(applicationId: string, saleAmount?: number): Promise<void>;
 
@@ -1669,7 +1676,14 @@ export class DatabaseStorage implements IStorage {
 
   async logTrackingClick(
     applicationId: string,
-    clickData: { ip: string; userAgent: string; referer: string; timestamp: Date },
+    clickData: {
+      ip: string;
+      userAgent: string;
+      referer: string;
+      timestamp: Date;
+      fraudScore?: number;
+      fraudFlags?: string;
+    },
   ): Promise<void> {
     const application = await this.getApplication(applicationId);
     if (!application) {
@@ -1706,45 +1720,66 @@ export class DatabaseStorage implements IStorage {
       referer: clickData.referer,
       country,
       city,
+      fraudScore: clickData.fraudScore || 0,
+      fraudFlags: clickData.fraudFlags || null,
       timestamp: new Date(),
     });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Only count clicks with fraud score < 50 toward analytics
+    const fraudScore = clickData.fraudScore || 0;
+    if (fraudScore < 50) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-    const uniqueIpsToday = await db
-      
-      .selectDistinct({ ipAddress: clickEvents.ipAddress })
-      .from(clickEvents)
-      .where(and(eq(clickEvents.applicationId, applicationId), sql`${clickEvents.timestamp}::date = ${today}::date`));
+      // Count unique IPs for today (excluding fraudulent clicks)
+      const uniqueIpsToday = await db
 
-    const existing = await db
-      .select()
-      .from(analytics)
-      .where(and(eq(analytics.applicationId, applicationId), eq(analytics.date, today)))
-      .limit(1);
+        .selectDistinct({ ipAddress: clickEvents.ipAddress })
+        .from(clickEvents)
+        .where(
+          and(
+            eq(clickEvents.applicationId, applicationId),
+            sql`${clickEvents.timestamp}::date = ${today}::date`,
+            sql`${clickEvents.fraudScore} < 50`
+          )
+        );
 
-    if (existing.length > 0) {
-      await db
-        .update(analytics)
-        .set({
-          clicks: sql`${analytics.clicks} + 1`,
+      const existing = await db
+        .select()
+        .from(analytics)
+        .where(and(eq(analytics.applicationId, applicationId), eq(analytics.date, today)))
+        .limit(1);
+
+      if (existing.length > 0) {
+        await db
+          .update(analytics)
+          .set({
+            clicks: sql`${analytics.clicks} + 1`,
+            uniqueClicks: uniqueIpsToday.length,
+          })
+          .where(eq(analytics.id, existing[0].id));
+      } else {
+        await db.insert(analytics).values({
+          id: randomUUID(),
+          applicationId,
+          offerId: application.offerId,
+          creatorId: application.creatorId,
+          date: today,
+          clicks: 1,
           uniqueClicks: uniqueIpsToday.length,
-        })
-        .where(eq(analytics.id, existing[0].id));
+          conversions: 0,
+          earnings: "0",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
     } else {
-      await db.insert(analytics).values({
-        id: randomUUID(),
+      // Log fraud detection but don't count toward analytics
+      console.log('[Fraud Detection] High fraud score click not counted:', {
         applicationId,
-        offerId: application.offerId,
-        creatorId: application.creatorId,
-        date: today,
-        clicks: 1,
-        uniqueClicks: uniqueIpsToday.length,
-        conversions: 0,
-        earnings: "0",
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        ip: clickData.ip,
+        fraudScore,
+        fraudFlags: clickData.fraudFlags,
       });
     }
 

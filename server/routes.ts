@@ -8,6 +8,7 @@ import { db } from "./db";
 import { offerVideos } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { checkClickFraud, logFraudDetection } from "./fraudDetection";
 import { NotificationService } from "./notifications/notificationService";
 import {
   insertCreatorProfileSchema,
@@ -477,7 +478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/go/:code", async (req, res) => {
     try {
       const trackingCode = req.params.code;
-      
+
       // Look up application by tracking code
       const application = await storage.getApplicationByTrackingCode(trackingCode);
       if (!application) {
@@ -503,7 +504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (req.ip) {
         clientIp = req.ip;
       }
-      
+
       // Clean IPv6-mapped IPv4 addresses (::ffff:192.168.1.1 → 192.168.1.1)
       if (clientIp.startsWith('::ffff:')) {
         clientIp = clientIp.substring(7);
@@ -512,16 +513,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userAgent = req.headers['user-agent'] || 'unknown';
       const refererRaw = req.headers['referer'] || req.headers['referrer'];
       const referer = Array.isArray(refererRaw) ? refererRaw[0] : (refererRaw || 'direct');
-      
+
+      // Perform fraud detection check
+      const fraudCheck = await checkClickFraud(clientIp, userAgent, referer, trackingCode);
+
+      // Log fraud detection result
+      if (!fraudCheck.isValid) {
+        logFraudDetection(trackingCode, clientIp, fraudCheck);
+      }
+
       // Log the click asynchronously (don't block redirect)
+      // Note: We still log even if fraud is detected, but mark it with fraud score
       storage.logTrackingClick(application.id, {
         ip: clientIp,
         userAgent,
         referer,
         timestamp: new Date(),
+        fraudScore: fraudCheck.fraudScore,
+        fraudFlags: fraudCheck.flags.join(','),
       }).catch(err => console.error('[Tracking] Error logging click:', err));
 
-      // Redirect to product URL
+      // Always redirect to maintain good UX
+      // Even fraudulent clicks get redirected (but won't count toward analytics if fraud score > 50)
       res.redirect(302, offer.productUrl);
     } catch (error: any) {
       console.error('[Tracking] Error:', error);
