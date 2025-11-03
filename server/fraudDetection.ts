@@ -65,7 +65,7 @@ export async function getRecentClickCount(ip: string): Promise<number> {
     .where(
       and(
         eq(clickEvents.ipAddress, ip),
-        gte(clickEvents.clickedAt, oneMinuteAgo)
+        gte(clickEvents.timestamp, oneMinuteAgo)
       )
     );
 
@@ -73,11 +73,11 @@ export async function getRecentClickCount(ip: string): Promise<number> {
 }
 
 /**
- * Get click count for same IP + tracking code combination (last hour)
+ * Get click count for same IP + application combination (last hour)
  */
-export async function getSameIPTrackingClicks(
+export async function getSameIPApplicationClicks(
   ip: string,
-  trackingCode: string
+  applicationId: string
 ): Promise<number> {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
@@ -87,8 +87,8 @@ export async function getSameIPTrackingClicks(
     .where(
       and(
         eq(clickEvents.ipAddress, ip),
-        eq(clickEvents.trackingCode, trackingCode),
-        gte(clickEvents.clickedAt, oneHourAgo)
+        eq(clickEvents.applicationId, applicationId),
+        gte(clickEvents.timestamp, oneHourAgo)
       )
     );
 
@@ -126,7 +126,7 @@ export async function checkClickFraud(
   ip: string,
   userAgent: string,
   referer: string,
-  trackingCode: string
+  applicationId: string
 ): Promise<FraudCheckResult> {
   const flags: string[] = [];
   let reason = '';
@@ -161,8 +161,8 @@ export async function checkClickFraud(
     flags.push('no_referer');
   }
 
-  // 6. Repeated clicks from same IP to same tracking code
-  const sameIPClicks = await getSameIPTrackingClicks(ip, trackingCode);
+  // 6. Repeated clicks from same IP to same application
+  const sameIPClicks = await getSameIPApplicationClicks(ip, applicationId);
   if (sameIPClicks >= 5) {
     flags.push('repeated_clicks');
     if (!reason) reason = `Same IP clicked same link ${sameIPClicks} times in last hour`;
@@ -216,7 +216,7 @@ export async function getFraudStats(days: number = 7): Promise<{
   const totalResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(clickEvents)
-    .where(gte(clickEvents.clickedAt, startDate));
+    .where(gte(clickEvents.timestamp, startDate));
 
   const totalClicks = totalResult[0]?.count || 0;
 
@@ -239,7 +239,7 @@ export async function cleanupOldClickEvents(days: number = 90): Promise<number> 
 
   const result = await db
     .delete(clickEvents)
-    .where(sql`${clickEvents.clickedAt} < ${cutoffDate}`)
+    .where(sql`${clickEvents.timestamp} < ${cutoffDate}`)
     .returning({ id: clickEvents.id });
 
   return result.length;
