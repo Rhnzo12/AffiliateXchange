@@ -381,6 +381,11 @@ export const clickEvents = pgTable("click_events", {
   city: varchar("city"),
   fraudScore: integer("fraud_score").default(0), // 0-100, higher = more suspicious
   fraudFlags: text("fraud_flags"), // Comma-separated fraud indicators
+  utmSource: varchar("utm_source"), // UTM source parameter (e.g., google, facebook, newsletter)
+  utmMedium: varchar("utm_medium"), // UTM medium parameter (e.g., cpc, email, social)
+  utmCampaign: varchar("utm_campaign"), // UTM campaign parameter (e.g., summer_sale, product_launch)
+  utmTerm: varchar("utm_term"), // UTM term parameter (e.g., keywords for paid search)
+  utmContent: varchar("utm_content"), // UTM content parameter (e.g., link_text, banner_ad)
   timestamp: timestamp("timestamp").defaultNow(),
 });
 

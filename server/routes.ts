@@ -586,6 +586,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const refererRaw = req.headers['referer'] || req.headers['referrer'];
       const referer = Array.isArray(refererRaw) ? refererRaw[0] : (refererRaw || 'direct');
 
+      // Parse UTM parameters from query string
+      const utmSource = req.query.utm_source as string | undefined;
+      const utmMedium = req.query.utm_medium as string | undefined;
+      const utmCampaign = req.query.utm_campaign as string | undefined;
+      const utmTerm = req.query.utm_term as string | undefined;
+      const utmContent = req.query.utm_content as string | undefined;
+
       // Perform fraud detection check
       const fraudCheck = await checkClickFraud(clientIp, userAgent, referer, trackingCode);
 
@@ -603,6 +610,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date(),
         fraudScore: fraudCheck.fraudScore,
         fraudFlags: fraudCheck.flags.join(','),
+        utmSource,
+        utmMedium,
+        utmCampaign,
+        utmTerm,
+        utmContent,
       }).catch(err => console.error('[Tracking] Error logging click:', err));
 
       // Always redirect to maintain good UX
