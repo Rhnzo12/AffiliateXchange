@@ -647,6 +647,11 @@ export interface IStorage {
       timestamp: Date;
       fraudScore?: number;
       fraudFlags?: string;
+      utmSource?: string;
+      utmMedium?: string;
+      utmCampaign?: string;
+      utmTerm?: string;
+      utmContent?: string;
     },
   ): Promise<void>;
   recordConversion(applicationId: string, saleAmount?: number): Promise<void>;
@@ -1683,6 +1688,11 @@ export class DatabaseStorage implements IStorage {
       timestamp: Date;
       fraudScore?: number;
       fraudFlags?: string;
+      utmSource?: string;
+      utmMedium?: string;
+      utmCampaign?: string;
+      utmTerm?: string;
+      utmContent?: string;
     },
   ): Promise<void> {
     const application = await this.getApplication(applicationId);
@@ -1722,6 +1732,11 @@ export class DatabaseStorage implements IStorage {
       city,
       fraudScore: clickData.fraudScore || 0,
       fraudFlags: clickData.fraudFlags || null,
+      utmSource: clickData.utmSource || null,
+      utmMedium: clickData.utmMedium || null,
+      utmCampaign: clickData.utmCampaign || null,
+      utmTerm: clickData.utmTerm || null,
+      utmContent: clickData.utmContent || null,
       timestamp: new Date(),
     });
 
