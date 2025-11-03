@@ -15,6 +15,7 @@ export default function Settings() {
   const { toast } = useToast();
   const { isAuthenticated, user } = useAuth();
   const [bio, setBio] = useState("");
+  const [niches, setNiches] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [tiktokUrl, setTiktokUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
@@ -31,6 +32,7 @@ export default function Settings() {
   useEffect(() => {
     if (profile) {
       setBio(profile.bio || "");
+      setNiches(profile.niches ? profile.niches.join(", ") : "");
       setYoutubeUrl(profile.youtubeUrl || "");
       setTiktokUrl(profile.tiktokUrl || "");
       setInstagramUrl(profile.instagramUrl || "");
@@ -73,8 +75,14 @@ export default function Settings() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
+      // Convert niches from comma-separated string to array
+      const nichesArray = niches
+        ? niches.split(",").map((n) => n.trim()).filter(Boolean)
+        : [];
+
       return await apiRequest("PUT", "/api/profile", {
         bio,
+        niches: nichesArray,
         youtubeUrl,
         tiktokUrl,
         instagramUrl,
@@ -137,6 +145,26 @@ export default function Settings() {
                   className="min-h-24"
                   data-testid="textarea-bio"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="niches">
+                  Content Niches
+                  <span className="text-muted-foreground text-sm font-normal ml-2">
+                    (comma-separated)
+                  </span>
+                </Label>
+                <Input
+                  id="niches"
+                  type="text"
+                  placeholder="Gaming, Tech, Reviews, Tutorials"
+                  value={niches}
+                  onChange={(e) => setNiches(e.target.value)}
+                  data-testid="input-niches"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your niches help us recommend relevant offers. Examples: Gaming, Tech, Fitness, Beauty, Lifestyle, Food, Travel
+                </p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

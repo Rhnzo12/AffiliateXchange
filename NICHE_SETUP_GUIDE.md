@@ -65,18 +65,19 @@ curl -X PUT http://localhost:5000/api/profile \
 
 ### Step 3: Update Your Profile
 
-Look for the profile form which includes:
-- Bio
-- Social media URLs (YouTube, TikTok, Instagram)
-- Follower counts
-- **Niches** (text area or input field)
+In the Settings page, you'll find the **Content Niches** field in the Profile Information section:
+- Located right after the Bio field
+- Enter your niches as comma-separated values
+- Examples are provided below the field
 
-Enter your niches as comma-separated values:
+Enter your niches like this:
 ```
 Gaming, Tech, Reviews, Tutorials
 ```
 
-Click **Save Changes**.
+Click **Save Changes** button at the bottom of the form.
+
+**Note:** The niches field is only visible for creator accounts, not company or admin accounts.
 
 ---
 
