@@ -1,6 +1,6 @@
 # Google OAuth Setup Guide
 
-This guide will help you set up Google OAuth authentication for the CreatorLink application.
+This guide will help you set up Google OAuth authentication for the AffiliateXchange application.
 
 ## Overview
 
@@ -20,7 +20,7 @@ Google OAuth allows users to sign in or register using their Gmail account. The 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Click on the project dropdown at the top
 3. Click "New Project"
-4. Enter a project name (e.g., "CreatorLink Auth")
+4. Enter a project name (e.g., "AffiliateXchange Auth")
 5. Click "Create"
 
 ## Step 2: Enable Google+ API
@@ -36,7 +36,7 @@ Google OAuth allows users to sign in or register using their Gmail account. The 
 3. If prompted, configure the OAuth consent screen:
    - Choose "External" user type
    - Fill in the required fields:
-     - App name: CreatorLink
+     - App name: AffiliateXchange
      - User support email: your email
      - Developer contact information: your email
    - Click "Save and Continue"
@@ -47,7 +47,7 @@ Google OAuth allows users to sign in or register using their Gmail account. The 
 4. Return to "Credentials" and click "Create Credentials" > "OAuth client ID" again
 5. Select "Web application" as the application type
 6. Configure the OAuth client:
-   - Name: CreatorLink Web Client
+   - Name: AffiliateXchange Web Client
    - Authorized JavaScript origins:
      - For development: `http://localhost:5000`
      - For production: `https://yourdomain.com`
@@ -212,7 +212,7 @@ Before deploying to production:
 
 2. **Update Redirect URIs:**
    - Add production domain to authorized redirect URIs
-   - Example: `https://creatorlink.com/api/auth/google/callback`
+   - Example: `https://affiliatexchange.com/api/auth/google/callback`
 
 3. **Update Environment Variables:**
    - Set production `GOOGLE_CALLBACK_URL` if different from default

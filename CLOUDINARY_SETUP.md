@@ -49,15 +49,15 @@ For simpler uploads, you can create an upload preset:
 2. Scroll down to **Upload presets**
 3. Click **Add upload preset**
 4. Configure:
-   - **Name**: `creatorlink-videos`
+   - **Name**: `affiliatexchange-videos`
    - **Signing Mode**: Unsigned
-   - **Folder**: `creatorlink/videos` (optional)
+   - **Folder**: `affiliatexchange/videos` (optional)
    - **Resource type**: Auto
 5. Click **Save**
 
 Then add to your `.env`:
 ```env
-CLOUDINARY_UPLOAD_PRESET=creatorlink-videos
+CLOUDINARY_UPLOAD_PRESET=affiliatexchange-videos
 ```
 
 **Note:** If you don't set an upload preset, the system will use signed uploads (more secure).
@@ -210,7 +210,7 @@ https://res.cloudinary.com/your-cloud/video/upload/
   q_auto,        # Auto quality
   f_auto,        # Auto format
   w_800          # Max width 800px
-/creatorlink/videos/video-id.mp4
+/affiliatexchange/videos/video-id.mp4
 ```
 
 ### Access Control
@@ -256,7 +256,7 @@ Track video performance:
 4. Contact [Cloudinary Support](https://support.cloudinary.com/) (even on free plan!)
 
 Your videos will be stored at:
-`https://res.cloudinary.com/your-cloud/video/upload/creatorlink/videos/...`
+`https://res.cloudinary.com/your-cloud/video/upload/affiliatexchange/videos/...`
 
 ---
 

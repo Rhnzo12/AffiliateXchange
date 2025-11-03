@@ -1,4 +1,4 @@
-# CreatorLink - Affiliate Marketplace Platform
+# AffiliateXchange - Affiliate Marketplace Platform
 
 A comprehensive multi-sided marketplace connecting video content creators with brands for affiliate marketing opportunities and monthly retainer contracts.
 
@@ -36,7 +36,7 @@ A comprehensive multi-sided marketplace connecting video content creators with b
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd creatorlink
+   cd AffiliateXchange
    ```
 
 2. **Install dependencies**
@@ -110,7 +110,7 @@ Press `F5` to start debugging the server with breakpoints support.
 ## Project Structure
 
 ```
-creatorlink/
+AffiliateXchange/
 ├── client/                 # Frontend React application
 │   ├── src/
 │   │   ├── components/     # Reusable UI components
@@ -172,10 +172,10 @@ brew install postgresql  # macOS
 sudo apt-get install postgresql  # Ubuntu
 
 # Create database
-createdb creatorlink
+createdb affiliatexchange
 
 # Set DATABASE_URL
-export DATABASE_URL=postgresql://localhost/creatorlink
+export DATABASE_URL=postgresql://localhost/affiliatexchange
 ```
 
 ### Hosted Database Options

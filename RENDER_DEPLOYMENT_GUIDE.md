@@ -1,6 +1,6 @@
-# Deploying CreatorLink to Render - Complete Guide
+# Deploying AffiliateXchange to Render - Complete Guide
 
-This guide will walk you through deploying your CreatorLink application to Render.
+This guide will walk you through deploying your AffiliateXchange application to Render.
 
 ## Prerequisites
 
@@ -68,9 +68,9 @@ That's it! Much simpler than the full guide.
 1. From Render Dashboard, click **"New +"** button
 2. Select **"PostgreSQL"**
 3. Configure database:
-   - **Name**: `creatorlink-db` (or any name you prefer)
-   - **Database**: `creatorlink`
-   - **User**: `creatorlink_user` (auto-generated)
+   - **Name**: `affiliatexchange-db` (or any name you prefer)
+   - **Database**: `affiliatexchange`
+   - **User**: `affiliatexchange_user` (auto-generated)
    - **Region**: Choose closest to your users (e.g., Oregon USA, Frankfurt EU)
    - **Plan**: **Free** (or paid plan for production)
 4. Click **"Create Database"**
@@ -163,7 +163,7 @@ After database is created:
 2. Select **"Web Service"**
 3. Choose **"Build and deploy from a Git repository"**
 4. Click **"Connect a repository"**
-5. Select your **creatorlink2** repository
+5. Select your **AffiliateXchange** repository
 6. Click **"Connect"**
 
 ### Step 2: Configure Web Service
@@ -171,7 +171,7 @@ After database is created:
 Fill in the following settings:
 
 #### Basic Settings
-- **Name**: `creatorlink` (or any name, this becomes your-app-name.onrender.com)
+- **Name**: `affiliatexchange` (or any name, this becomes your-app-name.onrender.com)
 - **Region**: Same as your database (for better performance)
 - **Branch**: `main` (or your deployment branch)
 - **Root Directory**: Leave empty (blank)
@@ -216,7 +216,7 @@ NODE_ENV=production
 CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
 CLOUDINARY_API_KEY=your-cloudinary-api-key
 CLOUDINARY_API_SECRET=your-cloudinary-api-secret
-CLOUDINARY_FOLDER=creatorlink/videos
+CLOUDINARY_FOLDER=affiliatexchange/videos
 
 # Google OAuth (from Google Cloud Console)
 GOOGLE_CLIENT_ID=your-google-client-id
@@ -277,16 +277,16 @@ openssl rand -hex 32
 2. Click **"Settings"** tab
 3. Scroll to **"Custom Domain"** section
 4. Click **"Add Custom Domain"**
-5. Enter your domain (e.g., `creatorlink.com` or `app.creatorlink.com`)
+5. Enter your domain (e.g., `affiliatexchange.com` or `app.affiliatexchange.com`)
 
 ### Step 2: Update DNS Records
 
 Render will show you DNS records to add. In your domain registrar (GoDaddy, Namecheap, etc.):
 
-**For root domain (creatorlink.com):**
+**For root domain (affiliatexchange.com):**
 - Add **A Record**: `76.76.21.21`
 
-**For subdomain (app.creatorlink.com):**
+**For subdomain (app.affiliatexchange.com):**
 - Add **CNAME Record**: `your-app-name.onrender.com`
 
 ### Step 3: Update Environment Variables
@@ -532,4 +532,4 @@ If you encounter issues:
 
 **Deployment Complete!** 🎉
 
-Your CreatorLink app should now be live at: `https://your-app-name.onrender.com`
+Your AffiliateXchange app should now be live at: `https://your-app-name.onrender.com`

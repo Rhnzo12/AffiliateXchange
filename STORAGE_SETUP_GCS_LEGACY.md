@@ -8,7 +8,7 @@ Your video upload feature requires Google Cloud Storage to store video files. Fo
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Click "Select a project" → "New Project"
-3. Name it: `creatorlink-storage` (or your choice)
+3. Name it: `affiliatexchange-storage` (or your choice)
 4. Click "Create"
 5. Wait for project creation, then select it
 
@@ -22,7 +22,7 @@ Your video upload feature requires Google Cloud Storage to store video files. Fo
 
 1. Go to [Cloud Storage Buckets](https://console.cloud.google.com/storage/browser)
 2. Click "Create Bucket"
-3. **Name:** Choose unique name (e.g., `creatorlink-videos-[your-name]`)
+3. **Name:** Choose unique name (e.g., `affiliatexchange-videos-[your-name]`)
 4. **Location:** Choose closest region (e.g., `us-central1`, `asia-southeast1`)
 5. **Storage class:** Standard
 6. **Access control:** Uniform
@@ -42,8 +42,8 @@ Your video upload feature requires Google Cloud Storage to store video files. Fo
 
 1. Go to [IAM & Admin → Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts)
 2. Click "Create Service Account"
-3. **Name:** `creatorlink-storage-admin`
-4. **Description:** "Service account for CreatorLink video uploads"
+3. **Name:** `affiliatexchange-storage-admin`
+4. **Description:** "Service account for AffiliateXchange video uploads"
 5. Click "Create and Continue"
 6. **Role:** Select "Cloud Storage" → "Storage Admin"
 7. Click "Continue" → "Done"
@@ -101,7 +101,7 @@ Replace `your-bucket-name-here` with your actual bucket name from step 3.
 
 Example:
 ```env
-DEFAULT_OBJECT_STORAGE_BUCKET_ID=creatorlink-videos-john
+DEFAULT_OBJECT_STORAGE_BUCKET_ID=affiliatexchange-videos-john
 ```
 
 ### 9. Restart Server

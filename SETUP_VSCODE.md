@@ -1,6 +1,6 @@
 # VS Code Setup Guide
 
-This guide will help you set up the CreatorLink project in Visual Studio Code.
+This guide will help you set up the AffiliateXchange project in Visual Studio Code.
 
 ## Quick Start (5 Minutes)
 
@@ -29,7 +29,7 @@ cp .env.example .env
 
 **Minimum required variables:**
 ```env
-DATABASE_URL=postgresql://localhost/creatorlink
+DATABASE_URL=postgresql://localhost/affiliatexchange
 SESSION_SECRET=change-this-to-random-string
 NODE_ENV=development
 ```
@@ -38,7 +38,7 @@ NODE_ENV=development
 
 ```bash
 # Create database (if using local PostgreSQL)
-createdb creatorlink
+createdb affiliatexchange
 
 # Push schema to database
 npm run db:push
@@ -114,12 +114,12 @@ The project is fully typed with TypeScript. You get:
 # macOS (using Homebrew)
 brew install postgresql
 brew services start postgresql
-createdb creatorlink
+createdb affiliatexchange
 
 # Ubuntu/Debian
 sudo apt-get install postgresql
 sudo systemctl start postgresql
-sudo -u postgres createdb creatorlink
+sudo -u postgres createdb affiliatexchange
 
 # Windows
 # Download and install from https://www.postgresql.org/download/windows/
@@ -196,7 +196,7 @@ taskkill /PID <PID> /F
 ## Project Structure
 
 ```
-creatorlink/
+affiliatexchange/
 ├── .vscode/                # VS Code configurations
 │   ├── extensions.json     # Recommended extensions
 │   ├── launch.json         # Debugger config

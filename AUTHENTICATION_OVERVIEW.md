@@ -1,4 +1,4 @@
-# CreatorLink Authentication System - Comprehensive Overview
+# AffiliateXchange Authentication System - Comprehensive Overview
 
 ## 1. Current Authentication Architecture
 

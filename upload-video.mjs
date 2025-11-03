@@ -10,7 +10,7 @@ const videoPath = 'C:\\Users\\harol\\Downloads\\Ill_fill_out_202510230100_9x5p8.
 
 cloudinary.uploader.upload(videoPath, {
   resource_type: 'video',
-  folder: 'creatorlink/videos',
+  folder: 'affiliatexchange/videos',
   public_id: 'kzrtkicvvpq2qjhmkegn'
 })
 .then(result => {
