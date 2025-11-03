@@ -1,8 +1,8 @@
-# CreatorLink - Affiliate Marketplace Platform
+# AffiliateXchange - Affiliate Marketplace Platform
 
 ## Overview
 
-CreatorLink is a multi-sided marketplace platform connecting video content creators with brands for affiliate marketing opportunities. It enables creators to discover offers, track performance, and earn commissions, while companies can list offers, manage partnerships, and monitor campaigns. The platform features role-based dashboards for creators, companies, and administrators, aiming to streamline affiliate marketing for video content.
+AffiliateXchange is a multi-sided marketplace platform connecting video content creators with brands for affiliate marketing opportunities. It enables creators to discover offers, track performance, and earn commissions, while companies can list offers, manage partnerships, and monitor campaigns. The platform features role-based dashboards for creators, companies, and administrators, aiming to streamline affiliate marketing for video content.
 
 ## User Preferences
 

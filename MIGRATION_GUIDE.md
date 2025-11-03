@@ -1,6 +1,6 @@
 # Database Migration Guide
 
-This guide helps you export your CreatorLink data from Replit and run it elsewhere.
+This guide helps you export your AffiliateXchange data from Replit and run it elsewhere.
 
 ## Option 1: Export to JSON (Recommended for Small Datasets)
 
@@ -56,9 +56,9 @@ Download `database-dump.sql` from the Files panel.
 1. Install PostgreSQL locally
 2. Create a database:
    ```bash
-   createdb creatorlink
+   createdb affiliatexchange
    ```
-3. Connection string: `postgresql://localhost/creatorlink`
+3. Connection string: `postgresql://localhost/affiliatexchange`
 
 ---
 

@@ -814,8 +814,8 @@ function AdminPaymentSettings() {
   const [reservePercentage, setReservePercentage] = useState("10");
   const [minimumBalance, setMinimumBalance] = useState("5000");
   const [autoDisburse, setAutoDisburse] = useState(true);
-  const [notificationEmail, setNotificationEmail] = useState("finance@creatorlink.com");
-  const [escalationEmail, setEscalationEmail] = useState("compliance@creatorlink.com");
+  const [notificationEmail, setNotificationEmail] = useState("finance@affiliatexchange.com");
+  const [escalationEmail, setEscalationEmail] = useState("compliance@affiliatexchange.com");
   const [includeReports, setIncludeReports] = useState(true);
 
   const adminFundingMethods: AdminFundingMethod[] = [

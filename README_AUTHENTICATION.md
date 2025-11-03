@@ -1,6 +1,6 @@
-# CreatorLink Authentication System Documentation
+# AffiliateXchange Authentication System Documentation
 
-Welcome! This directory contains comprehensive documentation about the CreatorLink authentication system. Use this index to navigate through the documentation.
+Welcome! This directory contains comprehensive documentation about the AffiliateXchange authentication system. Use this index to navigate through the documentation.
 
 ## Quick Start - Choose Your Entry Point
 
@@ -170,7 +170,7 @@ GOOGLE_CALLBACK_URL=https://yourdomain.com/api/auth/google/callback
 ## File Structure
 
 ```
-creatorlink2/
+AffiliateXchange/
 ├── README_AUTHENTICATION.md        ← You are here
 ├── AUTHENTICATION_OVERVIEW.md      ← Detailed guide
 ├── AUTH_QUICK_REFERENCE.md        ← Visual reference

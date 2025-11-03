@@ -28,7 +28,7 @@ export class ObjectStorageService {
   constructor() {}
 
   getCloudinaryFolder(): string {
-    return process.env.CLOUDINARY_FOLDER || "creatorlink/videos";
+    return process.env.CLOUDINARY_FOLDER || "affiliatexchange/videos";
   }
 
   getCloudinaryUploadPreset(): string {
