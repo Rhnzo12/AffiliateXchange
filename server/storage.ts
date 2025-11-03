@@ -2,7 +2,7 @@
 import { randomUUID } from "crypto";
 import { eq, and, desc, sql, count } from "drizzle-orm";
 import { db, pool } from "./db";
-import * as geoip from "geoip-lite";
+import geoip from "geoip-lite";
 import {
   users,
   creatorProfiles,
