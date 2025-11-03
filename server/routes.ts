@@ -594,7 +594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const utmContent = req.query.utm_content as string | undefined;
 
       // Perform fraud detection check
-      const fraudCheck = await checkClickFraud(clientIp, userAgent, referer, trackingCode);
+      const fraudCheck = await checkClickFraud(clientIp, userAgent, referer, application.id);
 
       // Log fraud detection result
       if (!fraudCheck.isValid) {
