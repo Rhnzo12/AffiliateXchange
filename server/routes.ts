@@ -78,9 +78,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const user = req.user as any;
 
+      console.log("[Profile Update] User role:", user.role);
+      console.log("[Profile Update] Request body:", req.body);
+
       if (user.role === 'creator') {
         const validated = insertCreatorProfileSchema.partial().parse(req.body);
+        console.log("[Profile Update] Validated data:", validated);
         const profile = await storage.updateCreatorProfile(userId, validated);
+        console.log("[Profile Update] Updated profile:", profile);
         return res.json(profile);
       } else if (user.role === 'company') {
         const validated = insertCompanyProfileSchema.partial().parse(req.body);
