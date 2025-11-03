@@ -24,6 +24,8 @@ import {
   retainerDeliverables,
   notifications,
   userNotificationPreferences,
+  auditLogs,
+  platformSettings,
   type User,
   type UpsertUser,
   type InsertUser,
@@ -60,6 +62,10 @@ import {
   type InsertNotification,
   type UserNotificationPreferences,
   type InsertUserNotificationPreferences,
+  type AuditLog,
+  type InsertAuditLog,
+  type PlatformSetting,
+  type InsertPlatformSetting,
 } from "@shared/schema";
 
 /**
@@ -729,6 +735,26 @@ export interface IStorage {
   // Helper methods
   getUserById(id: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
+
+  // Audit Logs
+  createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
+  getAuditLogs(filters?: {
+    userId?: string;
+    action?: string;
+    entityType?: string;
+    entityId?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<AuditLog[]>;
+  getAuditLogsByUser(userId: string, limit?: number): Promise<AuditLog[]>;
+  getAuditLogsByEntity(entityType: string, entityId: string): Promise<AuditLog[]>;
+
+  // Platform Settings
+  getPlatformSetting(key: string): Promise<PlatformSetting | null>;
+  getAllPlatformSettings(): Promise<PlatformSetting[]>;
+  getPlatformSettingsByCategory(category: string): Promise<PlatformSetting[]>;
+  updatePlatformSetting(key: string, value: string, updatedBy: string): Promise<PlatformSetting>;
+  createPlatformSetting(setting: InsertPlatformSetting): Promise<PlatformSetting>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2696,6 +2722,100 @@ export class DatabaseStorage implements IStorage {
   async getAllUsers(): Promise<User[]> {
     const results = await db.select().from(users);
     return results;
+  }
+
+  // Audit Logs
+  async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
+    const result = await db.insert(auditLogs).values(log).returning();
+    return result[0];
+  }
+
+  async getAuditLogs(filters?: {
+    userId?: string;
+    action?: string;
+    entityType?: string;
+    entityId?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<AuditLog[]> {
+    let query = db.select().from(auditLogs);
+
+    const conditions: any[] = [];
+    if (filters?.userId) conditions.push(eq(auditLogs.userId, filters.userId));
+    if (filters?.action) conditions.push(eq(auditLogs.action, filters.action));
+    if (filters?.entityType) conditions.push(eq(auditLogs.entityType, filters.entityType));
+    if (filters?.entityId) conditions.push(eq(auditLogs.entityId, filters.entityId));
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+
+    query = query.orderBy(desc(auditLogs.timestamp)) as any;
+
+    if (filters?.limit) {
+      query = query.limit(filters.limit) as any;
+    }
+    if (filters?.offset) {
+      query = query.offset(filters.offset) as any;
+    }
+
+    return await query;
+  }
+
+  async getAuditLogsByUser(userId: string, limit: number = 50): Promise<AuditLog[]> {
+    return this.getAuditLogs({ userId, limit });
+  }
+
+  async getAuditLogsByEntity(entityType: string, entityId: string): Promise<AuditLog[]> {
+    return this.getAuditLogs({ entityType, entityId });
+  }
+
+  // Platform Settings
+  async getPlatformSetting(key: string): Promise<PlatformSetting | null> {
+    const result = await db
+      .select()
+      .from(platformSettings)
+      .where(eq(platformSettings.key, key))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async getAllPlatformSettings(): Promise<PlatformSetting[]> {
+    return await db.select().from(platformSettings).orderBy(platformSettings.category, platformSettings.key);
+  }
+
+  async getPlatformSettingsByCategory(category: string): Promise<PlatformSetting[]> {
+    return await db
+      .select()
+      .from(platformSettings)
+      .where(eq(platformSettings.category, category))
+      .orderBy(platformSettings.key);
+  }
+
+  async updatePlatformSetting(key: string, value: string, updatedBy: string): Promise<PlatformSetting> {
+    const existing = await this.getPlatformSetting(key);
+    if (existing) {
+      const result = await db
+        .update(platformSettings)
+        .set({ value, updatedBy, updatedAt: new Date() })
+        .where(eq(platformSettings.key, key))
+        .returning();
+      return result[0];
+    } else {
+      // Create if doesn't exist
+      return this.createPlatformSetting({
+        key,
+        value,
+        description: null,
+        category: null,
+        updatedBy,
+      });
+    }
+  }
+
+  async createPlatformSetting(setting: InsertPlatformSetting): Promise<PlatformSetting> {
+    const result = await db.insert(platformSettings).values(setting).returning();
+    return result[0];
   }
 }
 

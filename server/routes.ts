@@ -78,9 +78,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const user = req.user as any;
 
+      console.log("[Profile Update] User role:", user.role);
+      console.log("[Profile Update] Request body:", req.body);
+
       if (user.role === 'creator') {
         const validated = insertCreatorProfileSchema.partial().parse(req.body);
+        console.log("[Profile Update] Validated data:", validated);
         const profile = await storage.updateCreatorProfile(userId, validated);
+        console.log("[Profile Update] Updated profile:", profile);
         return res.json(profile);
       } else if (user.role === 'company') {
         const validated = insertCompanyProfileSchema.partial().parse(req.body);
@@ -1462,6 +1467,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const review = await storage.approveReview(req.params.id, userId);
       res.json(review);
     } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Audit Log routes
+  app.get("/api/admin/audit-logs", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      const userId = req.query.userId as string | undefined;
+      const action = req.query.action as string | undefined;
+      const entityType = req.query.entityType as string | undefined;
+      const entityId = req.query.entityId as string | undefined;
+
+      const logs = await storage.getAuditLogs({
+        userId,
+        action,
+        entityType,
+        entityId,
+        limit,
+        offset,
+      });
+
+      res.json(logs);
+    } catch (error: any) {
+      console.error('[Audit Logs] Error fetching logs:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Platform Settings routes
+  app.get("/api/admin/settings", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const settings = category
+        ? await storage.getPlatformSettingsByCategory(category)
+        : await storage.getAllPlatformSettings();
+      res.json(settings);
+    } catch (error: any) {
+      console.error('[Platform Settings] Error fetching settings:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.get("/api/admin/settings/:key", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const setting = await storage.getPlatformSetting(req.params.key);
+      if (!setting) {
+        return res.status(404).send("Setting not found");
+      }
+      res.json(setting);
+    } catch (error: any) {
+      console.error('[Platform Settings] Error fetching setting:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.put("/api/admin/settings/:key", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { value } = req.body;
+
+      if (value === undefined || value === null) {
+        return res.status(400).send("Value is required");
+      }
+
+      const setting = await storage.updatePlatformSetting(req.params.key, value.toString(), userId);
+
+      // Log the settings change
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.UPDATE_PLATFORM_SETTINGS,
+        entityType: EntityTypes.PLATFORM_SETTINGS,
+        entityId: req.params.key,
+        changes: { value },
+        reason: req.body.reason,
+      }, req);
+
+      res.json(setting);
+    } catch (error: any) {
+      console.error('[Platform Settings] Error updating setting:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/admin/settings", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { key, value, description, category } = req.body;
+
+      if (!key || value === undefined || value === null) {
+        return res.status(400).send("Key and value are required");
+      }
+
+      const setting = await storage.createPlatformSetting({
+        key,
+        value: value.toString(),
+        description: description || null,
+        category: category || null,
+        updatedBy: userId,
+      });
+
+      res.json(setting);
+    } catch (error: any) {
+      console.error('[Platform Settings] Error creating setting:', error);
       res.status(500).send(error.message);
     }
   });

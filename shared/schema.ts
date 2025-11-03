@@ -654,6 +654,46 @@ export const userNotificationPreferencesRelations = relations(userNotificationPr
   }),
 }));
 
+// Audit Logs (for admin action tracking)
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  action: varchar("action").notNull(), // e.g., "approve_company", "reject_offer", "suspend_user"
+  entityType: varchar("entity_type").notNull(), // e.g., "company", "offer", "user", "payment"
+  entityId: varchar("entity_id"), // ID of the entity being acted upon
+  changes: jsonb("changes"), // Before/after values
+  reason: text("reason"), // Admin's reason for the action
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [auditLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+// Platform Settings (for admin configuration)
+export const platformSettings = pgTable("platform_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar("key").notNull().unique(), // e.g., "maintenance_mode", "platform_fee_percentage"
+  value: text("value").notNull(), // Stored as JSON string
+  description: text("description"), // What this setting controls
+  category: varchar("category"), // e.g., "general", "fees", "limits"
+  updatedBy: varchar("updated_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const platformSettingsRelations = relations(platformSettings, ({ one }) => ({
+  updatedByUser: one(users, {
+    fields: [platformSettings.updatedBy],
+    references: [users.id],
+  }),
+}));
+
 // Type exports for Replit Auth
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -681,6 +721,8 @@ export const insertRetainerDeliverableSchema = createInsertSchema(retainerDelive
 export const insertRetainerPaymentSchema = createInsertSchema(retainerPayments).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, readAt: true });
 export const insertUserNotificationPreferencesSchema = createInsertSchema(userNotificationPreferences).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, timestamp: true });
+export const insertPlatformSettingSchema = createInsertSchema(platformSettings).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -720,3 +762,7 @@ export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type UserNotificationPreferences = typeof userNotificationPreferences.$inferSelect;
 export type InsertUserNotificationPreferences = z.infer<typeof insertUserNotificationPreferencesSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type PlatformSetting = typeof platformSettings.$inferSelect;
+export type InsertPlatformSetting = z.infer<typeof insertPlatformSettingSchema>;

@@ -31,6 +31,7 @@ export default function Settings() {
 
   useEffect(() => {
     if (profile) {
+      console.log("[Settings] Profile loaded:", profile);
       setBio(profile.bio || "");
       setNiches(profile.niches ? profile.niches.join(", ") : "");
       setYoutubeUrl(profile.youtubeUrl || "");
@@ -80,7 +81,9 @@ export default function Settings() {
         ? niches.split(",").map((n) => n.trim()).filter(Boolean)
         : [];
 
-      return await apiRequest("PUT", "/api/profile", {
+      console.log("[Settings] Saving niches:", nichesArray);
+
+      const payload = {
         bio,
         niches: nichesArray,
         youtubeUrl,
@@ -89,7 +92,13 @@ export default function Settings() {
         youtubeFollowers: youtubeFollowers ? parseInt(youtubeFollowers) : null,
         tiktokFollowers: tiktokFollowers ? parseInt(tiktokFollowers) : null,
         instagramFollowers: instagramFollowers ? parseInt(instagramFollowers) : null,
-      });
+      };
+
+      console.log("[Settings] API payload:", payload);
+
+      const result = await apiRequest("PUT", "/api/profile", payload);
+      console.log("[Settings] API response:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
