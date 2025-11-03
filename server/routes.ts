@@ -5,8 +5,8 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { db } from "./db";
-import { offerVideos } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { offerVideos, applications, analytics } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
 import { NotificationService } from "./notifications/notificationService";
@@ -129,10 +129,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/offers/recommended", requireAuth, async (req, res) => {
     try {
-      // TODO: Implement recommendation algorithm
-      const offers = await storage.getOffers({});
-      res.json(offers.slice(0, 3));
+      const userId = req.user!.id;
+
+      // Get creator profile with niches
+      const creatorProfile = await storage.getCreatorProfile(userId);
+      if (!creatorProfile) {
+        return res.json([]);
+      }
+
+      const creatorNiches = creatorProfile.niches || [];
+
+      // Get all approved offers
+      const allOffers = await storage.getOffers({ status: 'approved' });
+
+      // Get creator's past applications
+      const pastApplications = await db
+        .select({
+          offerId: applications.offerId,
+          status: applications.status,
+        })
+        .from(applications)
+        .where(eq(applications.creatorId, userId));
+
+      const appliedOfferIds = new Set(pastApplications.map(app => app.offerId));
+
+      // Get creator's performance by niche
+      const performanceByNiche: Record<string, number> = {};
+
+      if (pastApplications.length > 0) {
+        const approvedAppIds = pastApplications
+          .filter(app => app.status === 'approved' || app.status === 'active')
+          .map(app => app.offerId);
+
+        if (approvedAppIds.length > 0) {
+          // Get analytics for approved applications
+          const performanceData = await db
+            .select({
+              offerId: analytics.offerId,
+              totalConversions: sql<number>`SUM(${analytics.conversions})`,
+              totalClicks: sql<number>`SUM(${analytics.clicks})`,
+            })
+            .from(analytics)
+            .where(eq(analytics.creatorId, userId))
+            .groupBy(analytics.offerId);
+
+          // Map performance to niches
+          for (const perf of performanceData) {
+            const offer = allOffers.find(o => o.id === perf.offerId);
+            if (offer) {
+              const conversionRate = perf.totalClicks > 0
+                ? (Number(perf.totalConversions) / Number(perf.totalClicks)) * 100
+                : 0;
+
+              // Track performance for primary niche
+              if (offer.primaryNiche) {
+                performanceByNiche[offer.primaryNiche] =
+                  (performanceByNiche[offer.primaryNiche] || 0) + conversionRate;
+              }
+
+              // Track performance for additional niches
+              if (offer.additionalNiches) {
+                for (const niche of offer.additionalNiches) {
+                  performanceByNiche[niche] =
+                    (performanceByNiche[niche] || 0) + conversionRate;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Score each offer
+      const scoredOffers = allOffers
+        .filter(offer => !appliedOfferIds.has(offer.id))
+        .map(offer => {
+          let score = 0;
+
+          // 1. Niche matching (0-100 points)
+          const offerNiches = [
+            offer.primaryNiche,
+            ...(offer.additionalNiches || [])
+          ].filter(Boolean);
+
+          const matchingNiches = offerNiches.filter(niche =>
+            creatorNiches.some(creatorNiche =>
+              creatorNiche.toLowerCase() === niche.toLowerCase()
+            )
+          );
+
+          // Primary niche match = 50 points, additional niche match = 25 points each
+          if (matchingNiches.includes(offer.primaryNiche)) {
+            score += 50;
+          }
+
+          const additionalMatches = matchingNiches.filter(
+            niche => niche !== offer.primaryNiche
+          ).length;
+          score += additionalMatches * 25;
+
+          // Cap niche score at 100
+          const nicheScore = Math.min(score, 100);
+
+          // 2. Performance in similar niches (0-50 points)
+          let performanceScore = 0;
+          for (const niche of offerNiches) {
+            if (performanceByNiche[niche]) {
+              performanceScore += performanceByNiche[niche];
+            }
+          }
+          performanceScore = Math.min(performanceScore, 50);
+
+          // 3. Offer popularity (0-30 points)
+          const viewScore = Math.min((offer.viewCount || 0) / 10, 15);
+          const applicationScore = Math.min((offer.applicationCount || 0) / 5, 15);
+          const popularityScore = viewScore + applicationScore;
+
+          // 4. Commission attractiveness (0-20 points)
+          let commissionScore = 0;
+          if (offer.commissionType === 'per_sale' && offer.commissionAmount) {
+            commissionScore = Math.min(Number(offer.commissionAmount) / 10, 20);
+          } else if (offer.commissionType === 'per_sale' && offer.commissionPercentage) {
+            commissionScore = Math.min(Number(offer.commissionPercentage) / 2, 20);
+          } else if (offer.commissionType === 'monthly_retainer' && offer.retainerAmount) {
+            commissionScore = Math.min(Number(offer.retainerAmount) / 100, 20);
+          } else if (offer.commissionType === 'per_click') {
+            commissionScore = 10; // Base score for per-click
+          } else if (offer.commissionType === 'per_lead') {
+            commissionScore = 12; // Base score for per-lead
+          }
+
+          const totalScore = nicheScore + performanceScore + popularityScore + commissionScore;
+
+          return {
+            offer,
+            score: totalScore,
+            matchingNiches: matchingNiches.length,
+          };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      // Return top 10 recommended offers
+      const topOffers = scoredOffers.slice(0, 10).map(item => item.offer);
+
+      res.json(topOffers);
     } catch (error: any) {
+      console.error('[Recommendations] Error:', error);
       res.status(500).send(error.message);
     }
   });
