@@ -1,6 +1,6 @@
 # AffiliateXchange Requirements Checklist
 
-**Generated:** 2025-10-30 (Updated with Action Items)
+**Generated:** 2025-10-30 (Last Updated: 2025-11-04)
 **Specification:** Affiliate Marketplace App - Complete Developer Specification.docx
 
 **Legend:**
@@ -19,6 +19,76 @@
 | Support for video creators (YouTube, TikTok, Instagram) | ✅ | Creator profiles include all three platforms | None - fully implemented |
 | Commission-based revenue model | ✅ | Multiple commission types: per_sale, per_lead, per_click, monthly_retainer, hybrid | None - fully implemented |
 | Platform fee structure (7% total: 4% platform + 3% processing) | ✅ | Implemented in storage.ts:1794-1810 with proper 4% + 3% fee calculation | Test with real Stripe transactions |
+| **Monthly Retainer Contracts** | ✅ | Complete system for recurring video production agreements between companies and creators | None - fully implemented |
+
+---
+
+## 1.1 MONTHLY RETAINER SYSTEM (Key Feature)
+
+**Overview:** The platform supports both one-time affiliate offers AND ongoing monthly retainer contracts where companies hire creators for regular video production.
+
+### How It Works:
+
+**For Companies:**
+1. Create retainer contract specifying:
+   - Monthly payment amount
+   - Number of videos required per month
+   - Contract duration (in months)
+   - Requirements and description
+2. Post contract for creators to discover
+3. Review creator applications (portfolio, message, stats)
+4. Approve selected creators (multiple creators can be assigned)
+5. Review monthly deliverables as they're submitted
+6. Approve/reject/request revisions on deliverables
+7. Automated payment triggers on deliverable approval
+
+**For Creators:**
+1. Browse available retainer contracts at `/creator-retainers`
+2. Apply with portfolio links and introduction message
+3. If approved, submit monthly deliverables (video URLs + descriptions)
+4. Track deliverable status (pending, approved, rejected, revision_requested)
+5. Receive automated payment when deliverable is approved
+6. View all active retainer contracts and earnings
+
+### Implementation Details:
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| Database Tables | ✅ | `retainerContracts`, `retainerApplications`, `retainerDeliverables`, `retainerPayments` |
+| Company Pages | ✅ | `/company-retainers` - Create and manage contracts |
+| Creator Pages | ✅ | `/creator-retainers` - Browse, apply, submit deliverables |
+| Application System | ✅ | Portfolio links, message, approval workflow |
+| Deliverable Workflow | ✅ | 4 states: pending → approved/rejected/revision_requested |
+| Payment Automation | ✅ | Auto-created on deliverable approval with fee calculation |
+| Multi-Creator Support | ✅ | Companies can hire multiple creators per contract |
+| Status Tracking | ✅ | Real-time tracking of contract and deliverable status |
+
+### API Endpoints (11 total):
+
+**Company Endpoints:**
+- `POST /api/company/retainer-contracts` - Create contract
+- `GET /api/company/retainer-contracts` - List company's contracts
+- `GET /api/company/retainer-applications/:contractId` - View applications
+- `PATCH /api/company/retainer-applications/:id/approve` - Approve creator
+- `PATCH /api/company/retainer-applications/:id/reject` - Reject creator
+- `PATCH /api/company/retainer-deliverables/:id/approve` - Approve deliverable (triggers payment)
+- `PATCH /api/company/retainer-deliverables/:id/reject` - Reject deliverable
+- `PATCH /api/company/retainer-deliverables/:id/revision` - Request revision
+
+**Creator Endpoints:**
+- `GET /api/creator/retainer-contracts` - Browse available contracts
+- `POST /api/creator/retainer-contracts/:id/apply` - Apply to contract
+- `POST /api/creator/retainer-deliverables` - Submit monthly deliverable
+
+### Payment Calculation:
+```
+Per-Video Amount = Monthly Amount ÷ Videos Per Month
+Platform Fee (4%) = Per-Video Amount × 0.04
+Stripe Fee (3%) = Per-Video Amount × 0.03
+Creator Net Amount = Per-Video Amount - Platform Fee - Stripe Fee
+```
+
+**Retainer System Status:** ✅ **100% Complete** (12/12 features implemented)
 
 ---
 
@@ -1044,7 +1114,14 @@ jobs:
 
 ### Recent Updates (2025-11-04)
 
-**Latest Session Achievements (Session 4):**
+**Latest Session Achievements (Session 4 - Continued):**
+- ✅ **Fixed SelectItem empty value error** - Resolved Radix UI validation error in admin audit logs page
+  - **Issue:** SelectItem components don't allow empty string values (`value=""`)
+  - **Fix:** Changed filter selects to use `undefined` for placeholder state instead of empty strings
+  - **Files:** client/src/pages/admin-audit-logs.tsx (lines 94-124)
+  - **Result:** Audit logs page now loads without errors, filters work correctly
+
+**Session 4 Initial Achievements:**
 - ✅ **Implemented admin audit trail** - Complete audit logging system with comprehensive tracking of all admin actions (approve company, reject offer, suspend user, update settings, etc.)
   - **Backend:** auditLogs table with userId, action, entityType, entityId, changes (JSONB), reason, ipAddress, userAgent, timestamp
   - **Backend:** Audit service (auditLog.ts) with logAuditAction() function and predefined action/entity constants
@@ -1097,10 +1174,10 @@ jobs:
 - ✅ Sidebar auto-close on mobile
 - ✅ **Fraud detection system** (rate limiting, bot detection, suspicious patterns)
 
-**Files Changed (Session 4):** 13 files total
+**Files Changed (Session 4):** 14 files total
 - **Backend Modified:** 3 files (shared/schema.ts, server/storage.ts, server/routes.ts)
 - **Backend New:** 1 file (server/auditLog.ts)
-- **Frontend Modified:** 2 files (client/src/App.tsx, client/src/components/app-sidebar.tsx)
+- **Frontend Modified:** 3 files (client/src/App.tsx, client/src/components/app-sidebar.tsx, client/src/pages/admin-audit-logs.tsx)
 - **Frontend New:** 2 files (client/src/pages/admin-audit-logs.tsx, client/src/pages/admin-platform-settings.tsx)
 - **Database:** 3 migration files (check-users-id-type.sql, add-audit-and-settings.sql, add-audit-and-settings-uuid.sql)
 - **Documentation:** 1 file (REQUIREMENTS_CHECKLIST.md)
@@ -1112,6 +1189,10 @@ jobs:
 - 5 new API endpoints for audit logs and settings
 - 2 new database tables (audit_logs, platform_settings)
 - 2 new admin pages with advanced UI
+- Fixed SelectItem validation error in audit logs filters
+
+**Bug Fixes:**
+- Resolved Radix UI SelectItem empty value error in audit logs page
 
 **Completion:** 88% → **90%** (+2%)
 
