@@ -1116,6 +1116,18 @@ jobs:
 ### Recent Updates (2025-11-04)
 
 **Latest Session Achievements (Session 4 - Continued):**
+- ✅ **Fixed retainer video upload folder organization** - Retainer videos now save to dedicated 'retainer' folder in Cloudinary
+  - **Issue:** All videos (offers + retainers) were saving to the same default folder, making organization difficult
+  - **Fix:** Added folder parameter support to upload endpoint and object storage service
+  - **Backend Changes:**
+    - `server/routes.ts:1619-1624` - Updated `/api/objects/upload` to accept optional `folder` parameter in request body
+    - `server/objectStorage.ts:38-75` - Added `customFolder` parameter to `getObjectEntityUploadURL()` method
+  - **Frontend Changes:**
+    - `client/src/pages/creator-retainer-detail.tsx:83-94` - Updated `handleGetUploadUrl()` to pass `{ folder: "retainer" }`
+  - **Result:** Retainer videos now upload to `retainer/` folder, separate from offer videos
+- ✅ **Added Improvements column to requirements checklist** - New column tracks what needs to be changed or improved
+  - **Location:** Monthly Retainer System section (1.1) Implementation Details table
+  - **Purpose:** Track ongoing improvements and recent fixes for better project visibility
 - ✅ **Fixed SelectItem empty value error** - Resolved Radix UI validation error in admin audit logs page
   - **Issue:** SelectItem components don't allow empty string values (`value=""`)
   - **Fix:** Changed filter selects to use `undefined` for placeholder state instead of empty strings
@@ -1175,13 +1187,13 @@ jobs:
 - ✅ Sidebar auto-close on mobile
 - ✅ **Fraud detection system** (rate limiting, bot detection, suspicious patterns)
 
-**Files Changed (Session 4):** 14 files total
-- **Backend Modified:** 3 files (shared/schema.ts, server/storage.ts, server/routes.ts)
+**Files Changed (Session 4):** 15 files total
+- **Backend Modified:** 4 files (shared/schema.ts, server/storage.ts, server/routes.ts, server/objectStorage.ts)
 - **Backend New:** 1 file (server/auditLog.ts)
-- **Frontend Modified:** 3 files (client/src/App.tsx, client/src/components/app-sidebar.tsx, client/src/pages/admin-audit-logs.tsx)
+- **Frontend Modified:** 4 files (client/src/App.tsx, client/src/components/app-sidebar.tsx, client/src/pages/admin-audit-logs.tsx, client/src/pages/creator-retainer-detail.tsx)
 - **Frontend New:** 2 files (client/src/pages/admin-audit-logs.tsx, client/src/pages/admin-platform-settings.tsx)
 - **Database:** 3 migration files (check-users-id-type.sql, add-audit-and-settings.sql, add-audit-and-settings-uuid.sql)
-- **Documentation:** 1 file (REQUIREMENTS_CHECKLIST.md)
+- **Documentation:** 1 file (REQUIREMENTS_CHECKLIST.md - added Improvements column)
 - **Debug Logging:** 1 file (client/src/pages/settings.tsx - for niches save issue)
 
 **New Features:**
@@ -1190,10 +1202,12 @@ jobs:
 - 5 new API endpoints for audit logs and settings
 - 2 new database tables (audit_logs, platform_settings)
 - 2 new admin pages with advanced UI
-- Fixed SelectItem validation error in audit logs filters
+- Dynamic folder support for Cloudinary uploads
+- Improvements tracking column in checklist
 
 **Bug Fixes:**
-- Resolved Radix UI SelectItem empty value error in audit logs page
+- ✅ Fixed retainer video upload folder organization (now saves to 'retainer/' folder)
+- ✅ Resolved Radix UI SelectItem empty value error in audit logs page
 
 **Completion:** 88% → **90%** (+2%)
 
