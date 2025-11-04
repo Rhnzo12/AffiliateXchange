@@ -62,7 +62,7 @@
 | Payment Automation | ✅ | Auto-created on deliverable approval with fee calculation | None |
 | Multi-Creator Support | ✅ | Companies can hire multiple creators per contract | None |
 | Status Tracking | ✅ | Real-time tracking of contract and deliverable status | None |
-| Video Upload System | ✅ | Cloudinary integration with folder organization | ✅ **FIXED & VERIFIED (2025-11-04):** Retainer upload working with direct FormData upload. Folder organization tested - Offer videos → `videos/`, Retainer videos → `retainer/` ✓ |
+| Video Upload System | ✅ | Cloudinary integration with folder organization | ✅ **FIXED (2025-11-04):** Retainer upload uses signed uploads to bypass preset folder override. Offer videos → `videos/` (preset), Retainer videos → `retainer/` (signed) |
 
 ### API Endpoints (11 total):
 
@@ -1116,6 +1116,19 @@ jobs:
 ### Recent Updates (2025-11-04)
 
 **Latest Session Achievements (Session 4 - Continued):**
+- ✅ **Fixed retainer video upload folder issue** - Upload preset was overriding folder parameter
+  - **Issue:** Upload preset `creatorlink-videos` has pre-configured folder in Cloudinary that overrides runtime folder parameter
+  - **Root Cause:** When using upload presets, Cloudinary preset configuration takes precedence over FormData folder parameter
+  - **Fix:** Modified upload logic to use signed uploads (not presets) when custom folder is specified
+  - **Changes:**
+    - `server/objectStorage.ts:38-102` - Added conditional logic to choose upload method
+    - When `customFolder` is provided → Use SIGNED upload (signature + timestamp + api_key)
+    - When default folder → Use PRESET upload (upload_preset)
+    - Added debug logging to track upload method selection
+  - **Result:**
+    - Retainer uploads now use signed uploads → Videos save to `retainer/` folder
+    - Offer uploads continue using preset → Videos save to `videos/` folder
+    - Folder parameters are now properly respected
 - ✅ **Fixed retainer video upload process** - Replaced CloudinaryUploader with direct upload matching offer upload flow
   - **Issue:** Retainer video upload was not working - used complex CloudinaryUploader component with Uppy library
   - **Fix:** Replaced with simple, direct FormData upload identical to offer video upload process
@@ -1225,6 +1238,7 @@ jobs:
 - Improvements tracking column in checklist
 
 **Bug Fixes:**
+- ✅ Fixed retainer video upload folder issue (upload preset override - now uses signed uploads)
 - ✅ Fixed retainer video upload not working (replaced CloudinaryUploader with direct FormData upload)
 - ✅ Implemented complete video folder organization (offers in `videos/`, retainers in `retainer/`)
 - ✅ Resolved Radix UI SelectItem empty value error in audit logs page
