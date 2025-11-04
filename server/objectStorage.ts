@@ -35,7 +35,7 @@ export class ObjectStorageService {
     return process.env.CLOUDINARY_UPLOAD_PRESET || "";
   }
 
-  async getObjectEntityUploadURL(): Promise<{
+  async getObjectEntityUploadURL(customFolder?: string): Promise<{
     uploadUrl: string;
     uploadPreset?: string;
     signature?: string;
@@ -44,7 +44,7 @@ export class ObjectStorageService {
     folder?: string;
   }> {
     const timestamp = Math.round(Date.now() / 1000);
-    const folder = this.getCloudinaryFolder();
+    const folder = customFolder || this.getCloudinaryFolder();
     const uploadPreset = this.getCloudinaryUploadPreset();
 
     if (uploadPreset) {

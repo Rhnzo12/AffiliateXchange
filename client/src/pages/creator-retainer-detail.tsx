@@ -84,6 +84,10 @@ export default function CreatorRetainerDetail() {
     const response = await fetch("/api/objects/upload", {
       method: "POST",
       credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ folder: "retainer" }), // Save retainer videos in 'retainer' folder
     });
     const data = await response.json();
     return data; // Returns Cloudinary upload parameters
