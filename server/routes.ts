@@ -1619,7 +1619,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
     const objectStorageService = new ObjectStorageService();
     const folder = req.body.folder || undefined; // Optional folder parameter
+    console.log('[Upload API] Requested folder:', req.body.folder);
+    console.log('[Upload API] Folder parameter passed to service:', folder);
     const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder);
+    console.log('[Upload API] Upload params returned:', uploadParams);
     res.json(uploadParams);
   });
 

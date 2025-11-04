@@ -108,6 +108,8 @@ export default function CreatorRetainerDetail() {
       });
       const uploadData = await uploadResponse.json();
 
+      console.log('[Retainer Upload] Upload parameters received:', uploadData);
+
       // Create FormData for Cloudinary upload
       const formData = new FormData();
       formData.append('file', file);
@@ -123,7 +125,10 @@ export default function CreatorRetainerDetail() {
 
       if (uploadData.folder) {
         formData.append('folder', uploadData.folder);
+        console.log('[Retainer Upload] Folder parameter set to:', uploadData.folder);
       }
+
+      console.log('[Retainer Upload] FormData entries:', Array.from(formData.entries()));
 
       // Upload video to Cloudinary
       const uploadResult = await fetch(uploadData.uploadUrl, {
@@ -133,7 +138,9 @@ export default function CreatorRetainerDetail() {
 
       if (uploadResult.ok) {
         const cloudinaryResponse = await uploadResult.json();
+        console.log('[Retainer Upload] Cloudinary response:', cloudinaryResponse);
         const uploadedVideoUrl = cloudinaryResponse.secure_url;
+        console.log('[Retainer Upload] Final video URL:', uploadedVideoUrl);
 
         setVideoUrl(uploadedVideoUrl);
         setIsUploading(false);
