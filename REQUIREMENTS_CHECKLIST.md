@@ -62,7 +62,7 @@
 | Payment Automation | ✅ | Auto-created on deliverable approval with fee calculation | None |
 | Multi-Creator Support | ✅ | Companies can hire multiple creators per contract | None |
 | Status Tracking | ✅ | Real-time tracking of contract and deliverable status | None |
-| Video Upload System | ✅ | Cloudinary integration with folder organization | ✅ **FIXED (2025-11-04):** Complete folder organization - Offer videos → `videos/`, Retainer videos → `retainer/` |
+| Video Upload System | ✅ | Cloudinary integration with folder organization | ✅ **FIXED (2025-11-04):** Retainer upload rewritten with direct FormData upload. Folder organization - Offer videos → `videos/`, Retainer videos → `retainer/` |
 
 ### API Endpoints (11 total):
 
@@ -1116,6 +1116,19 @@ jobs:
 ### Recent Updates (2025-11-04)
 
 **Latest Session Achievements (Session 4 - Continued):**
+- ✅ **Fixed retainer video upload process** - Replaced CloudinaryUploader with direct upload matching offer upload flow
+  - **Issue:** Retainer video upload was not working - used complex CloudinaryUploader component with Uppy library
+  - **Fix:** Replaced with simple, direct FormData upload identical to offer video upload process
+  - **Changes:**
+    - Removed CloudinaryUploader component dependency from retainer upload
+    - Added direct file input with ref and FormData upload
+    - Simplified upload to use same flow as offers (fetch → FormData → Cloudinary)
+    - Added upload progress state with visual feedback
+    - File validation (max 500MB)
+  - **Result:**
+    - Retainer video upload now works reliably
+    - Simplified upload UX with clear progress indicators
+    - Bundle size reduced: 1,420 kB → 1,226 kB (-194 kB)
 - ✅ **Implemented complete video folder organization** - All videos now properly organized in Cloudinary by type
   - **Issue:** All videos (offers + retainers) were saving to the same default folder, making organization and management difficult
   - **Fix:** Added dynamic folder parameter support to upload endpoint and updated all video upload locations
@@ -1125,7 +1138,7 @@ jobs:
   - **Frontend Changes:**
     - `client/src/pages/company-offer-create.tsx` - Updated 3 upload calls (video + thumbnails) to use `{ folder: "videos" }`
     - `client/src/pages/company-offer-detail.tsx` - Updated 2 upload calls (video + thumbnail) to use `{ folder: "videos" }`
-    - `client/src/pages/creator-retainer-detail.tsx` - Updated upload call to use `{ folder: "retainer" }`
+    - `client/src/pages/creator-retainer-detail.tsx` - Completely rewrote upload to use direct FormData with `{ folder: "retainer" }`
   - **Result:**
     - **Offer videos & thumbnails** → `videos/` folder
     - **Retainer videos** → `retainer/` folder
@@ -1212,6 +1225,7 @@ jobs:
 - Improvements tracking column in checklist
 
 **Bug Fixes:**
+- ✅ Fixed retainer video upload not working (replaced CloudinaryUploader with direct FormData upload)
 - ✅ Implemented complete video folder organization (offers in `videos/`, retainers in `retainer/`)
 - ✅ Resolved Radix UI SelectItem empty value error in audit logs page
 

@@ -29,13 +29,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { DollarSign, Video, Calendar, ArrowLeft, Upload, Play, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
-import { CloudinaryUploader } from "@/components/CloudinaryUploader";
-import { Label } from "@/components/ui/label";
 
 const uploadDeliverableSchema = z.object({
   platformUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
@@ -54,6 +52,8 @@ export default function CreatorRetainerDetail() {
   const contractId = params?.id;
   const [open, setOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: contract, isLoading } = useQuery<any>({
     queryKey: ["/api/retainer-contracts", contractId],
@@ -80,27 +80,78 @@ export default function CreatorRetainerDetail() {
     },
   });
 
-  const handleGetUploadUrl = async () => {
-    const response = await fetch("/api/objects/upload", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ folder: "retainer" }), // Save retainer videos in 'retainer' folder
-    });
-    const data = await response.json();
-    return data; // Returns Cloudinary upload parameters
-  };
+  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const handleUploadComplete = (result: any) => {
-    if (result.successful && result.successful[0]) {
-      // Cloudinary returns the secure URL in the response
-      const uploadedUrl = result.successful[0].response?.body?.uploadURL || result.successful[0].uploadURL;
-      setVideoUrl(uploadedUrl);
+    // Validate file size (max 500MB)
+    if (file.size > 500 * 1024 * 1024) {
       toast({
-        title: "Video Uploaded",
-        description: "Video file uploaded successfully to Cloudinary. Now fill in the details.",
+        title: "File Too Large",
+        description: "Video file must be less than 500MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Get Cloudinary upload parameters
+      const uploadResponse = await fetch("/api/objects/upload", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ folder: "retainer" }), // Save retainer videos in 'retainer' folder
+      });
+      const uploadData = await uploadResponse.json();
+
+      // Create FormData for Cloudinary upload
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Add Cloudinary parameters
+      if (uploadData.uploadPreset) {
+        formData.append('upload_preset', uploadData.uploadPreset);
+      } else if (uploadData.signature) {
+        formData.append('signature', uploadData.signature);
+        formData.append('timestamp', uploadData.timestamp.toString());
+        formData.append('api_key', uploadData.apiKey);
+      }
+
+      if (uploadData.folder) {
+        formData.append('folder', uploadData.folder);
+      }
+
+      // Upload video to Cloudinary
+      const uploadResult = await fetch(uploadData.uploadUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (uploadResult.ok) {
+        const cloudinaryResponse = await uploadResult.json();
+        const uploadedVideoUrl = cloudinaryResponse.secure_url;
+
+        setVideoUrl(uploadedVideoUrl);
+        setIsUploading(false);
+
+        toast({
+          title: "Success!",
+          description: "Video uploaded successfully. Fill in the details below.",
+        });
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      console.error("Video upload error:", error);
+      setIsUploading(false);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload video. Please try again.",
+        variant: "destructive",
       });
     }
   };
@@ -292,24 +343,49 @@ export default function CreatorRetainerDetail() {
                   />
 
                   <div className="space-y-2">
-                    <Label>Video File</Label>
-                    <CloudinaryUploader
-                      maxNumberOfFiles={1}
-                      maxFileSize={524288000}
-                      onGetUploadParameters={handleGetUploadUrl}
-                      onComplete={handleUploadComplete}
-                      allowedFileTypes={['video/*']}
+                    <label className="block text-sm font-medium mb-2">
+                      Video File
+                    </label>
+                    <input
+                      type="file"
+                      ref={videoInputRef}
+                      accept="video/*"
+                      onChange={handleVideoUpload}
+                      disabled={isUploading}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => videoInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="w-full"
                     >
-                      {videoUrl ? "Video Uploaded ✓" : "Upload Video File"}
-                    </CloudinaryUploader>
+                      {isUploading ? (
+                        <>
+                          <Upload className="h-4 w-4 mr-2 animate-pulse" />
+                          Uploading...
+                        </>
+                      ) : videoUrl ? (
+                        <>
+                          <Video className="h-4 w-4 mr-2" />
+                          Video Uploaded ✓
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Choose Video File
+                        </>
+                      )}
+                    </Button>
                     {videoUrl && (
-                      <p className="text-xs text-muted-foreground">
-                        Video uploaded successfully
+                      <p className="text-xs text-green-600">
+                        ✓ Video uploaded successfully
                       </p>
                     )}
                     {!videoUrl && (
                       <p className="text-xs text-muted-foreground">
-                        Click to upload your video file (max 500MB)
+                        Select your video file (max 500MB)
                       </p>
                     )}
                   </div>
