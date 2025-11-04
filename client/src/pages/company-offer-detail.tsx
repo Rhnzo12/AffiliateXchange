@@ -201,6 +201,10 @@ export default function CompanyOfferDetail() {
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ folder: "videos" }), // Save offer videos in 'videos' folder
       });
       const uploadData = await uploadResponse.json();
 
@@ -244,6 +248,10 @@ export default function CompanyOfferDetail() {
           const thumbUploadResponse = await fetch("/api/objects/upload", {
             method: "POST",
             credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ folder: "videos" }), // Save thumbnails in 'videos' folder
           });
           const thumbUploadData = await thumbUploadResponse.json();
 

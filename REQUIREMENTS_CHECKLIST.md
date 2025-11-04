@@ -62,7 +62,7 @@
 | Payment Automation | ✅ | Auto-created on deliverable approval with fee calculation | None |
 | Multi-Creator Support | ✅ | Companies can hire multiple creators per contract | None |
 | Status Tracking | ✅ | Real-time tracking of contract and deliverable status | None |
-| Video Upload System | ✅ | Cloudinary integration with folder organization | ✅ **FIXED (2025-11-04):** Retainer videos now save to dedicated 'retainer' folder |
+| Video Upload System | ✅ | Cloudinary integration with folder organization | ✅ **FIXED (2025-11-04):** Complete folder organization - Offer videos → `videos/`, Retainer videos → `retainer/` |
 
 ### API Endpoints (11 total):
 
@@ -1116,15 +1116,20 @@ jobs:
 ### Recent Updates (2025-11-04)
 
 **Latest Session Achievements (Session 4 - Continued):**
-- ✅ **Fixed retainer video upload folder organization** - Retainer videos now save to dedicated 'retainer' folder in Cloudinary
-  - **Issue:** All videos (offers + retainers) were saving to the same default folder, making organization difficult
-  - **Fix:** Added folder parameter support to upload endpoint and object storage service
+- ✅ **Implemented complete video folder organization** - All videos now properly organized in Cloudinary by type
+  - **Issue:** All videos (offers + retainers) were saving to the same default folder, making organization and management difficult
+  - **Fix:** Added dynamic folder parameter support to upload endpoint and updated all video upload locations
   - **Backend Changes:**
     - `server/routes.ts:1619-1624` - Updated `/api/objects/upload` to accept optional `folder` parameter in request body
     - `server/objectStorage.ts:38-75` - Added `customFolder` parameter to `getObjectEntityUploadURL()` method
   - **Frontend Changes:**
-    - `client/src/pages/creator-retainer-detail.tsx:83-94` - Updated `handleGetUploadUrl()` to pass `{ folder: "retainer" }`
-  - **Result:** Retainer videos now upload to `retainer/` folder, separate from offer videos
+    - `client/src/pages/company-offer-create.tsx` - Updated 3 upload calls (video + thumbnails) to use `{ folder: "videos" }`
+    - `client/src/pages/company-offer-detail.tsx` - Updated 2 upload calls (video + thumbnail) to use `{ folder: "videos" }`
+    - `client/src/pages/creator-retainer-detail.tsx` - Updated upload call to use `{ folder: "retainer" }`
+  - **Result:**
+    - **Offer videos & thumbnails** → `videos/` folder
+    - **Retainer videos** → `retainer/` folder
+    - Clean separation for better file management and organization
 - ✅ **Added Improvements column to requirements checklist** - New column tracks what needs to be changed or improved
   - **Location:** Monthly Retainer System section (1.1) Implementation Details table
   - **Purpose:** Track ongoing improvements and recent fixes for better project visibility
@@ -1187,10 +1192,10 @@ jobs:
 - ✅ Sidebar auto-close on mobile
 - ✅ **Fraud detection system** (rate limiting, bot detection, suspicious patterns)
 
-**Files Changed (Session 4):** 15 files total
+**Files Changed (Session 4):** 17 files total
 - **Backend Modified:** 4 files (shared/schema.ts, server/storage.ts, server/routes.ts, server/objectStorage.ts)
 - **Backend New:** 1 file (server/auditLog.ts)
-- **Frontend Modified:** 4 files (client/src/App.tsx, client/src/components/app-sidebar.tsx, client/src/pages/admin-audit-logs.tsx, client/src/pages/creator-retainer-detail.tsx)
+- **Frontend Modified:** 6 files (client/src/App.tsx, client/src/components/app-sidebar.tsx, client/src/pages/admin-audit-logs.tsx, client/src/pages/creator-retainer-detail.tsx, client/src/pages/company-offer-create.tsx, client/src/pages/company-offer-detail.tsx)
 - **Frontend New:** 2 files (client/src/pages/admin-audit-logs.tsx, client/src/pages/admin-platform-settings.tsx)
 - **Database:** 3 migration files (check-users-id-type.sql, add-audit-and-settings.sql, add-audit-and-settings-uuid.sql)
 - **Documentation:** 1 file (REQUIREMENTS_CHECKLIST.md - added Improvements column)
@@ -1203,10 +1208,11 @@ jobs:
 - 2 new database tables (audit_logs, platform_settings)
 - 2 new admin pages with advanced UI
 - Dynamic folder support for Cloudinary uploads
+- Complete video folder organization (offers → `videos/`, retainers → `retainer/`)
 - Improvements tracking column in checklist
 
 **Bug Fixes:**
-- ✅ Fixed retainer video upload folder organization (now saves to 'retainer/' folder)
+- ✅ Implemented complete video folder organization (offers in `videos/`, retainers in `retainer/`)
 - ✅ Resolved Radix UI SelectItem empty value error in audit logs page
 
 **Completion:** 88% → **90%** (+2%)
