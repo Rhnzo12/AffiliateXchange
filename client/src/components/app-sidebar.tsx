@@ -38,6 +38,8 @@ import {
   LogOut,
   Video,
   CalendarClock,
+  ScrollText,
+  Sliders,
 } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
 
@@ -179,6 +181,16 @@ export function AppSidebar() {
       title: "Payment Management",
       url: "/admin/payment-settings",
       icon: DollarSign,
+    },
+    {
+      title: "Audit Trail",
+      url: "/admin/audit-logs",
+      icon: ScrollText,
+    },
+    {
+      title: "Platform Settings",
+      url: "/admin/platform-settings",
+      icon: Sliders,
     },
   ];
 
