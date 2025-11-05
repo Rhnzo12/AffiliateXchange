@@ -16,9 +16,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { DollarSign, Video, Calendar, Briefcase, CheckCircle, XCircle, Clock, ExternalLink } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { DollarSign, Video, Calendar, Briefcase, CheckCircle, XCircle, Clock, ExternalLink, Play } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
+import { VideoPlayer } from "@/components/VideoPlayer";
+import { format } from "date-fns";
 
 export default function CompanyRetainerDetail() {
   const [, params] = useRoute("/company/retainers/:id");
@@ -27,6 +31,10 @@ export default function CompanyRetainerDetail() {
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedDeliverable, setSelectedDeliverable] = useState<any>(null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewAction, setReviewAction] = useState<'approve' | 'reject' | 'request_revision' | null>(null);
+  const [reviewNotes, setReviewNotes] = useState("");
 
   // Use the correct API endpoint - /api/retainer-contracts/:id (not /api/company/retainer-contracts/:id)
   const { data: contract, isLoading, error } = useQuery<any>({
@@ -38,6 +46,12 @@ export default function CompanyRetainerDetail() {
   const { data: applications } = useQuery<any[]>({
     queryKey: [`/api/retainer-contracts/${contractId}/applications`],
     enabled: !!contractId,
+  });
+
+  // Fetch deliverables if contract is assigned
+  const { data: deliverables } = useQuery<any[]>({
+    queryKey: [`/api/retainer-contracts/${contractId}/deliverables`],
+    enabled: !!contractId && (contract?.status === 'in_progress' || !!contract?.assignedCreatorId),
   });
 
   const approveMutation = useMutation({
@@ -96,6 +110,139 @@ export default function CompanyRetainerDetail() {
   const handleReject = (application: any) => {
     setSelectedApplication(application);
     setRejectDialogOpen(true);
+  };
+
+  // Deliverable review mutations
+  const approveDeliverableMutation = useMutation({
+    mutationFn: async (data: { deliverableId: string; reviewNotes?: string }) => {
+      return await apiRequest("PATCH", `/api/company/retainer-deliverables/${data.deliverableId}/approve`, {
+        reviewNotes: data.reviewNotes,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/retainer-contracts/${contractId}/deliverables`] });
+      toast({
+        title: "Deliverable Approved",
+        description: "The deliverable has been approved and payment has been processed.",
+      });
+      setReviewDialogOpen(false);
+      setSelectedDeliverable(null);
+      setReviewNotes("");
+      setReviewAction(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve deliverable",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectDeliverableMutation = useMutation({
+    mutationFn: async (data: { deliverableId: string; reviewNotes: string }) => {
+      return await apiRequest("PATCH", `/api/company/retainer-deliverables/${data.deliverableId}/reject`, {
+        reviewNotes: data.reviewNotes,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/retainer-contracts/${contractId}/deliverables`] });
+      toast({
+        title: "Deliverable Rejected",
+        description: "The creator has been notified of the rejection.",
+      });
+      setReviewDialogOpen(false);
+      setSelectedDeliverable(null);
+      setReviewNotes("");
+      setReviewAction(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject deliverable",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const requestRevisionMutation = useMutation({
+    mutationFn: async (data: { deliverableId: string; reviewNotes: string }) => {
+      return await apiRequest("PATCH", `/api/company/retainer-deliverables/${data.deliverableId}/request-revision`, {
+        reviewNotes: data.reviewNotes,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/retainer-contracts/${contractId}/deliverables`] });
+      toast({
+        title: "Revision Requested",
+        description: "The creator has been notified to revise the deliverable.",
+      });
+      setReviewDialogOpen(false);
+      setSelectedDeliverable(null);
+      setReviewNotes("");
+      setReviewAction(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to request revision",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleReviewDeliverable = (deliverable: any, action: 'approve' | 'reject' | 'request_revision') => {
+    setSelectedDeliverable(deliverable);
+    setReviewAction(action);
+    setReviewDialogOpen(true);
+  };
+
+  const handleSubmitReview = () => {
+    if (!selectedDeliverable || !reviewAction) return;
+
+    const data = {
+      deliverableId: selectedDeliverable.id,
+      reviewNotes: reviewNotes.trim(),
+    };
+
+    if (reviewAction === 'approve') {
+      approveDeliverableMutation.mutate(data);
+    } else if (reviewAction === 'reject') {
+      if (!reviewNotes.trim()) {
+        toast({
+          title: "Review Notes Required",
+          description: "Please provide a reason for rejection",
+          variant: "destructive",
+        });
+        return;
+      }
+      rejectDeliverableMutation.mutate(data as { deliverableId: string; reviewNotes: string });
+    } else if (reviewAction === 'request_revision') {
+      if (!reviewNotes.trim()) {
+        toast({
+          title: "Review Notes Required",
+          description: "Please provide revision instructions",
+          variant: "destructive",
+        });
+        return;
+      }
+      requestRevisionMutation.mutate(data as { deliverableId: string; reviewNotes: string });
+    }
+  };
+
+  const getDeliverableStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending_review":
+        return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Pending Review</Badge>;
+      case "approved":
+        return <Badge className="bg-green-500 hover:bg-green-600"><CheckCircle className="h-3 w-3 mr-1" />Approved</Badge>;
+      case "revision_requested":
+        return <Badge variant="default"><Clock className="h-3 w-3 mr-1" />Revision Requested</Badge>;
+      case "rejected":
+        return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Rejected</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -390,6 +537,202 @@ export default function CompanyRetainerDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Deliverables Section - Only show if contract is assigned */}
+      {isContractAssigned && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Submitted Deliverables</CardTitle>
+              <Badge variant="outline">
+                {deliverables?.length || 0} Video{deliverables?.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {!deliverables || deliverables.length === 0 ? (
+              <div className="text-center py-12">
+                <Video className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No deliverables submitted yet</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {deliverables.map((deliverable: any) => (
+                  <Card key={deliverable.id} className="border-card-border">
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <CardTitle className="text-base">{deliverable.title}</CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            Month {deliverable.monthNumber} - Video #{deliverable.videoNumber}
+                          </p>
+                        </div>
+                        {getDeliverableStatusBadge(deliverable.status)}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {deliverable.description && (
+                        <p className="text-sm text-muted-foreground">
+                          {deliverable.description}
+                        </p>
+                      )}
+
+                      {/* Video Player */}
+                      <div className="rounded-lg overflow-hidden">
+                        <VideoPlayer
+                          videoUrl={deliverable.videoUrl}
+                          className="w-full aspect-video"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 flex-wrap">
+                        {deliverable.platformUrl && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(deliverable.platformUrl, "_blank")}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            View on Platform
+                          </Button>
+                        )}
+                      </div>
+
+                      {deliverable.reviewNotes && (
+                        <div className="pt-3 border-t">
+                          <h4 className="font-semibold text-sm mb-1">Review Notes</h4>
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                            {deliverable.reviewNotes}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-3 border-t">
+                        <div className="text-xs text-muted-foreground">
+                          {deliverable.submittedAt && (
+                            <p>Submitted {format(new Date(deliverable.submittedAt), "MMM d, yyyy 'at' h:mm a")}</p>
+                          )}
+                          {deliverable.reviewedAt && (
+                            <p>Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}</p>
+                          )}
+                        </div>
+
+                        {deliverable.status === 'pending_review' && (
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleReviewDeliverable(deliverable, 'approve')}
+                              size="sm"
+                              className="bg-green-500 hover:bg-green-600"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Approve
+                            </Button>
+                            <Button
+                              onClick={() => handleReviewDeliverable(deliverable, 'request_revision')}
+                              size="sm"
+                              variant="secondary"
+                            >
+                              Request Revision
+                            </Button>
+                            <Button
+                              onClick={() => handleReviewDeliverable(deliverable, 'reject')}
+                              size="sm"
+                              variant="destructive"
+                            >
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Deliverable Review Dialog */}
+      <AlertDialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {reviewAction === 'approve' && 'Approve Deliverable'}
+              {reviewAction === 'reject' && 'Reject Deliverable'}
+              {reviewAction === 'request_revision' && 'Request Revision'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {reviewAction === 'approve' && (
+                <>
+                  Are you sure you want to approve this deliverable? Payment will be automatically calculated and processed.
+                </>
+              )}
+              {reviewAction === 'reject' && (
+                <>
+                  Please provide a reason for rejecting this deliverable. The creator will be notified.
+                </>
+              )}
+              {reviewAction === 'request_revision' && (
+                <>
+                  Please provide specific instructions for the revision. The creator will be notified to resubmit.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder={
+                reviewAction === 'approve'
+                  ? "Optional: Add notes about the approval"
+                  : reviewAction === 'reject'
+                  ? "Required: Explain why this deliverable is being rejected"
+                  : "Required: Provide specific revision instructions"
+              }
+              value={reviewNotes}
+              onChange={(e) => setReviewNotes(e.target.value)}
+              rows={4}
+              className="w-full"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setReviewDialogOpen(false);
+              setReviewNotes("");
+              setReviewAction(null);
+              setSelectedDeliverable(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSubmitReview}
+              disabled={
+                approveDeliverableMutation.isPending ||
+                rejectDeliverableMutation.isPending ||
+                requestRevisionMutation.isPending
+              }
+              className={
+                reviewAction === 'approve'
+                  ? "bg-green-500 hover:bg-green-600"
+                  : reviewAction === 'reject'
+                  ? "bg-destructive hover:bg-destructive/90"
+                  : ""
+              }
+            >
+              {approveDeliverableMutation.isPending ||
+              rejectDeliverableMutation.isPending ||
+              requestRevisionMutation.isPending
+                ? "Processing..."
+                : reviewAction === 'approve'
+                ? "Approve & Process Payment"
+                : reviewAction === 'reject'
+                ? "Reject Deliverable"
+                : "Request Revision"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Approve Confirmation Dialog */}
       <AlertDialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>

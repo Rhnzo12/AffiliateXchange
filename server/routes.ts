@@ -2127,9 +2127,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const contract = await storage.getRetainerContract(deliverable.contractId);
       if (!contract || contract.companyId !== companyProfile.id) return res.status(403).send("Forbidden");
       if (!req.body.reviewNotes) return res.status(400).send("Review notes required");
+
       const rejected = await storage.rejectRetainerDeliverable(req.params.id, req.body.reviewNotes);
+
+      // 🆕 SEND NOTIFICATION TO CREATOR ABOUT REJECTION
+      const creator = await storage.getUserById(deliverable.creatorId);
+      if (creator) {
+        await notificationService.sendNotification(
+          deliverable.creatorId,
+          'deliverable_rejected',
+          'Deliverable Rejected',
+          `Your deliverable for "${contract.title}" (Month ${deliverable.monthNumber}, Video #${deliverable.videoNumber}) has been rejected. Please review the feedback.`,
+          {
+            userName: creator.firstName || creator.username,
+            contractTitle: contract.title,
+            reason: req.body.reviewNotes,
+            linkUrl: `/retainers/${contract.id}`,
+          }
+        );
+        console.log(`[Notification] Sent deliverable rejection notification to creator ${creator.username}`);
+      }
+
       res.json(rejected);
     } catch (error: any) {
+      console.error('[Reject Deliverable] Error:', error);
       res.status(500).send(error.message);
     }
   });
@@ -2145,9 +2166,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const contract = await storage.getRetainerContract(deliverable.contractId);
       if (!contract || contract.companyId !== companyProfile.id) return res.status(403).send("Forbidden");
       if (!req.body.reviewNotes) return res.status(400).send("Review notes required");
+
       const revised = await storage.requestRevision(req.params.id, req.body.reviewNotes);
+
+      // 🆕 SEND NOTIFICATION TO CREATOR ABOUT REVISION REQUEST
+      const creator = await storage.getUserById(deliverable.creatorId);
+      if (creator) {
+        await notificationService.sendNotification(
+          deliverable.creatorId,
+          'revision_requested',
+          'Revision Requested',
+          `A revision has been requested for your deliverable on "${contract.title}" (Month ${deliverable.monthNumber}, Video #${deliverable.videoNumber}). Please review the feedback and resubmit.`,
+          {
+            userName: creator.firstName || creator.username,
+            contractTitle: contract.title,
+            revisionInstructions: req.body.reviewNotes,
+            linkUrl: `/retainers/${contract.id}`,
+          }
+        );
+        console.log(`[Notification] Sent revision request notification to creator ${creator.username}`);
+      }
+
       res.json(revised);
     } catch (error: any) {
+      console.error('[Request Revision] Error:', error);
       res.status(500).send(error.message);
     }
   });
