@@ -39,7 +39,9 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'registration_approved',
   'registration_rejected',
   'work_completion_approval',
-  'priority_listing_expiring'
+  'priority_listing_expiring',
+  'deliverable_rejected',
+  'revision_requested'
 ]);
 
 // Session storage table (Required for Replit Auth)

@@ -559,91 +559,153 @@ export default function CompanyRetainerDetail() {
               <div className="space-y-6">
                 {deliverables.map((deliverable: any) => (
                   <Card key={deliverable.id} className="border-card-border">
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <CardTitle className="text-base">{deliverable.title}</CardTitle>
-                          <p className="text-sm text-muted-foreground">
-                            Month {deliverable.monthNumber} - Video #{deliverable.videoNumber}
-                          </p>
-                        </div>
-                        {getDeliverableStatusBadge(deliverable.status)}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {deliverable.description && (
-                        <p className="text-sm text-muted-foreground">
-                          {deliverable.description}
-                        </p>
-                      )}
-
-                      {/* Video Player */}
-                      <div className="rounded-lg overflow-hidden">
-                        <VideoPlayer
-                          videoUrl={deliverable.videoUrl}
-                          className="w-full aspect-video"
-                        />
-                      </div>
-
-                      <div className="flex gap-2 flex-wrap">
-                        {deliverable.platformUrl && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(deliverable.platformUrl, "_blank")}
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View on Platform
-                          </Button>
-                        )}
-                      </div>
-
-                      {deliverable.reviewNotes && (
-                        <div className="pt-3 border-t">
-                          <h4 className="font-semibold text-sm mb-1">Review Notes</h4>
-                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                            {deliverable.reviewNotes}
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between pt-3 border-t">
-                        <div className="text-xs text-muted-foreground">
-                          {deliverable.submittedAt && (
-                            <p>Submitted {format(new Date(deliverable.submittedAt), "MMM d, yyyy 'at' h:mm a")}</p>
-                          )}
-                          {deliverable.reviewedAt && (
-                            <p>Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}</p>
-                          )}
-                        </div>
-
-                        {deliverable.status === 'pending_review' && (
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={() => handleReviewDeliverable(deliverable, 'approve')}
-                              size="sm"
-                              className="bg-green-500 hover:bg-green-600"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Approve
-                            </Button>
-                            <Button
-                              onClick={() => handleReviewDeliverable(deliverable, 'request_revision')}
-                              size="sm"
-                              variant="secondary"
-                            >
-                              Request Revision
-                            </Button>
-                            <Button
-                              onClick={() => handleReviewDeliverable(deliverable, 'reject')}
-                              size="sm"
-                              variant="destructive"
-                            >
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Reject
-                            </Button>
+                    <CardContent className="pt-6">
+                      <div className="grid lg:grid-cols-[320px_1fr] gap-6">
+                        {/* Left Column: Video & Submitter */}
+                        <div className="space-y-3">
+                          {/* Video Thumbnail/Player */}
+                          <div className="rounded-lg overflow-hidden bg-black border-2 border-border">
+                            <VideoPlayer
+                              videoUrl={deliverable.videoUrl}
+                              className="w-full aspect-video"
+                            />
                           </div>
-                        )}
+
+                          {/* Submitter Info Card */}
+                          <Card className="bg-muted/30 border-muted">
+                            <CardContent className="p-4">
+                              <p className="text-xs font-medium text-muted-foreground uppercase mb-3">
+                                Submitted By
+                              </p>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-12 w-12 border-2 border-background">
+                                  <AvatarFallback className="text-base font-semibold">
+                                    {contract.assignedCreator?.firstName?.[0]}
+                                    {contract.assignedCreator?.lastName?.[0]}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold truncate">
+                                    {contract.assignedCreator?.firstName} {contract.assignedCreator?.lastName}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground truncate">
+                                    @{contract.assignedCreator?.username}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Submission Time */}
+                              {deliverable.submittedAt && (
+                                <div className="mt-3 pt-3 border-t border-border/50">
+                                  <p className="text-xs text-muted-foreground">
+                                    📅 {format(new Date(deliverable.submittedAt), "MMM d, yyyy")}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    🕐 {format(new Date(deliverable.submittedAt), "h:mm a")}
+                                  </p>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </div>
+
+                        {/* Right Column: Details & Actions */}
+                        <div className="space-y-4">
+                          {/* Header */}
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="text-xl font-bold">{deliverable.title}</h3>
+                                {getDeliverableStatusBadge(deliverable.status)}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Badge variant="outline" className="font-normal">
+                                  Month {deliverable.monthNumber}
+                                </Badge>
+                                <span>•</span>
+                                <Badge variant="outline" className="font-normal">
+                                  Video #{deliverable.videoNumber}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          {deliverable.description && (
+                            <div className="bg-muted/30 p-4 rounded-lg">
+                              <h4 className="font-semibold text-sm mb-2">Description</h4>
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                {deliverable.description}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Platform Link */}
+                          {deliverable.platformUrl && (
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(deliverable.platformUrl, "_blank")}
+                                className="w-full sm:w-auto"
+                              >
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                View on {contract.requiredPlatform || 'Platform'}
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Review Notes */}
+                          {deliverable.reviewNotes && (
+                            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-4 rounded-lg">
+                              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                                <span>📝</span> Review Notes
+                              </h4>
+                              <p className="text-sm text-foreground/80 whitespace-pre-wrap">
+                                {deliverable.reviewNotes}
+                              </p>
+                              {deliverable.reviewedAt && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          {deliverable.status === 'pending_review' && (
+                            <div className="pt-4 border-t">
+                              <p className="text-sm font-medium mb-3">Review Actions</p>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  onClick={() => handleReviewDeliverable(deliverable, 'approve')}
+                                  size="sm"
+                                  className="bg-green-500 hover:bg-green-600 flex-1 sm:flex-none"
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Approve & Pay
+                                </Button>
+                                <Button
+                                  onClick={() => handleReviewDeliverable(deliverable, 'request_revision')}
+                                  size="sm"
+                                  variant="secondary"
+                                  className="flex-1 sm:flex-none"
+                                >
+                                  Request Revision
+                                </Button>
+                                <Button
+                                  onClick={() => handleReviewDeliverable(deliverable, 'reject')}
+                                  size="sm"
+                                  variant="destructive"
+                                  className="flex-1 sm:flex-none"
+                                >
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Reject
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
