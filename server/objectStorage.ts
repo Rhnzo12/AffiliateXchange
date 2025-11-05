@@ -243,6 +243,39 @@ export class ObjectStorageService {
     }
   }
 
+  extractPublicIdFromUrl(cloudinaryUrl: string): string | null {
+    try {
+      if (!cloudinaryUrl.startsWith("https://res.cloudinary.com/")) {
+        return null;
+      }
+
+      const url = new URL(cloudinaryUrl);
+      const pathParts = url.pathname.split('/');
+
+      // Cloudinary URL format: /cloud_name/resource_type/upload/v{version}/folder/filename.ext
+      // We need to find the upload index and get everything after version
+      const uploadIndex = pathParts.indexOf('upload');
+      if (uploadIndex === -1) return null;
+
+      // Get parts after 'upload' and skip the version (vXXXXXXX)
+      const afterUpload = pathParts.slice(uploadIndex + 1);
+      const versionIndex = afterUpload.findIndex(part => part.startsWith('v') && /^v\d+$/.test(part));
+      const relevantParts = versionIndex >= 0 ? afterUpload.slice(versionIndex + 1) : afterUpload;
+
+      if (relevantParts.length === 0) return null;
+
+      // Join folder and filename, remove extension from last part
+      const publicIdWithExt = relevantParts.join('/');
+      const lastDotIndex = publicIdWithExt.lastIndexOf('.');
+      const publicId = lastDotIndex > 0 ? publicIdWithExt.substring(0, lastDotIndex) : publicIdWithExt;
+
+      return publicId;
+    } catch (error) {
+      console.error('[extractPublicIdFromUrl] Error parsing URL:', error);
+      return null;
+    }
+  }
+
   normalizeObjectEntityPath(rawPath: string): string {
     if (rawPath.startsWith("https://res.cloudinary.com/")) {
       const url = new URL(rawPath);

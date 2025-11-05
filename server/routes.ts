@@ -2059,6 +2059,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Creator: Resubmit deliverable (for revisions)
+  app.patch("/api/creator/retainer-deliverables/:id/resubmit", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const deliverable = await storage.getRetainerDeliverable(req.params.id);
+
+      if (!deliverable) return res.status(404).send("Deliverable not found");
+      if (deliverable.creatorId !== userId) return res.status(403).send("Forbidden");
+      if (deliverable.status !== 'revision_requested') {
+        return res.status(400).send("Can only resubmit deliverables with revision_requested status");
+      }
+
+      // Delete old video from Cloudinary
+      const oldVideoUrl = deliverable.videoUrl;
+      if (oldVideoUrl) {
+        try {
+          const publicId = objectStorage.extractPublicIdFromUrl(oldVideoUrl);
+          if (publicId) {
+            console.log(`[Resubmit] Deleting old video from Cloudinary: ${publicId}`);
+            await objectStorage.deleteVideo(publicId);
+            console.log(`[Resubmit] Successfully deleted old video`);
+          }
+        } catch (error) {
+          console.error(`[Resubmit] Error deleting old video:`, error);
+          // Continue even if deletion fails - we don't want to block the resubmission
+        }
+      }
+
+      // Update deliverable with new video and reset status to pending_review
+      const updated = await storage.updateRetainerDeliverable(req.params.id, {
+        videoUrl: req.body.videoUrl,
+        platformUrl: req.body.platformUrl,
+        title: req.body.title,
+        description: req.body.description,
+        status: 'pending_review',
+        submittedAt: new Date(),
+        reviewedAt: null,
+        reviewNotes: null,
+      });
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error('[Resubmit Deliverable] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Company: Approve deliverable
   app.patch("/api/company/retainer-deliverables/:id/approve", requireAuth, requireRole('company'), async (req, res) => {
     try {

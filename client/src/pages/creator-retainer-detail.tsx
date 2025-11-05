@@ -48,13 +48,18 @@ type UploadDeliverableForm = z.infer<typeof uploadDeliverableSchema>;
 
 export default function CreatorRetainerDetail() {
   const [, params] = useRoute("/retainers/:id");
-  const { toast } = useToast();
+  const { toast} = useToast();
   const { user } = useAuth();
   const contractId = params?.id;
   const [open, setOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const [resubmitOpen, setResubmitOpen] = useState(false);
+  const [selectedDeliverable, setSelectedDeliverable] = useState<any>(null);
+  const [resubmitVideoUrl, setResubmitVideoUrl] = useState("");
+  const [isResubmitUploading, setIsResubmitUploading] = useState(false);
+  const resubmitVideoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: contract, isLoading } = useQuery<any>({
     queryKey: ["/api/retainer-contracts", contractId],
@@ -201,6 +206,109 @@ export default function CreatorRetainerDetail() {
 
   const onSubmit = (data: UploadDeliverableForm) => {
     uploadMutation.mutate(data);
+  };
+
+  const resubmitForm = useForm<UploadDeliverableForm>({
+    resolver: zodResolver(uploadDeliverableSchema),
+  });
+
+  const handleResubmitVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsResubmitUploading(true);
+      const signatureResponse = await apiRequest("POST", "/api/upload/video-signature", {
+        folder: "retainer_deliverables",
+      });
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", signatureResponse.apiKey);
+      formData.append("timestamp", signatureResponse.timestamp.toString());
+      formData.append("signature", signatureResponse.signature);
+      formData.append("folder", signatureResponse.folder);
+      formData.append("upload_preset", signatureResponse.uploadPreset);
+
+      const uploadResult = await fetch(signatureResponse.uploadUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error("Failed to upload video");
+      }
+
+      const cloudinaryResponse = await uploadResult.json();
+      const uploadedVideoUrl = cloudinaryResponse.secure_url;
+
+      setResubmitVideoUrl(uploadedVideoUrl);
+      setIsResubmitUploading(false);
+      toast({
+        title: "Video Uploaded",
+        description: "Video uploaded successfully. Fill in the rest of the form to resubmit.",
+      });
+    } catch (error) {
+      console.error("Video upload error:", error);
+      setIsResubmitUploading(false);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload video. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resubmitMutation = useMutation({
+    mutationFn: async (data: UploadDeliverableForm) => {
+      if (!resubmitVideoUrl) {
+        throw new Error("Please upload a video file first");
+      }
+      if (!selectedDeliverable) {
+        throw new Error("No deliverable selected");
+      }
+      const payload = {
+        videoUrl: resubmitVideoUrl,
+        platformUrl: data.platformUrl || undefined,
+        title: data.title,
+        description: data.description || undefined,
+      };
+      return await apiRequest("PATCH", `/api/creator/retainer-deliverables/${selectedDeliverable.id}/resubmit`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/retainer-contracts", contractId, "deliverables"] });
+      toast({
+        title: "Revision Submitted",
+        description: "Your revised video has been submitted for review.",
+      });
+      setResubmitOpen(false);
+      resubmitForm.reset();
+      setResubmitVideoUrl("");
+      setSelectedDeliverable(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to resubmit deliverable",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onResubmit = (data: UploadDeliverableForm) => {
+    resubmitMutation.mutate(data);
+  };
+
+  const handleResubmitClick = (deliverable: any) => {
+    setSelectedDeliverable(deliverable);
+    resubmitForm.reset({
+      title: deliverable.title,
+      description: deliverable.description || "",
+      platformUrl: deliverable.platformUrl || "",
+      monthNumber: deliverable.monthNumber.toString(),
+      videoNumber: deliverable.videoNumber.toString(),
+    });
+    setResubmitOpen(true);
   };
 
   if (isLoading) {
@@ -446,6 +554,125 @@ export default function CreatorRetainerDetail() {
         )}
       </div>
 
+      {/* Resubmit Revision Dialog */}
+      <Dialog open={resubmitOpen} onOpenChange={setResubmitOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Resubmit Revision</DialogTitle>
+            <DialogDescription>
+              Upload a new video to address the requested revisions for Month {selectedDeliverable?.monthNumber}, Video #{selectedDeliverable?.videoNumber}
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...resubmitForm}>
+            <form onSubmit={resubmitForm.handleSubmit(onResubmit)} className="space-y-4">
+              <FormField
+                control={resubmitForm.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Video Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Enter video title" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={resubmitForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} placeholder="Add any notes about this video" rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div>
+                <FormLabel>Upload New Video</FormLabel>
+                <div className="mt-2">
+                  <input
+                    type="file"
+                    ref={resubmitVideoInputRef}
+                    onChange={handleResubmitVideo}
+                    accept="video/*"
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => resubmitVideoInputRef.current?.click()}
+                    disabled={isResubmitUploading}
+                    className="w-full"
+                  >
+                    {isResubmitUploading ? (
+                      <>
+                        <span className="animate-spin mr-2">⏳</span>
+                        Uploading...
+                      </>
+                    ) : resubmitVideoUrl ? (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        Video Uploaded - Click to Replace
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Choose Video File
+                      </>
+                    )}
+                  </Button>
+                  {resubmitVideoUrl && (
+                    <p className="text-xs text-green-600 mt-2">✓ Video ready to submit</p>
+                  )}
+                </div>
+              </div>
+
+              <FormField
+                control={resubmitForm.control}
+                name="platformUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Platform URL (Optional)</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="https://youtube.com/watch?v=..." />
+                    </FormControl>
+                    <FormDescription>
+                      Link to where this video is published
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <input type="hidden" {...resubmitForm.register("monthNumber")} />
+              <input type="hidden" {...resubmitForm.register("videoNumber")} />
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setResubmitOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={resubmitMutation.isPending || !resubmitVideoUrl || isResubmitUploading}
+                >
+                  {resubmitMutation.isPending ? "Submitting..." : "Submit Revision"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
       <div className="grid lg:grid-cols-3 gap-6">
         <Card className="border-card-border">
           <CardHeader className="pb-3">
@@ -636,6 +863,20 @@ export default function CreatorRetainerDetail() {
                               <p className="text-sm text-muted-foreground">
                                 {deliverable.reviewNotes}
                               </p>
+                            </div>
+                          )}
+
+                          {/* Resubmit Button for Revision Requested */}
+                          {deliverable.status === 'revision_requested' && (
+                            <div className="pt-3 border-t">
+                              <Button
+                                onClick={() => handleResubmitClick(deliverable)}
+                                className="w-full"
+                                variant="default"
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Resubmit Revision
+                              </Button>
                             </div>
                           )}
 
