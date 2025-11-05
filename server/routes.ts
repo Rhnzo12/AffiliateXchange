@@ -2075,10 +2075,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const oldVideoUrl = deliverable.videoUrl;
       if (oldVideoUrl) {
         try {
-          const publicId = objectStorage.extractPublicIdFromUrl(oldVideoUrl);
+          const objectStorageService = new ObjectStorageService();
+          const publicId = objectStorageService.extractPublicIdFromUrl(oldVideoUrl);
           if (publicId) {
             console.log(`[Resubmit] Deleting old video from Cloudinary: ${publicId}`);
-            await objectStorage.deleteVideo(publicId);
+            await objectStorageService.deleteVideo(publicId);
             console.log(`[Resubmit] Successfully deleted old video`);
           }
         } catch (error) {
@@ -2094,8 +2095,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: req.body.title,
         description: req.body.description,
         status: 'pending_review',
-        submittedAt: new Date(),
-        reviewedAt: null,
+        submittedAt: new Date() as any,
+        reviewedAt: null as any,
         reviewNotes: null,
       });
 
