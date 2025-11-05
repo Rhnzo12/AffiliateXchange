@@ -1748,11 +1748,13 @@ export class DatabaseStorage implements IStorage {
       utmContent?: string;
     },
   ): Promise<void> {
+    console.log(`[Storage] logTrackingClick called for application ${applicationId}`);
     const application = await this.getApplication(applicationId);
     if (!application) {
-      console.error("[Tracking] Application not found:", applicationId);
+      console.error("[Storage/Tracking] Application not found:", applicationId);
       return;
     }
+    console.log(`[Storage] Application found, logging click to database...`);
 
     const ua = clickData.userAgent || "";
     const uaLower = ua.toLowerCase();
@@ -1773,28 +1775,37 @@ export class DatabaseStorage implements IStorage {
     const country = geo?.country || "Unknown";
     const city = geo?.city || "Unknown";
 
-    await db.insert(clickEvents).values({
-      id: randomUUID(),
-      applicationId,
-      offerId: application.offerId,
-      creatorId: application.creatorId,
-      ipAddress: clickData.ip,
-      userAgent: ua,
-      referer: clickData.referer,
-      country,
-      city,
-      fraudScore: clickData.fraudScore || 0,
-      fraudFlags: clickData.fraudFlags || null,
-      utmSource: clickData.utmSource || null,
-      utmMedium: clickData.utmMedium || null,
-      utmCampaign: clickData.utmCampaign || null,
-      utmTerm: clickData.utmTerm || null,
-      utmContent: clickData.utmContent || null,
-      timestamp: new Date(),
-    });
+    const clickEventId = randomUUID();
+    console.log(`[Storage] Inserting click event ${clickEventId} into database...`);
+    try {
+      await db.insert(clickEvents).values({
+        id: clickEventId,
+        applicationId,
+        offerId: application.offerId,
+        creatorId: application.creatorId,
+        ipAddress: clickData.ip,
+        userAgent: ua,
+        referer: clickData.referer,
+        country,
+        city,
+        fraudScore: clickData.fraudScore || 0,
+        fraudFlags: clickData.fraudFlags || null,
+        utmSource: clickData.utmSource || null,
+        utmMedium: clickData.utmMedium || null,
+        utmCampaign: clickData.utmCampaign || null,
+        utmTerm: clickData.utmTerm || null,
+        utmContent: clickData.utmContent || null,
+        timestamp: new Date(),
+      });
+      console.log(`[Storage] Successfully inserted click event ${clickEventId}`);
+    } catch (error) {
+      console.error(`[Storage] Error inserting click event:`, error);
+      throw error;
+    }
 
     // Only count clicks with fraud score < 50 toward analytics
     const fraudScore = clickData.fraudScore || 0;
+    console.log(`[Storage] Processing analytics update. Fraud score: ${fraudScore}`);
     if (fraudScore < 50) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -1812,6 +1823,8 @@ export class DatabaseStorage implements IStorage {
           )
         );
 
+      console.log(`[Storage] Unique IPs today: ${uniqueIpsToday.length}`);
+
       const existing = await db
         .select()
         .from(analytics)
@@ -1819,6 +1832,7 @@ export class DatabaseStorage implements IStorage {
         .limit(1);
 
       if (existing.length > 0) {
+        console.log(`[Storage] Updating existing analytics record ${existing[0].id}`);
         await db
           .update(analytics)
           .set({
@@ -1826,7 +1840,9 @@ export class DatabaseStorage implements IStorage {
             uniqueClicks: uniqueIpsToday.length,
           })
           .where(eq(analytics.id, existing[0].id));
+        console.log(`[Storage] Analytics updated successfully`);
       } else {
+        console.log(`[Storage] Creating new analytics record for today`);
         await db.insert(analytics).values({
           id: randomUUID(),
           applicationId,

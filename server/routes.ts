@@ -483,8 +483,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send("Application not found");
       }
 
-      // Generate tracking link and code
-      const trackingCode = `CR-${application.creatorId.substring(0, 8)}-${application.offerId.substring(0, 8)}`;
+      // Generate tracking link and code (must be unique per application)
+      const trackingCode = `CR-${application.creatorId.substring(0, 8)}-${application.offerId.substring(0, 8)}-${application.id.substring(0, 8)}`;
       const port = process.env.PORT || 3000;
       const baseURL = process.env.BASE_URL || `http://localhost:${port}`;
       const trackingLink = `${baseURL}/go/${trackingCode}`;
@@ -696,12 +696,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/go/:code", async (req, res) => {
     try {
       const trackingCode = req.params.code;
+      console.log(`[Tracking] Received tracking code: ${trackingCode}`);
 
       // Look up application by tracking code
       const application = await storage.getApplicationByTrackingCode(trackingCode);
       if (!application) {
+        console.error(`[Tracking] Application not found for tracking code: ${trackingCode}`);
         return res.status(404).send("Tracking link not found");
       }
+
+      console.log(`[Tracking] Found application: ${application.id}, status: ${application.status}`);
 
       // Get offer details for product URL
       const offer = await storage.getOffer(application.offerId);
@@ -749,6 +753,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log the click asynchronously (don't block redirect)
       // Note: We still log even if fraud is detected, but mark it with fraud score
+      console.log(`[Tracking] Logging click for application ${application.id}, IP: ${clientIp}, fraud score: ${fraudCheck.fraudScore}`);
       storage.logTrackingClick(application.id, {
         ip: clientIp,
         userAgent,
@@ -761,7 +766,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         utmCampaign,
         utmTerm,
         utmContent,
-      }).catch(err => console.error('[Tracking] Error logging click:', err));
+      }).then(() => {
+        console.log(`[Tracking] Successfully logged click for application ${application.id}`);
+      }).catch(err => {
+        console.error('[Tracking] Error logging click:', err);
+        console.error('[Tracking] Error stack:', err.stack);
+      });
 
       // Always redirect to maintain good UX
       // Even fraudulent clicks get redirected (but won't count toward analytics if fraud score > 50)
@@ -1330,6 +1340,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(stats);
     } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Fix tracking codes for existing approved applications (admin only)
+  app.post("/api/admin/fix-tracking-codes", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      console.log('[Admin] Starting tracking code fix...');
+
+      // Get all approved applications
+      const allApprovedApplications = await db
+        .select()
+        .from(applications)
+        .where(eq(applications.status, 'approved'));
+
+      let fixed = 0;
+      let skipped = 0;
+
+      for (const application of allApprovedApplications) {
+        // Check if tracking code is missing or invalid
+        if (!application.trackingCode || !application.trackingLink) {
+          console.log(`[Admin] Fixing tracking code for application ${application.id}`);
+
+          // Generate new tracking code
+          const trackingCode = `CR-${application.creatorId.substring(0, 8)}-${application.offerId.substring(0, 8)}-${application.id.substring(0, 8)}`;
+          const port = process.env.PORT || 3000;
+          const baseURL = process.env.BASE_URL || `http://localhost:${port}`;
+          const trackingLink = `${baseURL}/go/${trackingCode}`;
+
+          // Update the application
+          await db
+            .update(applications)
+            .set({
+              trackingCode,
+              trackingLink,
+              updatedAt: new Date(),
+            })
+            .where(eq(applications.id, application.id));
+
+          fixed++;
+        } else {
+          skipped++;
+        }
+      }
+
+      console.log(`[Admin] Tracking code fix complete. Fixed: ${fixed}, Skipped: ${skipped}`);
+      res.json({
+        success: true,
+        fixed,
+        skipped,
+        total: allApprovedApplications.length,
+      });
+    } catch (error: any) {
+      console.error('[Admin] Error fixing tracking codes:', error);
       res.status(500).send(error.message);
     }
   });
