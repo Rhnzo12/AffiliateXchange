@@ -527,7 +527,6 @@ export default function CompanyRetainerDetail() {
                                   onClick={() => handleReject(application)}
                                   variant="destructive"
                                   size="sm"
-                                  disabled={isContractAssigned}
                                 >
                                   <XCircle className="h-4 w-4 mr-2" />
                                   Reject
