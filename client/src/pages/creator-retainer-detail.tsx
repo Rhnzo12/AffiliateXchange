@@ -216,38 +216,64 @@ export default function CreatorRetainerDetail() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsResubmitUploading(true);
+
     try {
-      setIsResubmitUploading(true);
-      const signatureResponse = await apiRequest("POST", "/api/upload/video-signature", {
-        folder: "retainer_deliverables",
+      // Get Cloudinary upload parameters
+      const uploadResponse = await fetch("/api/objects/upload", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ folder: "retainer" }),
       });
+      const uploadData = await uploadResponse.json();
 
+      console.log('[Resubmit Upload] Upload parameters received:', uploadData);
+
+      // Create FormData for Cloudinary upload
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("api_key", signatureResponse.apiKey);
-      formData.append("timestamp", signatureResponse.timestamp.toString());
-      formData.append("signature", signatureResponse.signature);
-      formData.append("folder", signatureResponse.folder);
-      formData.append("upload_preset", signatureResponse.uploadPreset);
+      formData.append('file', file);
 
-      const uploadResult = await fetch(signatureResponse.uploadUrl, {
+      // Add Cloudinary parameters
+      if (uploadData.uploadPreset) {
+        formData.append('upload_preset', uploadData.uploadPreset);
+      } else if (uploadData.signature) {
+        formData.append('signature', uploadData.signature);
+        formData.append('timestamp', uploadData.timestamp.toString());
+        formData.append('api_key', uploadData.apiKey);
+      }
+
+      if (uploadData.folder) {
+        formData.append('folder', uploadData.folder);
+        console.log('[Resubmit Upload] Folder parameter set to:', uploadData.folder);
+      }
+
+      console.log('[Resubmit Upload] FormData entries:', Array.from(formData.entries()));
+
+      // Upload video to Cloudinary
+      const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "POST",
         body: formData,
       });
 
-      if (!uploadResult.ok) {
-        throw new Error("Failed to upload video");
+      if (uploadResult.ok) {
+        const cloudinaryResponse = await uploadResult.json();
+        console.log('[Resubmit Upload] Cloudinary response:', cloudinaryResponse);
+        const uploadedVideoUrl = cloudinaryResponse.secure_url;
+        console.log('[Resubmit Upload] Final video URL:', uploadedVideoUrl);
+
+        setResubmitVideoUrl(uploadedVideoUrl);
+        setIsResubmitUploading(false);
+
+        toast({
+          title: "Success!",
+          description: "Video uploaded successfully. Fill in the rest of the form to resubmit.",
+        });
+      } else {
+        throw new Error("Upload failed");
       }
-
-      const cloudinaryResponse = await uploadResult.json();
-      const uploadedVideoUrl = cloudinaryResponse.secure_url;
-
-      setResubmitVideoUrl(uploadedVideoUrl);
-      setIsResubmitUploading(false);
-      toast({
-        title: "Video Uploaded",
-        description: "Video uploaded successfully. Fill in the rest of the form to resubmit.",
-      });
     } catch (error) {
       console.error("Video upload error:", error);
       setIsResubmitUploading(false);
