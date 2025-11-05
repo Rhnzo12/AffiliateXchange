@@ -18,7 +18,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { DollarSign, Video, Calendar, Briefcase, CheckCircle, XCircle, Clock, ExternalLink, Play } from "lucide-react";
+import { DollarSign, Video, Calendar, Briefcase, CheckCircle, XCircle, Clock, ExternalLink, Play, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import { VideoPlayer } from "@/components/VideoPlayer";
@@ -35,6 +35,7 @@ export default function CompanyRetainerDetail() {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewAction, setReviewAction] = useState<'approve' | 'reject' | 'request_revision' | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
+  const [showRejected, setShowRejected] = useState(false);
 
   // Use the correct API endpoint - /api/retainer-contracts/:id (not /api/company/retainer-contracts/:id)
   const { data: contract, isLoading, error } = useQuery<any>({
@@ -412,9 +413,30 @@ export default function CompanyRetainerDetail() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Applications</CardTitle>
-            <Badge variant="outline">
-              {applications?.length || 0} Application{applications?.length !== 1 ? 's' : ''}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">
+                {applications?.length || 0} Application{applications?.length !== 1 ? 's' : ''}
+              </Badge>
+              {applications?.filter((a: any) => a.status === 'rejected').length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowRejected(!showRejected)}
+                >
+                  {showRejected ? (
+                    <>
+                      <EyeOff className="h-4 w-4 mr-1" />
+                      Hide Rejected
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-4 w-4 mr-1" />
+                      Show Rejected
+                    </>
+                  )} ({applications.filter((a: any) => a.status === 'rejected').length})
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -422,9 +444,15 @@ export default function CompanyRetainerDetail() {
             <div className="text-center py-12">
               <p className="text-muted-foreground">No applications yet</p>
             </div>
+          ) : applications.filter((application: any) => showRejected || application.status !== 'rejected').length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">All applications are rejected. Click "Show Rejected" to view them.</p>
+            </div>
           ) : (
             <div className="space-y-4">
-              {applications.map((application: any) => (
+              {applications
+                .filter((application: any) => showRejected || application.status !== 'rejected')
+                .map((application: any) => (
                 <Card key={application.id} className="border-card-border">
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4">
