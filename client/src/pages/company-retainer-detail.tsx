@@ -591,6 +591,9 @@ export default function CompanyRetainerDetail() {
                                   <p className="text-sm text-muted-foreground truncate">
                                     @{contract.assignedCreator?.username}
                                   </p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {contract.assignedCreator?.email}
+                                  </p>
                                 </div>
                               </div>
 
