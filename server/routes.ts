@@ -2095,10 +2095,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: req.body.title,
         description: req.body.description,
         status: 'pending_review',
-        submittedAt: new Date() as any,
-        reviewedAt: null as any,
+        submittedAt: new Date(),
+        reviewedAt: null,
         reviewNotes: null,
-      });
+      } as any);
 
       res.json(updated);
     } catch (error: any) {
