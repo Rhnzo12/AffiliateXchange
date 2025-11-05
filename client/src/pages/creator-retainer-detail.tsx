@@ -575,70 +575,85 @@ export default function CreatorRetainerDetail() {
                     className="border-card-border"
                     data-testid={`deliverable-card-${deliverable.id}`}
                   >
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <CardTitle className="text-base">
-                            {deliverable.title}
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground">
-                            Month {deliverable.monthNumber} - Video #{deliverable.videoNumber}
-                          </p>
+                    <CardContent className="p-6">
+                      <div className="grid lg:grid-cols-[320px_1fr] gap-6">
+                        {/* Left Column: Video */}
+                        <div className="space-y-3">
+                          <div className="rounded-lg overflow-hidden bg-black border-2 border-border">
+                            <VideoPlayer
+                              videoUrl={deliverable.videoUrl}
+                              className="w-full aspect-video"
+                            />
+                          </div>
+
+                          {/* Status Badge */}
+                          <div className="flex justify-center">
+                            <Badge variant={getStatusBadgeVariant(deliverable.status)} className="text-xs">
+                              {deliverable.status.replace("_", " ")}
+                            </Badge>
+                          </div>
                         </div>
-                        <Badge variant={getStatusBadgeVariant(deliverable.status)}>
-                          {deliverable.status.replace("_", " ")}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {deliverable.description && (
-                        <p className="text-sm text-muted-foreground">
-                          {deliverable.description}
-                        </p>
-                      )}
 
-                      {/* Video Player */}
-                      <div className="rounded-lg overflow-hidden">
-                        <VideoPlayer
-                          videoUrl={deliverable.videoUrl}
-                          className="w-full aspect-video"
-                        />
-                      </div>
+                        {/* Right Column: Details */}
+                        <div className="space-y-4">
+                          {/* Header */}
+                          <div>
+                            <h3 className="text-xl font-bold">{deliverable.title}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Month {deliverable.monthNumber} - Video #{deliverable.videoNumber}
+                            </p>
+                          </div>
 
-                      <div className="flex gap-2">
-                        {deliverable.platformUrl && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(deliverable.platformUrl, "_blank")}
-                            data-testid={`button-view-platform-${deliverable.id}`}
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View on Platform
-                          </Button>
-                        )}
-                      </div>
+                          {/* Description */}
+                          {deliverable.description && (
+                            <div>
+                              <h4 className="font-semibold text-sm mb-1">Description</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {deliverable.description}
+                              </p>
+                            </div>
+                          )}
 
-                      {deliverable.reviewNotes && (
-                        <div className="pt-3 border-t">
-                          <h4 className="font-semibold text-sm mb-1">Review Notes</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {deliverable.reviewNotes}
-                          </p>
+                          {/* Platform Link */}
+                          {deliverable.platformUrl && (
+                            <div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(deliverable.platformUrl, "_blank")}
+                                data-testid={`button-view-platform-${deliverable.id}`}
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                View on Platform
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Review Notes */}
+                          {deliverable.reviewNotes && (
+                            <div className="pt-3 border-t">
+                              <h4 className="font-semibold text-sm mb-1">Review Notes</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {deliverable.reviewNotes}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Timestamps */}
+                          <div className="pt-3 border-t space-y-1">
+                            {deliverable.submittedAt && (
+                              <p className="text-xs text-muted-foreground">
+                                📤 Submitted {format(new Date(deliverable.submittedAt), "MMM d, yyyy 'at' h:mm a")}
+                              </p>
+                            )}
+                            {deliverable.reviewedAt && (
+                              <p className="text-xs text-muted-foreground">
+                                ✅ Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      )}
-
-                      {deliverable.submittedAt && (
-                        <p className="text-xs text-muted-foreground">
-                          Submitted {format(new Date(deliverable.submittedAt), "MMM d, yyyy 'at' h:mm a")}
-                        </p>
-                      )}
-
-                      {deliverable.reviewedAt && (
-                        <p className="text-xs text-muted-foreground">
-                          Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}
-                        </p>
-                      )}
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
