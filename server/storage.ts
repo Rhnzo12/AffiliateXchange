@@ -2069,11 +2069,19 @@ export class DatabaseStorage implements IStorage {
 
     if (result.length === 0) return undefined;
 
-    return {
+    const contract = {
       ...result[0].retainer_contracts,
       company: result[0].company_profiles,
       companyUser: result[0].users,
     };
+
+    // Fetch assigned creator if exists
+    if (contract.assignedCreatorId) {
+      const creator = await this.getUserById(contract.assignedCreatorId);
+      contract.assignedCreator = creator;
+    }
+
+    return contract;
   }
 
   async getRetainerContracts(filters?: any): Promise<any[]> {
@@ -2103,7 +2111,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(retainerContracts.companyId, companyId))
       .orderBy(desc(retainerContracts.createdAt));
 
-    return results;
+    // Fetch assigned creator for each contract
+    const contractsWithCreators = await Promise.all(
+      results.map(async (contract) => {
+        if (contract.assignedCreatorId) {
+          const creator = await this.getUserById(contract.assignedCreatorId);
+          return { ...contract, assignedCreator: creator };
+        }
+        return contract;
+      })
+    );
+
+    return contractsWithCreators;
   }
 
   async getRetainerContractsByCreator(creatorId: string): Promise<any[]> {
