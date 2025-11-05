@@ -34,6 +34,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 const uploadDeliverableSchema = z.object({
   platformUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
@@ -589,23 +590,22 @@ export default function CreatorRetainerDetail() {
                         </Badge>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-4">
                       {deliverable.description && (
                         <p className="text-sm text-muted-foreground">
                           {deliverable.description}
                         </p>
                       )}
 
+                      {/* Video Player */}
+                      <div className="rounded-lg overflow-hidden">
+                        <VideoPlayer
+                          videoUrl={deliverable.videoUrl}
+                          className="w-full aspect-video"
+                        />
+                      </div>
+
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(deliverable.videoUrl, "_blank")}
-                          data-testid={`button-view-video-${deliverable.id}`}
-                        >
-                          <Play className="h-3 w-3 mr-1" />
-                          View Video
-                        </Button>
                         {deliverable.platformUrl && (
                           <Button
                             variant="outline"
@@ -628,9 +628,15 @@ export default function CreatorRetainerDetail() {
                         </div>
                       )}
 
+                      {deliverable.submittedAt && (
+                        <p className="text-xs text-muted-foreground">
+                          Submitted {format(new Date(deliverable.submittedAt), "MMM d, yyyy 'at' h:mm a")}
+                        </p>
+                      )}
+
                       {deliverable.reviewedAt && (
                         <p className="text-xs text-muted-foreground">
-                          Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy")}
+                          Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}
                         </p>
                       )}
                     </CardContent>
