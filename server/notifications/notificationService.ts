@@ -60,6 +60,9 @@ interface NotificationData {
   applicationStatus?: string;
   announcementTitle?: string;
   announcementMessage?: string;
+  contractTitle?: string;
+  reason?: string;
+  revisionInstructions?: string;
 }
 
 export class NotificationService {
