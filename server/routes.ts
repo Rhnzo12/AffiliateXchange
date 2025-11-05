@@ -134,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/offers/recommended", requireAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = (req.user as any).id;
 
       // Get creator profile with niches
       const creatorProfile = await storage.getCreatorProfile(userId);
@@ -1103,6 +1103,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const payment = await storage.updatePaymentStatus(id, status);
+
+      if (!payment) {
+        return res.status(404).send("Payment not found");
+      }
 
       // 🆕 SEND NOTIFICATION WHEN PAYMENT IS COMPLETED
       if (status === 'completed') {
