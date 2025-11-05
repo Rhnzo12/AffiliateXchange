@@ -27,7 +27,7 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   console.warn('[Notifications] VAPID keys not found - push notifications disabled');
 }
 
-export type NotificationType = 
+export type NotificationType =
   | 'application_status_change'
   | 'new_message'
   | 'payment_received'
@@ -39,7 +39,9 @@ export type NotificationType =
   | 'registration_approved'
   | 'registration_rejected'
   | 'work_completion_approval'
-  | 'priority_listing_expiring';
+  | 'priority_listing_expiring'
+  | 'deliverable_rejected'
+  | 'revision_requested';
 
 interface NotificationData {
   userName?: string;
