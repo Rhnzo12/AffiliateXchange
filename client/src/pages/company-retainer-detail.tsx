@@ -586,13 +586,13 @@ export default function CompanyRetainerDetail() {
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-semibold truncate">
-                                    {contract.assignedCreator?.firstName} {contract.assignedCreator?.lastName}
+                                    {contract.assignedCreator?.email}
                                   </p>
                                   <p className="text-sm text-muted-foreground truncate">
-                                    @{contract.assignedCreator?.username}
+                                    {contract.assignedCreator?.firstName} {contract.assignedCreator?.lastName}
                                   </p>
                                   <p className="text-xs text-muted-foreground truncate">
-                                    {contract.assignedCreator?.email}
+                                    @{contract.assignedCreator?.username}
                                   </p>
                                 </div>
                               </div>
