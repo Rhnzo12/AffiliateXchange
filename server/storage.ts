@@ -630,9 +630,10 @@ export interface IStorage {
   markMessagesAsRead(conversationId: string, userId: string): Promise<void>;
 
   // Reviews
+  getReview(id: string): Promise<Review | undefined>;
   getReviewsByCompany(companyId: string): Promise<Review[]>;
   createReview(review: InsertReview): Promise<Review>;
-  updateReview(id: string, updates: Partial<InsertReview>): Promise<Review | undefined>;
+  updateReview(id: string, updates: Partial<Review>): Promise<Review | undefined>;
 
   // Favorites
   getFavoritesByCreator(creatorId: string): Promise<Favorite[]>;
@@ -1425,6 +1426,32 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getReview(id: string): Promise<Review | undefined> {
+    try {
+      const result = await db
+        .select()
+        .from(reviews)
+        .where(eq(reviews.id, id))
+        .limit(1);
+      return result[0];
+    } catch (error) {
+      if (isLegacyReviewColumnError(error)) {
+        console.warn(
+          "[Storage] reviews column mismatch while fetching review - attempting legacy fallback.",
+        );
+        const all = await legacyFetchReviews();
+        return all.find((review) => review.id === id);
+      }
+      if (isMissingRelationError(error, "reviews")) {
+        console.warn(
+          "[Storage] reviews relation missing while fetching review - returning undefined.",
+        );
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
   async createReview(review: InsertReview): Promise<Review> {
     try {
       const result = await db
@@ -1454,7 +1481,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateReview(id: string, updates: Partial<InsertReview>): Promise<Review | undefined> {
+  async updateReview(id: string, updates: Partial<Review>): Promise<Review | undefined> {
     try {
       const result = await db
         .update(reviews)
