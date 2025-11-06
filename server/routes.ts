@@ -311,9 +311,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         primaryNiche: s!.offer.primaryNiche
       })));
 
-      // Return top 10 recommended offers
-      const topOffers = scoredOffers.slice(0, 10).map(item => item!.offer);
-      console.log('[Recommendations] Returning', topOffers.length, 'offers');
+      // If no niche matches, fallback to popular offers
+      let topOffers = scoredOffers.slice(0, 10).map(item => item!.offer);
+
+      if (topOffers.length === 0) {
+        console.log('[Recommendations] No niche matches found. Falling back to popular offers.');
+        // Return popular offers that user hasn't applied to yet
+        topOffers = allOffers
+          .filter(offer => !appliedOfferIds.has(offer.id))
+          .sort((a, b) => {
+            const scoreA = (a.viewCount || 0) + (a.applicationCount || 0) * 2;
+            const scoreB = (b.viewCount || 0) + (b.applicationCount || 0) * 2;
+            return scoreB - scoreA;
+          })
+          .slice(0, 10);
+        console.log('[Recommendations] Returning', topOffers.length, 'popular offers as fallback');
+      } else {
+        console.log('[Recommendations] Returning', topOffers.length, 'niche-matched offers');
+      }
 
       res.json(topOffers);
     } catch (error: any) {
