@@ -1,4 +1,4 @@
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -12,15 +12,15 @@ import {
   SidebarHeader,
   SidebarFooter,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "./ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+} from "./ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   Home,
   TrendingUp,
@@ -41,7 +41,7 @@ import {
   ScrollText,
   Sliders,
 } from "lucide-react";
-import { NotificationCenter } from "@/components/NotificationCenter";
+import { NotificationCenter } from "./NotificationCenter";
 
 export function AppSidebar() {
   const { user } = useAuth();

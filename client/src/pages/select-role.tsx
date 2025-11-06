@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+import { useToast } from "../hooks/use-toast";
 import { Zap, User, Building2 } from "lucide-react";
 
 export default function SelectRole() {

@@ -1,7 +1,7 @@
 import sgMail from '@sendgrid/mail';
 import webpush from 'web-push';
 import type { DatabaseStorage } from '../storage';
-import type { InsertNotification, UserNotificationPreferences } from '@shared/schema';
+import type { InsertNotification, UserNotificationPreferences } from '../../shared/schema';
 import * as emailTemplates from './emailTemplates';
 
 let sendGridConfigured = false;

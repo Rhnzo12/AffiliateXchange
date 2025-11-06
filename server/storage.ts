@@ -66,7 +66,7 @@ import {
   type InsertAuditLog,
   type PlatformSetting,
   type InsertPlatformSetting,
-} from "@shared/schema";
+} from "../shared/schema";
 
 /**
  * Postgres error codes related to missing schema objects:
@@ -2183,7 +2183,7 @@ export class DatabaseStorage implements IStorage {
 
     if (result.length === 0) return undefined;
 
-    const contract = {
+    const contract: any = {
       ...result[0].retainer_contracts,
       company: result[0].company_profiles,
       companyUser: result[0].users,

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { clickEvents } from "@shared/schema";
+import { clickEvents } from "../shared/schema";
 import { sql, and, gte, eq } from "drizzle-orm";
 
 /**

@@ -6,7 +6,8 @@ import { DashboardModal } from "@uppy/react";
 // Styles will be added via global CSS if needed
 import AwsS3 from "@uppy/aws-s3";
 import type { UploadResult } from "@uppy/core";
-import { Button } from "@/components/ui/button";
+import { normalizeUploadResult, type NormalizedUploadResult } from "../lib/uppyAdapter";
+import { Button } from "./ui/button";
 
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
@@ -16,7 +17,7 @@ interface ObjectUploaderProps {
     url: string;
   }>;
   onComplete?: (
-    result: UploadResult<Record<string, unknown>, Record<string, unknown>>
+    result: NormalizedUploadResult
   ) => void;
   buttonClassName?: string;
   children: ReactNode;
@@ -43,9 +44,9 @@ export function ObjectUploader({
         shouldUseMultipart: false,
         getUploadParameters: onGetUploadParameters,
       })
-      .on("complete", (result) => {
-        onComplete?.(result);
-      })
+        .on("complete", (result) => {
+          onComplete?.(normalizeUploadResult(result as UploadResult<any, any>));
+        })
   );
 
   return (
