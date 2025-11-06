@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-<<<<<<< HEAD
-import { Upload, Building2, X } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -19,11 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-=======
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ChevronsUpDown, X } from "lucide-react";
 
 // Available niche options - MUST match offer niche values for recommendations to work
 const AVAILABLE_NICHES = [
@@ -39,7 +36,6 @@ const AVAILABLE_NICHES = [
   { value: "entertainment", label: "Entertainment" },
   { value: "other", label: "Other" },
 ];
->>>>>>> ca02cd1a6e8e08d2e4e2aab756065fd9d95f747e
 
 export default function Settings() {
   const { toast } = useToast();
@@ -55,7 +51,7 @@ export default function Settings() {
   const [tiktokFollowers, setTiktokFollowers] = useState("");
   const [instagramFollowers, setInstagramFollowers] = useState("");
   
-  // 🆕 Company profile states
+  // Company profile states
   const [tradeName, setTradeName] = useState("");
   const [legalName, setLegalName] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
@@ -76,12 +72,11 @@ export default function Settings() {
   useEffect(() => {
     if (profile) {
       console.log("[Settings] Profile loaded:", profile);
-<<<<<<< HEAD
       
       // Load creator profile data
       if (user?.role === 'creator') {
         setBio(profile.bio || "");
-        setNiches(profile.niches ? profile.niches.join(", ") : "");
+        setSelectedNiches(profile.niches || []);
         setYoutubeUrl(profile.youtubeUrl || "");
         setTiktokUrl(profile.tiktokUrl || "");
         setInstagramUrl(profile.instagramUrl || "");
@@ -90,7 +85,7 @@ export default function Settings() {
         setInstagramFollowers(profile.instagramFollowers?.toString() || "");
       }
       
-      // 🆕 Load company profile data
+      // Load company profile data
       if (user?.role === 'company') {
         setTradeName(profile.tradeName || "");
         setLegalName(profile.legalName || "");
@@ -101,20 +96,10 @@ export default function Settings() {
         setContactName(profile.contactName || "");
         setPhoneNumber(profile.phoneNumber || "");
       }
-=======
-      setBio(profile.bio || "");
-      setSelectedNiches(profile.niches || []);
-      setYoutubeUrl(profile.youtubeUrl || "");
-      setTiktokUrl(profile.tiktokUrl || "");
-      setInstagramUrl(profile.instagramUrl || "");
-      setYoutubeFollowers(profile.youtubeFollowers?.toString() || "");
-      setTiktokFollowers(profile.tiktokFollowers?.toString() || "");
-      setInstagramFollowers(profile.instagramFollowers?.toString() || "");
->>>>>>> ca02cd1a6e8e08d2e4e2aab756065fd9d95f747e
     }
   }, [profile, user?.role]);
 
-  // 🆕 Handle logo upload
+  // Handle logo upload
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -250,18 +235,15 @@ export default function Settings() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
-<<<<<<< HEAD
       let payload: any = {};
 
       // Creator profile payload
       if (user?.role === 'creator') {
-        const nichesArray = niches
-          ? niches.split(",").map((n) => n.trim()).filter(Boolean)
-          : [];
+        console.log("[Settings] Saving niches:", selectedNiches);
 
         payload = {
           bio,
-          niches: nichesArray,
+          niches: selectedNiches,
           youtubeUrl,
           tiktokUrl,
           instagramUrl,
@@ -271,7 +253,7 @@ export default function Settings() {
         };
       }
       
-      // 🆕 Company profile payload
+      // Company profile payload
       if (user?.role === 'company') {
         payload = {
           tradeName,
@@ -284,20 +266,6 @@ export default function Settings() {
           phoneNumber,
         };
       }
-=======
-      console.log("[Settings] Saving niches:", selectedNiches);
-
-      const payload = {
-        bio,
-        niches: selectedNiches,
-        youtubeUrl,
-        tiktokUrl,
-        instagramUrl,
-        youtubeFollowers: youtubeFollowers ? parseInt(youtubeFollowers) : null,
-        tiktokFollowers: tiktokFollowers ? parseInt(tiktokFollowers) : null,
-        instagramFollowers: instagramFollowers ? parseInt(instagramFollowers) : null,
-      };
->>>>>>> ca02cd1a6e8e08d2e4e2aab756065fd9d95f747e
 
       console.log("[Settings] API payload:", payload);
 
@@ -347,7 +315,7 @@ export default function Settings() {
 
           <Separator />
 
-          {/* 🆕 COMPANY PROFILE SECTION */}
+          {/* COMPANY PROFILE SECTION */}
           {user?.role === 'company' && (
             <>
               <div className="space-y-2">
@@ -548,7 +516,7 @@ export default function Settings() {
             </>
           )}
 
-          {/* CREATOR PROFILE SECTION (unchanged) */}
+          {/* CREATOR PROFILE SECTION */}
           {user?.role === 'creator' && (
             <>
               <div className="space-y-2">
