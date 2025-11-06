@@ -24,7 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Upload, Video, Play, Trash2, AlertCircle, Image as ImageIcon, X } from "lucide-react";
+import { ArrowLeft, Upload, Video, Play, Trash2, AlertCircle, Image as ImageIcon, X, FileText } from "lucide-react";
 import { Link } from "wouter";
 
 // Helper function to generate thumbnail from video
@@ -97,7 +97,8 @@ export default function CompanyOfferCreate() {
     commissionRate: "",
     commissionAmount: "",
     status: "draft" as const,
-    featuredImageUrl: "", // Add thumbnail URL
+    featuredImageUrl: "",
+    creatorRequirements: "", // NEW FIELD
   });
 
   // Video upload states
@@ -147,7 +148,8 @@ export default function CompanyOfferCreate() {
           ? data.commissionAmount
           : null,
         status: data.status,
-        featuredImageUrl: data.featuredImageUrl || null, // Include thumbnail
+        featuredImageUrl: data.featuredImageUrl || null,
+        creatorRequirements: data.creatorRequirements || null, // NEW FIELD
       };
       
       console.log("Creating offer with payload:", offerPayload);
@@ -278,7 +280,7 @@ export default function CompanyOfferCreate() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "videos" }), // Save offer thumbnails in 'videos' folder
+        body: JSON.stringify({ folder: "videos" }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -360,7 +362,7 @@ export default function CompanyOfferCreate() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "videos" }), // Save offer videos in 'videos' folder
+        body: JSON.stringify({ folder: "videos" }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -402,7 +404,7 @@ export default function CompanyOfferCreate() {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ folder: "videos" }), // Save thumbnails in 'videos' folder
+            body: JSON.stringify({ folder: "videos" }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
@@ -798,6 +800,25 @@ export default function CompanyOfferCreate() {
                 placeholder="Detailed description of your offer, target audience, benefits..."
                 rows={6}
                 data-testid="input-full-description"
+              />
+            </div>
+
+            {/* NEW: Creator Requirements Field */}
+            <div className="space-y-2">
+              <Label htmlFor="creatorRequirements" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Creator Requirements
+              </Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Specify any requirements creators must meet to apply (e.g., minimum followers, content style, platform requirements)
+              </p>
+              <Textarea
+                id="creatorRequirements"
+                value={formData.creatorRequirements}
+                onChange={(e) => setFormData({ ...formData, creatorRequirements: e.target.value })}
+                placeholder="Example: Minimum 10k followers on Instagram or TikTok, must create authentic product review videos, family-friendly content only..."
+                rows={4}
+                data-testid="input-creator-requirements"
               />
             </div>
 
