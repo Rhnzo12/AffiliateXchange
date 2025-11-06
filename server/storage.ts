@@ -1661,7 +1661,8 @@ export class DatabaseStorage implements IStorage {
   // Analytics
   async getAnalyticsByCreator(creatorId: string): Promise<any> {
     try {
-      const result = await db
+      // Get affiliate earnings from analytics table
+      const affiliateResult = await db
         .select({
           totalEarnings: sql<number>`COALESCE(SUM(${analytics.earnings}), 0)`,
           totalClicks: sql<number>`COALESCE(SUM(${analytics.clicks}), 0)`,
@@ -1672,18 +1673,34 @@ export class DatabaseStorage implements IStorage {
         .innerJoin(applications, eq(analytics.applicationId, applications.id))
         .where(eq(applications.creatorId, creatorId));
 
-      return (
-        result[0] || {
-          totalEarnings: 0,
-          totalClicks: 0,
-          uniqueClicks: 0,
-          conversions: 0,
-        }
-      );
+      // Get retainer earnings from retainer_payments table (only completed payments)
+      const retainerResult = await db
+        .select({
+          totalRetainerEarnings: sql<number>`COALESCE(SUM(CAST(${retainerPayments.amount} AS DECIMAL)), 0)`,
+        })
+        .from(retainerPayments)
+        .where(
+          sql`${retainerPayments.creatorId} = ${creatorId} AND ${retainerPayments.status} = 'completed'`
+        );
+
+      const affiliateEarnings = affiliateResult[0]?.totalEarnings || 0;
+      const retainerEarnings = retainerResult[0]?.totalRetainerEarnings || 0;
+      const totalEarnings = Number(affiliateEarnings) + Number(retainerEarnings);
+
+      return {
+        totalEarnings: totalEarnings,
+        affiliateEarnings: Number(affiliateEarnings),
+        retainerEarnings: Number(retainerEarnings),
+        totalClicks: affiliateResult[0]?.totalClicks || 0,
+        uniqueClicks: affiliateResult[0]?.uniqueClicks || 0,
+        conversions: affiliateResult[0]?.conversions || 0,
+      };
     } catch (error) {
       console.error("[getAnalyticsByCreator] Error:", error);
       return {
         totalEarnings: 0,
+        affiliateEarnings: 0,
+        retainerEarnings: 0,
         totalClicks: 0,
         uniqueClicks: 0,
         conversions: 0,
@@ -2020,24 +2037,121 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getPaymentsByCreator(creatorId: string): Promise<Payment[]> {
-    return await db
+  async getPaymentsByCreator(creatorId: string): Promise<any[]> {
+    // Get affiliate commission payments
+    const affiliatePayments = await db
       .select()
       .from(payments)
       .where(eq(payments.creatorId, creatorId))
       .orderBy(desc(payments.createdAt));
+
+    // Get retainer payments
+    const retainerPaymentsList = await db
+      .select()
+      .from(retainerPayments)
+      .where(eq(retainerPayments.creatorId, creatorId))
+      .orderBy(desc(retainerPayments.createdAt));
+
+    // Combine both with type indicators
+    const combinedPayments = [
+      ...affiliatePayments.map(p => ({
+        ...p,
+        paymentType: 'affiliate' as const,
+        // Map retainer payment fields to match affiliate payment structure
+        netAmount: p.netAmount,
+        createdAt: p.createdAt || p.initiatedAt,
+      })),
+      ...retainerPaymentsList.map(p => ({
+        ...p,
+        paymentType: 'retainer' as const,
+        // Map retainer payment fields to match affiliate payment structure
+        netAmount: p.amount,
+        initiatedAt: p.createdAt,
+      })),
+    ];
+
+    // Sort by date descending
+    return combinedPayments.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.initiatedAt || 0).getTime();
+      const dateB = new Date(b.createdAt || b.initiatedAt || 0).getTime();
+      return dateB - dateA;
+    });
   }
 
-  async getPaymentsByCompany(companyId: string): Promise<Payment[]> {
-    return await db
+  async getPaymentsByCompany(companyId: string): Promise<any[]> {
+    // Get affiliate commission payments
+    const affiliatePayments = await db
       .select()
       .from(payments)
       .where(eq(payments.companyId, companyId))
       .orderBy(desc(payments.createdAt));
+
+    // Get retainer payments
+    const retainerPaymentsList = await db
+      .select()
+      .from(retainerPayments)
+      .where(eq(retainerPayments.companyId, companyId))
+      .orderBy(desc(retainerPayments.createdAt));
+
+    // Combine both with type indicators
+    const combinedPayments = [
+      ...affiliatePayments.map(p => ({
+        ...p,
+        paymentType: 'affiliate' as const,
+        netAmount: p.netAmount,
+        createdAt: p.createdAt || p.initiatedAt,
+      })),
+      ...retainerPaymentsList.map(p => ({
+        ...p,
+        paymentType: 'retainer' as const,
+        netAmount: p.amount,
+        initiatedAt: p.createdAt,
+      })),
+    ];
+
+    // Sort by date descending
+    return combinedPayments.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.initiatedAt || 0).getTime();
+      const dateB = new Date(b.createdAt || b.initiatedAt || 0).getTime();
+      return dateB - dateA;
+    });
   }
 
   async getAllPayments(): Promise<any[]> {
-    return await db.select().from(payments).orderBy(desc(payments.createdAt));
+    // Get all affiliate commission payments
+    const affiliatePayments = await db
+      .select()
+      .from(payments)
+      .orderBy(desc(payments.createdAt));
+
+    // Get all retainer payments
+    const retainerPaymentsList = await db
+      .select()
+      .from(retainerPayments)
+      .orderBy(desc(retainerPayments.createdAt));
+
+    // Combine both with type indicators
+    const combinedPayments = [
+      ...affiliatePayments.map(p => ({
+        ...p,
+        paymentType: 'affiliate' as const,
+        netAmount: p.netAmount,
+        createdAt: p.createdAt || p.initiatedAt,
+      })),
+      ...retainerPaymentsList.map(p => ({
+        ...p,
+        paymentType: 'retainer' as const,
+        netAmount: p.amount,
+        initiatedAt: p.createdAt,
+      })),
+    ];
+
+    // Sort by date descending
+    return combinedPayments.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.initiatedAt || 0).getTime();
+      const dateB = new Date(b.createdAt || b.initiatedAt || 0).getTime();
+      return dateB - dateA;
+    });
   }
 
   async updatePaymentStatus(

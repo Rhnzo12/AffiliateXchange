@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+<<<<<<< HEAD
 import { Upload, Building2, X } from "lucide-react";
 import {
   Select,
@@ -18,6 +19,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+=======
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { ChevronsUpDown, X } from "lucide-react";
+
+// Available niche options - MUST match offer niche values for recommendations to work
+const AVAILABLE_NICHES = [
+  { value: "gaming", label: "Gaming" },
+  { value: "tech", label: "Technology & Software" },
+  { value: "fitness", label: "Fitness & Health" },
+  { value: "beauty", label: "Beauty & Fashion" },
+  { value: "food", label: "Food & Cooking" },
+  { value: "finance", label: "Finance & Investing" },
+  { value: "education", label: "Education & Learning" },
+  { value: "travel", label: "Travel & Lifestyle" },
+  { value: "home", label: "Home & Garden" },
+  { value: "entertainment", label: "Entertainment" },
+  { value: "other", label: "Other" },
+];
+>>>>>>> ca02cd1a6e8e08d2e4e2aab756065fd9d95f747e
 
 export default function Settings() {
   const { toast } = useToast();
@@ -25,7 +47,7 @@ export default function Settings() {
   
   // Creator profile states
   const [bio, setBio] = useState("");
-  const [niches, setNiches] = useState("");
+  const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [tiktokUrl, setTiktokUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
@@ -54,6 +76,7 @@ export default function Settings() {
   useEffect(() => {
     if (profile) {
       console.log("[Settings] Profile loaded:", profile);
+<<<<<<< HEAD
       
       // Load creator profile data
       if (user?.role === 'creator') {
@@ -78,6 +101,16 @@ export default function Settings() {
         setContactName(profile.contactName || "");
         setPhoneNumber(profile.phoneNumber || "");
       }
+=======
+      setBio(profile.bio || "");
+      setSelectedNiches(profile.niches || []);
+      setYoutubeUrl(profile.youtubeUrl || "");
+      setTiktokUrl(profile.tiktokUrl || "");
+      setInstagramUrl(profile.instagramUrl || "");
+      setYoutubeFollowers(profile.youtubeFollowers?.toString() || "");
+      setTiktokFollowers(profile.tiktokFollowers?.toString() || "");
+      setInstagramFollowers(profile.instagramFollowers?.toString() || "");
+>>>>>>> ca02cd1a6e8e08d2e4e2aab756065fd9d95f747e
     }
   }, [profile, user?.role]);
 
@@ -201,8 +234,23 @@ export default function Settings() {
     }
   };
 
+  // Toggle niche selection
+  const toggleNiche = (niche: string) => {
+    setSelectedNiches(prev =>
+      prev.includes(niche)
+        ? prev.filter(n => n !== niche)
+        : [...prev, niche]
+    );
+  };
+
+  // Remove a specific niche
+  const removeNiche = (niche: string) => {
+    setSelectedNiches(prev => prev.filter(n => n !== niche));
+  };
+
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
+<<<<<<< HEAD
       let payload: any = {};
 
       // Creator profile payload
@@ -236,6 +284,20 @@ export default function Settings() {
           phoneNumber,
         };
       }
+=======
+      console.log("[Settings] Saving niches:", selectedNiches);
+
+      const payload = {
+        bio,
+        niches: selectedNiches,
+        youtubeUrl,
+        tiktokUrl,
+        instagramUrl,
+        youtubeFollowers: youtubeFollowers ? parseInt(youtubeFollowers) : null,
+        tiktokFollowers: tiktokFollowers ? parseInt(tiktokFollowers) : null,
+        instagramFollowers: instagramFollowers ? parseInt(instagramFollowers) : null,
+      };
+>>>>>>> ca02cd1a6e8e08d2e4e2aab756065fd9d95f747e
 
       console.log("[Settings] API payload:", payload);
 
@@ -502,22 +564,67 @@ export default function Settings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="niches">
-                  Content Niches
-                  <span className="text-muted-foreground text-sm font-normal ml-2">
-                    (comma-separated)
-                  </span>
-                </Label>
-                <Input
-                  id="niches"
-                  type="text"
-                  placeholder="Gaming, Tech, Reviews, Tutorials"
-                  value={niches}
-                  onChange={(e) => setNiches(e.target.value)}
-                  data-testid="input-niches"
-                />
+                <Label htmlFor="niches">Content Niches</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal"
+                      data-testid="button-select-niches"
+                    >
+                      {selectedNiches.length === 0 ? (
+                        <span className="text-muted-foreground">Select your content niches...</span>
+                      ) : (
+                        <span>{selectedNiches.length} niche{selectedNiches.length !== 1 ? 's' : ''} selected</span>
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <div className="max-h-[300px] overflow-y-auto p-4 space-y-2">
+                      {AVAILABLE_NICHES.map((niche) => (
+                        <div key={niche.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`niche-${niche.value}`}
+                            checked={selectedNiches.includes(niche.value)}
+                            onCheckedChange={() => toggleNiche(niche.value)}
+                          />
+                          <label
+                            htmlFor={`niche-${niche.value}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                          >
+                            {niche.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Display selected niches as badges */}
+                {selectedNiches.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedNiches.map((nicheValue) => {
+                      const niche = AVAILABLE_NICHES.find(n => n.value === nicheValue);
+                      return (
+                        <Badge key={nicheValue} variant="secondary" className="gap-1">
+                          {niche?.label || nicheValue}
+                          <button
+                            type="button"
+                            onClick={() => removeNiche(nicheValue)}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <p className="text-xs text-muted-foreground">
-                  Your niches help us recommend relevant offers. Examples: Gaming, Tech, Fitness, Beauty, Lifestyle, Food, Travel
+                  Your niches help us recommend relevant offers. Select all that apply to your content.
                 </p>
               </div>
 

@@ -1,6 +1,9 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import { parse as parseUrl } from "url";
+import { parse as parseCookie } from "cookie";
+import passport from "passport";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -139,13 +142,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get creator profile with niches
       const creatorProfile = await storage.getCreatorProfile(userId);
       if (!creatorProfile) {
-        return res.json([]);
+        console.log('[Recommendations] Profile not found for user:', userId);
+        return res.status(404).json({
+          error: 'profile_not_found',
+          message: 'Creator profile not found. Please complete your profile first.'
+        });
       }
 
       const creatorNiches = creatorProfile.niches || [];
+      console.log('[Recommendations] User niches:', creatorNiches);
+
+      // Check if user has set any niches
+      if (creatorNiches.length === 0) {
+        console.log('[Recommendations] No niches set for user:', userId);
+        return res.status(200).json({
+          error: 'no_niches',
+          message: 'Please set your content niches in your profile to get personalized recommendations.'
+        });
+      }
 
       // Get all approved offers
       const allOffers = await storage.getOffers({ status: 'approved' });
+      console.log('[Recommendations] Total approved offers:', allOffers.length);
+      console.log('[Recommendations] Sample offer niches:', allOffers.slice(0, 3).map(o => ({
+        id: o.id,
+        title: o.title,
+        primaryNiche: o.primaryNiche,
+        additionalNiches: o.additionalNiches
+      })));
 
       // Get creator's past applications
       const pastApplications = await db
@@ -204,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Score each offer
+      // Score each offer - ONLY include offers with at least one matching niche
       const scoredOffers = allOffers
         .filter(offer => !appliedOfferIds.has(offer.id))
         .map(offer => {
@@ -221,6 +245,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               creatorNiche.toLowerCase() === niche.toLowerCase()
             )
           );
+
+          // IMPORTANT: If no niche match, mark this offer as invalid
+          if (matchingNiches.length === 0) {
+            return null; // Will be filtered out later
+          }
 
           // Primary niche match = 50 points, additional niche match = 25 points each
           if (matchingNiches.includes(offer.primaryNiche)) {
@@ -271,10 +300,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             matchingNiches: matchingNiches.length,
           };
         })
-        .sort((a, b) => b.score - a.score);
+        .filter(item => item !== null) // Remove offers with no niche match
+        .sort((a, b) => b!.score - a!.score);
+
+      console.log('[Recommendations] Total scored offers with matching niches:', scoredOffers.length);
+      console.log('[Recommendations] Top 3 scored offers:', scoredOffers.slice(0, 3).map(s => ({
+        title: s!.offer.title,
+        score: s!.score,
+        matchingNiches: s!.matchingNiches,
+        primaryNiche: s!.offer.primaryNiche
+      })));
 
       // Return top 10 recommended offers
-      const topOffers = scoredOffers.slice(0, 10).map(item => item.offer);
+      const topOffers = scoredOffers.slice(0, 10).map(item => item!.offer);
+      console.log('[Recommendations] Returning', topOffers.length, 'offers');
 
       res.json(topOffers);
     } catch (error: any) {
@@ -2245,17 +2284,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
   // WebSocket server for real-time messaging
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const wss = new WebSocketServer({
+    noServer: true // We'll handle the upgrade manually for authentication
+  });
 
   // Store connected clients
   const clients = new Map<string, WebSocket>();
 
-  wss.on('connection', (ws: WebSocket, req: any) => {
-    const userId = req.user?.id; // This would need proper auth integration
-    
-    if (userId) {
-      clients.set(userId, ws);
+  // Handle WebSocket upgrade with authentication
+  httpServer.on('upgrade', (req, socket, head) => {
+    const { pathname } = parseUrl(req.url || '', true);
+
+    if (pathname !== '/ws') {
+      socket.destroy();
+      return;
     }
+
+    // Get session from cookie
+    const cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
+    const sessionId = cookies['connect.sid'];
+
+    if (!sessionId) {
+      console.log('[WebSocket] No session cookie found');
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    // Create a mock request/response to use express-session
+    const mockReq: any = Object.create(req);
+    mockReq.session = null;
+    mockReq.sessionStore = null;
+    mockReq.user = null;
+    mockReq.isAuthenticated = function() {
+      return !!this.user;
+    };
+
+    const mockRes: any = {
+      getHeader: () => {},
+      setHeader: () => {},
+      end: () => {}
+    };
+
+    // Use the session middleware from the app
+    const sessionMiddleware = (app as any)._router.stack
+      .find((layer: any) => layer.name === 'session')?.handle;
+
+    if (!sessionMiddleware) {
+      console.error('[WebSocket] Session middleware not found');
+      socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    sessionMiddleware(mockReq, mockRes, () => {
+      passport.initialize()(mockReq, mockRes, () => {
+        passport.session()(mockReq, mockRes, () => {
+          if (!mockReq.user || !mockReq.isAuthenticated()) {
+            console.log('[WebSocket] User not authenticated');
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy();
+            return;
+          }
+
+          // User is authenticated, complete the WebSocket handshake
+          wss.handleUpgrade(req, socket, head, (ws) => {
+            wss.emit('connection', ws, mockReq);
+          });
+        });
+      });
+    });
+  });
+
+  wss.on('connection', (ws: WebSocket, req: any) => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      console.log('[WebSocket] No user ID found after authentication');
+      ws.close();
+      return;
+    }
+
+    console.log(`[WebSocket] User ${userId} connected`);
+    clients.set(userId, ws);
 
     ws.on('message', async (data: Buffer) => {
       try {
@@ -2339,6 +2450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     ws.on('close', () => {
       if (userId) {
+        console.log(`[WebSocket] User ${userId} disconnected`);
         clients.delete(userId);
       }
     });
