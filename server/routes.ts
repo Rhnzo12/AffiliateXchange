@@ -142,10 +142,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get creator profile with niches
       const creatorProfile = await storage.getCreatorProfile(userId);
       if (!creatorProfile) {
-        return res.json([]);
+        return res.status(404).json({
+          error: 'profile_not_found',
+          message: 'Creator profile not found. Please complete your profile first.'
+        });
       }
 
       const creatorNiches = creatorProfile.niches || [];
+
+      // Check if user has set any niches
+      if (creatorNiches.length === 0) {
+        return res.status(200).json({
+          error: 'no_niches',
+          message: 'Please set your content niches in your profile to get personalized recommendations.'
+        });
+      }
 
       // Get all approved offers
       const allOffers = await storage.getOffers({ status: 'approved' });

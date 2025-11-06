@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, FileText, MessageSquare, Heart, Star, Play } from "lucide-react";
+import { DollarSign, TrendingUp, FileText, MessageSquare, Heart, Star, Play, Settings } from "lucide-react";
 import { Link } from "wouter";
 
 // Helper function to format commission display
@@ -42,10 +42,15 @@ export default function CreatorDashboard() {
     enabled: isAuthenticated,
   });
 
-  const { data: recommendedOffers } = useQuery<any[]>({
+  const { data: recommendedOffersData, error: recommendedOffersError } = useQuery<any>({
     queryKey: ["/api/offers/recommended"],
     enabled: isAuthenticated,
   });
+
+  // Handle the recommended offers response
+  const recommendedOffers = Array.isArray(recommendedOffersData) ? recommendedOffersData : [];
+  const hasNoNiches = recommendedOffersData?.error === 'no_niches';
+  const profileNotFound = recommendedOffersData?.error === 'profile_not_found';
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
@@ -159,11 +164,34 @@ export default function CreatorDashboard() {
           <p className="text-sm text-muted-foreground">Offers matching your niche and audience</p>
         </CardHeader>
         <CardContent>
-          {!recommendedOffers || recommendedOffers.length === 0 ? (
+          {hasNoNiches ? (
+            <div className="text-center py-12">
+              <Settings className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+              <p className="text-muted-foreground font-medium">Set Your Content Niches</p>
+              <p className="text-sm text-muted-foreground mt-2 mb-4">
+                Please add your content niches in your profile to get personalized offer recommendations
+              </p>
+              <Link href="/creator-profile">
+                <Button>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Update Profile
+                </Button>
+              </Link>
+            </div>
+          ) : profileNotFound ? (
+            <div className="text-center py-12">
+              <Heart className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+              <p className="text-muted-foreground">Complete your profile first</p>
+              <p className="text-sm text-muted-foreground mt-2 mb-4">Create your creator profile to get personalized recommendations</p>
+              <Link href="/creator-profile">
+                <Button>Complete Profile</Button>
+              </Link>
+            </div>
+          ) : !recommendedOffers || recommendedOffers.length === 0 ? (
             <div className="text-center py-12">
               <Heart className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
               <p className="text-muted-foreground">No recommended offers yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Complete your profile to get personalized recommendations</p>
+              <p className="text-sm text-muted-foreground mt-1">Check back soon for new offers matching your niches</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
