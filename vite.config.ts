@@ -37,13 +37,19 @@ export default defineConfig({
     hmr: {
       protocol: 'ws',
       host: 'localhost',
-      port: 5173,
-      clientPort: 5173,
+      // Let the client auto-detect the port from window.location
+      clientPort: undefined,
     },
     proxy: {
       // Proxy API requests to Express server
       '/api': {
         target: 'http://localhost:5000',
+        changeOrigin: true,
+        ws: true,
+      },
+      // Proxy WebSocket requests to Express server
+      '/ws': {
+        target: 'ws://localhost:5000',
         changeOrigin: true,
         ws: true,
       },

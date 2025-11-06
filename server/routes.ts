@@ -1,6 +1,9 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import { parse as parseUrl } from "url";
+import { parse as parseCookie } from "cookie";
+import passport from "passport";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -2245,17 +2248,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
   // WebSocket server for real-time messaging
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const wss = new WebSocketServer({
+    noServer: true // We'll handle the upgrade manually for authentication
+  });
 
   // Store connected clients
   const clients = new Map<string, WebSocket>();
 
-  wss.on('connection', (ws: WebSocket, req: any) => {
-    const userId = req.user?.id; // This would need proper auth integration
-    
-    if (userId) {
-      clients.set(userId, ws);
+  // Handle WebSocket upgrade with authentication
+  httpServer.on('upgrade', (req, socket, head) => {
+    const { pathname } = parseUrl(req.url || '', true);
+
+    if (pathname !== '/ws') {
+      socket.destroy();
+      return;
     }
+
+    // Get session from cookie
+    const cookies = req.headers.cookie ? parseCookie(req.headers.cookie) : {};
+    const sessionId = cookies['connect.sid'];
+
+    if (!sessionId) {
+      console.log('[WebSocket] No session cookie found');
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    // Create a mock request/response to use express-session
+    const mockReq: any = Object.create(req);
+    mockReq.session = null;
+    mockReq.sessionStore = null;
+    mockReq.user = null;
+    mockReq.isAuthenticated = function() {
+      return !!this.user;
+    };
+
+    const mockRes: any = {
+      getHeader: () => {},
+      setHeader: () => {},
+      end: () => {}
+    };
+
+    // Use the session middleware from the app
+    const sessionMiddleware = (app as any)._router.stack
+      .find((layer: any) => layer.name === 'session')?.handle;
+
+    if (!sessionMiddleware) {
+      console.error('[WebSocket] Session middleware not found');
+      socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    sessionMiddleware(mockReq, mockRes, () => {
+      passport.initialize()(mockReq, mockRes, () => {
+        passport.session()(mockReq, mockRes, () => {
+          if (!mockReq.user || !mockReq.isAuthenticated()) {
+            console.log('[WebSocket] User not authenticated');
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy();
+            return;
+          }
+
+          // User is authenticated, complete the WebSocket handshake
+          wss.handleUpgrade(req, socket, head, (ws) => {
+            wss.emit('connection', ws, mockReq);
+          });
+        });
+      });
+    });
+  });
+
+  wss.on('connection', (ws: WebSocket, req: any) => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      console.log('[WebSocket] No user ID found after authentication');
+      ws.close();
+      return;
+    }
+
+    console.log(`[WebSocket] User ${userId} connected`);
+    clients.set(userId, ws);
 
     ws.on('message', async (data: Buffer) => {
       try {
@@ -2339,6 +2414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     ws.on('close', () => {
       if (userId) {
+        console.log(`[WebSocket] User ${userId} disconnected`);
         clients.delete(userId);
       }
     });
