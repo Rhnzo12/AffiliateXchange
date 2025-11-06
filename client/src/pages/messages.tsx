@@ -56,11 +56,11 @@ export default function Messages() {
   });
   const wsRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const messageInputRef = useRef<HTMLInputElement>(null);
   const lastMessageCountRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const selectedConversationRef = useRef<string | null>(selectedConversation);
   const userIdRef = useRef<string | undefined>(user?.id);
 
@@ -243,7 +243,7 @@ useEffect(() => {
       // Clear any pending reconnect timeout
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
+        reconnectTimeoutRef.current = undefined;
       }
       
       // Close the socket if it exists
