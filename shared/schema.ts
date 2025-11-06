@@ -169,6 +169,7 @@ export const offers = pgTable("offers", {
   contentStyleRequirements: text("content_style_requirements"),
   brandSafetyRequirements: text("brand_safety_requirements"),
   customTerms: text("custom_terms"),
+  creatorRequirements: text("creator_requirements"),
   status: offerStatusEnum("status").notNull().default('pending_review'),
   viewCount: integer("view_count").default(0),
   applicationCount: integer("application_count").default(0),
@@ -381,13 +382,13 @@ export const clickEvents = pgTable("click_events", {
   referer: text("referer"),
   country: varchar("country"),
   city: varchar("city"),
-  fraudScore: integer("fraud_score").default(0), // 0-100, higher = more suspicious
-  fraudFlags: text("fraud_flags"), // Comma-separated fraud indicators
-  utmSource: varchar("utm_source"), // UTM source parameter (e.g., google, facebook, newsletter)
-  utmMedium: varchar("utm_medium"), // UTM medium parameter (e.g., cpc, email, social)
-  utmCampaign: varchar("utm_campaign"), // UTM campaign parameter (e.g., summer_sale, product_launch)
-  utmTerm: varchar("utm_term"), // UTM term parameter (e.g., keywords for paid search)
-  utmContent: varchar("utm_content"), // UTM content parameter (e.g., link_text, banner_ad)
+  fraudScore: integer("fraud_score").default(0),
+  fraudFlags: text("fraud_flags"),
+  utmSource: varchar("utm_source"),
+  utmMedium: varchar("utm_medium"),
+  utmCampaign: varchar("utm_campaign"),
+  utmTerm: varchar("utm_term"),
+  utmContent: varchar("utm_content"),
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
@@ -660,11 +661,11 @@ export const userNotificationPreferencesRelations = relations(userNotificationPr
 export const auditLogs = pgTable("audit_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  action: varchar("action").notNull(), // e.g., "approve_company", "reject_offer", "suspend_user"
-  entityType: varchar("entity_type").notNull(), // e.g., "company", "offer", "user", "payment"
-  entityId: varchar("entity_id"), // ID of the entity being acted upon
-  changes: jsonb("changes"), // Before/after values
-  reason: text("reason"), // Admin's reason for the action
+  action: varchar("action").notNull(),
+  entityType: varchar("entity_type").notNull(),
+  entityId: varchar("entity_id"),
+  changes: jsonb("changes"),
+  reason: text("reason"),
   ipAddress: varchar("ip_address"),
   userAgent: text("user_agent"),
   timestamp: timestamp("timestamp").defaultNow(),
@@ -680,10 +681,10 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
 // Platform Settings (for admin configuration)
 export const platformSettings = pgTable("platform_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  key: varchar("key").notNull().unique(), // e.g., "maintenance_mode", "platform_fee_percentage"
-  value: text("value").notNull(), // Stored as JSON string
-  description: text("description"), // What this setting controls
-  category: varchar("category"), // e.g., "general", "fees", "limits"
+  key: varchar("key").notNull().unique(),
+  value: text("value").notNull(),
+  description: text("description"),
+  category: varchar("category"),
   updatedBy: varchar("updated_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

@@ -142,16 +142,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get creator profile with niches
       const creatorProfile = await storage.getCreatorProfile(userId);
       if (!creatorProfile) {
+        console.log('[Recommendations] Profile not found for user:', userId);
         return res.status(404).json({
           error: 'profile_not_found',
           message: 'Creator profile not found. Please complete your profile first.'
         });
       }
 
-      const creatorNiches = (creatorProfile.niches || []).map((n: string) => (n || '').toString().trim()).filter(Boolean);
+  const creatorNiches = (creatorProfile.niches || []).map((n: string) => (n || '').toString().trim()).filter(Boolean);
+  console.log('[Recommendations] User niches:', creatorNiches);
 
       // Check if user has set any niches
       if (creatorNiches.length === 0) {
+        console.log('[Recommendations] No niches set for user:', userId);
         return res.status(200).json({
           error: 'no_niches',
           message: 'Please set your content niches in your profile to get personalized recommendations.'
@@ -163,6 +166,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get all approved offers
       const allOffers = await storage.getOffers({ status: 'approved' });
+      console.log('[Recommendations] Total approved offers:', allOffers.length);
+      console.log('[Recommendations] Sample offer niches:', allOffers.slice(0, 3).map(o => ({
+        id: o.id,
+        title: o.title,
+        primaryNiche: o.primaryNiche,
+        additionalNiches: o.additionalNiches
+      })));
 
       // Get creator's past applications
       const pastApplications = await db
@@ -290,8 +300,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .filter(item => item !== null) // Remove offers with no niche match
         .sort((a, b) => b!.score - a!.score);
 
+      console.log('[Recommendations] Total scored offers with matching niches:', scoredOffers.length);
+      console.log('[Recommendations] Top 3 scored offers:', scoredOffers.slice(0, 3).map(s => ({
+        title: s!.offer.title,
+        score: s!.score,
+        matchingNiches: s!.matchingNiches,
+        primaryNiche: s!.offer.primaryNiche
+      })));
+
       // Return top 10 recommended offers
       const topOffers = scoredOffers.slice(0, 10).map(item => item!.offer);
+      console.log('[Recommendations] Returning', topOffers.length, 'offers');
 
       res.json(topOffers);
     } catch (error: any) {

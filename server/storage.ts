@@ -2057,17 +2057,29 @@ export class DatabaseStorage implements IStorage {
       ...affiliatePayments.map(p => ({
         ...p,
         paymentType: 'affiliate' as const,
-        // Map retainer payment fields to match affiliate payment structure
         netAmount: p.netAmount,
         createdAt: p.createdAt || p.initiatedAt,
       })),
-      ...retainerPaymentsList.map(p => ({
-        ...p,
-        paymentType: 'retainer' as const,
-        // Map retainer payment fields to match affiliate payment structure
-        netAmount: p.amount,
-        initiatedAt: p.createdAt,
-      })),
+      ...retainerPaymentsList.map(p => {
+        // Retainer amount is the net amount (what creator receives)
+        // Calculate fee breakdown (platform 4% + processing 3% = 7% total)
+        const netAmount = p.amount ? parseFloat(p.amount.toString()) : 0;
+        const grossAmount = netAmount > 0 ? netAmount / 0.93 : 0; // Reverse calculate: net = gross * 0.93
+        const platformFeeAmount = grossAmount * 0.04;
+        const stripeFeeAmount = grossAmount * 0.03;
+
+        return {
+          ...p,
+          paymentType: 'retainer' as const,
+          // Add fee breakdown fields to match affiliate payment structure
+          grossAmount: grossAmount.toFixed(2),
+          platformFeeAmount: platformFeeAmount.toFixed(2),
+          stripeFeeAmount: stripeFeeAmount.toFixed(2),
+          netAmount: p.amount?.toString() || '0.00', // Original amount is the net
+          initiatedAt: p.createdAt,
+          createdAt: p.createdAt,
+        };
+      }),
     ];
 
     // Sort by date descending
@@ -2101,12 +2113,26 @@ export class DatabaseStorage implements IStorage {
         netAmount: p.netAmount,
         createdAt: p.createdAt || p.initiatedAt,
       })),
-      ...retainerPaymentsList.map(p => ({
-        ...p,
-        paymentType: 'retainer' as const,
-        netAmount: p.amount,
-        initiatedAt: p.createdAt,
-      })),
+      ...retainerPaymentsList.map(p => {
+        // Retainer amount is the net amount (what creator receives)
+        // Calculate fee breakdown (platform 4% + processing 3% = 7% total)
+        const netAmount = p.amount ? parseFloat(p.amount.toString()) : 0;
+        const grossAmount = netAmount > 0 ? netAmount / 0.93 : 0; // Reverse calculate: net = gross * 0.93
+        const platformFeeAmount = grossAmount * 0.04;
+        const stripeFeeAmount = grossAmount * 0.03;
+
+        return {
+          ...p,
+          paymentType: 'retainer' as const,
+          // Add fee breakdown fields to match affiliate payment structure
+          grossAmount: grossAmount.toFixed(2),
+          platformFeeAmount: platformFeeAmount.toFixed(2),
+          stripeFeeAmount: stripeFeeAmount.toFixed(2),
+          netAmount: p.amount?.toString() || '0.00', // Original amount is the net
+          initiatedAt: p.createdAt,
+          createdAt: p.createdAt,
+        };
+      }),
     ];
 
     // Sort by date descending
@@ -2138,12 +2164,26 @@ export class DatabaseStorage implements IStorage {
         netAmount: p.netAmount,
         createdAt: p.createdAt || p.initiatedAt,
       })),
-      ...retainerPaymentsList.map(p => ({
-        ...p,
-        paymentType: 'retainer' as const,
-        netAmount: p.amount,
-        initiatedAt: p.createdAt,
-      })),
+      ...retainerPaymentsList.map(p => {
+        // Retainer amount is the net amount (what creator receives)
+        // Calculate fee breakdown (platform 4% + processing 3% = 7% total)
+        const netAmount = p.amount ? parseFloat(p.amount.toString()) : 0;
+        const grossAmount = netAmount > 0 ? netAmount / 0.93 : 0; // Reverse calculate: net = gross * 0.93
+        const platformFeeAmount = grossAmount * 0.04;
+        const stripeFeeAmount = grossAmount * 0.03;
+
+        return {
+          ...p,
+          paymentType: 'retainer' as const,
+          // Add fee breakdown fields to match affiliate payment structure
+          grossAmount: grossAmount.toFixed(2),
+          platformFeeAmount: platformFeeAmount.toFixed(2),
+          stripeFeeAmount: stripeFeeAmount.toFixed(2),
+          netAmount: p.amount?.toString() || '0.00', // Original amount is the net
+          initiatedAt: p.createdAt,
+          createdAt: p.createdAt,
+        };
+      }),
     ];
 
     // Sort by date descending
