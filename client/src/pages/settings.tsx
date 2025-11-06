@@ -15,28 +15,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ChevronsUpDown, X } from "lucide-react";
 
-// Available niche options
+// Available niche options - MUST match offer niche values for recommendations to work
 const AVAILABLE_NICHES = [
-  "Gaming",
-  "Technology & Software",
-  "Fitness & Health",
-  "Beauty & Fashion",
-  "Food & Cooking",
-  "Finance & Investing",
-  "Education & Learning",
-  "Travel & Lifestyle",
-  "Home & Garden",
-  "Entertainment",
-  "Sports",
-  "Music",
-  "Art & Design",
-  "DIY & Crafts",
-  "Parenting",
-  "Business & Entrepreneurship",
-  "Science & Nature",
-  "Photography",
-  "Automotive",
-  "Pets & Animals",
+  { value: "gaming", label: "Gaming" },
+  { value: "tech", label: "Technology & Software" },
+  { value: "fitness", label: "Fitness & Health" },
+  { value: "beauty", label: "Beauty & Fashion" },
+  { value: "food", label: "Food & Cooking" },
+  { value: "finance", label: "Finance & Investing" },
+  { value: "education", label: "Education & Learning" },
+  { value: "travel", label: "Travel & Lifestyle" },
+  { value: "home", label: "Home & Garden" },
+  { value: "entertainment", label: "Entertainment" },
+  { value: "other", label: "Other" },
 ];
 
 export default function Settings() {
@@ -214,17 +205,17 @@ export default function Settings() {
                   <PopoverContent className="w-full p-0" align="start">
                     <div className="max-h-[300px] overflow-y-auto p-4 space-y-2">
                       {AVAILABLE_NICHES.map((niche) => (
-                        <div key={niche} className="flex items-center space-x-2">
+                        <div key={niche.value} className="flex items-center space-x-2">
                           <Checkbox
-                            id={`niche-${niche}`}
-                            checked={selectedNiches.includes(niche)}
-                            onCheckedChange={() => toggleNiche(niche)}
+                            id={`niche-${niche.value}`}
+                            checked={selectedNiches.includes(niche.value)}
+                            onCheckedChange={() => toggleNiche(niche.value)}
                           />
                           <label
-                            htmlFor={`niche-${niche}`}
+                            htmlFor={`niche-${niche.value}`}
                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
                           >
-                            {niche}
+                            {niche.label}
                           </label>
                         </div>
                       ))}
@@ -235,18 +226,21 @@ export default function Settings() {
                 {/* Display selected niches as badges */}
                 {selectedNiches.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedNiches.map((niche) => (
-                      <Badge key={niche} variant="secondary" className="gap-1">
-                        {niche}
-                        <button
-                          type="button"
-                          onClick={() => removeNiche(niche)}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
+                    {selectedNiches.map((nicheValue) => {
+                      const niche = AVAILABLE_NICHES.find(n => n.value === nicheValue);
+                      return (
+                        <Badge key={nicheValue} variant="secondary" className="gap-1">
+                          {niche?.label || nicheValue}
+                          <button
+                            type="button"
+                            onClick={() => removeNiche(nicheValue)}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
                   </div>
                 )}
 
