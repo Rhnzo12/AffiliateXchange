@@ -218,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Score each offer
+      // Score each offer - ONLY include offers with at least one matching niche
       const scoredOffers = allOffers
         .filter(offer => !appliedOfferIds.has(offer.id))
         .map(offer => {
@@ -235,6 +235,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               creatorNiche.toLowerCase() === niche.toLowerCase()
             )
           );
+
+          // IMPORTANT: If no niche match, mark this offer as invalid
+          if (matchingNiches.length === 0) {
+            return null; // Will be filtered out later
+          }
 
           // Primary niche match = 50 points, additional niche match = 25 points each
           if (matchingNiches.includes(offer.primaryNiche)) {
@@ -285,10 +290,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             matchingNiches: matchingNiches.length,
           };
         })
-        .sort((a, b) => b.score - a.score);
+        .filter(item => item !== null) // Remove offers with no niche match
+        .sort((a, b) => b!.score - a!.score);
 
       // Return top 10 recommended offers
-      const topOffers = scoredOffers.slice(0, 10).map(item => item.offer);
+      const topOffers = scoredOffers.slice(0, 10).map(item => item!.offer);
 
       res.json(topOffers);
     } catch (error: any) {
