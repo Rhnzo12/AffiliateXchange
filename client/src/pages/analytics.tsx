@@ -179,7 +179,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(analytics?.conversionRate || 0).toFixed(1)}%
+              {Number(analytics?.conversionRate ?? 0).toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {analytics?.conversions || 0} conversions
