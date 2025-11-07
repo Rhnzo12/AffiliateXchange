@@ -484,14 +484,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).id;
       const companyProfile = await storage.getCompanyProfile(userId);
-      
+
       if (!companyProfile || companyProfile.status !== 'approved') {
         return res.status(403).send("Company not approved");
       }
 
       const validated = createOfferSchema.parse(req.body);
+
+      // Set ACL for featured image if provided
+      let featuredImagePath = validated.featuredImageUrl;
+      if (featuredImagePath) {
+        const objectStorageService = new ObjectStorageService();
+        featuredImagePath = await objectStorageService.trySetObjectEntityAclPolicy(
+          featuredImagePath,
+          {
+            owner: userId,
+            visibility: "public",
+          },
+        );
+      }
+
       const offer = await storage.createOffer({
         ...validated,
+        featuredImageUrl: featuredImagePath,
         companyId: companyProfile.id,
         status: 'pending_review',
       });
@@ -523,6 +538,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const validated = insertOfferSchema.partial().parse(req.body);
+
+      // Set ACL for featured image if it's being updated
+      if (validated.featuredImageUrl) {
+        const objectStorageService = new ObjectStorageService();
+        validated.featuredImageUrl = await objectStorageService.trySetObjectEntityAclPolicy(
+          validated.featuredImageUrl,
+          {
+            owner: userId,
+            visibility: "public",
+          },
+        );
+      }
+
       const updatedOffer = await storage.updateOffer(offerId, validated);
       res.json(updatedOffer);
     } catch (error: any) {
@@ -1958,6 +1986,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       );
 
+      // Set ACL for the thumbnail if provided
+      let thumbnailPath = thumbnailUrl || null;
+      if (thumbnailPath) {
+        thumbnailPath = await objectStorageService.trySetObjectEntityAclPolicy(
+          thumbnailPath,
+          {
+            owner: userId,
+            visibility: "public",
+          },
+        );
+      }
+
       // Create video record in database
       const video = await storage.createOfferVideo({
         offerId,
@@ -1966,7 +2006,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: description || null,
         creatorCredit: creatorCredit || null,
         originalPlatform: originalPlatform || null,
-        thumbnailUrl: thumbnailUrl || null,
+        thumbnailUrl: thumbnailPath,
         orderIndex: existingVideos.length, // Auto-increment order
       });
 
