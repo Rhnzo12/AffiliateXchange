@@ -49,6 +49,12 @@ interface NotificationData {
   companyName?: string;
   offerTitle?: string;
   applicationId?: string;
+  offerId?: string;
+  conversationId?: string;
+  messageId?: string;
+  reviewId?: string;
+  contractId?: string;
+  deliverableId?: string;
   trackingLink?: string;
   trackingCode?: string;
   amount?: string;
@@ -67,6 +73,112 @@ interface NotificationData {
 
 export class NotificationService {
   constructor(private storage: DatabaseStorage) {}
+
+  /**
+   * Generate the correct linkUrl based on notification type and metadata
+   * This ensures clicking a notification takes the user to the right page
+   */
+  private generateLinkUrl(type: NotificationType, data: NotificationData, userRole: 'creator' | 'company' | 'admin'): string {
+    // If linkUrl is explicitly provided, use it
+    if (data.linkUrl) {
+      return data.linkUrl;
+    }
+
+    // Auto-generate linkUrl based on notification type and user role
+    switch (type) {
+      case 'application_status_change':
+        // Creator: go to specific application detail page
+        if (data.applicationId) {
+          return `/applications/${data.applicationId}`;
+        }
+        return '/applications';
+
+      case 'new_application':
+        // Company: go to applications page, optionally filtered to show the specific application
+        if (data.applicationId) {
+          return `/company/applications?highlight=${data.applicationId}`;
+        }
+        return '/company/applications';
+
+      case 'new_message':
+        // Both: go to specific conversation
+        if (data.conversationId) {
+          if (userRole === 'company') {
+            return `/company/messages/${data.conversationId}`;
+          }
+          return `/messages/${data.conversationId}`;
+        }
+        if (data.applicationId) {
+          if (userRole === 'company') {
+            return `/company/messages?application=${data.applicationId}`;
+          }
+          return `/messages?application=${data.applicationId}`;
+        }
+        return userRole === 'company' ? '/company/messages' : '/messages';
+
+      case 'payment_received':
+      case 'work_completion_approval':
+        // Creator: go to earnings/payment page
+        if (data.applicationId) {
+          return `/applications/${data.applicationId}?tab=earnings`;
+        }
+        return '/payment-settings';
+
+      case 'offer_approved':
+      case 'offer_rejected':
+        // Company: go to specific offer detail page
+        if (data.offerId) {
+          return `/company/offers/${data.offerId}`;
+        }
+        return '/company/offers';
+
+      case 'review_received':
+        // Company: go to reviews page, optionally highlight specific review
+        if (data.reviewId) {
+          return `/company/reviews?highlight=${data.reviewId}`;
+        }
+        return '/company/reviews';
+
+      case 'registration_approved':
+        // Company: go to dashboard after approval
+        return userRole === 'company' ? '/company/dashboard' : '/creator/dashboard';
+
+      case 'registration_rejected':
+        // Go to home or contact page
+        return '/';
+
+      case 'priority_listing_expiring':
+        // Company: go to specific offer to renew
+        if (data.offerId) {
+          return `/company/offers/${data.offerId}?tab=priority`;
+        }
+        return '/company/offers';
+
+      case 'deliverable_rejected':
+      case 'revision_requested':
+        // Creator: go to specific deliverable
+        if (data.contractId && data.deliverableId) {
+          return `/retainer-contracts/${data.contractId}/deliverables/${data.deliverableId}`;
+        }
+        if (data.contractId) {
+          return `/retainer-contracts/${data.contractId}`;
+        }
+        return '/retainer-contracts';
+
+      case 'system_announcement':
+        // Use provided linkUrl or go to home
+        return data.linkUrl || '/';
+
+      default:
+        // Default fallback based on user role
+        if (userRole === 'company') {
+          return '/company/dashboard';
+        } else if (userRole === 'creator') {
+          return '/creator/dashboard';
+        }
+        return '/';
+    }
+  }
 
   async sendNotification(
     userId: string,
@@ -87,16 +199,20 @@ export class NotificationService {
       data.userName = data.userName || user.firstName || user.username;
       data.userEmail = data.userEmail || user.email;
 
+      // Generate the correct linkUrl automatically
+      const linkUrl = this.generateLinkUrl(type, data, user.role);
+
       if (preferences?.inAppNotifications !== false) {
-        await this.sendInAppNotification(userId, type, title, message, data);
+        await this.sendInAppNotification(userId, type, title, message, linkUrl, data);
       }
 
       if (preferences?.emailNotifications !== false && this.shouldSendEmail(type, preferences)) {
-        await this.sendEmailNotification(user.email, type, data);
+        // Pass linkUrl in data for email templates
+        await this.sendEmailNotification(user.email, type, { ...data, linkUrl });
       }
 
       if (preferences?.pushNotifications !== false && this.shouldSendPush(type, preferences)) {
-        await this.sendPushNotification(preferences, title, message, data);
+        await this.sendPushNotification(preferences, title, message, { ...data, linkUrl });
       }
     } catch (error) {
       console.error('[Notifications] Error sending notification:', error);
@@ -108,6 +224,7 @@ export class NotificationService {
     type: NotificationType,
     title: string,
     message: string,
+    linkUrl: string,
     data: NotificationData
   ): Promise<void> {
     try {
@@ -116,13 +233,13 @@ export class NotificationService {
         type,
         title,
         message,
-        linkUrl: data.linkUrl,
+        linkUrl,
         metadata: data,
         isRead: false,
       };
 
       await this.storage.createNotification(notification);
-      console.log(`[Notifications] In-app notification created for user ${userId}: ${type}`);
+      console.log(`[Notifications] In-app notification created for user ${userId}: ${type} -> ${linkUrl}`);
     } catch (error) {
       console.error('[Notifications] Error creating in-app notification:', error);
     }

@@ -12,6 +12,7 @@ import CreatorDashboard from "./pages/creator-dashboard";
 import Browse from "./pages/browse";
 import OfferDetail from "./pages/offer-detail";
 import Applications from "./pages/applications";
+import ApplicationDetail from "./pages/application-detail";
 import Analytics from "./pages/analytics";
 import Messages from "./pages/messages";
 import Favorites from "./pages/favorites";
@@ -100,6 +101,7 @@ function ProtectedRouter() {
                     <Route path="/retainers" component={CreatorRetainers} />
                     <Route path="/retainers/:id" component={CreatorRetainerDetail} />
                     <Route path="/applications" component={Applications} />
+                    <Route path="/applications/:id" component={ApplicationDetail} />
                     <Route path="/analytics" component={Analytics} />
                     <Route path="/messages" component={Messages} />
                     <Route path="/favorites" component={Favorites} />

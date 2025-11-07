@@ -591,6 +591,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ✅ NEW: Get single application by ID
+  app.get("/api/applications/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const applicationId = req.params.id;
+
+      // Get the application
+      const application = await storage.getApplication(applicationId);
+      
+      if (!application) {
+        return res.status(404).send("Application not found");
+      }
+
+      // Verify the user owns this application
+      if (application.creatorId !== userId) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Fetch offer and company details
+      const offer = await storage.getOffer(application.offerId);
+      const company = offer ? await storage.getCompanyProfileById(offer.companyId) : null;
+
+      res.json({
+        ...application,
+        offer: offer ? { ...offer, company } : null
+      });
+    } catch (error: any) {
+      console.error('[GET /api/applications/:id] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   app.post("/api/applications", requireAuth, requireRole('creator'), async (req, res) => {
     try {
       const userId = (req.user as any).id;
@@ -619,7 +651,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             {
               userName: company.contactName || 'there',
               offerTitle: offer.title,
-              linkUrl: `/company-applications`,
               applicationId: application.id,
             }
           );
@@ -670,7 +701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: offer.title,
             trackingLink: trackingLink,
-            linkUrl: `/applications/${application.id}`,
+            applicationId: application.id,
             applicationStatus: 'approved',
           }
         );
@@ -2617,7 +2648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     userName: creator.firstName || creator.username,
                     offerTitle: offer.title,
                     trackingLink: trackingLink,
-                    linkUrl: `/applications/${application.id}`,
+                    applicationId: application.id,
                     applicationStatus: 'approved',
                   }
                 );
