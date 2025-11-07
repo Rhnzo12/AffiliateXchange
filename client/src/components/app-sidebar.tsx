@@ -192,6 +192,11 @@ export function AppSidebar() {
       url: "/admin/platform-settings",
       icon: Sliders,
     },
+    {
+      title: "Account Settings",
+      url: "/settings",
+      icon: Settings,
+    },
   ];
 
   const getMenuItems = () => {
