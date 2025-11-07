@@ -41,7 +41,13 @@ export async function setupGoogleAuth(app: Express) {
           const email = profile.emails?.[0]?.value;
           const firstName = profile.name?.givenName;
           const lastName = profile.name?.familyName;
-          const profileImageUrl = profile.photos?.[0]?.value;
+
+          // Get Google profile picture and add size parameter for better loading
+          let profileImageUrl = profile.photos?.[0]?.value;
+          if (profileImageUrl && !profileImageUrl.includes('=s')) {
+            // Add size parameter (s200-c = 200px square, cropped)
+            profileImageUrl = `${profileImageUrl}=s200-c`;
+          }
 
           if (!email) {
             return done(new Error("No email found in Google profile"), undefined);
