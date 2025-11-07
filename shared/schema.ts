@@ -439,6 +439,8 @@ export const payments = pgTable("payments", {
   netAmount: decimal("net_amount", { precision: 10, scale: 2 }).notNull(),
   stripePaymentIntentId: varchar("stripe_payment_intent_id"),
   stripeTransferId: varchar("stripe_transfer_id"),
+  providerTransactionId: varchar("provider_transaction_id"), // Transaction ID from payment provider (PayPal, bank, crypto, etc.)
+  providerResponse: jsonb("provider_response"), // Full response from payment provider
   status: paymentStatusEnum("status").notNull().default('pending'),
   paymentMethod: varchar("payment_method"),
   description: text("description"),

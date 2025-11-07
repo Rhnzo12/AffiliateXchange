@@ -1387,14 +1387,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Status is required");
       }
 
-      const payment = await storage.updatePaymentStatus(id, status);
-
+      const payment = await storage.getPayment(id);
       if (!payment) {
         return res.status(404).send("Payment not found");
       }
 
-      // 🆕 SEND NOTIFICATION WHEN PAYMENT IS COMPLETED
+      // 💰 PROCESS ACTUAL PAYMENT WHEN MARKING AS COMPLETED
       if (status === 'completed') {
+        console.log(`[Payment] Processing payment ${id} to send $${payment.netAmount} to creator`);
+
+        // Import payment processor
+        const { paymentProcessor } = await import('./paymentProcessor');
+
+        // Validate creator has payment settings configured
+        const validation = await paymentProcessor.validateCreatorPaymentSettings(payment.creatorId);
+        if (!validation.valid) {
+          return res.status(400).send(validation.error);
+        }
+
+        // Actually send the money via PayPal/bank/crypto/etc.
+        const paymentResult = await paymentProcessor.processPayment(id);
+
+        if (!paymentResult.success) {
+          // Payment failed - update status to failed
+          await storage.updatePaymentStatus(id, 'failed', {
+            description: `Payment failed: ${paymentResult.error}`,
+          });
+
+          return res.status(400).json({
+            error: paymentResult.error,
+            message: "Failed to process payment. Status updated to 'failed'."
+          });
+        }
+
+        // Payment succeeded - update with transaction details
+        const updatedPayment = await storage.updatePaymentStatus(id, 'completed', {
+          providerTransactionId: paymentResult.transactionId,
+          providerResponse: paymentResult.providerResponse,
+          completedAt: new Date(),
+        });
+
+        console.log(`[Payment] SUCCESS - Sent $${payment.netAmount} to creator. TX ID: ${paymentResult.transactionId}`);
+
+        // Send notification to creator
         const creator = await storage.getUserById(payment.creatorId);
         const offer = await storage.getOffer(payment.offerId);
 
@@ -1403,19 +1438,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             payment.creatorId,
             'payment_received',
             'Payment Received! 💰',
-            `You've received a payment of $${payment.netAmount} for your work on "${offer.title}".`,
+            `You've received a payment of $${payment.netAmount} for your work on "${offer.title}". Transaction ID: ${paymentResult.transactionId}`,
             {
               userName: creator.firstName || creator.username,
               offerTitle: offer.title,
               amount: `$${payment.netAmount}`,
-              linkUrl: `/payments`,
+              linkUrl: `/creator/payment-settings`,
             }
           );
           console.log(`[Notification] Sent payment notification to creator ${creator.username}`);
         }
+
+        res.json(updatedPayment);
+      } else {
+        // For other status changes (not completed), just update status
+        const updatedPayment = await storage.updatePaymentStatus(id, status);
+        res.json(updatedPayment);
       }
 
-      res.json(payment);
     } catch (error: any) {
       console.error('[Update Payment Status] Error:', error);
       res.status(500).send(error.message);
