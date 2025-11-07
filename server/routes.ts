@@ -2014,6 +2014,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Platform Funding Accounts routes
+  app.get("/api/admin/funding-accounts", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const accounts = await storage.getAllPlatformFundingAccounts();
+      res.json(accounts);
+    } catch (error: any) {
+      console.error('[Funding Accounts] Error fetching accounts:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.get("/api/admin/funding-accounts/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const account = await storage.getPlatformFundingAccount(req.params.id);
+      if (!account) {
+        return res.status(404).send("Funding account not found");
+      }
+      res.json(account);
+    } catch (error: any) {
+      console.error('[Funding Accounts] Error fetching account:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/admin/funding-accounts", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const account = await storage.createPlatformFundingAccount({
+        ...req.body,
+        createdBy: userId,
+      });
+      res.json(account);
+    } catch (error: any) {
+      console.error('[Funding Accounts] Error creating account:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.patch("/api/admin/funding-accounts/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const account = await storage.updatePlatformFundingAccount(req.params.id, req.body);
+      if (!account) {
+        return res.status(404).send("Funding account not found");
+      }
+      res.json(account);
+    } catch (error: any) {
+      console.error('[Funding Accounts] Error updating account:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.delete("/api/admin/funding-accounts/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      await storage.deletePlatformFundingAccount(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[Funding Accounts] Error deleting account:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/admin/funding-accounts/:id/set-primary", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      await storage.setPrimaryFundingAccount(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[Funding Accounts] Error setting primary account:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Object Storage routes
   app.get("/public-objects/:filePath(*)", async (req, res) => {
     const filePath = req.params.filePath;

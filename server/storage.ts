@@ -26,6 +26,7 @@ import {
   userNotificationPreferences,
   auditLogs,
   platformSettings,
+  platformFundingAccounts,
   type User,
   type UpsertUser,
   type InsertUser,
@@ -66,6 +67,8 @@ import {
   type InsertAuditLog,
   type PlatformSetting,
   type InsertPlatformSetting,
+  type PlatformFundingAccount,
+  type InsertPlatformFundingAccount,
 } from "../shared/schema";
 
 /**
@@ -756,6 +759,14 @@ export interface IStorage {
   getPlatformSettingsByCategory(category: string): Promise<PlatformSetting[]>;
   updatePlatformSetting(key: string, value: string, updatedBy: string): Promise<PlatformSetting>;
   createPlatformSetting(setting: InsertPlatformSetting): Promise<PlatformSetting>;
+
+  // Platform Funding Accounts
+  getPlatformFundingAccount(id: string): Promise<PlatformFundingAccount | null>;
+  getAllPlatformFundingAccounts(): Promise<PlatformFundingAccount[]>;
+  createPlatformFundingAccount(account: InsertPlatformFundingAccount): Promise<PlatformFundingAccount>;
+  updatePlatformFundingAccount(id: string, updates: Partial<InsertPlatformFundingAccount>): Promise<PlatformFundingAccount | null>;
+  deletePlatformFundingAccount(id: string): Promise<void>;
+  setPrimaryFundingAccount(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3032,6 +3043,54 @@ export class DatabaseStorage implements IStorage {
   async createPlatformSetting(setting: InsertPlatformSetting): Promise<PlatformSetting> {
     const result = await db.insert(platformSettings).values(setting).returning();
     return result[0];
+  }
+
+  // Platform Funding Accounts
+  async getPlatformFundingAccount(id: string): Promise<PlatformFundingAccount | null> {
+    const result = await db
+      .select()
+      .from(platformFundingAccounts)
+      .where(eq(platformFundingAccounts.id, id))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async getAllPlatformFundingAccounts(): Promise<PlatformFundingAccount[]> {
+    return await db
+      .select()
+      .from(platformFundingAccounts)
+      .orderBy(desc(platformFundingAccounts.isPrimary), platformFundingAccounts.createdAt);
+  }
+
+  async createPlatformFundingAccount(account: InsertPlatformFundingAccount): Promise<PlatformFundingAccount> {
+    const result = await db.insert(platformFundingAccounts).values(account).returning();
+    return result[0];
+  }
+
+  async updatePlatformFundingAccount(
+    id: string,
+    updates: Partial<InsertPlatformFundingAccount>
+  ): Promise<PlatformFundingAccount | null> {
+    const result = await db
+      .update(platformFundingAccounts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(platformFundingAccounts.id, id))
+      .returning();
+    return result[0] || null;
+  }
+
+  async deletePlatformFundingAccount(id: string): Promise<void> {
+    await db.delete(platformFundingAccounts).where(eq(platformFundingAccounts.id, id));
+  }
+
+  async setPrimaryFundingAccount(id: string): Promise<void> {
+    // First, unset all primary flags
+    await db.update(platformFundingAccounts).set({ isPrimary: false });
+    // Then set the specified one as primary
+    await db
+      .update(platformFundingAccounts)
+      .set({ isPrimary: true, updatedAt: new Date() })
+      .where(eq(platformFundingAccounts.id, id));
   }
 }
 

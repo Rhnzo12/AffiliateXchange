@@ -697,6 +697,36 @@ export const platformSettingsRelations = relations(platformSettings, ({ one }) =
   }),
 }));
 
+// Platform Funding Accounts (for admin payment management)
+export const platformFundingAccounts = pgTable("platform_funding_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  type: varchar("type").notNull(), // "bank", "wallet", "card"
+  last4: varchar("last4").notNull(),
+  status: varchar("status").notNull().default("pending"), // "active", "pending", "disabled"
+  isPrimary: boolean("is_primary").default(false),
+  bankName: varchar("bank_name"),
+  accountHolderName: varchar("account_holder_name"),
+  routingNumber: varchar("routing_number"),
+  accountNumber: varchar("account_number"),
+  swiftCode: varchar("swift_code"),
+  walletAddress: text("wallet_address"),
+  walletNetwork: varchar("wallet_network"),
+  cardBrand: varchar("card_brand"),
+  cardExpiry: varchar("card_expiry"),
+  notes: text("notes"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const platformFundingAccountsRelations = relations(platformFundingAccounts, ({ one }) => ({
+  createdByUser: one(users, {
+    fields: [platformFundingAccounts.createdBy],
+    references: [users.id],
+  }),
+}));
+
 // Type exports for Replit Auth
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -726,6 +756,7 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 export const insertUserNotificationPreferencesSchema = createInsertSchema(userNotificationPreferences).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, timestamp: true });
 export const insertPlatformSettingSchema = createInsertSchema(platformSettings).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPlatformFundingAccountSchema = createInsertSchema(platformFundingAccounts).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -769,3 +800,5 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type PlatformSetting = typeof platformSettings.$inferSelect;
 export type InsertPlatformSetting = z.infer<typeof insertPlatformSettingSchema>;
+export type PlatformFundingAccount = typeof platformFundingAccounts.$inferSelect;
+export type InsertPlatformFundingAccount = z.infer<typeof insertPlatformFundingAccountSchema>;
