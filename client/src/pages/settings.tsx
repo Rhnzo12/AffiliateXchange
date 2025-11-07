@@ -303,7 +303,11 @@ export default function Settings() {
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={user?.profileImageUrl || ''} alt={user?.firstName || 'User'} />
+              <AvatarImage
+                src={user?.profileImageUrl || ''}
+                alt={user?.firstName || 'User'}
+                referrerPolicy="no-referrer"
+              />
               <AvatarFallback className="text-lg">{user?.firstName?.[0] || user?.email?.[0] || 'U'}</AvatarFallback>
             </Avatar>
             <div>

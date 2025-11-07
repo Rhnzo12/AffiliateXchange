@@ -259,7 +259,11 @@ export function AppSidebar() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 w-full hover-elevate p-2 rounded-md" data-testid="button-user-menu">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.profileImageUrl || ''} alt={user?.firstName || 'User'} />
+                <AvatarImage
+                  src={user?.profileImageUrl || ''}
+                  alt={user?.firstName || 'User'}
+                  referrerPolicy="no-referrer"
+                />
                 <AvatarFallback>{user?.firstName?.[0] || user?.email?.[0] || 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex-1 text-left">
