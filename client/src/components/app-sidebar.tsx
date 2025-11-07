@@ -92,6 +92,11 @@ export function AppSidebar() {
       icon: Heart,
     },
     {
+      title: "Settings",
+      url: "/settings",
+      icon: Settings,
+    },
+    {
       title: "Payment Management",
       url: "/creator/payment-settings",
       icon: DollarSign,
@@ -145,6 +150,11 @@ export function AppSidebar() {
       icon: Star,
     },
     {
+      title: "Settings",
+      url: "/settings",
+      icon: Settings,
+    },
+    {
       title: "Payment Management",
       url: "/company/payment-settings",
       icon: DollarSign,
@@ -193,7 +203,7 @@ export function AppSidebar() {
       icon: Sliders,
     },
     {
-      title: "Account Settings",
+      title: "Settings",
       url: "/settings",
       icon: Settings,
     },
