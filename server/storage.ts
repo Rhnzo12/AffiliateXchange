@@ -2637,6 +2637,37 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getNotification(id: string): Promise<Notification | null> {
+    try {
+      const result = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.id, id))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      if (isLegacyNotificationColumnError(error)) {
+        console.warn(
+          "[Storage] notifications column mismatch while fetching single notification - attempting legacy fallback.",
+        );
+        // Fallback: try to fetch all notifications and find the id (legacy slow path)
+        try {
+          const all = await legacyFetchNotifications((null as unknown) as string, { limit: 1000 });
+          return all.find((n: any) => n.id === id) || null;
+        } catch (e) {
+          return null;
+        }
+      }
+      if (isMissingNotificationSchema(error)) {
+        console.warn(
+          "[Storage] notifications relation missing while fetching single notification - returning null.",
+        );
+        return null;
+      }
+      throw error;
+    }
+  }
+
   async getUnreadNotifications(userId: string): Promise<Notification[]> {
     try {
       const results = await db

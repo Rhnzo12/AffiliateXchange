@@ -7,6 +7,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Heart, Star, Play, X } from "lucide-react";
 import { Link } from "wouter";
+import { proxiedSrc } from "../lib/image";
 import { apiRequest, queryClient } from "../lib/queryClient";
 
 // Helper function to format commission display
@@ -118,7 +119,7 @@ export default function Favorites() {
                 <Card className="hover-elevate cursor-pointer border-card-border h-full" data-testid={`favorite-${offer.id}`}>
                   <div className="aspect-video relative bg-muted rounded-t-lg overflow-hidden">
                     {offer.featuredImageUrl ? (
-                      <img src={offer.featuredImageUrl} alt={offer.title} className="w-full h-full object-cover" />
+                      <img src={proxiedSrc(offer.featuredImageUrl)} alt={offer.title} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Play className="h-12 w-12 text-muted-foreground/50" />

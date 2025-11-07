@@ -4,6 +4,7 @@ import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { proxiedSrc } from "../lib/image";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { ArrowLeft, DollarSign, Users, Eye, Calendar, Upload, Trash2, Video, AlertCircle, Play, Building2, FileText, Package } from "lucide-react";
@@ -582,9 +583,13 @@ export default function CompanyOfferDetail() {
               <h3 className="font-semibold mb-2">Featured Image</h3>
               <div className="aspect-video relative bg-muted rounded-lg overflow-hidden max-w-2xl">
                 <img
-                  src={offer.featuredImageUrl}
+                  src={proxiedSrc(offer.featuredImageUrl)}
                   alt={offer.title}
                   className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  loading="lazy"
+                  decoding="async"
                   onError={(e) => {
                     console.error(`Failed to load featured image for: ${offer.title}`);
                     (e.target as HTMLImageElement).style.display = 'none';
@@ -700,9 +705,13 @@ export default function CompanyOfferDetail() {
                       {video.thumbnailUrl ? (
                         <>
                           <img 
-                            src={video.thumbnailUrl} 
+                            src={proxiedSrc(video.thumbnailUrl)} 
                             alt={video.title}
                             className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                            crossOrigin="anonymous"
+                            loading="lazy"
+                            decoding="async"
                           />
                           <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                             <Play className="h-8 w-8 text-white" />

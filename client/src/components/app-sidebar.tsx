@@ -192,11 +192,7 @@ export function AppSidebar() {
       url: "/admin/platform-settings",
       icon: Sliders,
     },
-    {
-      title: "Account Settings",
-      url: "/settings",
-      icon: Settings,
-    },
+    // 'Account Settings' intentionally omitted for admin nav — use the Settings group link instead
   ];
 
   const getMenuItems = () => {

@@ -17,6 +17,7 @@ import {
   AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
 import { Play, Trash2, ExternalLink } from "lucide-react";
+import { proxiedSrc } from "../lib/image";
 import { useState } from "react";
 
 export default function CompanyVideos() {
@@ -103,9 +104,13 @@ export default function CompanyVideos() {
               >
                 {video.thumbnailUrl ? (
                   <img
-                    src={video.thumbnailUrl}
+                    src={proxiedSrc(video.thumbnailUrl)}
                     alt={video.title}
                     className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">

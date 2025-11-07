@@ -21,16 +21,47 @@ const Avatar = React.forwardRef<
 ))
 Avatar.displayName = AvatarPrimitive.Root.displayName
 
+const isCloudinaryHost = (url?: string) => {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    return u.hostname.endsWith("cloudinary.com") || u.hostname.endsWith("res.cloudinary.com");
+  } catch (e) {
+    return false;
+  }
+};
+
+const proxiedSrc = (src?: string) => {
+  if (!src) return src;
+  try {
+    if (isCloudinaryHost(src)) {
+      return `/proxy/image?url=${encodeURIComponent(src)}`;
+    }
+  } catch (e) {
+    // ignore and return original
+  }
+  return src;
+};
+
 const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Image
-    ref={ref}
-    className={cn("aspect-square h-full w-full", className)}
-    {...props}
-  />
-))
+>(({ className, src, ...props }, ref) => {
+  const finalSrc = proxiedSrc(typeof src === 'string' ? src : undefined) || src;
+
+  return (
+    <AvatarPrimitive.Image
+      ref={ref}
+      className={cn("aspect-square h-full w-full", className)}
+      src={finalSrc as any}
+      referrerPolicy="no-referrer"
+      crossOrigin="anonymous"
+      loading="lazy"
+      decoding="async"
+      {...props}
+    />
+  );
+})
 AvatarImage.displayName = AvatarPrimitive.Image.displayName
 
 const AvatarFallback = React.forwardRef<

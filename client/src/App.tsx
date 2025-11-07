@@ -20,6 +20,8 @@ import CreatorRetainers from "./pages/creator-retainers";
 import CreatorRetainerDetail from "./pages/creator-retainer-detail";
 import Settings from "./pages/settings";
 import PaymentSettings from "./pages/payment-settings";
+import Notifications from "./pages/notifications";
+import NotificationDetail from "./pages/notification-detail";
 import CompanyDashboard from "./pages/company-dashboard";
 import CompanyOffers from "./pages/company-offers";
 import CompanyOfferCreate from "./pages/company-offer-create";
@@ -149,6 +151,8 @@ function ProtectedRouter() {
 
                 {/* Shared Routes */}
                 <Route path="/settings" component={Settings} />
+                <Route path="/notifications" component={Notifications} />
+                <Route path="/notifications/:id" component={NotificationDetail} />
                 <Route path="/payment-settings" component={PaymentSettings} />
 
                 {/* Fallback */}
