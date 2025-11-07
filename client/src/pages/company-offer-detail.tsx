@@ -576,6 +576,32 @@ export default function CompanyOfferDetail() {
           <CardTitle>Offer Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Featured Image */}
+          {offer.featuredImageUrl && (
+            <div>
+              <h3 className="font-semibold mb-2">Featured Image</h3>
+              <div className="aspect-video relative bg-muted rounded-lg overflow-hidden max-w-2xl">
+                <img
+                  src={offer.featuredImageUrl}
+                  alt={offer.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error(`Failed to load featured image for: ${offer.title}`);
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                    if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                  }}
+                />
+                <div
+                  className="w-full h-full flex items-center justify-center bg-muted"
+                  style={{ display: 'none' }}
+                >
+                  <Package className="h-16 w-16 text-muted-foreground/30" />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <h3 className="font-semibold mb-2">Short Description</h3>
             <p className="text-muted-foreground">{offer.shortDescription}</p>

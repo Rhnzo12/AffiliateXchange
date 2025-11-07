@@ -131,11 +131,34 @@ export default function CompanyOffers() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {offers.map((offer: any) => (
             <Card key={offer.id} className="border-card-border" data-testid={`card-offer-${offer.id}`}>
+              {/* Thumbnail */}
+              <div className="aspect-video relative bg-muted rounded-t-lg overflow-hidden">
+                {offer.featuredImageUrl ? (
+                  <img
+                    src={offer.featuredImageUrl}
+                    alt={offer.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error(`Failed to load thumbnail for: ${offer.title}`);
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                      if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div
+                  className="w-full h-full flex items-center justify-center bg-muted"
+                  style={{ display: offer.featuredImageUrl ? 'none' : 'flex' }}
+                >
+                  <Package className="h-12 w-12 text-muted-foreground/30" />
+                </div>
+              </div>
+
               <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-3">
                 <div className="flex-1 min-w-0">
                   <CardTitle className="text-lg line-clamp-1">{offer.title}</CardTitle>
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge 
+                    <Badge
                       variant={offer.status === 'live' ? 'default' : 'secondary'}
                       data-testid={`badge-status-${offer.id}`}
                     >
@@ -148,9 +171,9 @@ export default function CompanyOffers() {
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-8 w-8"
                       data-testid={`button-menu-${offer.id}`}
                     >
