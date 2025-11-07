@@ -61,7 +61,17 @@ export default function Settings() {
   const [contactName, setContactName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  
+
+  // Account info states
+  const [username, setUsername] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const { data: profile } = useQuery<any>({
@@ -70,9 +80,18 @@ export default function Settings() {
   });
 
   useEffect(() => {
+    if (user) {
+      // Load user account data
+      setUsername(user.username || "");
+      setFirstName(user.firstName || "");
+      setLastName(user.lastName || "");
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (profile) {
       console.log("[Settings] Profile loaded:", profile);
-      
+
       // Load creator profile data
       if (user?.role === 'creator') {
         setBio(profile.bio || "");
@@ -84,7 +103,7 @@ export default function Settings() {
         setTiktokFollowers(profile.tiktokFollowers?.toString() || "");
         setInstagramFollowers(profile.instagramFollowers?.toString() || "");
       }
-      
+
       // Load company profile data
       if (user?.role === 'company') {
         setTradeName(profile.tradeName || "");
@@ -233,6 +252,81 @@ export default function Settings() {
     setSelectedNiches(prev => prev.filter(n => n !== niche));
   };
 
+  const updateAccountMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        username: username.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      };
+
+      if (!payload.username) {
+        throw new Error("Username is required");
+      }
+
+      const result = await apiRequest("PUT", "/api/auth/account", payload);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Success",
+        description: "Account information updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update account information",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentPassword) {
+        throw new Error("Current password is required");
+      }
+
+      if (!newPassword) {
+        throw new Error("New password is required");
+      }
+
+      if (newPassword.length < 8) {
+        throw new Error("New password must be at least 8 characters");
+      }
+
+      if (newPassword !== confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      const payload = {
+        currentPassword,
+        newPassword,
+      };
+
+      const result = await apiRequest("PUT", "/api/auth/password", payload);
+      return result;
+    },
+    onSuccess: () => {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast({
+        title: "Success",
+        description: "Password changed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    },
+  });
+
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
       let payload: any = {};
@@ -252,7 +346,7 @@ export default function Settings() {
           instagramFollowers: instagramFollowers ? parseInt(instagramFollowers) : null,
         };
       }
-      
+
       // Company profile payload
       if (user?.role === 'company') {
         payload = {
@@ -689,6 +783,115 @@ export default function Settings() {
 
       <Card className="border-card-border">
         <CardHeader>
+          <CardTitle>Account Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username">Username *</Label>
+            <Input
+              id="username"
+              type="text"
+              placeholder="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              data-testid="input-username"
+            />
+            <p className="text-xs text-muted-foreground">
+              Your unique username for the platform
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                type="text"
+                placeholder="John"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                data-testid="input-first-name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                type="text"
+                placeholder="Doe"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                data-testid="input-last-name"
+              />
+            </div>
+          </div>
+
+          <Button
+            onClick={() => updateAccountMutation.mutate()}
+            disabled={updateAccountMutation.isPending}
+            data-testid="button-save-account"
+          >
+            {updateAccountMutation.isPending ? "Saving..." : "Save Account Info"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {!user?.googleId && (
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Change Password</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password *</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                placeholder="Enter current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                data-testid="input-current-password"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password *</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Enter new password (min 8 characters)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                data-testid="input-new-password"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password *</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                data-testid="input-confirm-password"
+              />
+            </div>
+
+            <Button
+              onClick={() => changePasswordMutation.mutate()}
+              disabled={changePasswordMutation.isPending}
+              data-testid="button-change-password"
+            >
+              {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="border-card-border">
+        <CardHeader>
           <CardTitle>Account</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -697,8 +900,8 @@ export default function Settings() {
               <div className="font-medium">Log Out</div>
               <div className="text-sm text-muted-foreground">Sign out of your account</div>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleLogout}
               disabled={isLoggingOut}
               data-testid="button-logout"
