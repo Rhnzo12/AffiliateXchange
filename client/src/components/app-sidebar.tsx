@@ -192,7 +192,7 @@ export function AppSidebar() {
       url: "/admin/platform-settings",
       icon: Sliders,
     },
-    // 'Account Settings' intentionally omitted for admin nav — use the Settings group link instead
+    // Removed admin 'Account Settings' to avoid duplication with global Settings
   ];
 
   const getMenuItems = () => {

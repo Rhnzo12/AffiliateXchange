@@ -828,8 +828,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const completed = await storage.completeApplication(application.id);
-      res.json(completed);
+
+      // Automatically create payment when work is completed
+      // Calculate payment amounts based on offer commission
+      let grossAmount = 0;
+      if (offer.commissionType === 'percentage' && offer.commissionPercentage) {
+        // For percentage-based, use a base amount (this should come from actual sale data)
+        // For now, we'll use a placeholder - in production, this would come from tracked conversions
+        const baseAmount = parseFloat(req.body.saleAmount || '100');
+        grossAmount = baseAmount * (parseFloat(offer.commissionPercentage.toString()) / 100);
+      } else if (offer.commissionType === 'fixed' && offer.commissionAmount) {
+        grossAmount = parseFloat(offer.commissionAmount.toString());
+      }
+
+      // Calculate fees (platform 4%, processing 3%)
+      const platformFeeAmount = grossAmount * 0.04;
+      const stripeFeeAmount = grossAmount * 0.03;
+      const netAmount = grossAmount - platformFeeAmount - stripeFeeAmount;
+
+      // Create payment record
+      const payment = await storage.createPayment({
+        applicationId: application.id,
+        creatorId: application.creatorId,
+        companyId: companyProfile.id,
+        offerId: offer.id,
+        grossAmount: grossAmount.toFixed(2),
+        platformFeeAmount: platformFeeAmount.toFixed(2),
+        stripeFeeAmount: stripeFeeAmount.toFixed(2),
+        netAmount: netAmount.toFixed(2),
+        status: 'pending',
+        description: `Payment for ${offer.title}`,
+      });
+
+      console.log(`[Payment] Created payment ${payment.id} for application ${application.id}`);
+
+      // Send notification to creator
+      const creator = await storage.getUserById(application.creatorId);
+      if (creator) {
+        await notificationService.sendNotification(
+          application.creatorId,
+          'payment_pending',
+          'Work Completed - Payment Pending 💰',
+          `Your work for "${offer.title}" has been marked as complete! Payment of $${netAmount.toFixed(2)} is pending company approval.`,
+          {
+            userName: creator.firstName || creator.username,
+            offerTitle: offer.title,
+            amount: `$${netAmount.toFixed(2)}`,
+            linkUrl: `/creator/payment-settings`,
+          }
+        );
+      }
+
+      res.json({ application: completed, payment });
     } catch (error: any) {
+      console.error('[Complete Application] Error:', error);
       res.status(500).send(error.message);
     }
   });
@@ -1362,6 +1414,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(payment);
     } catch (error: any) {
       console.error('[Update Payment Status] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Company payment approval
+  app.post("/api/company/payments/:id/approve", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const payment = await storage.getPayment(req.params.id);
+      if (!payment) {
+        return res.status(404).send("Payment not found");
+      }
+
+      // Verify the payment belongs to this company
+      const userId = (req.user as any).id;
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile) {
+        return res.status(404).send("Company profile not found");
+      }
+
+      if (payment.companyId !== companyProfile.id) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Update payment status to processing
+      const updatedPayment = await storage.updatePaymentStatus(payment.id, 'processing');
+
+      // Send notification to creator
+      const creator = await storage.getUserById(payment.creatorId);
+      const offer = await storage.getOffer(payment.offerId);
+
+      if (creator && offer) {
+        await notificationService.sendNotification(
+          payment.creatorId,
+          'payment_approved',
+          'Payment Approved! 🎉',
+          `Great news! Your payment of $${payment.netAmount} for "${offer.title}" has been approved and is being processed.`,
+          {
+            userName: creator.firstName || creator.username,
+            offerTitle: offer.title,
+            amount: `$${payment.netAmount}`,
+            linkUrl: `/creator/payment-settings`,
+          }
+        );
+      }
+
+      res.json(updatedPayment);
+    } catch (error: any) {
+      console.error('[Approve Payment] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Company payment dispute
+  app.post("/api/company/payments/:id/dispute", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const payment = await storage.getPayment(req.params.id);
+      if (!payment) {
+        return res.status(404).send("Payment not found");
+      }
+
+      // Verify the payment belongs to this company
+      const userId = (req.user as any).id;
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile) {
+        return res.status(404).send("Company profile not found");
+      }
+
+      if (payment.companyId !== companyProfile.id) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Update payment status to failed with reason
+      const updatedPayment = await storage.updatePaymentStatus(payment.id, 'failed', {
+        description: `Disputed: ${reason || 'No reason provided'}`,
+      });
+
+      // Send notification to creator
+      const creator = await storage.getUserById(payment.creatorId);
+      const offer = await storage.getOffer(payment.offerId);
+
+      if (creator && offer) {
+        await notificationService.sendNotification(
+          payment.creatorId,
+          'payment_disputed',
+          'Payment Disputed',
+          `Your payment for "${offer.title}" has been disputed. Reason: ${reason || 'Not specified'}. Please contact the company for more information.`,
+          {
+            userName: creator.firstName || creator.username,
+            offerTitle: offer.title,
+            amount: `$${payment.netAmount}`,
+            linkUrl: `/messages`,
+          }
+        );
+      }
+
+      res.json(updatedPayment);
+    } catch (error: any) {
+      console.error('[Dispute Payment] Error:', error);
       res.status(500).send(error.message);
     }
   });
