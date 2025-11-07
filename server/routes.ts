@@ -8,7 +8,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { db } from "./db";
-import { offerVideos, applications, analytics } from "@shared/schema";
+import { offerVideos, applications, analytics } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
@@ -29,7 +29,7 @@ import {
   createRetainerContractSchema,
   insertRetainerApplicationSchema,
   insertRetainerDeliverableSchema,
-} from "@shared/schema";
+} from "../shared/schema";
 
 // Alias for convenience
 const requireAuth = isAuthenticated;
@@ -149,8 +149,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const creatorNiches = creatorProfile.niches || [];
-      console.log('[Recommendations] User niches:', creatorNiches);
+  const creatorNiches = (creatorProfile.niches || []).map((n: string) => (n || '').toString().trim()).filter(Boolean);
+  console.log('[Recommendations] User niches:', creatorNiches);
 
       // Check if user has set any niches
       if (creatorNiches.length === 0) {
@@ -160,6 +160,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'Please set your content niches in your profile to get personalized recommendations.'
         });
       }
+
+      // Normalize niches for case-insensitive comparison
+      const creatorNichesNorm = creatorNiches.map((n: string) => n.toLowerCase());
 
       // Get all approved offers
       const allOffers = await storage.getOffers({ status: 'approved' });
@@ -210,17 +213,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ? (Number(perf.totalConversions) / Number(perf.totalClicks)) * 100
                 : 0;
 
-              // Track performance for primary niche
+              // Track performance for primary niche (normalized key)
               if (offer.primaryNiche) {
-                performanceByNiche[offer.primaryNiche] =
-                  (performanceByNiche[offer.primaryNiche] || 0) + conversionRate;
+                const key = (offer.primaryNiche || '').toString().toLowerCase();
+                performanceByNiche[key] = (performanceByNiche[key] || 0) + conversionRate;
               }
 
-              // Track performance for additional niches
+              // Track performance for additional niches (normalized keys)
               if (offer.additionalNiches) {
                 for (const niche of offer.additionalNiches) {
-                  performanceByNiche[niche] =
-                    (performanceByNiche[niche] || 0) + conversionRate;
+                  const key = (niche || '').toString().toLowerCase();
+                  performanceByNiche[key] = (performanceByNiche[key] || 0) + conversionRate;
                 }
               }
             }
@@ -235,16 +238,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let score = 0;
 
           // 1. Niche matching (0-100 points)
-          const offerNiches = [
-            offer.primaryNiche,
-            ...(offer.additionalNiches || [])
-          ].filter(Boolean);
+          // Build raw and normalized niche lists for the offer
+          const offerNichesRaw = [offer.primaryNiche, ...(offer.additionalNiches || [])].filter(Boolean);
+          const offerNichesNorm = offerNichesRaw.map((n: string) => n.toString().toLowerCase());
 
-          const matchingNiches = offerNiches.filter(niche =>
-            creatorNiches.some(creatorNiche =>
-              creatorNiche.toLowerCase() === niche.toLowerCase()
-            )
-          );
+          // Determine matching niches by normalized intersection
+          const matchingNiches = offerNichesRaw.filter((n: string, idx: number) => creatorNichesNorm.includes(offerNichesNorm[idx]));
 
           // IMPORTANT: If no niche match, mark this offer as invalid
           if (matchingNiches.length === 0) {
@@ -252,13 +251,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Primary niche match = 50 points, additional niche match = 25 points each
-          if (matchingNiches.includes(offer.primaryNiche)) {
+          if (offer.primaryNiche && creatorNichesNorm.includes((offer.primaryNiche || '').toString().toLowerCase())) {
             score += 50;
           }
 
-          const additionalMatches = matchingNiches.filter(
-            niche => niche !== offer.primaryNiche
-          ).length;
+          const additionalMatches = matchingNiches.filter(niche => niche !== offer.primaryNiche).length;
           score += additionalMatches * 25;
 
           // Cap niche score at 100
@@ -266,9 +263,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // 2. Performance in similar niches (0-50 points)
           let performanceScore = 0;
-          for (const niche of offerNiches) {
-            if (performanceByNiche[niche]) {
-              performanceScore += performanceByNiche[niche];
+          for (const nicheNorm of offerNichesNorm) {
+            if (performanceByNiche[nicheNorm]) {
+              performanceScore += performanceByNiche[nicheNorm];
             }
           }
           performanceScore = Math.min(performanceScore, 50);
@@ -336,6 +333,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).send(error.message);
     }
   });
+
+  // Dev-only: debug recommendations for a specific user (bypass auth)
+  // Usage: /api/debug/recommendations?userId=<userId>
+  if (process.env.NODE_ENV !== 'production') {
+    app.get("/api/debug/recommendations", async (req, res) => {
+      try {
+        const userId = String(req.query.userId || '');
+        if (!userId) return res.status(400).json({ error: 'missing_userId' });
+
+        // Reuse recommendation logic from /api/offers/recommended but bypass auth
+        const creatorProfile = await storage.getCreatorProfile(userId);
+        if (!creatorProfile) {
+          return res.status(404).json({ error: 'profile_not_found' });
+        }
+
+        const creatorNiches = (creatorProfile.niches || []).map((n: string) => (n || '').toString().trim()).filter(Boolean);
+        if (creatorNiches.length === 0) {
+          return res.status(200).json({ error: 'no_niches' });
+        }
+        const creatorNichesNorm = creatorNiches.map((n: string) => n.toLowerCase());
+
+        const allOffers = await storage.getOffers({ status: 'approved' });
+
+        // Get creator's past applications
+        const pastApplications = await db
+          .select({ offerId: applications.offerId, status: applications.status })
+          .from(applications)
+          .where(eq(applications.creatorId, userId));
+
+        const appliedOfferIds = new Set(pastApplications.map(app => app.offerId));
+
+        // Compute performance by niche for this user
+        const performanceByNiche: Record<string, number> = {};
+        if (pastApplications.length > 0) {
+          const approvedAppIds = pastApplications
+            .filter(app => app.status === 'approved' || app.status === 'active')
+            .map(app => app.offerId);
+
+          if (approvedAppIds.length > 0) {
+            const performanceData = await db
+              .select({ offerId: analytics.offerId, totalConversions: sql<number>`SUM(${analytics.conversions})`, totalClicks: sql<number>`SUM(${analytics.clicks})` })
+              .from(analytics)
+              .where(eq(analytics.creatorId, userId))
+              .groupBy(analytics.offerId);
+
+            for (const perf of performanceData) {
+              const offer = allOffers.find(o => o.id === perf.offerId);
+              if (!offer) continue;
+              const conversionRate = perf.totalClicks > 0 ? (Number(perf.totalConversions) / Number(perf.totalClicks)) * 100 : 0;
+              if (offer.primaryNiche) {
+                const key = (offer.primaryNiche || '').toString().toLowerCase();
+                performanceByNiche[key] = (performanceByNiche[key] || 0) + conversionRate;
+              }
+              if (offer.additionalNiches) {
+                for (const niche of offer.additionalNiches) {
+                  const key = (niche || '').toString().toLowerCase();
+                  performanceByNiche[key] = (performanceByNiche[key] || 0) + conversionRate;
+                }
+              }
+            }
+          }
+        }
+
+        const scoredOffers = allOffers
+          .filter(offer => !appliedOfferIds.has(offer.id))
+          .map(offer => {
+            let score = 0;
+            const offerNichesRaw = [offer.primaryNiche, ...(offer.additionalNiches || [])].filter(Boolean);
+            const offerNichesNorm = offerNichesRaw.map((n: string) => n.toString().toLowerCase());
+            const matchingNiches = offerNichesRaw.filter((n: string, idx: number) => creatorNichesNorm.includes(offerNichesNorm[idx]));
+            if (matchingNiches.length === 0) return null;
+            if (offer.primaryNiche && creatorNichesNorm.includes((offer.primaryNiche || '').toString().toLowerCase())) score += 50;
+            const additionalMatches = matchingNiches.filter(n => n !== offer.primaryNiche).length;
+            score += additionalMatches * 25;
+            const nicheScore = Math.min(score, 100);
+            let performanceScore = 0;
+            for (const nicheNorm of offerNichesNorm) {
+              if (performanceByNiche[nicheNorm]) performanceScore += performanceByNiche[nicheNorm];
+            }
+            performanceScore = Math.min(performanceScore, 50);
+            const viewScore = Math.min((offer.viewCount || 0) / 10, 15);
+            const applicationScore = Math.min((offer.applicationCount || 0) / 5, 15);
+            const popularityScore = viewScore + applicationScore;
+            let commissionScore = 0;
+            if (offer.commissionType === 'per_sale' && offer.commissionAmount) {
+              commissionScore = Math.min(Number(offer.commissionAmount) / 10, 20);
+            } else if (offer.commissionType === 'per_sale' && offer.commissionPercentage) {
+              commissionScore = Math.min(Number(offer.commissionPercentage) / 2, 20);
+            } else if (offer.commissionType === 'monthly_retainer' && offer.retainerAmount) {
+              commissionScore = Math.min(Number(offer.retainerAmount) / 100, 20);
+            } else if (offer.commissionType === 'per_click') {
+              commissionScore = 10;
+            } else if (offer.commissionType === 'per_lead') {
+              commissionScore = 12;
+            }
+            const totalScore = nicheScore + performanceScore + popularityScore + commissionScore;
+            return { offer, score: totalScore };
+          })
+          .filter(item => item !== null)
+          .sort((a, b) => b!.score - a!.score);
+
+        const topOffers = scoredOffers.slice(0, 10).map(item => item!.offer);
+        return res.json(topOffers);
+      } catch (error: any) {
+        console.error('[Debug Recommendations] Error:', error);
+        res.status(500).send(error.message);
+      }
+    });
+  }
 
   app.get("/api/offers/:id", requireAuth, async (req, res) => {
     try {
@@ -513,6 +619,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ✅ NEW: Get single application by ID
+  app.get("/api/applications/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const applicationId = req.params.id;
+
+      // Get the application
+      const application = await storage.getApplication(applicationId);
+      
+      if (!application) {
+        return res.status(404).send("Application not found");
+      }
+
+      // Verify the user owns this application
+      if (application.creatorId !== userId) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Fetch offer and company details
+      const offer = await storage.getOffer(application.offerId);
+      const company = offer ? await storage.getCompanyProfileById(offer.companyId) : null;
+
+      res.json({
+        ...application,
+        offer: offer ? { ...offer, company } : null
+      });
+    } catch (error: any) {
+      console.error('[GET /api/applications/:id] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   app.post("/api/applications", requireAuth, requireRole('creator'), async (req, res) => {
     try {
       const userId = (req.user as any).id;
@@ -541,7 +679,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             {
               userName: company.contactName || 'there',
               offerTitle: offer.title,
-              linkUrl: `/company-applications`,
               applicationId: application.id,
             }
           );
@@ -592,7 +729,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: offer.title,
             trackingLink: trackingLink,
-            linkUrl: `/applications/${application.id}`,
+            applicationId: application.id,
             applicationStatus: 'approved',
           }
         );
@@ -2551,7 +2688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     userName: creator.firstName || creator.username,
                     offerTitle: offer.title,
                     trackingLink: trackingLink,
-                    linkUrl: `/applications/${application.id}`,
+                    applicationId: application.id,
                     applicationStatus: 'approved',
                   }
                 );

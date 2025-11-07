@@ -1,17 +1,17 @@
 import { useEffect, useState, useRef } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { apiRequest, queryClient } from "../lib/queryClient";
+import { isUnauthorizedError } from "../lib/authUtils";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { Textarea } from "../components/ui/textarea";
+import { Checkbox } from "../components/ui/checkbox";
+import { Label } from "../components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -20,14 +20,14 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "../components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../components/ui/select";
 import { Heart, Star, Play, CheckCircle2, DollarSign, Clock, MapPin, Users, Check } from "lucide-react";
 
 // Helper function to format commission display
@@ -454,6 +454,147 @@ export default function OfferDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* 🆕 About the Company Section */}
+        {offer.company && (
+          <Card className="border-card-border">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                {offer.company.logoUrl && (
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={offer.company.logoUrl} alt={offer.company.tradeName} />
+                    <AvatarFallback>{offer.company.tradeName?.[0] || 'C'}</AvatarFallback>
+                  </Avatar>
+                )}
+                About {offer.company.tradeName || offer.company.legalName || 'the Company'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Company Description */}
+              {offer.company.description && (
+                <div>
+                  <p className="text-muted-foreground whitespace-pre-wrap">
+                    {offer.company.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Company Details Grid */}
+              <div className="grid gap-4 pt-4 border-t">
+                {/* Industry */}
+                {offer.company.industry && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                        <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-muted-foreground">Industry</div>
+                      <Badge variant="secondary" className="mt-1 capitalize">
+                        {offer.company.industry}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+
+                {/* Website */}
+                {offer.company.websiteUrl && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                        <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-muted-foreground">Website</div>
+                      <a 
+                        href={offer.company.websiteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline break-all"
+                      >
+                        {offer.company.websiteUrl.replace(/^https?:\/\//, '')}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {/* Founded Year */}
+                {offer.company.yearFounded && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                        <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-muted-foreground">Founded</div>
+                      <div className="font-medium">{offer.company.yearFounded}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Company Size */}
+                {offer.company.companySize && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Users className="h-3 w-3 text-primary" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-muted-foreground">Company Size</div>
+                      <div className="font-medium capitalize">{offer.company.companySize}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Contact Name */}
+                {offer.company.contactName && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                        <svg className="h-3 w-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-muted-foreground">Contact Person</div>
+                      <div className="font-medium">
+                        {offer.company.contactName}
+                        {offer.company.contactJobTitle && (
+                          <span className="text-muted-foreground text-sm ml-1">
+                            ({offer.company.contactJobTitle})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Show message if no company info available */}
+              {!offer.company.description && 
+               !offer.company.industry && 
+               !offer.company.websiteUrl && 
+               !offer.company.yearFounded &&
+               !offer.company.companySize &&
+               !offer.company.contactName && (
+                <div className="text-center py-4 text-muted-foreground text-sm">
+                  No additional company information available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Videos Section */}
@@ -504,6 +645,23 @@ export default function OfferDetail() {
         <h2 className="text-2xl font-bold">Creator Requirements</h2>
         <Card className="border-card-border">
           <CardContent className="space-y-4 pt-6">
+            {/* General Creator Requirements (main text field) */}
+            {(offer.creatorRequirements || offer.requirements) && (
+              <div>
+                <p className="text-muted-foreground whitespace-pre-wrap">
+                  {offer.creatorRequirements || offer.requirements}
+                </p>
+              </div>
+            )}
+
+            {/* Show separator if we have both general requirements and specific ones */}
+            {(offer.creatorRequirements || offer.requirements) && 
+             (offer.minimumFollowers || offer.allowedPlatforms?.length || offer.geographicRestrictions?.length || 
+              offer.contentStyleRequirements || offer.brandSafetyRequirements) && (
+              <div className="border-t pt-4" />
+            )}
+
+            {/* Specific structured requirements */}
             {offer.minimumFollowers && (
               <div className="flex items-start gap-3">
                 <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
@@ -547,7 +705,11 @@ export default function OfferDetail() {
                 <p className="text-muted-foreground whitespace-pre-wrap">{offer.brandSafetyRequirements}</p>
               </div>
             )}
-            {!offer.minimumFollowers && 
+            
+            {/* Show "no requirements" message only if nothing is filled */}
+            {!offer.creatorRequirements && 
+             !offer.requirements &&
+             !offer.minimumFollowers && 
              !offer.allowedPlatforms?.length && 
              !offer.geographicRestrictions?.length && 
              !offer.contentStyleRequirements && 

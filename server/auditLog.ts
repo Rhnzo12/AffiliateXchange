@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { auditLogs, type InsertAuditLog } from "@shared/schema";
+import { auditLogs, type InsertAuditLog } from "../shared/schema";
 import type { Request } from "express";
 
 /**

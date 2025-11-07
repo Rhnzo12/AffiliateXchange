@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
 import type { UppyFile, UploadResult } from "@uppy/core";
+import { normalizeUploadResult, type NormalizedUploadResult } from "../lib/uppyAdapter";
 import { DashboardModal } from "@uppy/react";
 import XHRUpload from "@uppy/xhr-upload";
-import { Button } from "@/components/ui/button";
+import { Button } from "./ui/button";
 
 interface CloudinaryUploadParams {
   uploadUrl: string;
@@ -19,7 +20,7 @@ interface CloudinaryUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
   onGetUploadParameters: () => Promise<CloudinaryUploadParams>;
-  onComplete?: (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => void;
+  onComplete?: (result: NormalizedUploadResult) => void;
   buttonClassName?: string;
   children: ReactNode;
   allowedFileTypes?: string[];
@@ -49,9 +50,10 @@ export function CloudinaryUploader({
       formData: true,
       fieldName: "file",
       responseType: "json",
-      getResponseData: (responseText: string) => {
+      getResponseData: (responseText: any) => {
         try {
-          const response = JSON.parse(responseText);
+            // some XHR implementations provide the parsed body, others a string
+            const response = typeof responseText === "string" ? JSON.parse(responseText) : responseText;
           return {
             ...response,
             uploadURL: response.secure_url || response.url,
@@ -65,32 +67,35 @@ export function CloudinaryUploader({
   );
 
   useEffect(() => {
-    const handleComplete = (
-      result: UploadResult<Record<string, unknown>, Record<string, unknown>>
-    ) => {
-      if (result.failed.length > 0 && result.successful.length === 0) {
+    const handleComplete = (result: UploadResult<any, any>) => {
+      const failed = result.failed ?? [];
+      const successful = result.successful ?? [];
+
+      if (failed.length > 0 && successful.length === 0) {
         uppy.info("Upload failed. Please try again.", "error", 5000);
         return;
       }
 
-      if (result.successful.length > 0) {
+      if (successful.length > 0) {
         setShowModal(false);
-        onComplete?.(result);
-        uppy.reset();
+  onComplete?.(normalizeUploadResult(result as UploadResult<any, any>));
+        // Some Uppy versions don't expose reset on the type; cast to any for runtime call
+        (uppy as any).reset?.();
       }
     };
 
-    const handleUploadError = (file: UppyFile, error: Error) => {
+  const handleUploadError = (file: UppyFile<any, any> | any, error: Error) => {
       console.error("Upload error", error, file);
       uppy.info("Upload failed. Please try again.", "error", 5000);
     };
 
-    uppy.on("complete", handleComplete);
-    uppy.on("upload-error", handleUploadError);
+  // cast handlers when registering with Uppy to avoid strict generic mismatch in event signatures
+  uppy.on("complete", handleComplete as any);
+  uppy.on("upload-error", handleUploadError as any);
 
     return () => {
-      uppy.off("complete", handleComplete);
-      uppy.off("upload-error", handleUploadError);
+      uppy.off("complete", handleComplete as any);
+      uppy.off("upload-error", handleUploadError as any);
     };
   }, [onComplete, uppy]);
 
@@ -98,7 +103,7 @@ export function CloudinaryUploader({
     const prepareUpload = async (fileIDs: string[]) => {
       await Promise.all(
         fileIDs.map(async (fileID) => {
-          const file = uppy.getFile(fileID) as UppyFile | undefined;
+          const file = uppy.getFile(fileID) as UppyFile<any, any> | undefined;
 
           if (!file) {
             return;
@@ -106,10 +111,14 @@ export function CloudinaryUploader({
 
           try {
             const params = await onGetUploadParameters();
-            const xhrUpload = uppy.getPlugin<XHRUpload>("XHRUpload") as XHRUpload | undefined;
+            const xhrUpload = uppy.getPlugin<any>("XHRUpload") as any | undefined;
 
             if (xhrUpload) {
-              xhrUpload.setOptions({ endpoint: params.uploadUrl });
+              try {
+                xhrUpload.setOptions({ endpoint: params.uploadUrl });
+              } catch (e) {
+                // ignore setOptions typing/runtime mismatches
+              }
             }
 
             const xhrOptions = {
@@ -120,9 +129,10 @@ export function CloudinaryUploader({
               fieldName: "file",
             };
 
+            // setFileState XHR options can be typed differently across Uppy versions — cast to any
             uppy.setFileState(fileID, {
               xhrUpload: xhrOptions,
-            });
+            } as any);
 
             const meta: Record<string, string> = {};
 
@@ -166,7 +176,12 @@ export function CloudinaryUploader({
 
   useEffect(() => {
     return () => {
-      uppy.close({ reason: "unmount" });
+      // Some Uppy versions expect close() without args; cast to any to be safe
+      try {
+        (uppy as any).close?.({ reason: "unmount" });
+      } catch {
+        try { (uppy as any).close?.(); } catch {}
+      }
     };
   }, [uppy]);
 

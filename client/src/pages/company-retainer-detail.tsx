@@ -1,10 +1,10 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useToast } from "../hooks/use-toast";
+import { apiRequest, queryClient } from "../lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,14 +14,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+} from "../components/ui/alert-dialog";
+import { Avatar, AvatarFallback } from "../components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Textarea } from "../components/ui/textarea";
 import { DollarSign, Video, Calendar, Briefcase, CheckCircle, XCircle, Clock, ExternalLink, Play, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
-import { VideoPlayer } from "@/components/VideoPlayer";
+import { VideoPlayer } from "../components/VideoPlayer";
 import { format } from "date-fns";
 
 export default function CompanyRetainerDetail() {
@@ -417,7 +417,7 @@ export default function CompanyRetainerDetail() {
               <Badge variant="outline">
                 {applications?.length || 0} Application{applications?.length !== 1 ? 's' : ''}
               </Badge>
-              {applications?.filter((a: any) => a.status === 'rejected').length > 0 && (
+              {(applications?.filter((a: any) => a.status === 'rejected') ?? []).length > 0 && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -433,7 +433,7 @@ export default function CompanyRetainerDetail() {
                       <Eye className="h-4 w-4 mr-1" />
                       Show Rejected
                     </>
-                  )} ({applications.filter((a: any) => a.status === 'rejected').length})
+                  )} ({(applications?.filter((a: any) => a.status === 'rejected') ?? []).length})
                 </Button>
               )}
             </div>
