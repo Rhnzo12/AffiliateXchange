@@ -1122,38 +1122,118 @@ function AdminPaymentSettings() {
     }
   };
 
-  const adminFundingMethods: AdminFundingMethod[] = [
-    {
-      id: 1,
-      name: "Primary Operating Account",
-      type: "bank",
-      last4: "4321",
-      status: "active",
-      isPrimary: true,
-    },
-    {
-      id: 2,
-      name: "Reserve Treasury Wallet",
-      type: "wallet",
-      last4: "9fae",
-      status: "active",
-    },
-    {
-      id: 3,
-      name: "Backup Settlement Card",
-      type: "card",
-      last4: "7788",
-      status: "pending",
-    },
-  ];
+  // Fetch funding accounts
+  const { data: fundingAccounts = [] } = useQuery<Array<{
+    id: string;
+    name: string;
+    type: "bank" | "wallet" | "card";
+    last4: string;
+    status: "active" | "pending" | "disabled";
+    isPrimary: boolean;
+  }>>({
+    queryKey: ["/api/admin/funding-accounts"],
+  });
 
-  const typeLabels: Record<AdminFundingMethod["type"], string> = {
+  // Add funding account state
+  const [showAddAccount, setShowAddAccount] = useState(false);
+  const [accountName, setAccountName] = useState("");
+  const [accountType, setAccountType] = useState<"bank" | "wallet" | "card">("bank");
+  const [accountLast4, setAccountLast4] = useState("");
+
+  const addAccountMutation = useMutation({
+    mutationFn: async (account: { name: string; type: string; last4: string; status: string }) => {
+      const res = await apiRequest("POST", "/api/admin/funding-accounts", account);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/funding-accounts"] });
+      setShowAddAccount(false);
+      setAccountName("");
+      setAccountLast4("");
+      toast({
+        title: "Success",
+        description: "Funding account added successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add funding account",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateAccountMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      const res = await apiRequest("PATCH", `/api/admin/funding-accounts/${id}`, updates);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/funding-accounts"] });
+      toast({
+        title: "Success",
+        description: "Account updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update account",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/funding-accounts/${id}`, undefined);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/funding-accounts"] });
+      toast({
+        title: "Success",
+        description: "Account deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete account",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const setPrimaryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/admin/funding-accounts/${id}/set-primary`, {});
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/funding-accounts"] });
+      toast({
+        title: "Success",
+        description: "Primary account updated",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to set primary account",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const typeLabels: Record<"bank" | "wallet" | "card", string> = {
     bank: "Bank Account",
     wallet: "Custody Wallet",
     card: "Corporate Card",
   };
 
-  const statusStyles: Record<AdminFundingMethod["status"], string> = {
+  const statusStyles: Record<"active" | "pending" | "disabled", string> = {
     active: "bg-green-100 text-green-800",
     pending: "bg-yellow-100 text-yellow-800",
     disabled: "bg-gray-100 text-gray-600",
@@ -1254,33 +1334,128 @@ function AdminPaymentSettings() {
               Manage the accounts used to fund creator payouts and collect platform fees.
             </p>
           </div>
-          <Button variant="outline">Add Funding Source</Button>
+          <Button variant="outline" onClick={() => setShowAddAccount(true)}>Add Funding Source</Button>
         </div>
 
-        <div className="space-y-4">
-          {adminFundingMethods.map((method) => (
-            <div key={method.id} className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-sm font-medium text-gray-900">{method.name}</div>
-                <div className="text-xs uppercase tracking-wide text-gray-500">
-                  {typeLabels[method.type]} · Ending in {method.last4}
-                </div>
+        {showAddAccount && (
+          <div className="mb-6 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+            <h4 className="mb-4 font-bold text-blue-900">Add New Funding Account</h4>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="account-name">Account Name</Label>
+                <Input
+                  id="account-name"
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                  placeholder="Primary Operating Account"
+                />
               </div>
-              <div className="flex items-center gap-2">
-                {method.isPrimary && <Badge>Primary</Badge>}
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[method.status]}`}>
-                  {method.status === "active"
-                    ? "Active"
-                    : method.status === "pending"
-                    ? "Pending Verification"
-                    : "Disabled"}
-                </span>
-                <Button variant="ghost" size="sm">
-                  Manage
+              <div className="space-y-2">
+                <Label htmlFor="account-type">Account Type</Label>
+                <Select value={accountType} onValueChange={(v) => setAccountType(v as any)}>
+                  <SelectTrigger id="account-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bank">Bank Account</SelectItem>
+                    <SelectItem value="wallet">Custody Wallet</SelectItem>
+                    <SelectItem value="card">Corporate Card</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="account-last4">Last 4 Digits</Label>
+                <Input
+                  id="account-last4"
+                  value={accountLast4}
+                  onChange={(e) => setAccountLast4(e.target.value)}
+                  placeholder="1234"
+                  maxLength={4}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    if (accountName && accountLast4) {
+                      addAccountMutation.mutate({
+                        name: accountName,
+                        type: accountType,
+                        last4: accountLast4,
+                        status: "pending",
+                      });
+                    }
+                  }}
+                  disabled={!accountName || !accountLast4 || addAccountMutation.isPending}
+                >
+                  {addAccountMutation.isPending ? "Adding..." : "Add Account"}
+                </Button>
+                <Button variant="outline" onClick={() => setShowAddAccount(false)}>
+                  Cancel
                 </Button>
               </div>
             </div>
-          ))}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {fundingAccounts.length === 0 ? (
+            <div className="py-12 text-center text-gray-500">
+              No funding accounts yet. Add one to get started.
+            </div>
+          ) : (
+            fundingAccounts.map((account) => (
+              <div key={account.id} className="flex flex-col gap-4 rounded-lg border border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">{account.name}</div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                    {typeLabels[account.type]} · Ending in {account.last4}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {account.isPrimary && <Badge>Primary</Badge>}
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[account.status]}`}>
+                    {account.status === "active"
+                      ? "Active"
+                      : account.status === "pending"
+                      ? "Pending Verification"
+                      : "Disabled"}
+                  </span>
+                  {!account.isPrimary && account.status === "active" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPrimaryMutation.mutate(account.id)}
+                      disabled={setPrimaryMutation.isPending}
+                    >
+                      Set Primary
+                    </Button>
+                  )}
+                  {account.status === "pending" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => updateAccountMutation.mutate({ id: account.id, updates: { status: "active" } })}
+                      disabled={updateAccountMutation.isPending}
+                    >
+                      Activate
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this account?")) {
+                        deleteAccountMutation.mutate(account.id);
+                      }
+                    }}
+                    disabled={deleteAccountMutation.isPending}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
