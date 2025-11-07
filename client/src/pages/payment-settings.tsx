@@ -1040,6 +1040,7 @@ function AdminPaymentDashboard({
 }
 
 function AdminPaymentSettings() {
+  const { toast } = useToast();
   const [settlementSchedule, setSettlementSchedule] = useState("weekly");
   const [reservePercentage, setReservePercentage] = useState("10");
   const [minimumBalance, setMinimumBalance] = useState("5000");
@@ -1047,6 +1048,79 @@ function AdminPaymentSettings() {
   const [notificationEmail, setNotificationEmail] = useState("finance@affiliatexchange.com");
   const [escalationEmail, setEscalationEmail] = useState("compliance@affiliatexchange.com");
   const [includeReports, setIncludeReports] = useState(true);
+  const [smsEscalation, setSmsEscalation] = useState(true);
+
+  // Fetch platform settings
+  const { data: platformSettings } = useQuery<Array<{key: string; value: string}>>({
+    queryKey: ["/api/admin/settings"],
+  });
+
+  // Load settings from backend
+  useEffect(() => {
+    if (platformSettings) {
+      const settingsMap = new Map(platformSettings.map(s => [s.key, s.value]));
+      if (settingsMap.has("payment.settlement_schedule")) setSettlementSchedule(settingsMap.get("payment.settlement_schedule")!);
+      if (settingsMap.has("payment.reserve_percentage")) setReservePercentage(settingsMap.get("payment.reserve_percentage")!);
+      if (settingsMap.has("payment.minimum_balance")) setMinimumBalance(settingsMap.get("payment.minimum_balance")!);
+      if (settingsMap.has("payment.auto_disburse")) setAutoDisburse(settingsMap.get("payment.auto_disburse") === "true");
+      if (settingsMap.has("payment.notification_email")) setNotificationEmail(settingsMap.get("payment.notification_email")!);
+      if (settingsMap.has("payment.escalation_email")) setEscalationEmail(settingsMap.get("payment.escalation_email")!);
+      if (settingsMap.has("payment.include_reports")) setIncludeReports(settingsMap.get("payment.include_reports") === "true");
+      if (settingsMap.has("payment.sms_escalation")) setSmsEscalation(settingsMap.get("payment.sms_escalation") === "true");
+    }
+  }, [platformSettings]);
+
+  // Mutation to update platform settings
+  const updateSettingMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: string }) => {
+      const res = await apiRequest("PUT", `/api/admin/settings/${key}`, { value });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update setting",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveDisbursementSettings = async () => {
+    try {
+      await Promise.all([
+        updateSettingMutation.mutateAsync({ key: "payment.settlement_schedule", value: settlementSchedule }),
+        updateSettingMutation.mutateAsync({ key: "payment.reserve_percentage", value: reservePercentage }),
+        updateSettingMutation.mutateAsync({ key: "payment.minimum_balance", value: minimumBalance }),
+        updateSettingMutation.mutateAsync({ key: "payment.auto_disburse", value: autoDisburse.toString() }),
+      ]);
+      toast({
+        title: "Success",
+        description: "Disbursement settings updated successfully",
+      });
+    } catch (error) {
+      // Error already handled by mutation
+    }
+  };
+
+  const saveNotificationSettings = async () => {
+    try {
+      await Promise.all([
+        updateSettingMutation.mutateAsync({ key: "payment.notification_email", value: notificationEmail }),
+        updateSettingMutation.mutateAsync({ key: "payment.escalation_email", value: escalationEmail }),
+        updateSettingMutation.mutateAsync({ key: "payment.include_reports", value: includeReports.toString() }),
+        updateSettingMutation.mutateAsync({ key: "payment.sms_escalation", value: smsEscalation.toString() }),
+      ]);
+      toast({
+        title: "Success",
+        description: "Notification preferences saved successfully",
+      });
+    } catch (error) {
+      // Error already handled by mutation
+    }
+  };
 
   const adminFundingMethods: AdminFundingMethod[] = [
     {
@@ -1159,7 +1233,13 @@ function AdminPaymentSettings() {
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-          <Button className="bg-blue-600 text-white hover:bg-blue-700">Update Disbursement Policy</Button>
+          <Button
+            className="bg-blue-600 text-white hover:bg-blue-700"
+            onClick={saveDisbursementSettings}
+            disabled={updateSettingMutation.isPending}
+          >
+            {updateSettingMutation.isPending ? "Saving..." : "Update Disbursement Policy"}
+          </Button>
           <span className="text-xs text-gray-500">
             Last reviewed 2 days ago by Finance Ops.
           </span>
@@ -1257,13 +1337,23 @@ function AdminPaymentSettings() {
                 <p className="text-sm font-medium text-gray-900">Trigger SMS on payout failures</p>
                 <p className="text-xs text-gray-500">Sends texts to the escalation contact when urgent action is required.</p>
               </div>
-              <Switch aria-label="Toggle SMS escalation" defaultChecked />
+              <Switch
+                checked={smsEscalation}
+                onCheckedChange={setSmsEscalation}
+                aria-label="Toggle SMS escalation"
+              />
             </div>
           </div>
         </div>
 
         <div className="mt-6 flex justify-end">
-          <Button className="bg-blue-600 text-white hover:bg-blue-700">Save Notification Preferences</Button>
+          <Button
+            className="bg-blue-600 text-white hover:bg-blue-700"
+            onClick={saveNotificationSettings}
+            disabled={updateSettingMutation.isPending}
+          >
+            {updateSettingMutation.isPending ? "Saving..." : "Save Notification Preferences"}
+          </Button>
         </div>
       </div>
     </div>
