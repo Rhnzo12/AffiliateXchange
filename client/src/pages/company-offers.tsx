@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { TrendingUp, Plus, DollarSign, Users, Eye, MoreVertical, Trash2, Edit } from "lucide-react";
+import { TrendingUp, Plus, DollarSign, Users, Eye, MoreVertical, Trash2, Edit, ImageIcon } from "lucide-react";
 import { Link } from "wouter";
 import {
   DropdownMenu,
@@ -150,7 +150,7 @@ export default function CompanyOffers() {
                   className="w-full h-full flex items-center justify-center bg-muted"
                   style={{ display: offer.featuredImageUrl ? 'none' : 'flex' }}
                 >
-                  <Package className="h-12 w-12 text-muted-foreground/30" />
+                  <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
                 </div>
               </div>
 
