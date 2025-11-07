@@ -677,7 +677,7 @@ export interface IStorage {
   getPaymentsByCreator(creatorId: string): Promise<Payment[]>;
   getPaymentsByCompany(companyId: string): Promise<Payment[]>;
   getAllPayments(): Promise<any[]>;
-  updatePaymentStatus(id: string, status: string, updates?: Partial<InsertPayment>): Promise<Payment | undefined>;
+  updatePaymentStatus(id: string, status: string, updates?: Partial<Payment>): Promise<Payment | undefined>;
 
   // Retainer Contracts
   getRetainerContract(id: string): Promise<any>;
@@ -2208,7 +2208,7 @@ export class DatabaseStorage implements IStorage {
   async updatePaymentStatus(
     id: string,
     status: string,
-    updates?: Partial<InsertPayment>,
+    updates?: Partial<Payment>,
   ): Promise<Payment | undefined> {
     const result = await db
       .update(payments)
