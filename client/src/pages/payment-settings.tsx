@@ -447,6 +447,10 @@ function CreatorPaymentSettings({
 }
 
 function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
+  const { toast } = useToast();
+  const [disputePayoutId, setDisputePayoutId] = useState<string | null>(null);
+  const [disputeReason, setDisputeReason] = useState("");
+
   const pendingPayouts = useMemo(
     () => payouts.filter((payout) => payout.status === "pending" || payout.status === "processing"),
     [payouts]
@@ -456,6 +460,48 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
     (sum, payout) => sum + parseFloat(payout.grossAmount),
     0
   );
+
+  const approvePaymentMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      return await apiRequest("POST", `/api/company/payments/${paymentId}/approve`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/company"] });
+      toast({
+        title: "Success",
+        description: "Payment approved successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve payment",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const disputePaymentMutation = useMutation({
+    mutationFn: async ({ paymentId, reason }: { paymentId: string; reason: string }) => {
+      return await apiRequest("POST", `/api/company/payments/${paymentId}/dispute`, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/company"] });
+      setDisputePayoutId(null);
+      setDisputeReason("");
+      toast({
+        title: "Success",
+        description: "Payment disputed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to dispute payment",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -528,13 +574,26 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button className="flex-1 gap-2 bg-green-600 text-white hover:bg-green-700">
+                  <Button
+                    className="flex-1 gap-2 bg-green-600 text-white hover:bg-green-700"
+                    onClick={() => approvePaymentMutation.mutate(payout.id)}
+                    disabled={approvePaymentMutation.isPending}
+                  >
                     <CheckCircle className="h-4 w-4" />
-                    Approve Payment
+                    {approvePaymentMutation.isPending ? "Approving..." : "Approve Payment"}
                   </Button>
-                  <Button className="flex-1 gap-2 bg-red-600 text-white hover:bg-red-700">
+                  <Button
+                    className="flex-1 gap-2 bg-red-600 text-white hover:bg-red-700"
+                    onClick={() => {
+                      const reason = prompt("Enter reason for dispute:");
+                      if (reason) {
+                        disputePaymentMutation.mutate({ paymentId: payout.id, reason });
+                      }
+                    }}
+                    disabled={disputePaymentMutation.isPending}
+                  >
                     <XCircle className="h-4 w-4" />
-                    Dispute
+                    {disputePaymentMutation.isPending ? "Disputing..." : "Dispute"}
                   </Button>
                 </div>
               </div>
