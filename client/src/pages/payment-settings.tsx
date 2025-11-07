@@ -97,7 +97,8 @@ function StatusBadge({ status }: { status: PaymentStatus }) {
 }
 
 function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
-  const { totalEarnings, pendingEarnings, completedEarnings } = useMemo(() => {
+  const { toast } = useToast();
+  const { totalEarnings, pendingEarnings, completedEarnings, processingEarnings } = useMemo(() => {
     const totals = payments.reduce(
       (acc, payment) => {
         const amount = parseFloat(payment.netAmount);
@@ -105,20 +106,52 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
         if (payment.status === "completed") {
           acc.completedEarnings += amount;
         }
-        if (payment.status === "pending" || payment.status === "processing") {
+        if (payment.status === "pending") {
           acc.pendingEarnings += amount;
+        }
+        if (payment.status === "processing") {
+          acc.processingEarnings += amount;
         }
         return acc;
       },
-      { totalEarnings: 0, pendingEarnings: 0, completedEarnings: 0 }
+      { totalEarnings: 0, pendingEarnings: 0, completedEarnings: 0, processingEarnings: 0 }
     );
 
     return totals;
   }, [payments]);
 
+  const exportPayments = () => {
+    const csv = [
+      ['ID', 'Description', 'Gross', 'Platform Fee', 'Processing Fee', 'Net Amount', 'Status', 'Date'],
+      ...payments.map(p => [
+        p.id.slice(0, 8),
+        p.description || 'Payment',
+        p.grossAmount,
+        p.platformFeeAmount,
+        p.stripeFeeAmount,
+        p.netAmount,
+        p.status,
+        p.completedAt || p.createdAt
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payments-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Success",
+      description: "Payment history exported successfully",
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div className="rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-6 text-white">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm text-green-100">Total Earnings</span>
@@ -128,13 +161,22 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
           <div className="mt-1 text-xs text-green-100">All-time</div>
         </div>
 
-        <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
+        <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-6">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm text-gray-600">Pending</span>
-            <Clock className="h-5 w-5 text-yellow-500" />
+            <span className="text-sm text-yellow-700">Pending Approval</span>
+            <Clock className="h-5 w-5 text-yellow-600" />
           </div>
-          <div className="text-3xl font-bold text-gray-900">${pendingEarnings.toFixed(2)}</div>
-          <div className="mt-1 text-xs text-gray-500">Awaiting payment</div>
+          <div className="text-3xl font-bold text-yellow-900">${pendingEarnings.toFixed(2)}</div>
+          <div className="mt-1 text-xs text-yellow-700">Awaiting company</div>
+        </div>
+
+        <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm text-blue-700">Processing</span>
+            <Clock className="h-5 w-5 text-blue-600" />
+          </div>
+          <div className="text-3xl font-bold text-blue-900">${processingEarnings.toFixed(2)}</div>
+          <div className="mt-1 text-xs text-blue-700">Being processed</div>
         </div>
 
         <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
@@ -143,7 +185,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
             <CheckCircle className="h-5 w-5 text-green-500" />
           </div>
           <div className="text-3xl font-bold text-gray-900">${completedEarnings.toFixed(2)}</div>
-          <div className="mt-1 text-xs text-gray-500">Completed payments</div>
+          <div className="mt-1 text-xs text-gray-500">Completed</div>
         </div>
       </div>
 
@@ -151,9 +193,9 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
         <div className="border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-gray-900">Payment History</h3>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={exportPayments}>
               <Download className="mr-2 h-4 w-4" />
-              Export
+              Export CSV
             </Button>
           </div>
         </div>
@@ -447,6 +489,10 @@ function CreatorPaymentSettings({
 }
 
 function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
+  const { toast } = useToast();
+  const [disputePayoutId, setDisputePayoutId] = useState<string | null>(null);
+  const [disputeReason, setDisputeReason] = useState("");
+
   const pendingPayouts = useMemo(
     () => payouts.filter((payout) => payout.status === "pending" || payout.status === "processing"),
     [payouts]
@@ -456,6 +502,48 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
     (sum, payout) => sum + parseFloat(payout.grossAmount),
     0
   );
+
+  const approvePaymentMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      return await apiRequest("POST", `/api/company/payments/${paymentId}/approve`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/company"] });
+      toast({
+        title: "Success",
+        description: "Payment approved successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve payment",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const disputePaymentMutation = useMutation({
+    mutationFn: async ({ paymentId, reason }: { paymentId: string; reason: string }) => {
+      return await apiRequest("POST", `/api/company/payments/${paymentId}/dispute`, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/company"] });
+      setDisputePayoutId(null);
+      setDisputeReason("");
+      toast({
+        title: "Success",
+        description: "Payment disputed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to dispute payment",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -528,13 +616,26 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button className="flex-1 gap-2 bg-green-600 text-white hover:bg-green-700">
+                  <Button
+                    className="flex-1 gap-2 bg-green-600 text-white hover:bg-green-700"
+                    onClick={() => approvePaymentMutation.mutate(payout.id)}
+                    disabled={approvePaymentMutation.isPending}
+                  >
                     <CheckCircle className="h-4 w-4" />
-                    Approve Payment
+                    {approvePaymentMutation.isPending ? "Approving..." : "Approve Payment"}
                   </Button>
-                  <Button className="flex-1 gap-2 bg-red-600 text-white hover:bg-red-700">
+                  <Button
+                    className="flex-1 gap-2 bg-red-600 text-white hover:bg-red-700"
+                    onClick={() => {
+                      const reason = prompt("Enter reason for dispute:");
+                      if (reason) {
+                        disputePaymentMutation.mutate({ paymentId: payout.id, reason });
+                      }
+                    }}
+                    disabled={disputePaymentMutation.isPending}
+                  >
                     <XCircle className="h-4 w-4" />
-                    Dispute
+                    {disputePaymentMutation.isPending ? "Disputing..." : "Dispute"}
                   </Button>
                 </div>
               </div>
@@ -547,6 +648,7 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
 }
 
 function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
+  const { toast } = useToast();
   const totalPaid = payouts
     .filter((p) => p.status === "completed")
     .reduce((sum, p) => sum + parseFloat(p.grossAmount), 0);
@@ -554,6 +656,33 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
   const pendingAmount = payouts
     .filter((p) => p.status === "pending" || p.status === "processing")
     .reduce((sum, p) => sum + parseFloat(p.grossAmount), 0);
+
+  const exportPayments = () => {
+    const csv = [
+      ['ID', 'Description', 'Creator Earnings', 'Fees', 'Status', 'Date'],
+      ...payouts.map(p => [
+        p.id.slice(0, 8),
+        p.description || 'Payment',
+        p.grossAmount,
+        (parseFloat(p.platformFeeAmount) + parseFloat(p.stripeFeeAmount)).toFixed(2),
+        p.status,
+        p.completedAt || p.createdAt
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `company-payments-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Success",
+      description: "Payment history exported successfully",
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -590,9 +719,9 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
         <div className="border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-gray-900">Payment History</h3>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={exportPayments}>
               <Download className="mr-2 h-4 w-4" />
-              Export
+              Export CSV
             </Button>
           </div>
         </div>
@@ -666,10 +795,19 @@ function AdminPaymentDashboard({
   creatorPayments: CreatorPayment[];
   companyPayouts: CreatorPayment[];
 }) {
+  const { toast } = useToast();
+  const [selectedPayments, setSelectedPayments] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
   const allPayments = useMemo(
     () => [...creatorPayments, ...companyPayouts],
     [creatorPayments, companyPayouts]
   );
+
+  const filteredPayments = useMemo(() => {
+    if (statusFilter === "all") return allPayments;
+    return allPayments.filter(p => p.status === statusFilter);
+  }, [allPayments, statusFilter]);
 
   const totalPlatformRevenue = allPayments.reduce((sum, payment) => {
     return sum + parseFloat(payment.platformFeeAmount) + parseFloat(payment.stripeFeeAmount);
@@ -682,6 +820,66 @@ function AdminPaymentDashboard({
   const pendingCount = allPayments.filter(
     (p) => p.status === "pending" || p.status === "processing"
   ).length;
+
+  const exportPayments = () => {
+    const csv = [
+      ['Transaction ID', 'Description', 'Gross', 'Platform Fee', 'Net', 'Status', 'Date'],
+      ...filteredPayments.map(p => [
+        p.id.slice(0, 8),
+        p.description || 'Payment',
+        p.grossAmount,
+        (parseFloat(p.platformFeeAmount) + parseFloat(p.stripeFeeAmount)).toFixed(2),
+        p.netAmount,
+        p.status,
+        p.completedAt || p.createdAt
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `platform-payments-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Success",
+      description: "Payment data exported successfully",
+    });
+  };
+
+  const bulkProcessMutation = useMutation({
+    mutationFn: async () => {
+      const processingPayments = filteredPayments.filter(p => p.status === "processing");
+
+      if (processingPayments.length === 0) {
+        throw new Error("No processing payments to complete");
+      }
+
+      const results = await Promise.all(
+        processingPayments.map(payment =>
+          apiRequest("PATCH", `/api/payments/${payment.id}/status`, { status: "completed" })
+        )
+      );
+
+      return results;
+    },
+    onSuccess: (results) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/all"] });
+      toast({
+        title: "Success",
+        description: `${results.length} payment(s) marked as completed`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process payments",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -723,6 +921,26 @@ function AdminPaymentDashboard({
         </div>
       </div>
 
+      {filteredPayments.filter(p => p.status === "processing").length > 0 && (
+        <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-blue-900">Process Payments</h3>
+              <p className="mt-1 text-sm text-blue-700">
+                {filteredPayments.filter(p => p.status === "processing").length} payment(s) ready to be marked as completed
+              </p>
+            </div>
+            <Button
+              onClick={() => bulkProcessMutation.mutate()}
+              disabled={bulkProcessMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {bulkProcessMutation.isPending ? "Processing..." : "Complete All Processing"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
         <div className="flex items-center justify-between border-b border-gray-200 p-6">
           <div>
@@ -730,20 +948,29 @@ function AdminPaymentDashboard({
             <p className="mt-1 text-sm text-gray-600">Complete platform payment history</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Filter
-            </Button>
-            <Button variant="outline" className="gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="refunded">Refunded</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" className="gap-2" onClick={exportPayments}>
               <Download className="h-4 w-4" />
               Export CSV
             </Button>
           </div>
         </div>
         <div className="overflow-x-auto">
-          {allPayments.length === 0 ? (
+          {filteredPayments.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-gray-500">No payment data available</p>
+              <p className="text-gray-500">No payments match the selected filter</p>
             </div>
           ) : (
             <table className="w-full">
@@ -773,7 +1000,7 @@ function AdminPaymentDashboard({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {allPayments.map((payment) => (
+                {filteredPayments.map((payment) => (
                   <tr key={payment.id} className="transition hover:bg-gray-50">
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                       {payment.id.slice(0, 8)}...
