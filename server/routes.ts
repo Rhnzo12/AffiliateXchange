@@ -832,12 +832,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Automatically create payment when work is completed
       // Calculate payment amounts based on offer commission
       let grossAmount = 0;
-      if (offer.commissionType === 'percentage' && offer.commissionPercentage) {
+      // Calculate gross amount based on configured commission type
+      // The canonical commission types are defined as: 'per_sale', 'per_lead', 'per_click', 'monthly_retainer', 'hybrid'
+      // If it's a per_sale type and a commissionPercentage is present, use percentage logic
+      if (offer.commissionType === 'per_sale' && offer.commissionPercentage) {
         // For percentage-based, use a base amount (this should come from actual sale data)
         // For now, we'll use a placeholder - in production, this would come from tracked conversions
         const baseAmount = parseFloat(req.body.saleAmount || '100');
         grossAmount = baseAmount * (parseFloat(offer.commissionPercentage.toString()) / 100);
-      } else if (offer.commissionType === 'fixed' && offer.commissionAmount) {
+      } else if (offer.commissionType !== 'per_sale' && offer.commissionAmount) {
+        // For non per_sale commission types we expect a fixed amount (per_click, per_lead, monthly_retainer, etc.)
         grossAmount = parseFloat(offer.commissionAmount.toString());
       }
 

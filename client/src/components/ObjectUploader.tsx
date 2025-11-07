@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
+// @ts-ignore - Some @uppy/react versions don't export DashboardModal in the typings but runtime may provide it
 import { DashboardModal } from "@uppy/react";
 // CSS imports temporarily removed due to Vite resolution issues
 // Styles will be added via global CSS if needed
