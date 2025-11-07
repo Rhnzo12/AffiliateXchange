@@ -505,7 +505,8 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
 
   const approvePaymentMutation = useMutation({
     mutationFn: async (paymentId: string) => {
-      return await apiRequest("POST", `/api/company/payments/${paymentId}/approve`, {});
+      const res = await apiRequest("POST", `/api/company/payments/${paymentId}/approve`, {});
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/company"] });
@@ -525,7 +526,8 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
 
   const disputePaymentMutation = useMutation({
     mutationFn: async ({ paymentId, reason }: { paymentId: string; reason: string }) => {
-      return await apiRequest("POST", `/api/company/payments/${paymentId}/dispute`, { reason });
+      const res = await apiRequest("POST", `/api/company/payments/${paymentId}/dispute`, { reason });
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/company"] });
@@ -858,9 +860,10 @@ function AdminPaymentDashboard({
       }
 
       const results = await Promise.all(
-        processingPayments.map(payment =>
-          apiRequest("PATCH", `/api/payments/${payment.id}/status`, { status: "completed" })
-        )
+        processingPayments.map(async payment => {
+          const res = await apiRequest("PATCH", `/api/payments/${payment.id}/status`, { status: "completed" });
+          return await res.json();
+        })
       );
 
       return results;
@@ -1341,7 +1344,8 @@ export default function PaymentSettings() {
         payload.cryptoNetwork = cryptoNetwork;
       }
 
-      return await apiRequest("POST", "/api/payment-settings", payload);
+      const res = await apiRequest("POST", "/api/payment-settings", payload);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payment-settings"] });
