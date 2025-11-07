@@ -1,18 +1,19 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, DollarSign, Users, Eye, Calendar, Upload, Trash2, Video, AlertCircle, Play, ImageIcon } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { ArrowLeft, DollarSign, Users, Eye, Calendar, Upload, Trash2, Video, AlertCircle, Play, Building2, FileText, Package } from "lucide-react";
+import { apiRequest, queryClient } from "../lib/queryClient";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 
 // Helper function to generate thumbnail from video
 const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
@@ -204,7 +205,7 @@ export default function CompanyOfferDetail() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "videos" }), // Save offer videos in 'videos' folder
+        body: JSON.stringify({ folder: "videos" }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -251,7 +252,7 @@ export default function CompanyOfferDetail() {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ folder: "videos" }), // Save thumbnails in 'videos' folder
+            body: JSON.stringify({ folder: "videos" }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
@@ -459,6 +460,12 @@ export default function CompanyOfferDetail() {
     );
   }
 
+  // Get company info from the offer
+  const company = offer.company;
+  const companyName = company?.tradeName || company?.legalName || "Company";
+  const companyLogo = company?.logoUrl;
+  const companyInitials = companyName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -478,6 +485,44 @@ export default function CompanyOfferDetail() {
           {offer.status}
         </Badge>
       </div>
+
+      {/* NEW: Company Information Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            Company Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Avatar className="h-16 w-16">
+              {companyLogo ? (
+                <AvatarImage src={companyLogo} alt={companyName} />
+              ) : null}
+              <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+                {companyInitials}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-xl font-semibold">{companyName}</h3>
+              {company?.industry && (
+                <p className="text-sm text-muted-foreground">{company.industry}</p>
+              )}
+              {company?.websiteUrl && (
+                <a 
+                  href={company.websiteUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline"
+                >
+                  {company.websiteUrl}
+                </a>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -551,7 +596,7 @@ export default function CompanyOfferDetail() {
                   className="w-full h-full flex items-center justify-center bg-muted"
                   style={{ display: 'none' }}
                 >
-                  <ImageIcon className="h-16 w-16 text-muted-foreground/30" />
+                  <Package className="h-16 w-16 text-muted-foreground/30" />
                 </div>
               </div>
             </div>
@@ -566,6 +611,19 @@ export default function CompanyOfferDetail() {
             <h3 className="font-semibold mb-2">Full Description</h3>
             <p className="text-muted-foreground whitespace-pre-wrap">{offer.fullDescription}</p>
           </div>
+
+          {/* NEW: Creator Requirements Section */}
+          {offer.creatorRequirements && (
+            <div>
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Creator Requirements
+              </h3>
+              <div className="bg-muted/50 rounded-lg p-4 border border-border">
+                <p className="text-muted-foreground whitespace-pre-wrap">{offer.creatorRequirements}</p>
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
