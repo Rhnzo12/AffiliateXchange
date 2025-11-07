@@ -256,4 +256,90 @@ export async function setupAuth(app: Express) {
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
+
+  // Update account information (username, firstName, lastName)
+  app.put("/api/auth/account", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { username, firstName, lastName } = req.body;
+
+      // Validate required fields
+      if (!username || !username.trim()) {
+        return res.status(400).json({ error: "Username is required" });
+      }
+
+      // Check if username is already taken by another user
+      const existingUser = await storage.getUserByUsername(username.trim());
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({ error: "Username is already taken" });
+      }
+
+      // Update user
+      const updatedUser = await storage.updateUser(userId, {
+        username: username.trim(),
+        firstName: firstName?.trim() || null,
+        lastName: lastName?.trim() || null,
+      });
+
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json(updatedUser);
+    } catch (error: any) {
+      console.error("Error updating account:", error);
+      res.status(500).json({ error: error.message || "Failed to update account" });
+    }
+  });
+
+  // Change password
+  app.put("/api/auth/password", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { currentPassword, newPassword } = req.body;
+
+      // Validate required fields
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current and new password are required" });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+
+      // Get user
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if user has a password (OAuth users don't)
+      if (!user.password) {
+        return res.status(400).json({ error: "Cannot change password for OAuth accounts" });
+      }
+
+      // Verify current password
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      const updatedUser = await storage.updateUser(userId, {
+        password: hashedPassword,
+      });
+
+      if (!updatedUser) {
+        return res.status(500).json({ error: "Failed to update password" });
+      }
+
+      res.json({ success: true, message: "Password changed successfully" });
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ error: error.message || "Failed to change password" });
+    }
+  });
 }
