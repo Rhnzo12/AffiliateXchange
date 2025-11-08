@@ -2455,7 +2455,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const publicId = req.path.replace("/objects/", "");
       objectStorageService.downloadObject(publicId, res);
     } catch (error) {
-      console.error("Error checking object access:", error);
       if (error instanceof ObjectNotFoundError) {
         // FALLBACK: Try to serve from Cloudinary directly
         // This handles legacy normalized URLs that haven't been migrated yet
@@ -2525,6 +2524,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[Objects Fallback] ✗ Not found in any Cloudinary folder`);
         return res.sendStatus(404);
       }
+      // Log unexpected errors only
+      console.error("Error checking object access:", error);
       return res.sendStatus(500);
     }
   });
