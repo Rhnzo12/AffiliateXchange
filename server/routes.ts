@@ -1445,14 +1445,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Status is required");
       }
 
-      const payment = await storage.getPayment(id);
+      const payment = await storage.getPaymentOrRetainerPayment(id);
       if (!payment) {
         return res.status(404).send("Payment not found");
       }
 
       // 💰 PROCESS ACTUAL PAYMENT WHEN MARKING AS COMPLETED
       if (status === 'completed') {
-        console.log(`[Payment] Processing payment ${id} to send $${payment.netAmount} to creator`);
+        console.log(`[Payment] Processing ${payment.paymentType || 'affiliate'} payment ${id} to send $${payment.netAmount} to creator`);
 
         // Import payment processor
         const { paymentProcessor } = await import('./paymentProcessor');
@@ -1464,11 +1464,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Actually send the money via PayPal/bank/crypto/etc.
-        const paymentResult = await paymentProcessor.processPayment(id);
+        // Use the appropriate processor based on payment type
+        const paymentResult = payment.paymentType === 'retainer'
+          ? await paymentProcessor.processRetainerPayment(id)
+          : await paymentProcessor.processPayment(id);
 
         if (!paymentResult.success) {
           // Payment failed - update status to failed
-          await storage.updatePaymentStatus(id, 'failed', {
+          await storage.updatePaymentOrRetainerPaymentStatus(id, 'failed', {
             description: `Payment failed: ${paymentResult.error}`,
           });
 
@@ -1479,7 +1482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Payment succeeded - update with transaction details
-        const updatedPayment = await storage.updatePaymentStatus(id, 'completed', {
+        const updatedPayment = await storage.updatePaymentOrRetainerPaymentStatus(id, 'completed', {
           providerTransactionId: paymentResult.transactionId,
           providerResponse: paymentResult.providerResponse,
           completedAt: new Date(),
@@ -1489,20 +1492,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Send notification to creator
         const creator = await storage.getUserById(payment.creatorId);
-        const offer = await storage.getOffer(payment.offerId);
 
-        if (creator && offer) {
-          // ✅ FIXED: Added paymentId to notification
+        // Get title based on payment type
+        let paymentTitle = 'Payment';
+        if (payment.paymentType === 'affiliate' && payment.offerId) {
+          const offer = await storage.getOffer(payment.offerId);
+          paymentTitle = offer?.title || 'Affiliate Offer';
+        } else if (payment.paymentType === 'retainer' && payment.contractId) {
+          const contract = await storage.getRetainerContract(payment.contractId);
+          paymentTitle = contract?.title || 'Retainer Contract';
+        }
+
+        if (creator) {
           await notificationService.sendNotification(
             payment.creatorId,
             'payment_received',
             'Payment Received! 💰',
-            `You've received a payment of $${payment.netAmount} for your work on "${offer.title}". Transaction ID: ${paymentResult.transactionId}`,
+            `You've received a payment of $${payment.netAmount} for your work on "${paymentTitle}". Transaction ID: ${paymentResult.transactionId}`,
             {
               userName: creator.firstName || creator.username,
-              offerTitle: offer.title,
+              offerTitle: paymentTitle,
               amount: `$${payment.netAmount}`,
-              paymentId: payment.id, // ✅ ADDED
+              paymentId: payment.id,
+              linkUrl: `/payment-settings`,
             }
           );
           console.log(`[Notification] Sent payment notification to creator ${creator.username}`);
@@ -1511,7 +1523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json(updatedPayment);
       } else {
         // For other status changes (not completed), just update status
-        const updatedPayment = await storage.updatePaymentStatus(id, status);
+        const updatedPayment = await storage.updatePaymentOrRetainerPaymentStatus(id, status);
         res.json(updatedPayment);
       }
 
@@ -1546,7 +1558,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send notification to creator
       const creator = await storage.getUserById(payment.creatorId);
 
-
       // Get title based on payment type
       let paymentTitle = 'Payment';
       if (payment.paymentType === 'affiliate' && payment.offerId) {
@@ -1558,10 +1569,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (creator) {
-
-      if (creator && offer) {
-        // ✅ FIXED: Added paymentId to notification
-
         await notificationService.sendNotification(
           payment.creatorId,
           'payment_approved',
@@ -1571,10 +1578,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: paymentTitle,
             amount: `$${payment.netAmount}`,
+            paymentId: payment.id,
             linkUrl: `/payment-settings`,
-
-            paymentId: payment.id, // ✅ ADDED
-
           }
         );
       }
@@ -1614,7 +1619,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send notification to creator
       const creator = await storage.getUserById(payment.creatorId);
 
-
       // Get title based on payment type
       let paymentTitle = 'Payment';
       if (payment.paymentType === 'affiliate' && payment.offerId) {
@@ -1626,10 +1630,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (creator) {
-
-      if (creator && offer) {
-        // ✅ FIXED: Added paymentId to notification
-
         await notificationService.sendNotification(
           payment.creatorId,
           'payment_disputed',
@@ -1639,7 +1639,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: paymentTitle,
             amount: `$${payment.netAmount}`,
-            paymentId: payment.id, // ✅ ADDED
+            paymentId: payment.id,
+            linkUrl: `/messages`,
           }
         );
       }
