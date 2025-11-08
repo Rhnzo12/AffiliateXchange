@@ -491,18 +491,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validated = createOfferSchema.parse(req.body);
 
-      // Set ACL for featured image if provided
-      let featuredImagePath = validated.featuredImageUrl;
-      if (featuredImagePath) {
-        const objectStorageService = new ObjectStorageService();
-        featuredImagePath = await objectStorageService.trySetObjectEntityAclPolicy(
-          featuredImagePath,
-          {
-            owner: userId,
-            visibility: "public",
-          },
-        );
-      }
+      // Don't normalize featured image URLs - keep the full Cloudinary URL for proper display
+      const featuredImagePath = validated.featuredImageUrl;
 
       const offer = await storage.createOffer({
         ...validated,
@@ -539,17 +529,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validated = insertOfferSchema.partial().parse(req.body);
 
-      // Set ACL for featured image if it's being updated
-      if (validated.featuredImageUrl) {
-        const objectStorageService = new ObjectStorageService();
-        validated.featuredImageUrl = await objectStorageService.trySetObjectEntityAclPolicy(
-          validated.featuredImageUrl,
-          {
-            owner: userId,
-            visibility: "public",
-          },
-        );
-      }
+      // Don't normalize featured image URLs - keep the full Cloudinary URL for proper display
+      // No ACL normalization needed for Cloudinary URLs
 
       const updatedOffer = await storage.updateOffer(offerId, validated);
       res.json(updatedOffer);
@@ -2500,19 +2481,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const userId = (req.user as any).id;
     try {
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        req.body.logoUrl,
-        {
-          owner: userId,
-          visibility: "public",
-        },
-      );
+      // Don't normalize logo URLs - keep the full Cloudinary URL for proper display
+      const logoUrl = req.body.logoUrl;
       const companyProfile = await storage.getCompanyProfile(userId);
       if (companyProfile) {
-        await storage.updateCompanyProfile(userId, { logoUrl: objectPath });
+        await storage.updateCompanyProfile(userId, { logoUrl });
       }
-      res.status(200).json({ objectPath });
+      res.status(200).json({ objectPath: logoUrl });
     } catch (error) {
       console.error("Error setting company logo:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -2567,17 +2542,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       );
 
-      // Set ACL for the thumbnail if provided
+      // Don't normalize thumbnail URLs - keep the full Cloudinary URL for proper display
       let thumbnailPath = thumbnailUrl || null;
-      if (thumbnailPath) {
-        thumbnailPath = await objectStorageService.trySetObjectEntityAclPolicy(
-          thumbnailPath,
-          {
-            owner: userId,
-            visibility: "public",
-          },
-        );
-      }
 
       // Create video record in database
       const video = await storage.createOfferVideo({
