@@ -273,7 +273,7 @@ export default function CompanyOfferDetail() {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ folder: "creatorlink/videos", resourceType: "image" }),
+            body: JSON.stringify({ folder: "creatorlink/videos/thumbnails", resourceType: "image" }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
@@ -291,7 +291,7 @@ export default function CompanyOfferDetail() {
           }
 
           if (thumbUploadData.folder) {
-            thumbnailFormData.append('folder', thumbUploadData.folder + '/thumbnails');
+            thumbnailFormData.append('folder', thumbUploadData.folder);
           }
 
           const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {

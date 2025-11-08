@@ -299,7 +299,7 @@ export default function CompanyOfferCreate() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "creatorlink/videos", resourceType: "image" }),
+        body: JSON.stringify({ folder: "creatorlink/videos/thumbnails", resourceType: "image" }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -316,7 +316,7 @@ export default function CompanyOfferCreate() {
       }
 
       if (uploadData.folder) {
-        formData.append('folder', uploadData.folder + '/thumbnails');
+        formData.append('folder', uploadData.folder);
       }
 
       const uploadResult = await fetch(uploadData.uploadUrl, {
@@ -425,7 +425,7 @@ export default function CompanyOfferCreate() {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ folder: "creatorlink/videos", resourceType: "image" }),
+            body: JSON.stringify({ folder: "creatorlink/videos/thumbnails", resourceType: "image" }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
@@ -442,7 +442,7 @@ export default function CompanyOfferCreate() {
           }
 
           if (thumbUploadData.folder) {
-            thumbnailFormData.append('folder', thumbUploadData.folder + '/thumbnails');
+            thumbnailFormData.append('folder', thumbUploadData.folder);
           }
 
           const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
