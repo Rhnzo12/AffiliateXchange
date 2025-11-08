@@ -8,7 +8,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { db } from "./db";
-import { offerVideos, applications, analytics } from "../shared/schema";
+import { offerVideos, applications, analytics, offers, companyProfiles } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
@@ -3291,9 +3291,114 @@ res.json(approved);
   // Run scheduler every minute
   console.log('[Auto-Approval] Scheduler started - checking every 60 seconds');
   setInterval(runAutoApprovalScheduler, 60000);
-  
+
   // Run once immediately on startup
   runAutoApprovalScheduler();
+
+  // Migration endpoint to fix normalized Cloudinary URLs
+  app.post("/api/admin/migrate-cloudinary-urls", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUserById(userId);
+
+      // Only allow admins to run migrations
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      console.log('[Migration] Starting Cloudinary URL fix...');
+
+      const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dilp6tuin";
+      let totalFixed = 0;
+
+      // Function to denormalize paths
+      const denormalizeCloudinaryPath = (normalizedPath: string, resourceType: 'image' | 'video' = 'image'): string => {
+        if (!normalizedPath || !normalizedPath.startsWith('/objects/')) {
+          return normalizedPath;
+        }
+        const publicId = normalizedPath.replace('/objects/', '');
+        const extension = resourceType === 'video' ? 'mp4' : 'jpg';
+        return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/${publicId}.${extension}`;
+      };
+
+      // Fix offer featured images
+      const offersResult = await db.select().from(offers).where(sql`featured_image_url LIKE '/objects/%'`);
+      console.log(`[Migration] Found ${offersResult.length} offers with normalized featured images`);
+
+      for (const offer of offersResult) {
+        if (offer.featuredImageUrl) {
+          const newUrl = denormalizeCloudinaryPath(offer.featuredImageUrl, 'image');
+          await db.update(offers)
+            .set({ featuredImageUrl: newUrl })
+            .where(eq(offers.id, offer.id));
+          totalFixed++;
+          console.log(`  ✓ Fixed offer ${offer.id}: ${offer.featuredImageUrl} -> ${newUrl}`);
+        }
+      }
+
+      // Fix video thumbnails
+      const videosWithThumbsResult = await db.select().from(offerVideos).where(sql`thumbnail_url LIKE '/objects/%'`);
+      console.log(`[Migration] Found ${videosWithThumbsResult.length} videos with normalized thumbnails`);
+
+      for (const video of videosWithThumbsResult) {
+        if (video.thumbnailUrl) {
+          const newUrl = denormalizeCloudinaryPath(video.thumbnailUrl, 'image');
+          await db.update(offerVideos)
+            .set({ thumbnailUrl: newUrl })
+            .where(eq(offerVideos.id, video.id));
+          totalFixed++;
+          console.log(`  ✓ Fixed video thumbnail ${video.id}: ${video.thumbnailUrl} -> ${newUrl}`);
+        }
+      }
+
+      // Fix video URLs
+      const videosWithUrlsResult = await db.select().from(offerVideos).where(sql`video_url LIKE '/objects/%'`);
+      console.log(`[Migration] Found ${videosWithUrlsResult.length} videos with normalized video URLs`);
+
+      for (const video of videosWithUrlsResult) {
+        if (video.videoUrl) {
+          const newUrl = denormalizeCloudinaryPath(video.videoUrl, 'video');
+          await db.update(offerVideos)
+            .set({ videoUrl: newUrl })
+            .where(eq(offerVideos.id, video.id));
+          totalFixed++;
+          console.log(`  ✓ Fixed video URL ${video.id}: ${video.videoUrl} -> ${newUrl}`);
+        }
+      }
+
+      // Fix company logos
+      const companiesResult = await db.select().from(companyProfiles).where(sql`logo_url LIKE '/objects/%'`);
+      console.log(`[Migration] Found ${companiesResult.length} companies with normalized logos`);
+
+      for (const company of companiesResult) {
+        if (company.logoUrl) {
+          const newUrl = denormalizeCloudinaryPath(company.logoUrl, 'image');
+          await db.update(companyProfiles)
+            .set({ logoUrl: newUrl })
+            .where(eq(companyProfiles.id, company.id));
+          totalFixed++;
+          console.log(`  ✓ Fixed company logo ${company.id}: ${company.logoUrl} -> ${newUrl}`);
+        }
+      }
+
+      console.log(`[Migration] ✓ Complete! Fixed ${totalFixed} URLs`);
+
+      res.json({
+        success: true,
+        message: `Migration completed successfully`,
+        stats: {
+          offersFixed: offersResult.length,
+          videoThumbnailsFixed: videosWithThumbsResult.length,
+          videoUrlsFixed: videosWithUrlsResult.length,
+          companyLogosFixed: companiesResult.length,
+          totalFixed
+        }
+      });
+    } catch (error: any) {
+      console.error('[Migration] Error:', error);
+      res.status(500).json({ error: "Migration failed", details: error.message });
+    }
+  });
 
   return httpServer;
 }
