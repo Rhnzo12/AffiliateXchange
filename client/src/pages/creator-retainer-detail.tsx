@@ -119,6 +119,7 @@ export default function CreatorRetainerDetail() {
       // Create FormData for Cloudinary upload
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('resource_type', 'video'); // Explicitly set resource type for videos
 
       // Add Cloudinary parameters
       if (uploadData.uploadPreset) {
@@ -235,6 +236,7 @@ export default function CreatorRetainerDetail() {
       // Create FormData for Cloudinary upload
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('resource_type', 'video'); // Explicitly set resource type for videos
 
       // Add Cloudinary parameters
       if (uploadData.uploadPreset) {
