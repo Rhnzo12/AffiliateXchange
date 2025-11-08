@@ -2457,6 +2457,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking object access:", error);
       if (error instanceof ObjectNotFoundError) {
+        // FALLBACK: Try to serve from Cloudinary directly
+        // This handles legacy normalized URLs that haven't been migrated yet
+        const publicId = req.path.replace("/objects/", "");
+        const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dilp6tuin";
+
+        // Try both image and video resource types
+        const imageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${publicId}.jpg`;
+        const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${publicId}.mp4`;
+
+        console.log(`[Objects Fallback] Trying Cloudinary URLs for ${publicId}`);
+
+        // Try image first
+        try {
+          const imageRes = await fetch(imageUrl);
+          if (imageRes.ok) {
+            console.log(`[Objects Fallback] ✓ Found as image, proxying from: ${imageUrl}`);
+            const contentType = imageRes.headers.get("content-type");
+            if (contentType) res.setHeader("Content-Type", contentType);
+            res.setHeader("Cache-Control", "public, max-age=31536000");
+            res.setHeader("Access-Control-Allow-Origin", "*");
+            const buffer = await imageRes.arrayBuffer();
+            return res.send(Buffer.from(buffer));
+          }
+        } catch (e) {
+          // Image not found, try video
+        }
+
+        // Try video
+        try {
+          const videoRes = await fetch(videoUrl);
+          if (videoRes.ok) {
+            console.log(`[Objects Fallback] ✓ Found as video, proxying from: ${videoUrl}`);
+            const contentType = videoRes.headers.get("content-type");
+            if (contentType) res.setHeader("Content-Type", contentType);
+            res.setHeader("Cache-Control", "public, max-age=31536000");
+            res.setHeader("Access-Control-Allow-Origin", "*");
+            const buffer = await videoRes.arrayBuffer();
+            return res.send(Buffer.from(buffer));
+          }
+        } catch (e) {
+          // Video not found either
+        }
+
+        console.log(`[Objects Fallback] ✗ Not found in Cloudinary either`);
         return res.sendStatus(404);
       }
       return res.sendStatus(500);

@@ -10,6 +10,15 @@ export const isCloudinaryHost = (url?: string) => {
 
 export const proxiedSrc = (src?: string | null) => {
   if (!src) return src || undefined;
+
+  // Handle legacy normalized paths like /objects/{publicId}
+  // Convert them to full Cloudinary URLs before proxying
+  if (src.startsWith('/objects/')) {
+    const publicId = src.replace('/objects/', '');
+    // Use the /objects/ endpoint which has a Cloudinary fallback
+    return src;
+  }
+
   try {
     if (isCloudinaryHost(src)) {
       return `/proxy/image?url=${encodeURIComponent(src)}`;
