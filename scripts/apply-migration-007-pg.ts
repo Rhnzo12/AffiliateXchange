@@ -1,10 +1,11 @@
 // Apply migration 007: Add payment processing features
-import { Pool } from '@neondatabase/serverless';
+// Uses standard pg client instead of Neon serverless
+import pg from 'pg';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-// Fix for __dirname in ES modules
+const { Client } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -16,9 +17,16 @@ async function applyMigration() {
     process.exit(1);
   }
 
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
 
   try {
+    console.log('📡 Connecting to database...');
+    await client.connect();
+    console.log('✅ Connected successfully!');
+
     // Read the migration file
     const migrationPath = join(__dirname, '..', 'db', 'migrations', '007_add_payment_processing.sql');
     const migrationSQL = readFileSync(migrationPath, 'utf-8');
@@ -26,7 +34,7 @@ async function applyMigration() {
     console.log('📝 Executing SQL migration...');
 
     // Execute the migration
-    await pool.query(migrationSQL);
+    await client.query(migrationSQL);
 
     console.log('✅ Migration 007 applied successfully!');
     console.log('');
@@ -46,7 +54,7 @@ async function applyMigration() {
     console.error(error);
     process.exit(1);
   } finally {
-    await pool.end();
+    await client.end();
   }
 }
 

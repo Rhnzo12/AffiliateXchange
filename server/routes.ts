@@ -2120,6 +2120,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Database migration endpoint (admin only)
+  app.post("/api/admin/run-migration-007", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      console.log('[Admin] Running migration 007...');
+
+      const { db } = await import('./db');
+      const { readFileSync } = await import('fs');
+      const { join } = await import('path');
+      const { fileURLToPath } = await import('url');
+      const { dirname } = await import('path');
+
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = dirname(__filename);
+
+      // Read migration SQL
+      const migrationPath = join(__dirname, '..', 'db', 'migrations', '007_add_payment_processing.sql');
+      const migrationSQL = readFileSync(migrationPath, 'utf-8');
+
+      // Execute migration
+      await db.execute(migrationSQL);
+
+      console.log('[Admin] Migration 007 completed successfully!');
+
+      res.json({
+        success: true,
+        message: 'Migration 007 applied successfully',
+        changes: [
+          'Created platform_funding_accounts table',
+          'Added provider_transaction_id and provider_response to payments table',
+          'Enhanced retainer_payments table with payment processing columns',
+          'Added indexes for performance'
+        ]
+      });
+    } catch (error: any) {
+      console.error('[Admin] Migration 007 failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
   // Audit Log routes
   app.get("/api/admin/audit-logs", requireAuth, requireRole('admin'), async (req, res) => {
     try {
