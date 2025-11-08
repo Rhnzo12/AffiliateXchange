@@ -940,12 +940,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOffers(_filters?: any): Promise<Offer[]> {
-    return await db
-      .select()
-      .from(offers)
-      .where(eq(offers.status, "approved"))
-      .orderBy(desc(offers.createdAt))
-      .limit(100);
+    // Support optional filters from the caller (status, companyId, limit)
+    // If a limit is provided, respect it. If not provided, return all matching offers.
+    const filters = _filters || {};
+
+    let query: any = db.select().from(offers);
+
+    if (filters.status) {
+      query = (query.where(eq(offers.status, filters.status)) as unknown) as typeof query;
+    } else {
+      query = (query.where(eq(offers.status, "approved")) as unknown) as typeof query;
+    }
+
+    if (filters.companyId) {
+      query = (query.where(eq(offers.companyId, filters.companyId)) as unknown) as typeof query;
+    }
+
+    query = (query.orderBy(desc(offers.createdAt)) as unknown) as typeof query;
+
+    if (filters.limit) {
+      const limit = parseInt(String(filters.limit), 10);
+      if (!Number.isNaN(limit) && limit > 0) {
+        query = (query.limit(limit) as unknown) as typeof query;
+      }
+    }
+
+    return await query;
   }
 
   async getOffersByCompany(companyId: string): Promise<Offer[]> {

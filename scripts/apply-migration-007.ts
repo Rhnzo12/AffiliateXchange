@@ -1,7 +1,8 @@
 // Apply migration 007: Add payment processing features
 import { Pool } from '@neondatabase/serverless';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 async function applyMigration() {
   console.log('🔄 Applying migration 007_add_payment_processing.sql...');
@@ -15,6 +16,10 @@ async function applyMigration() {
 
   try {
     // Read the migration file
+    // __dirname is not available in ESM modules — derive it from import.meta.url
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+
     const migrationPath = join(__dirname, '..', 'db', 'migrations', '007_add_payment_processing.sql');
     const migrationSQL = readFileSync(migrationPath, 'utf-8');
 
