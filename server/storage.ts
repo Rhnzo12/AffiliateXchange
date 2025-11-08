@@ -708,7 +708,21 @@ export interface IStorage {
   approveRetainerDeliverable(id: string, reviewNotes?: string): Promise<any>;
   rejectRetainerDeliverable(id: string, reviewNotes: string): Promise<any>;
   requestRevision(id: string, reviewNotes: string): Promise<any>;
+
+  // Retainer Payments
   createRetainerPayment(payment: InsertRetainerPayment): Promise<RetainerPayment>;
+  getRetainerPayment(id: string): Promise<RetainerPayment | null>;
+  getRetainerPaymentsByContract(contractId: string): Promise<RetainerPayment[]>;
+  getRetainerPaymentsByCreator(creatorId: string): Promise<RetainerPayment[]>;
+  updateRetainerPaymentStatus(id: string, status: string, updates?: {
+    providerTransactionId?: string;
+    providerResponse?: any;
+    paymentMethod?: string;
+    initiatedAt?: Date;
+    completedAt?: Date;
+    failedAt?: Date;
+    description?: string;
+  }): Promise<RetainerPayment | null>;
 
   // Notifications
   createNotification(notification: InsertNotification): Promise<Notification>;
@@ -2588,6 +2602,96 @@ export class DatabaseStorage implements IStorage {
           createdAt: new Date(),
           updatedAt: new Date(),
         } as RetainerPayment;
+      }
+      throw error;
+    }
+  }
+
+  async getRetainerPayment(id: string): Promise<RetainerPayment | null> {
+    try {
+      const result = await db
+        .select()
+        .from(retainerPayments)
+        .where(eq(retainerPayments.id, id))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_payments")) {
+        console.warn(
+          "[Storage] retainer_payments relation missing while fetching retainer payment - returning null.",
+        );
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async getRetainerPaymentsByContract(contractId: string): Promise<RetainerPayment[]> {
+    try {
+      return await db
+        .select()
+        .from(retainerPayments)
+        .where(eq(retainerPayments.contractId, contractId))
+        .orderBy(desc(retainerPayments.createdAt));
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_payments")) {
+        console.warn(
+          "[Storage] retainer_payments relation missing while fetching contract payments - returning empty array.",
+        );
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getRetainerPaymentsByCreator(creatorId: string): Promise<RetainerPayment[]> {
+    try {
+      return await db
+        .select()
+        .from(retainerPayments)
+        .where(eq(retainerPayments.creatorId, creatorId))
+        .orderBy(desc(retainerPayments.createdAt));
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_payments")) {
+        console.warn(
+          "[Storage] retainer_payments relation missing while fetching creator retainer payments - returning empty array.",
+        );
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async updateRetainerPaymentStatus(
+    id: string,
+    status: string,
+    updates?: {
+      providerTransactionId?: string;
+      providerResponse?: any;
+      paymentMethod?: string;
+      initiatedAt?: Date;
+      completedAt?: Date;
+      failedAt?: Date;
+      description?: string;
+    }
+  ): Promise<RetainerPayment | null> {
+    try {
+      const result = await db
+        .update(retainerPayments)
+        .set({
+          status,
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(retainerPayments.id, id))
+        .returning();
+      return result[0] || null;
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_payments")) {
+        console.warn(
+          "[Storage] retainer_payments relation missing while updating retainer payment status - treating as no-op.",
+        );
+        return null;
       }
       throw error;
     }

@@ -29,6 +29,11 @@ async function applyMigration() {
     console.log('  - platform_funding_accounts table');
     console.log('  - payments.provider_transaction_id column');
     console.log('  - payments.provider_response column');
+    console.log('  - retainer_payments enhancements for monthly payments:');
+    console.log('    • month_number, payment_type columns');
+    console.log('    • gross_amount, platform_fee_amount, processing_fee_amount, net_amount');
+    console.log('    • provider_transaction_id, provider_response');
+    console.log('    • payment_method, initiated_at, completed_at, failed_at');
     console.log('  - Indexes for performance');
 
   } catch (error: any) {
