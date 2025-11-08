@@ -178,48 +178,6 @@ export class PaymentProcessorService {
   }
 
   /**
-   * Validate that a creator has payment settings configured
-   */
-  async validateCreatorPaymentSettings(creatorId: string): Promise<{ valid: boolean; error?: string }> {
-    const paymentSettings = await storage.getPaymentSettings(creatorId);
-
-    if (!paymentSettings || paymentSettings.length === 0) {
-      return {
-        valid: false,
-        error: "Creator has not configured payment method"
-      };
-    }
-
-    const defaultMethod = paymentSettings.find(ps => ps.isDefault) || paymentSettings[0];
-
-    // Validate that required fields are present
-    switch (defaultMethod.payoutMethod) {
-      case 'paypal':
-        if (!defaultMethod.paypalEmail) {
-          return { valid: false, error: "PayPal email not configured" };
-        }
-        break;
-      case 'etransfer':
-        if (!defaultMethod.payoutEmail) {
-          return { valid: false, error: "E-transfer email not configured" };
-        }
-        break;
-      case 'wire':
-        if (!defaultMethod.bankRoutingNumber || !defaultMethod.bankAccountNumber) {
-          return { valid: false, error: "Bank account details not configured" };
-        }
-        break;
-      case 'crypto':
-        if (!defaultMethod.cryptoWalletAddress || !defaultMethod.cryptoNetwork) {
-          return { valid: false, error: "Crypto wallet details not configured" };
-        }
-        break;
-    }
-
-    return { valid: true };
-  }
-
-  /**
    * Process PayPal payout
    * Uses PayPal Payouts API to send money to creator's PayPal account
    */
