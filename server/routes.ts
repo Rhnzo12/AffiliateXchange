@@ -869,6 +869,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send notification to creator
       const creator = await storage.getUserById(application.creatorId);
       if (creator) {
+        // ✅ FIXED: Added paymentId to notification
         await notificationService.sendNotification(
           application.creatorId,
           'payment_pending',
@@ -878,7 +879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: offer.title,
             amount: `$${netAmount.toFixed(2)}`,
-            linkUrl: `/creator/payment-settings`,
+            paymentId: payment.id, // ✅ ADDED
           }
         );
       }
@@ -1339,6 +1340,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ✅ NEW: Get single payment by ID (for all roles - creator, company, admin)
+  app.get("/api/payments/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = req.user as any;
+      const paymentId = req.params.id;
+
+      // Get the payment
+      const payment = await storage.getPayment(paymentId);
+      
+      if (!payment) {
+        return res.status(404).send("Payment not found");
+      }
+
+      // Verify the user has permission to view this payment
+      // Creators can view their own payments
+      // Companies can view payments they issued
+      // Admins can view all payments
+      if (user.role === 'creator') {
+        if (payment.creatorId !== userId) {
+          return res.status(403).send("Unauthorized: You don't have permission to view this payment");
+        }
+      } else if (user.role === 'company') {
+        const companyProfile = await storage.getCompanyProfile(userId);
+        if (!companyProfile || payment.companyId !== companyProfile.id) {
+          return res.status(403).send("Unauthorized: You don't have permission to view this payment");
+        }
+      } else if (user.role !== 'admin') {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Fetch additional details (offer, company) for richer display
+      let offer = null;
+      let company = null;
+
+      try {
+        offer = await storage.getOffer(payment.offerId);
+        if (offer) {
+          company = await storage.getCompanyProfileById(offer.companyId);
+        }
+      } catch (error) {
+        console.log('[Payment Detail] Could not fetch offer/company details:', error);
+        // Continue without these details - they're optional
+      }
+
+      // Return payment with additional context
+      res.json({
+        ...payment,
+        offer: offer,
+        company: company,
+      });
+    } catch (error: any) {
+      console.error('[GET /api/payments/:id] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Payment routes for creators
   app.get("/api/payments/creator", requireAuth, requireRole('creator'), async (req, res) => {
     try {
@@ -1434,6 +1492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const offer = await storage.getOffer(payment.offerId);
 
         if (creator && offer) {
+          // ✅ FIXED: Added paymentId to notification
           await notificationService.sendNotification(
             payment.creatorId,
             'payment_received',
@@ -1443,7 +1502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userName: creator.firstName || creator.username,
               offerTitle: offer.title,
               amount: `$${payment.netAmount}`,
-              linkUrl: `/creator/payment-settings`,
+              paymentId: payment.id, // ✅ ADDED
             }
           );
           console.log(`[Notification] Sent payment notification to creator ${creator.username}`);
@@ -1489,6 +1548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offer = await storage.getOffer(payment.offerId);
 
       if (creator && offer) {
+        // ✅ FIXED: Added paymentId to notification
         await notificationService.sendNotification(
           payment.creatorId,
           'payment_approved',
@@ -1498,7 +1558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: offer.title,
             amount: `$${payment.netAmount}`,
-            linkUrl: `/creator/payment-settings`,
+            paymentId: payment.id, // ✅ ADDED
           }
         );
       }
@@ -1540,6 +1600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offer = await storage.getOffer(payment.offerId);
 
       if (creator && offer) {
+        // ✅ FIXED: Added paymentId to notification
         await notificationService.sendNotification(
           payment.creatorId,
           'payment_disputed',
@@ -1549,7 +1610,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: offer.title,
             amount: `$${payment.netAmount}`,
-            linkUrl: `/messages`,
+            paymentId: payment.id, // ✅ ADDED
           }
         );
       }
@@ -2694,6 +2755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 🆕 SEND NOTIFICATION TO CREATOR ABOUT PAYMENT
       const creator = await storage.getUserById(deliverable.creatorId);
       if (creator) {
+        // ✅ FIXED: Added paymentId to notification
         await notificationService.sendNotification(
           deliverable.creatorId,
           'payment_received',
@@ -2703,7 +2765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: contract.title,
             amount: `$${paymentPerVideo.toFixed(2)}`,
-            linkUrl: `/creator/retainer-contracts`,
+            paymentId: payment.id, // ✅ ADDED
           }
         );
         console.log(`[Notification] Sent retainer payment notification to creator ${creator.username}`);

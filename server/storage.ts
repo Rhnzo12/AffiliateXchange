@@ -708,7 +708,21 @@ export interface IStorage {
   approveRetainerDeliverable(id: string, reviewNotes?: string): Promise<any>;
   rejectRetainerDeliverable(id: string, reviewNotes: string): Promise<any>;
   requestRevision(id: string, reviewNotes: string): Promise<any>;
+
+  // Retainer Payments
   createRetainerPayment(payment: InsertRetainerPayment): Promise<RetainerPayment>;
+  getRetainerPayment(id: string): Promise<RetainerPayment | null>;
+  getRetainerPaymentsByContract(contractId: string): Promise<RetainerPayment[]>;
+  getRetainerPaymentsByCreator(creatorId: string): Promise<RetainerPayment[]>;
+  updateRetainerPaymentStatus(id: string, status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded', updates?: {
+    providerTransactionId?: string;
+    providerResponse?: any;
+    paymentMethod?: string;
+    initiatedAt?: Date;
+    completedAt?: Date;
+    failedAt?: Date;
+    description?: string;
+  }): Promise<RetainerPayment | null>;
 
   // Notifications
   createNotification(notification: InsertNotification): Promise<Notification>;
@@ -940,12 +954,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOffers(_filters?: any): Promise<Offer[]> {
-    return await db
-      .select()
-      .from(offers)
-      .where(eq(offers.status, "approved"))
-      .orderBy(desc(offers.createdAt))
-      .limit(100);
+    // Support optional filters from the caller (status, companyId, limit)
+    // If a limit is provided, respect it. If not provided, return all matching offers.
+    const filters = _filters || {};
+
+    let query: any = db.select().from(offers);
+
+    if (filters.status) {
+      query = (query.where(eq(offers.status, filters.status)) as unknown) as typeof query;
+    } else {
+      query = (query.where(eq(offers.status, "approved")) as unknown) as typeof query;
+    }
+
+    if (filters.companyId) {
+      query = (query.where(eq(offers.companyId, filters.companyId)) as unknown) as typeof query;
+    }
+
+    query = (query.orderBy(desc(offers.createdAt)) as unknown) as typeof query;
+
+    if (filters.limit) {
+      const limit = parseInt(String(filters.limit), 10);
+      if (!Number.isNaN(limit) && limit > 0) {
+        query = (query.limit(limit) as unknown) as typeof query;
+      }
+    }
+
+    return await query;
   }
 
   async getOffersByCompany(companyId: string): Promise<Offer[]> {
@@ -2588,6 +2622,96 @@ export class DatabaseStorage implements IStorage {
           createdAt: new Date(),
           updatedAt: new Date(),
         } as RetainerPayment;
+      }
+      throw error;
+    }
+  }
+
+  async getRetainerPayment(id: string): Promise<RetainerPayment | null> {
+    try {
+      const result = await db
+        .select()
+        .from(retainerPayments)
+        .where(eq(retainerPayments.id, id))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_payments")) {
+        console.warn(
+          "[Storage] retainer_payments relation missing while fetching retainer payment - returning null.",
+        );
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async getRetainerPaymentsByContract(contractId: string): Promise<RetainerPayment[]> {
+    try {
+      return await db
+        .select()
+        .from(retainerPayments)
+        .where(eq(retainerPayments.contractId, contractId))
+        .orderBy(desc(retainerPayments.createdAt));
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_payments")) {
+        console.warn(
+          "[Storage] retainer_payments relation missing while fetching contract payments - returning empty array.",
+        );
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getRetainerPaymentsByCreator(creatorId: string): Promise<RetainerPayment[]> {
+    try {
+      return await db
+        .select()
+        .from(retainerPayments)
+        .where(eq(retainerPayments.creatorId, creatorId))
+        .orderBy(desc(retainerPayments.createdAt));
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_payments")) {
+        console.warn(
+          "[Storage] retainer_payments relation missing while fetching creator retainer payments - returning empty array.",
+        );
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async updateRetainerPaymentStatus(
+    id: string,
+    status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded',
+    updates?: {
+      providerTransactionId?: string;
+      providerResponse?: any;
+      paymentMethod?: string;
+      initiatedAt?: Date;
+      completedAt?: Date;
+      failedAt?: Date;
+      description?: string;
+    }
+  ): Promise<RetainerPayment | null> {
+    try {
+      const result = await db
+        .update(retainerPayments)
+        .set({
+          status: status as any, // Type assertion needed for Drizzle enum
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(retainerPayments.id, id))
+        .returning();
+      return result[0] || null;
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_payments")) {
+        console.warn(
+          "[Storage] retainer_payments relation missing while updating retainer payment status - treating as no-op.",
+        );
+        return null;
       }
       throw error;
     }

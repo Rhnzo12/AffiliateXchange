@@ -206,7 +206,7 @@ export default function CompanyOfferDetail() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "videos" }),
+        body: JSON.stringify({ folder: "creatorlink/videos" }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -253,7 +253,7 @@ export default function CompanyOfferDetail() {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ folder: "videos" }),
+            body: JSON.stringify({ folder: "creatorlink/videos" }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
