@@ -21,6 +21,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import { Checkbox } from "../components/ui/checkbox";
 import { Badge } from "../components/ui/badge";
+import { TopNavBar } from "../components/TopNavBar";
 
 // Available niche options - MUST match offer niche values for recommendations to work
 const AVAILABLE_NICHES = [
@@ -385,6 +386,7 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="text-muted-foreground mt-1">Manage your account preferences</p>

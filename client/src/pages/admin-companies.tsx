@@ -10,6 +10,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
 import { Building2, CheckCircle2, XCircle } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
+import { TopNavBar } from "../components/TopNavBar";
 
 export default function AdminCompanies() {
   const { toast } = useToast();
@@ -98,6 +99,7 @@ export default function AdminCompanies() {
 
   return (
     <div className="space-y-8">
+      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold">Company Approvals</h1>
         <p className="text-muted-foreground mt-1">

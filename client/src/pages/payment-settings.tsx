@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 
 import type { User } from "../../../shared/schema";
+import { TopNavBar } from "../components/TopNavBar";
 
 type PaymentStatus =
   | "pending"
@@ -1743,6 +1744,7 @@ export default function PaymentSettings() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      <TopNavBar />
       <div className="mx-auto max-w-7xl space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Payment Management</h1>

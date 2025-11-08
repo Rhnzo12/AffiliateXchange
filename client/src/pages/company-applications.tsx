@@ -13,6 +13,7 @@ import { Label } from "../components/ui/label";
 import { FileText, CheckCircle, Clock, XCircle, MessageCircle, DollarSign } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
+import { TopNavBar } from "../components/TopNavBar";
 
 export default function CompanyApplications() {
   const { toast } = useToast();
@@ -234,6 +235,7 @@ export default function CompanyApplications() {
 
   return (
     <div className="space-y-4 sm:space-y-8">
+      <TopNavBar />
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold">Applications</h1>
         <p className="text-sm sm:text-base text-muted-foreground mt-1">

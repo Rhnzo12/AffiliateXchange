@@ -37,6 +37,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
+import { TopNavBar } from "../components/TopNavBar";
 
 const createRetainerSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
@@ -142,6 +143,7 @@ export default function CompanyRetainers() {
 
   return (
     <div className="space-y-6">
+      <TopNavBar />
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold" data-testid="heading-company-retainers">

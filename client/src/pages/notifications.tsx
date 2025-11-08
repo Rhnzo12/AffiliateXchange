@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { formatDistanceToNow } from "date-fns";
+import { TopNavBar } from "../components/TopNavBar";
 
 interface Notification {
   id: string;
@@ -32,6 +33,7 @@ export default function Notifications() {
 
   return (
     <div>
+      <TopNavBar />
       <h1 className="text-2xl font-bold mb-4">Notifications</h1>
 
       {notifications.length === 0 ? (

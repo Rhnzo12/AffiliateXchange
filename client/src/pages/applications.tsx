@@ -12,6 +12,7 @@ import { Label } from "../components/ui/label";
 import { Copy, ExternalLink, MessageSquare, TrendingUp, FileText, Clock, CheckCircle2, Star, StarOff } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
+import { TopNavBar } from "../components/TopNavBar";
 
 const STATUS_COLORS: Record<string, any> = {
   pending: { variant: "secondary" as const, icon: Clock },
@@ -222,6 +223,7 @@ export default function Applications() {
 
   return (
     <div className="space-y-6">
+      <TopNavBar />
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">My Applications</h1>

@@ -9,6 +9,7 @@ import { Users, FileText, TrendingUp, DollarSign, Plus, CheckCircle } from "luci
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
+import { TopNavBar } from "../components/TopNavBar";
 
 export default function CompanyDashboard() {
   const { toast } = useToast();
@@ -72,6 +73,7 @@ export default function CompanyDashboard() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      <TopNavBar />
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Company Dashboard</h1>

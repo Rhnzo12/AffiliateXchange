@@ -23,6 +23,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { VideoPlayer } from "../components/VideoPlayer";
 import { format } from "date-fns";
+import { TopNavBar } from "../components/TopNavBar";
 
 export default function CompanyRetainerDetail() {
   const [, params] = useRoute("/company/retainers/:id");
@@ -318,6 +319,7 @@ export default function CompanyRetainerDetail() {
 
   return (
     <div className="space-y-6">
+      <TopNavBar />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{contract.title}</h1>

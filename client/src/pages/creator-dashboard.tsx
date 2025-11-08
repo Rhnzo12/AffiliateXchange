@@ -8,6 +8,7 @@ import { Badge } from "../components/ui/badge";
 import { DollarSign, TrendingUp, FileText, MessageSquare, Heart, Star, Play, Settings } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
+import { TopNavBar } from "../components/TopNavBar";
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
@@ -61,6 +62,7 @@ export default function CreatorDashboard() {
 
   return (
     <div className="space-y-8">
+      <TopNavBar />
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'Creator'}!</h1>

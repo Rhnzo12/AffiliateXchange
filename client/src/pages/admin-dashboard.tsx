@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Users, Building2, TrendingUp, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
+import { TopNavBar } from "../components/TopNavBar";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -38,6 +39,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
+      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground mt-1">Platform oversight and moderation</p>

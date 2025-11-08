@@ -24,10 +24,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../components/ui/sheet";
-import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, ArrowRight, Bell, Settings, User, Users } from "lucide-react";
+import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, ArrowRight, Users } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { proxiedSrc } from "../lib/image";
+import { TopNavBar } from "../components/TopNavBar";
 
 const NICHES = [
   "Technology", "Fashion", "Beauty", "Fitness", "Gaming", 
@@ -176,13 +177,6 @@ export default function Browse() {
     favoriteMutation.mutate({ offerId, isFav });
   };
 
-  // Get user initials for avatar
-  const getUserInitials = () => {
-    if (!user) return "U";
-    const name = user.name || user.email || "User";
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-pulse text-lg">Loading...</div>
@@ -192,37 +186,18 @@ export default function Browse() {
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-50 bg-background border-b">
-        <div className="max-w-[1600px] mx-auto px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
-            {/* Search Bar - Left */}
-            <div className="relative flex-1 max-w-xl">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search offers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-muted/50"
-                data-testid="input-search-header"
-              />
-            </div>
-
-            {/* Right Side Icons */}
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Settings className="h-5 w-5" />
-              </Button>
-              <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm">
-                {getUserInitials()}
-              </div>
-            </div>
-          </div>
+      <TopNavBar>
+        <div className="relative flex-1 max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search offers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-muted/50"
+            data-testid="input-search-header"
+          />
         </div>
-      </div>
+      </TopNavBar>
 
       {/* Main Content */}
       <div className="max-w-[1600px] mx-auto px-6 py-8 space-y-8">

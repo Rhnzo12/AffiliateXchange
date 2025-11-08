@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { TrendingUp, CheckCircle2, XCircle, DollarSign } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
+import { TopNavBar } from "../components/TopNavBar";
 
 export default function AdminOffers() {
   const { toast } = useToast();
@@ -84,6 +85,7 @@ export default function AdminOffers() {
 
   return (
     <div className="space-y-8">
+      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold">Offer Approvals</h1>
         <p className="text-muted-foreground mt-1">

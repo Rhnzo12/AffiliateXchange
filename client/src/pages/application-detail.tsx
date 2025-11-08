@@ -27,6 +27,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
+import { TopNavBar } from "../components/TopNavBar";
 
 const STATUS_CONFIG: Record<string, any> = {
   pending: {
@@ -291,6 +292,7 @@ export default function ApplicationDetail() {
 
   return (
     <div className="space-y-6">
+      <TopNavBar />
       {/* Header with Back Button */}
       <div className="flex items-center justify-between">
         <Link href="/applications">

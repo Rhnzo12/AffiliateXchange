@@ -4,6 +4,7 @@ import { useRoute, Link } from "wouter";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { format } from "date-fns";
+import { TopNavBar } from "../components/TopNavBar";
 
 interface Notification {
   id: string;
@@ -148,6 +149,7 @@ export default function NotificationDetail() {
 
   return (
     <div>
+      <TopNavBar />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">{notification.title}</h1>
         <div className="text-sm text-muted-foreground">{format(new Date(notification.createdAt), 'PPP p')}</div>
