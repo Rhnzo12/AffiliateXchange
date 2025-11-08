@@ -791,20 +791,15 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
 }
 
 function AdminPaymentDashboard({
-  creatorPayments,
-  companyPayouts,
+  payments,
 }: {
-  creatorPayments: CreatorPayment[];
-  companyPayouts: CreatorPayment[];
+  payments: CreatorPayment[];
 }) {
   const { toast } = useToast();
   const [selectedPayments, setSelectedPayments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const allPayments = useMemo(
-    () => [...creatorPayments, ...companyPayouts],
-    [creatorPayments, companyPayouts]
-  );
+  const allPayments = payments;
 
   const filteredPayments = useMemo(() => {
     if (statusFilter === "all") return allPayments;
@@ -1868,7 +1863,7 @@ export default function PaymentSettings() {
               </div>
             </div>
             {activeTab === "dashboard" && (
-              <AdminPaymentDashboard creatorPayments={allPayments} companyPayouts={allPayments} />
+              <AdminPaymentDashboard payments={allPayments} />
             )}
             {activeTab === "settings" && <AdminPaymentSettings />}
           </>
