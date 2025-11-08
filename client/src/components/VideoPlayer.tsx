@@ -3,6 +3,7 @@ import { Play, Pause, Volume2, VolumeX, Maximize, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { cn } from "../lib/utils";
+import { proxiedSrc } from "../lib/image";
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -108,12 +109,13 @@ export function VideoPlayer({ videoUrl, thumbnail, className, autoPlay = false }
     >
       <video
         ref={videoRef}
-        src={videoUrl}
-        poster={thumbnail}
+        src={proxiedSrc(videoUrl)}
+        poster={thumbnail ? proxiedSrc(thumbnail) : undefined}
         className="w-full h-full object-contain"
         autoPlay={autoPlay}
         playsInline
         onClick={togglePlay}
+        crossOrigin="anonymous"
       />
 
       {/* Loading Spinner */}

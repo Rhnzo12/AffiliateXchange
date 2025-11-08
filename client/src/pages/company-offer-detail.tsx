@@ -21,45 +21,64 @@ const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     video.crossOrigin = 'anonymous';
-    video.src = videoUrl;
+    // Use proxied URL to avoid CORS issues
+    const proxiedUrl = `/proxy/image?url=${encodeURIComponent(videoUrl)}`;
+    video.src = proxiedUrl;
     video.muted = true;
-    
+
+    const timeout = setTimeout(() => {
+      reject(new Error('Thumbnail generation timed out'));
+    }, 15000); // 15 second timeout
+
     video.addEventListener('loadeddata', () => {
-      // Seek to 1 second or 10% of video duration, whichever is less
-      const seekTime = Math.min(1, video.duration * 0.1);
-      video.currentTime = seekTime;
+      try {
+        // Seek to 1 second or 10% of video duration, whichever is less
+        const seekTime = Math.min(1, video.duration * 0.1);
+        video.currentTime = seekTime;
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(new Error('Failed to seek video'));
+      }
     });
 
     video.addEventListener('seeked', () => {
-      // Create canvas and draw video frame
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Could not get canvas context'));
-        return;
+      try {
+        // Create canvas and draw video frame
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          clearTimeout(timeout);
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Convert canvas to blob
+        canvas.toBlob(
+          (blob) => {
+            clearTimeout(timeout);
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create thumbnail blob'));
+            }
+          },
+          'image/jpeg',
+          0.8
+        );
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(error);
       }
-      
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      // Convert canvas to blob
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create thumbnail blob'));
-          }
-        },
-        'image/jpeg',
-        0.8
-      );
     });
 
-    video.addEventListener('error', () => {
-      reject(new Error('Failed to load video'));
+    video.addEventListener('error', (e) => {
+      clearTimeout(timeout);
+      reject(new Error('Failed to load video for thumbnail generation'));
     });
   });
 };
@@ -206,7 +225,7 @@ export default function CompanyOfferDetail() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "creatorlink/videos" }),
+        body: JSON.stringify({ folder: "creatorlink/videos", resourceType: "video" }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -253,14 +272,14 @@ export default function CompanyOfferDetail() {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ folder: "creatorlink/videos" }),
+            body: JSON.stringify({ folder: "creatorlink/videos/thumbnails", resourceType: "image" }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
           // Upload thumbnail to Cloudinary
           const thumbnailFormData = new FormData();
           thumbnailFormData.append('file', thumbnailBlob, 'thumbnail.jpg');
-          
+
           if (thumbUploadData.uploadPreset) {
             thumbnailFormData.append('upload_preset', thumbUploadData.uploadPreset);
           } else if (thumbUploadData.signature) {
@@ -270,7 +289,7 @@ export default function CompanyOfferDetail() {
           }
 
           if (thumbUploadData.folder) {
-            thumbnailFormData.append('folder', thumbUploadData.folder + '/thumbnails');
+            thumbnailFormData.append('folder', thumbUploadData.folder);
           }
 
           const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {

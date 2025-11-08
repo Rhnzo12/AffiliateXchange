@@ -8,7 +8,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { db } from "./db";
-import { offerVideos, applications, analytics } from "../shared/schema";
+import { offerVideos, applications, analytics, offers, companyProfiles } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
@@ -491,18 +491,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validated = createOfferSchema.parse(req.body);
 
-      // Set ACL for featured image if provided
-      let featuredImagePath = validated.featuredImageUrl;
-      if (featuredImagePath) {
-        const objectStorageService = new ObjectStorageService();
-        featuredImagePath = await objectStorageService.trySetObjectEntityAclPolicy(
-          featuredImagePath,
-          {
-            owner: userId,
-            visibility: "public",
-          },
-        );
-      }
+      // Don't normalize featured image URLs - keep the full Cloudinary URL for proper display
+      const featuredImagePath = validated.featuredImageUrl;
 
       const offer = await storage.createOffer({
         ...validated,
@@ -539,17 +529,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validated = insertOfferSchema.partial().parse(req.body);
 
-      // Set ACL for featured image if it's being updated
-      if (validated.featuredImageUrl) {
-        const objectStorageService = new ObjectStorageService();
-        validated.featuredImageUrl = await objectStorageService.trySetObjectEntityAclPolicy(
-          validated.featuredImageUrl,
-          {
-            owner: userId,
-            visibility: "public",
-          },
-        );
-      }
+      // Don't normalize featured image URLs - keep the full Cloudinary URL for proper display
+      // No ACL normalization needed for Cloudinary URLs
 
       const updatedOffer = await storage.updateOffer(offerId, validated);
       res.json(updatedOffer);
@@ -2475,7 +2456,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       objectStorageService.downloadObject(publicId, res);
     } catch (error) {
       if (error instanceof ObjectNotFoundError) {
-        // Object not found is expected behavior, don't log as error
+        // FALLBACK: Try to serve from Cloudinary directly
+        // This handles legacy normalized URLs that haven't been migrated yet
+        const publicId = req.path.replace("/objects/", "");
+        const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dilp6tuin";
+
+        console.log(`[Objects Fallback] Trying Cloudinary URLs for ${publicId}`);
+
+        // Common folder paths used in the app
+        const folderPatterns = [
+          'creatorlink/videos/thumbnails',
+          'creatorlink/videos',
+          'creatorlink/retainer',
+          'company-logos',
+          '' // Root folder (no prefix)
+        ];
+
+        // Try to fetch as image with different folder patterns
+        // We'll try the most common extension (jpg) first
+        for (const folder of folderPatterns) {
+          const path = folder ? `${folder}/${publicId}` : publicId;
+
+          // Try common image extensions
+          for (const ext of ['jpg', 'png', 'jpeg']) {
+            const imageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${path}.${ext}`;
+            try {
+              const imageRes = await fetch(imageUrl);
+              if (imageRes.ok) {
+                console.log(`[Objects Fallback] ✓ Found as image: ${imageUrl}`);
+                const contentType = imageRes.headers.get("content-type");
+                if (contentType) res.setHeader("Content-Type", contentType);
+                res.setHeader("Cache-Control", "public, max-age=31536000");
+                res.setHeader("Access-Control-Allow-Origin", "*");
+                const buffer = await imageRes.arrayBuffer();
+                return res.send(Buffer.from(buffer));
+              }
+            } catch (e) {
+              // Try next extension
+            }
+          }
+        }
+
+        // Try to fetch as video with different folder patterns
+        for (const folder of folderPatterns) {
+          const path = folder ? `${folder}/${publicId}` : publicId;
+
+          // Try common video extensions
+          for (const ext of ['mp4', 'mov']) {
+            const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${path}.${ext}`;
+            try {
+              const videoRes = await fetch(videoUrl);
+              if (videoRes.ok) {
+                console.log(`[Objects Fallback] ✓ Found as video: ${videoUrl}`);
+                const contentType = videoRes.headers.get("content-type");
+                if (contentType) res.setHeader("Content-Type", contentType);
+                res.setHeader("Cache-Control", "public, max-age=31536000");
+                res.setHeader("Access-Control-Allow-Origin", "*");
+                const buffer = await videoRes.arrayBuffer();
+                return res.send(Buffer.from(buffer));
+              }
+            } catch (e) {
+              // Try next extension
+            }
+          }
+        }
+
+        console.log(`[Objects Fallback] ✗ Not found in any Cloudinary folder`);
         return res.sendStatus(404);
       }
       // Log unexpected errors only
@@ -2487,9 +2533,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
     const objectStorageService = new ObjectStorageService();
     const folder = req.body.folder || undefined; // Optional folder parameter
+    const resourceType = req.body.resourceType || 'auto'; // Optional resource type (image, video, auto)
     console.log('[Upload API] Requested folder:', req.body.folder);
+    console.log('[Upload API] Requested resourceType:', req.body.resourceType);
     console.log('[Upload API] Folder parameter passed to service:', folder);
-    const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder);
+    const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType);
     console.log('[Upload API] Upload params returned:', uploadParams);
     res.json(uploadParams);
   });
@@ -2500,19 +2548,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const userId = (req.user as any).id;
     try {
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        req.body.logoUrl,
-        {
-          owner: userId,
-          visibility: "public",
-        },
-      );
+      // Don't normalize logo URLs - keep the full Cloudinary URL for proper display
+      const logoUrl = req.body.logoUrl;
       const companyProfile = await storage.getCompanyProfile(userId);
       if (companyProfile) {
-        await storage.updateCompanyProfile(userId, { logoUrl: objectPath });
+        await storage.updateCompanyProfile(userId, { logoUrl });
       }
-      res.status(200).json({ objectPath });
+      res.status(200).json({ objectPath: logoUrl });
     } catch (error) {
       console.error("Error setting company logo:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -2567,17 +2609,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       );
 
-      // Set ACL for the thumbnail if provided
+      // Don't normalize thumbnail URLs - keep the full Cloudinary URL for proper display
       let thumbnailPath = thumbnailUrl || null;
-      if (thumbnailPath) {
-        thumbnailPath = await objectStorageService.trySetObjectEntityAclPolicy(
-          thumbnailPath,
-          {
-            owner: userId,
-            visibility: "public",
-          },
-        );
-      }
 
       // Create video record in database
       const video = await storage.createOfferVideo({
@@ -3325,9 +3358,147 @@ res.json(approved);
   // Run scheduler every minute
   console.log('[Auto-Approval] Scheduler started - checking every 60 seconds');
   setInterval(runAutoApprovalScheduler, 60000);
-  
+
   // Run once immediately on startup
   runAutoApprovalScheduler();
+
+  // Debug endpoint to check database URLs
+  app.get("/api/admin/debug-urls", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUserById(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      // Get sample URLs from database
+      const sampleOffers = await db.select().from(offers).limit(3);
+      const sampleVideos = await db.select().from(offerVideos).limit(5);
+
+      res.json({
+        offers: sampleOffers.map(o => ({
+          id: o.id,
+          title: o.title,
+          featuredImageUrl: o.featuredImageUrl
+        })),
+        videos: sampleVideos.map(v => ({
+          id: v.id,
+          title: v.title,
+          videoUrl: v.videoUrl,
+          thumbnailUrl: v.thumbnailUrl
+        }))
+      });
+    } catch (error: any) {
+      console.error('[Debug] Error:', error);
+      res.status(500).json({ error: "Debug failed", details: error.message });
+    }
+  });
+
+  // Migration endpoint to fix normalized Cloudinary URLs
+  app.post("/api/admin/migrate-cloudinary-urls", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUserById(userId);
+
+      // Only allow admins to run migrations
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      console.log('[Migration] Starting Cloudinary URL fix...');
+
+      const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dilp6tuin";
+      let totalFixed = 0;
+
+      // Function to denormalize paths
+      const denormalizeCloudinaryPath = (normalizedPath: string, resourceType: 'image' | 'video' = 'image'): string => {
+        if (!normalizedPath || !normalizedPath.startsWith('/objects/')) {
+          return normalizedPath;
+        }
+        const publicId = normalizedPath.replace('/objects/', '');
+        const extension = resourceType === 'video' ? 'mp4' : 'jpg';
+        return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload/${publicId}.${extension}`;
+      };
+
+      // Fix offer featured images
+      const offersResult = await db.select().from(offers).where(sql`featured_image_url LIKE '/objects/%'`);
+      console.log(`[Migration] Found ${offersResult.length} offers with normalized featured images`);
+
+      for (const offer of offersResult) {
+        if (offer.featuredImageUrl) {
+          const newUrl = denormalizeCloudinaryPath(offer.featuredImageUrl, 'image');
+          await db.update(offers)
+            .set({ featuredImageUrl: newUrl })
+            .where(eq(offers.id, offer.id));
+          totalFixed++;
+          console.log(`  ✓ Fixed offer ${offer.id}: ${offer.featuredImageUrl} -> ${newUrl}`);
+        }
+      }
+
+      // Fix video thumbnails
+      const videosWithThumbsResult = await db.select().from(offerVideos).where(sql`thumbnail_url LIKE '/objects/%'`);
+      console.log(`[Migration] Found ${videosWithThumbsResult.length} videos with normalized thumbnails`);
+
+      for (const video of videosWithThumbsResult) {
+        if (video.thumbnailUrl) {
+          const newUrl = denormalizeCloudinaryPath(video.thumbnailUrl, 'image');
+          await db.update(offerVideos)
+            .set({ thumbnailUrl: newUrl })
+            .where(eq(offerVideos.id, video.id));
+          totalFixed++;
+          console.log(`  ✓ Fixed video thumbnail ${video.id}: ${video.thumbnailUrl} -> ${newUrl}`);
+        }
+      }
+
+      // Fix video URLs
+      const videosWithUrlsResult = await db.select().from(offerVideos).where(sql`video_url LIKE '/objects/%'`);
+      console.log(`[Migration] Found ${videosWithUrlsResult.length} videos with normalized video URLs`);
+
+      for (const video of videosWithUrlsResult) {
+        if (video.videoUrl) {
+          const newUrl = denormalizeCloudinaryPath(video.videoUrl, 'video');
+          await db.update(offerVideos)
+            .set({ videoUrl: newUrl })
+            .where(eq(offerVideos.id, video.id));
+          totalFixed++;
+          console.log(`  ✓ Fixed video URL ${video.id}: ${video.videoUrl} -> ${newUrl}`);
+        }
+      }
+
+      // Fix company logos
+      const companiesResult = await db.select().from(companyProfiles).where(sql`logo_url LIKE '/objects/%'`);
+      console.log(`[Migration] Found ${companiesResult.length} companies with normalized logos`);
+
+      for (const company of companiesResult) {
+        if (company.logoUrl) {
+          const newUrl = denormalizeCloudinaryPath(company.logoUrl, 'image');
+          await db.update(companyProfiles)
+            .set({ logoUrl: newUrl })
+            .where(eq(companyProfiles.id, company.id));
+          totalFixed++;
+          console.log(`  ✓ Fixed company logo ${company.id}: ${company.logoUrl} -> ${newUrl}`);
+        }
+      }
+
+      console.log(`[Migration] ✓ Complete! Fixed ${totalFixed} URLs`);
+
+      res.json({
+        success: true,
+        message: `Migration completed successfully`,
+        stats: {
+          offersFixed: offersResult.length,
+          videoThumbnailsFixed: videosWithThumbsResult.length,
+          videoUrlsFixed: videosWithUrlsResult.length,
+          companyLogosFixed: companiesResult.length,
+          totalFixed
+        }
+      });
+    } catch (error: any) {
+      console.error('[Migration] Error:', error);
+      res.status(500).json({ error: "Migration failed", details: error.message });
+    }
+  });
 
   return httpServer;
 }

@@ -26,48 +26,68 @@ import {
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { ArrowLeft, Upload, Video, Play, Trash2, AlertCircle, Image as ImageIcon, X, FileText } from "lucide-react";
 import { Link } from "wouter";
+import { proxiedSrc } from "../lib/image";
 
 // Helper function to generate thumbnail from video
 const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     video.crossOrigin = 'anonymous';
-    video.src = videoUrl;
+    // Use proxied URL to avoid CORS issues
+    const proxiedUrl = `/proxy/image?url=${encodeURIComponent(videoUrl)}`;
+    video.src = proxiedUrl;
     video.muted = true;
-    
+
+    const timeout = setTimeout(() => {
+      reject(new Error('Thumbnail generation timed out'));
+    }, 15000); // 15 second timeout
+
     video.addEventListener('loadeddata', () => {
-      const seekTime = Math.min(1, video.duration * 0.1);
-      video.currentTime = seekTime;
+      try {
+        const seekTime = Math.min(1, video.duration * 0.1);
+        video.currentTime = seekTime;
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(new Error('Failed to seek video'));
+      }
     });
 
     video.addEventListener('seeked', () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Could not get canvas context'));
-        return;
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          clearTimeout(timeout);
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            clearTimeout(timeout);
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create thumbnail blob'));
+            }
+          },
+          'image/jpeg',
+          0.8
+        );
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(error);
       }
-      
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create thumbnail blob'));
-          }
-        },
-        'image/jpeg',
-        0.8
-      );
     });
 
-    video.addEventListener('error', () => {
-      reject(new Error('Failed to load video'));
+    video.addEventListener('error', (e) => {
+      clearTimeout(timeout);
+      reject(new Error('Failed to load video for thumbnail generation'));
     });
   });
 };
@@ -280,7 +300,7 @@ export default function CompanyOfferCreate() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "creatorlink/videos" }),
+        body: JSON.stringify({ folder: "creatorlink/videos/thumbnails", resourceType: "image" }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -296,7 +316,7 @@ export default function CompanyOfferCreate() {
       }
 
       if (uploadData.folder) {
-        formData.append('folder', uploadData.folder + '/thumbnails');
+        formData.append('folder', uploadData.folder);
       }
 
       const uploadResult = await fetch(uploadData.uploadUrl, {
@@ -362,7 +382,7 @@ export default function CompanyOfferCreate() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "creatorlink/videos" }),
+        body: JSON.stringify({ folder: "creatorlink/videos", resourceType: "video" }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -389,7 +409,7 @@ export default function CompanyOfferCreate() {
       if (uploadResult.ok) {
         const cloudinaryResponse = await uploadResult.json();
         const uploadedVideoUrl = cloudinaryResponse.secure_url;
-        
+
         toast({
           title: "Video Uploaded",
           description: "Generating thumbnail...",
@@ -404,13 +424,13 @@ export default function CompanyOfferCreate() {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ folder: "creatorlink/videos" }),
+            body: JSON.stringify({ folder: "creatorlink/videos/thumbnails", resourceType: "image" }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
           const thumbnailFormData = new FormData();
           thumbnailFormData.append('file', thumbnailBlob, 'thumbnail.jpg');
-          
+
           if (thumbUploadData.uploadPreset) {
             thumbnailFormData.append('upload_preset', thumbUploadData.uploadPreset);
           } else if (thumbUploadData.signature) {
@@ -420,7 +440,7 @@ export default function CompanyOfferCreate() {
           }
 
           if (thumbUploadData.folder) {
-            thumbnailFormData.append('folder', thumbUploadData.folder + '/thumbnails');
+            thumbnailFormData.append('folder', thumbUploadData.folder);
           }
 
           const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
@@ -707,10 +727,11 @@ export default function CompanyOfferCreate() {
                 >
                   {formData.featuredImageUrl ? (
                     <div className="relative">
-                      <img 
-                        src={formData.featuredImageUrl} 
-                        alt="Offer thumbnail" 
+                      <img
+                        src={proxiedSrc(formData.featuredImageUrl)}
+                        alt="Offer thumbnail"
                         className="w-full h-48 object-cover rounded-lg"
+                        referrerPolicy="no-referrer"
                       />
                       <Button
                         type="button"
@@ -981,10 +1002,11 @@ export default function CompanyOfferCreate() {
                           >
                             {video.thumbnailUrl ? (
                               <>
-                                <img 
-                                  src={video.thumbnailUrl} 
+                                <img
+                                  src={proxiedSrc(video.thumbnailUrl)}
                                   alt={video.title}
                                   className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
                                 />
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Play className="h-12 w-12 text-white" />
@@ -1190,6 +1212,7 @@ export default function CompanyOfferCreate() {
                 controls
                 autoPlay
                 className="w-full h-full"
+                crossOrigin="anonymous"
               >
                 Your browser does not support the video tag.
               </video>

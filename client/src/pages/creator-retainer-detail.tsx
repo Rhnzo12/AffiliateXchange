@@ -110,7 +110,7 @@ export default function CreatorRetainerDetail() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "creatorlink/retainer" }), // Save retainer videos in 'creatorlink/retainer' folder
+        body: JSON.stringify({ folder: "creatorlink/retainer", resourceType: "video" }), // Save retainer videos in 'creatorlink/retainer' folder
       });
       const uploadData = await uploadResponse.json();
 
@@ -226,7 +226,7 @@ export default function CreatorRetainerDetail() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "retainer" }),
+        body: JSON.stringify({ folder: "retainer", resourceType: "video" }),
       });
       const uploadData = await uploadResponse.json();
 
