@@ -1,7 +1,16 @@
-import { Bell, Settings } from "lucide-react";
+import { Settings, ChevronDown, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
 import { Link } from "wouter";
+import { NotificationCenter } from "./NotificationCenter";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "./ui/dropdown-menu";
 
 interface TopNavBarProps {
   children?: React.ReactNode;
@@ -13,8 +22,21 @@ export function TopNavBar({ children }: TopNavBarProps) {
   // Get user initials for avatar
   const getUserInitials = () => {
     if (!user) return "U";
-    const name = user.name || user.email || "User";
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    const firstName = user.firstName || user.name || user.email || "User";
+    return firstName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      window.location.href = '/';
+    }
   };
 
   return (
@@ -26,20 +48,43 @@ export function TopNavBar({ children }: TopNavBarProps) {
 
           {/* Right Side Icons */}
           <div className="flex items-center gap-3 ml-auto">
-            <Link href="/notifications">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-              </Button>
-            </Link>
-            <Link href="/settings">
-              <Button variant="ghost" size="icon">
-                <Settings className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm">
-              {getUserInitials()}
-            </div>
+            {/* Notification Center with Dropdown */}
+            <NotificationCenter />
+
+            {/* Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
+                  <Avatar className="h-9 w-9 border-2 border-primary/20">
+                    <AvatarImage
+                      src={user?.profileImageUrl || ''}
+                      alt={user?.firstName || 'User'}
+                      referrerPolicy="no-referrer"
+                    />
+                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-3 py-2 border-b">
+                  <p className="text-sm font-medium">{user?.firstName || user?.name || user?.email || 'User'}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{user?.role || 'creator'}</p>
+                </div>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
