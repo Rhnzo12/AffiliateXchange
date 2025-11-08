@@ -2474,10 +2474,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const publicId = req.path.replace("/objects/", "");
       objectStorageService.downloadObject(publicId, res);
     } catch (error) {
-      console.error("Error checking object access:", error);
       if (error instanceof ObjectNotFoundError) {
+        // Object not found is expected behavior, don't log as error
         return res.sendStatus(404);
       }
+      // Log unexpected errors only
+      console.error("Error checking object access:", error);
       return res.sendStatus(500);
     }
   });
