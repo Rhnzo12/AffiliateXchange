@@ -58,6 +58,7 @@ interface NotificationData {
   reviewId?: string;
   contractId?: string;
   deliverableId?: string;
+  paymentId?: string; // ✅ ADDED: Payment ID for linking to payment details
   trackingLink?: string;
   trackingCode?: string;
   amount?: string;
@@ -120,11 +121,15 @@ export class NotificationService {
         return userRole === 'company' ? '/company/messages' : '/messages';
 
       case 'payment_received':
+      case 'payment_pending':
+      case 'payment_approved':
+      case 'payment_disputed':
       case 'work_completion_approval':
-        // Creator: go to earnings/payment page
-        if (data.applicationId) {
-          return `/applications/${data.applicationId}?tab=earnings`;
+        // ✅ FIXED: Link to specific payment detail page if paymentId is provided
+        if (data.paymentId) {
+          return `/payments/${data.paymentId}`;
         }
+        // Fallback to payment settings page
         return '/payment-settings';
 
       case 'offer_approved':

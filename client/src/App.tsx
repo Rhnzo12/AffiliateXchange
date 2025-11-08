@@ -20,6 +20,7 @@ import CreatorRetainers from "./pages/creator-retainers";
 import CreatorRetainerDetail from "./pages/creator-retainer-detail";
 import Settings from "./pages/settings";
 import PaymentSettings from "./pages/payment-settings";
+import PaymentDetail from "./pages/payment-details";
 import Notifications from "./pages/notifications";
 import NotificationDetail from "./pages/notification-detail";
 import CompanyDashboard from "./pages/company-dashboard";
@@ -108,6 +109,7 @@ function ProtectedRouter() {
                     <Route path="/messages" component={Messages} />
                     <Route path="/favorites" component={Favorites} />
                     <Route path="/creator/payment-settings" component={PaymentSettings} />
+                    <Route path="/payments/:id" component={PaymentDetail} />
                   </>
                 )}
 
@@ -129,6 +131,7 @@ function ProtectedRouter() {
                     <Route path="/company/messages" component={Messages} />
                     <Route path="/company/reviews" component={CompanyReviews} />
                     <Route path="/company/payment-settings" component={PaymentSettings} />
+                    <Route path="/payments/:id" component={PaymentDetail} />
                   </>
                 )}
 
@@ -146,6 +149,7 @@ function ProtectedRouter() {
                     <Route path="/admin/platform-settings" component={AdminPlatformSettings} />
                     <Route path="/admin/users" component={AdminDashboard} />
                     <Route path="/admin/payment-settings" component={PaymentSettings} />
+                    <Route path="/payments/:id" component={PaymentDetail} />
                   </>
                 )}
 
@@ -154,6 +158,7 @@ function ProtectedRouter() {
                 <Route path="/notifications" component={Notifications} />
                 <Route path="/notifications/:id" component={NotificationDetail} />
                 <Route path="/payment-settings" component={PaymentSettings} />
+                <Route path="/payments/:id" component={PaymentDetail} />
 
                 {/* Fallback */}
                 <Route component={NotFound} />

@@ -869,6 +869,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send notification to creator
       const creator = await storage.getUserById(application.creatorId);
       if (creator) {
+        // ✅ FIXED: Added paymentId to notification
         await notificationService.sendNotification(
           application.creatorId,
           'payment_pending',
@@ -878,7 +879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: offer.title,
             amount: `$${netAmount.toFixed(2)}`,
-            linkUrl: `/creator/payment-settings`,
+            paymentId: payment.id, // ✅ ADDED
           }
         );
       }
@@ -1339,6 +1340,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ✅ NEW: Get single payment by ID (for all roles - creator, company, admin)
+  app.get("/api/payments/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = req.user as any;
+      const paymentId = req.params.id;
+
+      // Get the payment
+      const payment = await storage.getPayment(paymentId);
+      
+      if (!payment) {
+        return res.status(404).send("Payment not found");
+      }
+
+      // Verify the user has permission to view this payment
+      // Creators can view their own payments
+      // Companies can view payments they issued
+      // Admins can view all payments
+      if (user.role === 'creator') {
+        if (payment.creatorId !== userId) {
+          return res.status(403).send("Unauthorized: You don't have permission to view this payment");
+        }
+      } else if (user.role === 'company') {
+        const companyProfile = await storage.getCompanyProfile(userId);
+        if (!companyProfile || payment.companyId !== companyProfile.id) {
+          return res.status(403).send("Unauthorized: You don't have permission to view this payment");
+        }
+      } else if (user.role !== 'admin') {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Fetch additional details (offer, company) for richer display
+      let offer = null;
+      let company = null;
+
+      try {
+        offer = await storage.getOffer(payment.offerId);
+        if (offer) {
+          company = await storage.getCompanyProfileById(offer.companyId);
+        }
+      } catch (error) {
+        console.log('[Payment Detail] Could not fetch offer/company details:', error);
+        // Continue without these details - they're optional
+      }
+
+      // Return payment with additional context
+      res.json({
+        ...payment,
+        offer: offer,
+        company: company,
+      });
+    } catch (error: any) {
+      console.error('[GET /api/payments/:id] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Payment routes for creators
   app.get("/api/payments/creator", requireAuth, requireRole('creator'), async (req, res) => {
     try {
@@ -1434,6 +1492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const offer = await storage.getOffer(payment.offerId);
 
         if (creator && offer) {
+          // ✅ FIXED: Added paymentId to notification
           await notificationService.sendNotification(
             payment.creatorId,
             'payment_received',
@@ -1443,7 +1502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userName: creator.firstName || creator.username,
               offerTitle: offer.title,
               amount: `$${payment.netAmount}`,
-              linkUrl: `/creator/payment-settings`,
+              paymentId: payment.id, // ✅ ADDED
             }
           );
           console.log(`[Notification] Sent payment notification to creator ${creator.username}`);
@@ -1487,6 +1546,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send notification to creator
       const creator = await storage.getUserById(payment.creatorId);
 
+
       // Get title based on payment type
       let paymentTitle = 'Payment';
       if (payment.paymentType === 'affiliate' && payment.offerId) {
@@ -1498,6 +1558,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (creator) {
+
+      if (creator && offer) {
+        // ✅ FIXED: Added paymentId to notification
+
         await notificationService.sendNotification(
           payment.creatorId,
           'payment_approved',
@@ -1508,6 +1572,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             offerTitle: paymentTitle,
             amount: `$${payment.netAmount}`,
             linkUrl: `/payment-settings`,
+
+            paymentId: payment.id, // ✅ ADDED
+
           }
         );
       }
@@ -1547,6 +1614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send notification to creator
       const creator = await storage.getUserById(payment.creatorId);
 
+
       // Get title based on payment type
       let paymentTitle = 'Payment';
       if (payment.paymentType === 'affiliate' && payment.offerId) {
@@ -1558,6 +1626,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (creator) {
+
+      if (creator && offer) {
+        // ✅ FIXED: Added paymentId to notification
+
         await notificationService.sendNotification(
           payment.creatorId,
           'payment_disputed',
@@ -1567,7 +1639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: paymentTitle,
             amount: `$${payment.netAmount}`,
-            linkUrl: `/messages`,
+            paymentId: payment.id, // ✅ ADDED
           }
         );
       }
@@ -1578,6 +1650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).send(error.message);
     }
   });
+
 
   // Retainer payment routes
   // Get retainer payments for creator
@@ -2137,48 +2210,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(review);
     } catch (error: any) {
       res.status(500).send(error.message);
-    }
-  });
-
-  // Database migration endpoint (admin only)
-  app.post("/api/admin/run-migration-007", requireAuth, requireRole('admin'), async (req, res) => {
-    try {
-      console.log('[Admin] Running migration 007...');
-
-      const { db } = await import('./db');
-      const { readFileSync } = await import('fs');
-      const { join } = await import('path');
-      const { fileURLToPath } = await import('url');
-      const { dirname } = await import('path');
-
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
-
-      // Read migration SQL
-      const migrationPath = join(__dirname, '..', 'db', 'migrations', '007_add_payment_processing.sql');
-      const migrationSQL = readFileSync(migrationPath, 'utf-8');
-
-      // Execute migration
-      await db.execute(migrationSQL);
-
-      console.log('[Admin] Migration 007 completed successfully!');
-
-      res.json({
-        success: true,
-        message: 'Migration 007 applied successfully',
-        changes: [
-          'Created platform_funding_accounts table',
-          'Added provider_transaction_id and provider_response to payments table',
-          'Enhanced retainer_payments table with payment processing columns',
-          'Added indexes for performance'
-        ]
-      });
-    } catch (error: any) {
-      console.error('[Admin] Migration 007 failed:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message
-      });
     }
   });
 
@@ -2885,96 +2916,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!deliverable) return res.status(404).send("Deliverable not found");
       const contract = await storage.getRetainerContract(deliverable.contractId);
       if (!contract || contract.companyId !== companyProfile.id) return res.status(403).send("Forbidden");
+// Approve the deliverable
+const approved = await storage.approveRetainerDeliverable(req.params.id, req.body.reviewNotes);
 
-      // Approve the deliverable
-      const approved = await storage.approveRetainerDeliverable(req.params.id, req.body.reviewNotes);
+// Calculate payment amount per video (monthly amount / videos per month)
+const monthlyAmount = parseFloat(contract.monthlyAmount);
+const videosPerMonth = contract.videosPerMonth || 1;
+const paymentPerVideo = monthlyAmount / videosPerMonth;
 
-      // Calculate payment amount per video (monthly amount / videos per month)
-      const monthlyAmount = parseFloat(contract.monthlyAmount);
-      const videosPerMonth = contract.videosPerMonth || 1;
-      const paymentPerVideo = monthlyAmount / videosPerMonth;
+// Calculate fees (platform 4%, processing 3%)
+const grossAmount = paymentPerVideo;
+const platformFeeAmount = grossAmount * 0.04;
+const processingFeeAmount = grossAmount * 0.03;
+const netAmount = grossAmount - platformFeeAmount - processingFeeAmount;
 
-      // Calculate fees (4% platform fee, 3% processing fee)
-      const grossAmount = paymentPerVideo;
-      const platformFeeAmount = grossAmount * 0.04;
-      const processingFeeAmount = grossAmount * 0.03;
-      const netAmount = grossAmount - platformFeeAmount - processingFeeAmount;
+// Create payment for the approved deliverable
+const payment = await storage.createRetainerPayment({
+  contractId: contract.id,
+  deliverableId: deliverable.id,
+  creatorId: deliverable.creatorId,
+  companyId: contract.companyId,
+  amount: paymentPerVideo.toFixed(2),
+  grossAmount: grossAmount.toFixed(2),
+  platformFeeAmount: platformFeeAmount.toFixed(2),
+  processingFeeAmount: processingFeeAmount.toFixed(2),
+  netAmount: netAmount.toFixed(2),
+  status: 'completed',
+  description: `Retainer payment for ${contract.title} - Month ${deliverable.monthNumber}, Video ${deliverable.videoNumber}`,
+});
 
-      // Create payment for the approved deliverable
-      const payment = await storage.createRetainerPayment({
-        contractId: contract.id,
-        deliverableId: deliverable.id,
-        creatorId: deliverable.creatorId,
-        companyId: contract.companyId,
-        monthNumber: deliverable.monthNumber,
-        paymentType: 'deliverable',
-        grossAmount: grossAmount.toFixed(2),
-        platformFeeAmount: platformFeeAmount.toFixed(2),
-        processingFeeAmount: processingFeeAmount.toFixed(2),
-        netAmount: netAmount.toFixed(2),
-        amount: grossAmount.toFixed(2), // For backwards compatibility
-        status: 'pending',
-        description: `Retainer payment for ${contract.title} - Month ${deliverable.monthNumber}, Video ${deliverable.videoNumber}`,
-        initiatedAt: new Date(),
-      });
+console.log(`[Retainer Payment] Created payment of $${netAmount.toFixed(2)} (net) for creator ${deliverable.creatorId}`);
 
-      console.log(`[Retainer Payment] Created payment ${payment.id} of $${netAmount.toFixed(2)} (net) for creator ${deliverable.creatorId}`);
+// 🆕 SEND NOTIFICATION TO CREATOR ABOUT PAYMENT
+const creatorUser = await storage.getUserById(deliverable.creatorId);
+if (creatorUser) {
+  await notificationService.sendNotification(
+    deliverable.creatorId,
+    'payment_received',
+    'Retainer Payment Received! 💰',
+    `You've received a payment of $${netAmount.toFixed(2)} for your approved deliverable on "${contract.title}".`,
+    {
+      userName: creatorUser.firstName || creatorUser.username,
+      offerTitle: contract.title,
+      amount: `$${netAmount.toFixed(2)}`,
+      paymentId: payment.id,
+    }
+  );
+  console.log(`[Notification] Sent retainer payment notification to creator ${creatorUser.username}`);
+}
 
-      // 💰 PROCESS ACTUAL PAYMENT VIA PAYMENT PROCESSOR
-      const { paymentProcessor } = await import('./paymentProcessor');
-
-      // Validate creator has payment settings
-      const validation = await paymentProcessor.validateCreatorPaymentSettings(deliverable.creatorId);
-      if (!validation.valid) {
-        console.warn(`[Retainer Payment] Creator ${deliverable.creatorId} has no payment method configured - payment created but not processed`);
-
-        // Update payment with warning
-        await storage.updateRetainerPaymentStatus(payment.id, 'pending', {
-          description: `${payment.description}. PENDING: ${validation.error}`,
-        });
-      } else {
-        // Process the payment
-        const paymentResult = await paymentProcessor.processRetainerPayment(payment.id);
-
-        if (paymentResult.success) {
-          // Update payment as completed with transaction details
-          await storage.updateRetainerPaymentStatus(payment.id, 'completed', {
-            providerTransactionId: paymentResult.transactionId,
-            providerResponse: paymentResult.providerResponse,
-            completedAt: new Date(),
-          });
-
-          console.log(`[Retainer Payment] Successfully processed payment ${payment.id} - Transaction ID: ${paymentResult.transactionId}`);
-
-          // 🆕 SEND NOTIFICATION TO CREATOR ABOUT PAYMENT
-          const creator = await storage.getUserById(deliverable.creatorId);
-          if (creator) {
-            await notificationService.sendNotification(
-              deliverable.creatorId,
-              'payment_received',
-              'Retainer Payment Sent! 💰',
-              `$${netAmount.toFixed(2)} has been sent to your payment method for your approved deliverable on "${contract.title}". Transaction ID: ${paymentResult.transactionId}`,
-              {
-                userName: creator.firstName || creator.username,
-                offerTitle: contract.title,
-                amount: `$${netAmount.toFixed(2)}`,
-                linkUrl: `/creator/retainer-contracts`,
-              }
-            );
-            console.log(`[Notification] Sent retainer payment notification to creator ${creator.username}`);
-          }
-        } else {
-          // Payment failed - update status
-          await storage.updateRetainerPaymentStatus(payment.id, 'failed', {
-            failedAt: new Date(),
-            description: `${payment.description}. FAILED: ${paymentResult.error}`,
-          });
-
-          console.error(`[Retainer Payment] Failed to process payment ${payment.id}: ${paymentResult.error}`);
-        }
-      }
-
-      res.json(approved);
+res.json(approved);
     } catch (error: any) {
       console.error('[Approve Deliverable] Error:', error);
       res.status(500).send(error.message);

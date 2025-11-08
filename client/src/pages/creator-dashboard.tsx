@@ -172,7 +172,7 @@ export default function CreatorDashboard() {
               <p className="text-sm text-muted-foreground mt-2 mb-4">
                 Please add your content niches in your profile to get personalized offer recommendations
               </p>
-              <Link href="/creator-profile">
+              <Link href="/settings">
                 <Button>
                   <Settings className="h-4 w-4 mr-2" />
                   Update Profile
@@ -184,7 +184,7 @@ export default function CreatorDashboard() {
               <Heart className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
               <p className="text-muted-foreground">Complete your profile first</p>
               <p className="text-sm text-muted-foreground mt-2 mb-4">Create your creator profile to get personalized recommendations</p>
-              <Link href="/creator-profile">
+              <Link href="/settings">
                 <Button>Complete Profile</Button>
               </Link>
             </div>

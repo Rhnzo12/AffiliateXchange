@@ -493,9 +493,10 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
   const [disputePayoutId, setDisputePayoutId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState("");
 
-  // Pending approvals should only include payouts still awaiting company action.
-  // Once a payout is approved it moves to 'processing' and should be removed from the approvals list.
-  const pendingPayouts = useMemo(() => payouts.filter((payout) => payout.status === "pending"), [payouts]);
+  const pendingPayouts = useMemo(
+    () => payouts.filter((payout) => payout.status === "pending" || payout.status === "processing"),
+    [payouts]
+  );
 
   const totalPendingAmount = pendingPayouts.reduce(
     (sum, payout) => sum + parseFloat(payout.grossAmount),
@@ -1740,11 +1741,11 @@ export default function PaymentSettings() {
                   }`}
                 >
                   Pending Approvals
-                    {companyPayments.filter((p) => p.status === "pending").length > 0 && (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-800">
-                        {companyPayments.filter((p) => p.status === "pending").length}
-                      </span>
-                    )}
+                  {companyPayments.filter((p) => p.status === "pending" || p.status === "processing").length > 0 && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-800">
+                      {companyPayments.filter((p) => p.status === "pending" || p.status === "processing").length}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
