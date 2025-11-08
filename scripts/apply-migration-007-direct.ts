@@ -1,5 +1,5 @@
 // Apply migration 007: Add payment processing features
-import { Pool } from '@neondatabase/serverless';
+// Uses direct SQL execution without WebSocket
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -15,17 +15,46 @@ async function applyMigration() {
     process.exit(1);
   }
 
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-
   try {
     // Read the migration file
     const migrationPath = join(__dirname, '..', 'db', 'migrations', '007_add_payment_processing.sql');
     const migrationSQL = readFileSync(migrationPath, 'utf-8');
 
-    console.log('📝 Executing SQL migration...');
+    console.log('📝 Executing SQL migration via HTTP...');
 
-    // Execute the migration
-    await pool.query(migrationSQL);
+    // Use fetch to execute SQL via Neon's HTTP API
+    const databaseUrl = new URL(process.env.DATABASE_URL);
+    const [username, password] = (databaseUrl.username && databaseUrl.password)
+      ? [databaseUrl.username, databaseUrl.password.split('@')[0]]
+      : ['', ''];
+
+    // Extract connection details
+    const host = databaseUrl.hostname;
+    const dbname = databaseUrl.pathname.slice(1);
+
+    // Neon HTTP endpoint format
+    const httpEndpoint = `https://${host.replace('-pooler', '')}/sql`;
+
+    console.log('🌐 Connecting to:', httpEndpoint);
+
+    const response = await fetch(httpEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${password}`,
+        'Neon-Connection-String': process.env.DATABASE_URL,
+      },
+      body: JSON.stringify({
+        query: migrationSQL,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`HTTP ${response.status}: ${error}`);
+    }
+
+    const result = await response.json();
 
     console.log('✅ Migration 007 applied successfully!');
     console.log('');
@@ -44,8 +73,6 @@ async function applyMigration() {
     console.error('❌ Migration failed:', error.message);
     console.error(error);
     process.exit(1);
-  } finally {
-    await pool.end();
   }
 }
 
