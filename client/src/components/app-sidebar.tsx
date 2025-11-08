@@ -41,7 +41,6 @@ import {
   ScrollText,
   Sliders,
 } from "lucide-react";
-import { NotificationCenter } from "./NotificationCenter";
 
 export function AppSidebar() {
   const { user } = useAuth();
@@ -206,15 +205,12 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="border-b px-4 py-4">
-        <div className="flex items-center justify-between">
-          <Link href="/" onClick={handleNavClick}>
-            <div className="flex items-center gap-2 cursor-pointer">
-              <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover" />
-              <span className="font-bold text-lg">AffiliateXchange</span>
-            </div>
-          </Link>
-          <NotificationCenter />
-        </div>
+        <Link href="/" onClick={handleNavClick}>
+          <div className="flex items-center gap-2 cursor-pointer">
+            <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover" />
+            <span className="font-bold text-lg">AffiliateXchange</span>
+          </div>
+        </Link>
       </SidebarHeader>
 
       <SidebarContent>
