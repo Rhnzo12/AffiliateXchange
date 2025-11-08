@@ -108,21 +108,31 @@ export default function Browse() {
       if (selectedNiches.length > 0) params.append('niches', selectedNiches.join(','));
       if (commissionType) params.append('commissionType', commissionType);
       if (sortBy) params.append('sortBy', sortBy);
-      
+
       const url = `/api/offers${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch offers');
       const data = await res.json();
-      
+
       return data;
     },
     enabled: isAuthenticated,
   });
 
-  // Filter offers by selected category
+  // Apply client-side filters
   const filteredOffers = offers?.filter(offer => {
-    if (selectedCategory === "All") return true;
-    return offer.primaryNiche === selectedCategory;
+    // Category filter (from category pills)
+    if (selectedCategory !== "All" && offer.primaryNiche !== selectedCategory) {
+      return false;
+    }
+
+    // Commission range filter
+    const commissionValue = getCommissionValue(offer);
+    if (commissionValue < commissionRange[0] || commissionValue > commissionRange[1]) {
+      return false;
+    }
+
+    return true;
   }) || [];
 
   // Get trending offers (priority + high commission)
