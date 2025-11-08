@@ -714,7 +714,7 @@ export interface IStorage {
   getRetainerPayment(id: string): Promise<RetainerPayment | null>;
   getRetainerPaymentsByContract(contractId: string): Promise<RetainerPayment[]>;
   getRetainerPaymentsByCreator(creatorId: string): Promise<RetainerPayment[]>;
-  updateRetainerPaymentStatus(id: string, status: string, updates?: {
+  updateRetainerPaymentStatus(id: string, status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded', updates?: {
     providerTransactionId?: string;
     providerResponse?: any;
     paymentMethod?: string;
@@ -2684,7 +2684,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateRetainerPaymentStatus(
     id: string,
-    status: string,
+    status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded',
     updates?: {
       providerTransactionId?: string;
       providerResponse?: any;
@@ -2699,7 +2699,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .update(retainerPayments)
         .set({
-          status,
+          status: status as any, // Type assertion needed for Drizzle enum
           ...updates,
           updatedAt: new Date(),
         })
