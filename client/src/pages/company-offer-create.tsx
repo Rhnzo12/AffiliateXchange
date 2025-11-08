@@ -299,13 +299,12 @@ export default function CompanyOfferCreate() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "creatorlink/videos" }),
+        body: JSON.stringify({ folder: "creatorlink/videos", resourceType: "image" }),
       });
       const uploadData = await uploadResponse.json();
 
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('resource_type', 'image'); // Explicitly set resource type for thumbnails
 
       if (uploadData.uploadPreset) {
         formData.append('upload_preset', uploadData.uploadPreset);
@@ -382,13 +381,12 @@ export default function CompanyOfferCreate() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "creatorlink/videos" }),
+        body: JSON.stringify({ folder: "creatorlink/videos", resourceType: "video" }),
       });
       const uploadData = await uploadResponse.json();
 
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('resource_type', 'video'); // Explicitly set resource type for videos
 
       if (uploadData.uploadPreset) {
         formData.append('upload_preset', uploadData.uploadPreset);
@@ -425,13 +423,12 @@ export default function CompanyOfferCreate() {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ folder: "creatorlink/videos" }),
+            body: JSON.stringify({ folder: "creatorlink/videos", resourceType: "image" }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
           const thumbnailFormData = new FormData();
           thumbnailFormData.append('file', thumbnailBlob, 'thumbnail.jpg');
-          thumbnailFormData.append('resource_type', 'image'); // Explicitly set resource type for thumbnails
 
           if (thumbUploadData.uploadPreset) {
             thumbnailFormData.append('upload_preset', thumbUploadData.uploadPreset);
