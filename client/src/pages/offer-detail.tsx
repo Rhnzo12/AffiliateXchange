@@ -71,14 +71,14 @@ function formatDuration(seconds: number | string): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-// Helper function to format commission display
+// Helper function to format commission display - FIXED: No $ with %
 const formatCommission = (offer: any) => {
   if (!offer) return "$0";
   
   if (offer.commissionAmount) {
     return `$${offer.commissionAmount.toFixed(2)}`;
   } else if (offer.commissionPercentage) {
-    return `${offer.commissionPercentage}%`;
+    return `${offer.commissionPercentage}%`; // Just percentage, no $ sign
   } else if (offer.commissionRate) {
     return `$${offer.commissionRate.toFixed(2)}`;
   }
@@ -247,32 +247,33 @@ export default function OfferDetail() {
       };
     }
 
+    // If already applied, allow clicking to view status
     switch (applicationStatus) {
       case "pending":
         return {
-          text: "Application Pending",
-          disabled: true,
+          text: "View Application",
+          disabled: false, // Changed: Allow clicking to view status
           variant: "secondary" as const,
           icon: <Clock className="h-4 w-4" />,
         };
       case "approved":
         return {
-          text: "Application Approved",
-          disabled: true,
+          text: "View Application",
+          disabled: false, // Changed: Allow clicking to view status
           variant: "default" as const,
           icon: <CheckCircle2 className="h-4 w-4" />,
         };
       case "active":
         return {
-          text: "Active Campaign",
-          disabled: true,
+          text: "View Campaign",
+          disabled: false, // Changed: Allow clicking to view status
           variant: "default" as const,
           icon: <Check className="h-4 w-4" />,
         };
       default:
         return {
-          text: "Already Applied",
-          disabled: true,
+          text: "View Application",
+          disabled: false, // Changed: Allow clicking to view status
           variant: "secondary" as const,
           icon: <Check className="h-4 w-4" />,
         };
@@ -401,7 +402,7 @@ export default function OfferDetail() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
       {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <Button
             variant="ghost"
@@ -442,7 +443,7 @@ export default function OfferDetail() {
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-background" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-gray-50" />
             </div>
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/20 to-background">
@@ -459,45 +460,45 @@ export default function OfferDetail() {
         {/* Company Info Card - Overlapping Hero */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="relative -mt-28 sm:-mt-32">
-            <Card className="border-2 shadow-2xl">
+            <Card className="border-2 shadow-2xl rounded-2xl">
               <CardContent className="p-6 sm:p-8">
-                {/* Company Logo Circle - Overlapping */}
+                {/* Company Logo Circle - Overlapping - IMPROVED: Larger size */}
                 <div className="flex justify-start -mt-16 sm:-mt-20 mb-6 ml-4">
                   <div className="relative">
-                    <Avatar className="h-28 w-28 sm:h-32 sm:w-32 border-4 border-background shadow-xl ring-2 ring-primary/10">
+                    <Avatar className="h-32 w-32 sm:h-36 sm:w-36 border-4 border-background shadow-2xl ring-2 ring-primary/20">
                       <AvatarImage 
                         src={offer.company?.logoUrl} 
                         alt={offer.company?.tradeName}
                       />
-                      <AvatarFallback className="text-2xl sm:text-3xl font-bold bg-gradient-to-br from-primary to-purple-600 text-white">
+                      <AvatarFallback className="text-3xl sm:text-4xl font-bold bg-gradient-to-br from-primary to-purple-600 text-white">
                         {offer.company?.tradeName?.[0] || offer.title[0]}
                       </AvatarFallback>
                     </Avatar>
                   </div>
                 </div>
 
-                {/* Company Name & Verification */}
-                <div className="text-left mb-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+                {/* Company Name & Verification - IMPROVED: Better spacing */}
+                <div className="text-left mb-8">
+                  <div className="flex items-center gap-3 mb-3">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
                       {offer.company?.tradeName || offer.company?.legalName || offer.title}
                     </h1>
                     {offer.company?.status === 'approved' && (
-                      <Badge className="bg-green-500 hover:bg-green-600 text-white gap-1 text-xs">
-                        <Verified className="h-3 w-3" />
+                      <Badge className="bg-green-500 hover:bg-green-600 text-white gap-1.5 px-3 py-1 text-sm">
+                        <Verified className="h-4 w-4" />
                         Verified
                       </Badge>
                     )}
                   </div>
                   
-                  {/* Star Rating */}
+                  {/* Star Rating - IMPROVED: Better styling */}
                   {averageRating > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <div className="flex">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
                             key={star}
-                            className={`h-4 w-4 ${
+                            className={`h-5 w-5 ${
                               star <= Math.round(averageRating)
                                 ? "fill-yellow-400 text-yellow-400"
                                 : "fill-gray-200 text-gray-200"
@@ -505,91 +506,191 @@ export default function OfferDetail() {
                           />
                         ))}
                       </div>
-                      <span className="text-sm text-muted-foreground">
-                        {averageRating.toFixed(1)} ({reviews?.length || 0} reviews)
+                      <span className="text-base font-medium text-gray-900">
+                        {averageRating.toFixed(1)}
+                      </span>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-gray-600">
+                        {reviews?.length || 0} reviews
                       </span>
                     </div>
                   )}
+                  
+                  {/* Company Description - NEW: Added */}
+                  {offer.company?.description && (
+                    <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
+                      {offer.company.description}
+                    </p>
+                  )}
                 </div>
 
-                {/* Large Commission Card - White with Black Text */}
-                <div className="bg-white border-2 border-gray-200 rounded-xl p-6 mb-6 shadow-lg">
-                  <div className="text-left">
-                    <div className="flex items-center gap-2 mb-2">
-                      <DollarSign className="h-8 w-8 sm:h-10 sm:w-10 text-gray-900" />
-                      <div className="text-4xl sm:text-5xl font-bold text-gray-900">
-                        {formatCommission(offer).replace('$', '')}
+                {/* IMPROVED Commission Card - White Background */}
+                <div className="bg-white rounded-2xl p-6 sm:p-8 mb-8 border-2 border-gray-200 shadow-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-3 mb-2">
+                        <div className="text-5xl sm:text-6xl font-bold text-green-600">
+                          {formatCommission(offer)}
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-base sm:text-lg text-gray-700 capitalize">
-                      {getCommissionTypeLabel(offer)}
-                    </div>
-                    
-                    {/* Additional Commission Details */}
-                    {(offer.cookieDuration || offer.averageOrderValue) && (
-                      <div className="flex items-center gap-6 mt-4 text-sm text-gray-600">
-                        {offer.cookieDuration && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {offer.cookieDuration}-day cookie
-                          </div>
-                        )}
-                        {offer.averageOrderValue && (
-                          <div className="flex items-center gap-1">
-                            <TrendingUp className="h-4 w-4" />
-                            Avg: ${offer.averageOrderValue}
-                          </div>
-                        )}
+                      <div className="text-lg sm:text-xl text-gray-700 font-medium capitalize mb-4">
+                        {getCommissionTypeLabel(offer)}
                       </div>
-                    )}
+                      
+                      {/* Additional Commission Details - IMPROVED: Pill style */}
+                      {(offer.cookieDuration || offer.averageOrderValue) && (
+                        <div className="flex items-center gap-4 flex-wrap text-sm text-gray-600">
+                          {offer.cookieDuration && (
+                            <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
+                              <Clock className="h-4 w-4 text-gray-600" />
+                              <span className="font-medium">{offer.cookieDuration}-day cookie</span>
+                            </div>
+                          )}
+                          {offer.averageOrderValue && (
+                            <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
+                              <TrendingUp className="h-4 w-4 text-gray-600" />
+                              <span className="font-medium">Avg: ${offer.averageOrderValue}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-4 text-center text-xs sm:text-sm">
-                  <div className="flex flex-col items-center gap-1">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold text-gray-900">
+                {/* Application Status Banner - Show when user has already applied */}
+                {hasApplied && existingApplication && (
+                  <div className={`rounded-2xl p-6 mb-8 border-2 ${
+                    applicationStatus === 'approved' || applicationStatus === 'active'
+                      ? 'bg-green-50 border-green-200'
+                      : applicationStatus === 'rejected'
+                      ? 'bg-red-50 border-red-200'
+                      : 'bg-blue-50 border-blue-200'
+                  }`}>
+                    <div className="flex items-start gap-4">
+                      <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+                        applicationStatus === 'approved' || applicationStatus === 'active'
+                          ? 'bg-green-100'
+                          : applicationStatus === 'rejected'
+                          ? 'bg-red-100'
+                          : 'bg-blue-100'
+                      }`}>
+                        {applicationStatus === 'approved' || applicationStatus === 'active' ? (
+                          <CheckCircle2 className={`h-6 w-6 ${
+                            applicationStatus === 'approved' || applicationStatus === 'active'
+                              ? 'text-green-600'
+                              : 'text-blue-600'
+                          }`} />
+                        ) : (
+                          <Clock className={`h-6 w-6 ${
+                            applicationStatus === 'rejected' ? 'text-red-600' : 'text-blue-600'
+                          }`} />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`text-lg font-semibold mb-1 ${
+                          applicationStatus === 'approved' || applicationStatus === 'active'
+                            ? 'text-green-900'
+                            : applicationStatus === 'rejected'
+                            ? 'text-red-900'
+                            : 'text-blue-900'
+                        }`}>
+                          {applicationStatus === 'approved' 
+                            ? 'Application Approved'
+                            : applicationStatus === 'active'
+                            ? 'Active Campaign'
+                            : applicationStatus === 'rejected'
+                            ? 'Application Not Approved'
+                            : 'Application Pending Review'}
+                        </h3>
+                        <p className={`text-sm mb-3 ${
+                          applicationStatus === 'approved' || applicationStatus === 'active'
+                            ? 'text-green-700'
+                            : applicationStatus === 'rejected'
+                            ? 'text-red-700'
+                            : 'text-blue-700'
+                        }`}>
+                          {applicationStatus === 'approved'
+                            ? 'Your application has been approved! You can now start promoting this offer.'
+                            : applicationStatus === 'active'
+                            ? 'Your campaign is active. Keep up the great work!'
+                            : applicationStatus === 'rejected'
+                            ? 'Unfortunately, your application was not approved at this time.'
+                            : 'Your application is being reviewed. You\'ll hear back within 48 hours.'}
+                        </p>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span className="font-medium">Applied on:</span>
+                          <span>
+                            {new Date(existingApplication.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </span>
+                          <span className="text-gray-400">•</span>
+                          <span className="text-gray-500">
+                            {new Date(existingApplication.createdAt).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* IMPROVED Stats Row - White background with outlined icons */}
+                <div className="grid grid-cols-3 gap-4 sm:gap-6 mb-8">
+                  <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
+                      <Users className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                       {offer.activeCreatorCount || 0}
-                    </span>
-                    <span className="text-muted-foreground hidden sm:inline">active</span>
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Active Creators</div>
                   </div>
                   
-                  <div className="flex flex-col items-center gap-1">
-                    <MousePointer className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold text-gray-900">
+                  <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
+                      <MousePointer className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                       {offer.totalClicks || 0}
-                    </span>
-                    <span className="text-muted-foreground hidden sm:inline">clicks/mo</span>
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Clicks/Month</div>
                   </div>
                   
-                  <div className="flex flex-col items-center gap-1">
-                    <Wallet className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold text-gray-900">
+                  <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
+                      <Wallet className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                       ${offer.minimumPayout || 50}
-                    </span>
-                    <span className="text-muted-foreground hidden sm:inline">min payout</span>
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Min Payout</div>
                   </div>
                 </div>
 
-                {/* Hashtag Badges */}
+                {/* IMPROVED Hashtag Badges - Better styling with rounded-xl */}
                 {(offer.primaryNiche || offer.secondaryNiche || offer.additionalNiches?.length > 0) && (
-                  <div className="flex flex-wrap gap-2 justify-start mt-6 pt-6 border-t">
+                  <div className="flex flex-wrap gap-3 pt-8 border-t">
                     {offer.primaryNiche && (
-                      <Badge variant="secondary" className="text-xs sm:text-sm">
-                        <Hash className="h-3 w-3 mr-1" />
+                      <Badge variant="secondary" className="text-xs sm:text-sm px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors">
+                        <Hash className="h-4 w-4 mr-1.5" />
                         {offer.primaryNiche}
                       </Badge>
                     )}
                     {offer.secondaryNiche && (
-                      <Badge variant="secondary" className="text-xs sm:text-sm">
-                        <Hash className="h-3 w-3 mr-1" />
+                      <Badge variant="secondary" className="text-xs sm:text-sm px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors">
+                        <Hash className="h-4 w-4 mr-1.5" />
                         {offer.secondaryNiche}
                       </Badge>
                     )}
                     {offer.additionalNiches?.map((niche: string) => (
-                      <Badge key={niche} variant="secondary" className="text-xs sm:text-sm">
-                        <Hash className="h-3 w-3 mr-1" />
+                      <Badge key={niche} variant="secondary" className="text-xs sm:text-sm px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors">
+                        <Hash className="h-4 w-4 mr-1.5" />
                         {niche}
                       </Badge>
                     ))}
@@ -601,52 +702,64 @@ export default function OfferDetail() {
         </div>
       </div>
 
-      {/* Sticky Tab Navigation */}
+      {/* IMPROVED Sticky Tab Navigation - Better active indicator */}
       <div 
         data-sticky-nav
-        className="sticky top-[57px] sm:top-[65px] z-40 bg-background/95 backdrop-blur border-b mt-6 sm:mt-8"
+        className="sticky top-[57px] sm:top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b shadow-sm mt-6 sm:mt-8"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex overflow-x-auto hide-scrollbar">
+          <div className="flex overflow-x-auto hide-scrollbar gap-8">
             <button
               onClick={() => scrollToSection("overview")}
-              className={`flex-1 min-w-[100px] px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-all border-b-2 whitespace-nowrap ${
+              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
                 activeSection === "overview"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+                  ? "text-primary"
+                  : "text-gray-500 hover:text-gray-900"
               }`}
             >
               Overview
+              {activeSection === "overview" && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+              )}
             </button>
             <button
               onClick={() => scrollToSection("videos")}
-              className={`flex-1 min-w-[100px] px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-all border-b-2 whitespace-nowrap ${
+              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
                 activeSection === "videos"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+                  ? "text-primary"
+                  : "text-gray-500 hover:text-gray-900"
               }`}
             >
               Videos
+              {activeSection === "videos" && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+              )}
             </button>
             <button
               onClick={() => scrollToSection("requirements")}
-              className={`flex-1 min-w-[120px] px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-all border-b-2 whitespace-nowrap ${
+              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
                 activeSection === "requirements"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+                  ? "text-primary"
+                  : "text-gray-500 hover:text-gray-900"
               }`}
             >
               Requirements
+              {activeSection === "requirements" && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+              )}
             </button>
             <button
               onClick={() => scrollToSection("reviews")}
-              className={`flex-1 min-w-[100px] px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-all border-b-2 whitespace-nowrap ${
+              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
                 activeSection === "reviews"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+                  ? "text-primary"
+                  : "text-gray-500 hover:text-gray-900"
               }`}
             >
               Reviews
+              {activeSection === "reviews" && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+              )}
             </button>
           </div>
         </div>
@@ -656,54 +769,54 @@ export default function OfferDetail() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-12 sm:space-y-16">
         {/* Overview Section */}
         <div ref={overviewRef} data-section="overview" className="scroll-mt-32">
-          <Card>
+          <Card className="rounded-2xl shadow-lg">
             <CardHeader>
-              <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
-                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              <CardTitle className="text-xl sm:text-2xl lg:text-3xl flex items-center gap-3">
+                <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
                 About This Offer
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="prose prose-sm sm:prose max-w-none">
-                <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                <p className="text-muted-foreground text-base sm:text-lg whitespace-pre-wrap leading-relaxed">
                   {offer.fullDescription || offer.description || offer.shortDescription || "No description available."}
                 </p>
               </div>
               
               {/* Commission Details Grid */}
               <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 pt-6 border-t">
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg">
-                  <div className="text-xs sm:text-sm text-muted-foreground mb-1">Commission</div>
-                  <div className="text-2xl sm:text-3xl font-bold text-green-600">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl">
+                  <div className="text-xs sm:text-sm text-gray-600 mb-2">Commission Rate</div>
+                  <div className="text-3xl sm:text-4xl font-bold text-green-600 mb-2">
                     {formatCommission(offer)}
                   </div>
-                  <Badge variant="secondary" className="mt-2 text-xs capitalize">
+                  <Badge variant="secondary" className="mt-2 text-xs capitalize bg-white/60">
                     {getCommissionTypeLabel(offer)}
                   </Badge>
                 </div>
                 
                 {offer.paymentSchedule && (
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-lg">
-                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Payment Schedule</div>
-                    <div className="text-base sm:text-lg font-semibold text-blue-600 capitalize">
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl">
+                    <div className="text-xs sm:text-sm text-gray-600 mb-2">Payment Schedule</div>
+                    <div className="text-xl sm:text-2xl font-bold text-blue-600 capitalize">
                       {offer.paymentSchedule.replace(/_/g, ' ')}
                     </div>
                   </div>
                 )}
                 
                 {offer.minimumPayout && (
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-lg">
-                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Minimum Payout</div>
-                    <div className="text-base sm:text-lg font-semibold font-mono text-purple-600">
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-xl">
+                    <div className="text-xs sm:text-sm text-gray-600 mb-2">Minimum Payout</div>
+                    <div className="text-xl sm:text-2xl font-bold font-mono text-purple-600">
                       ${offer.minimumPayout}
                     </div>
                   </div>
                 )}
                 
                 {offer.cookieDuration && (
-                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-lg">
-                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Cookie Duration</div>
-                    <div className="text-base sm:text-lg font-semibold text-orange-600">
+                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-6 rounded-xl">
+                    <div className="text-xs sm:text-sm text-gray-600 mb-2">Cookie Duration</div>
+                    <div className="text-xl sm:text-2xl font-bold text-orange-600">
                       {offer.cookieDuration} days
                     </div>
                   </div>
@@ -714,16 +827,16 @@ export default function OfferDetail() {
 
           {/* About the Company */}
           {offer.company && (
-            <Card className="mt-6">
+            <Card className="mt-6 rounded-2xl shadow-lg">
               <CardHeader>
-                <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                <CardTitle className="text-xl sm:text-2xl lg:text-3xl flex items-center gap-3">
+                  <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
                   About {offer.company.tradeName || offer.company.legalName}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {offer.company.description && (
-                  <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  <p className="text-muted-foreground text-base sm:text-lg whitespace-pre-wrap leading-relaxed">
                     {offer.company.description}
                   </p>
                 )}
@@ -804,7 +917,7 @@ export default function OfferDetail() {
           </div>
           
           {!offer.videos || offer.videos.length === 0 ? (
-            <Card>
+            <Card className="rounded-2xl">
               <CardContent className="p-12 sm:p-16 text-center">
                 <Video className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground/30 mx-auto mb-4" />
                 <p className="text-muted-foreground">No example videos available yet</p>
@@ -818,7 +931,7 @@ export default function OfferDetail() {
               {offer.videos.map((video: any) => (
                 <Card
                   key={video.id}
-                  className="hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group"
+                  className="hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group rounded-xl"
                   onClick={() => setSelectedVideo(video)}
                 >
                   <div className="aspect-video relative bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 overflow-hidden">
@@ -869,7 +982,7 @@ export default function OfferDetail() {
             <h2 className="text-xl sm:text-2xl font-bold">Creator Requirements</h2>
           </div>
           
-          <Card>
+          <Card className="rounded-2xl">
             <CardContent className="p-6 sm:p-8 space-y-6">
               {/* Minimum Followers */}
               {offer.minimumFollowers && (
@@ -992,7 +1105,7 @@ export default function OfferDetail() {
             <h2 className="text-xl sm:text-2xl font-bold">Creator Reviews</h2>
           </div>
           
-          <Card>
+          <Card className="rounded-2xl">
             <CardContent className="p-6 sm:p-8">
               {reviewsLoading ? (
                 <div className="text-center py-12">
@@ -1152,8 +1265,8 @@ export default function OfferDetail() {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 sm:gap-4">
             <div>
-              <div className="text-xs text-muted-foreground">Commission</div>
-              <div className="text-lg sm:text-xl font-bold text-green-600">
+              <div className="text-xs text-muted-foreground">Earn Commission</div>
+              <div className="text-lg sm:text-2xl font-bold text-green-600">
                 {formatCommission(offer)}
               </div>
             </div>
@@ -1170,8 +1283,7 @@ export default function OfferDetail() {
               <DialogTrigger asChild>
                 <Button 
                   size="lg" 
-                  className="gap-2 text-sm sm:text-base" 
-                  disabled={buttonConfig.disabled}
+                  className="gap-2 text-sm sm:text-base rounded-xl shadow-lg hover:shadow-xl transition-all" 
                   variant={buttonConfig.variant}
                 >
                   {buttonConfig.icon}
@@ -1179,78 +1291,180 @@ export default function OfferDetail() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Apply to {offer.title}</DialogTitle>
-                  <DialogDescription>
-                    Tell {offer.company?.tradeName || 'the company'} why you're interested in promoting their offer
-                  </DialogDescription>
-                </DialogHeader>
+                {hasApplied && existingApplication ? (
+                  // Show "Already Applied" message
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>Application Already Submitted</DialogTitle>
+                      <DialogDescription>
+                        You have already applied to this offer
+                      </DialogDescription>
+                    </DialogHeader>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Why are you interested? *</Label>
-                    <Textarea
-                      id="message"
-                      placeholder="Share details about your audience, content style, and why you'd be a great fit for this offer..."
-                      value={applicationMessage}
-                      onChange={(e) => setApplicationMessage(e.target.value.slice(0, 500))}
-                      className="min-h-32 resize-none"
-                    />
-                    <p className="text-xs text-muted-foreground text-right">
-                      {applicationMessage.length}/500 characters
-                    </p>
-                  </div>
-
-                  {offer.commissionType === 'hybrid' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="commission">Preferred Commission Model</Label>
-                      <Select value={preferredCommission} onValueChange={setPreferredCommission}>
-                        <SelectTrigger id="commission">
-                          <SelectValue placeholder="Select your preferred model" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Standard Commission</SelectItem>
-                          <SelectItem value="per_sale">Per Sale</SelectItem>
-                          <SelectItem value="retainer">Monthly Retainer</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="py-6">
+                      <div className={`rounded-lg p-6 ${
+                        applicationStatus === 'approved' || applicationStatus === 'active'
+                          ? 'bg-green-50 border-2 border-green-200'
+                          : applicationStatus === 'rejected'
+                          ? 'bg-red-50 border-2 border-red-200'
+                          : 'bg-blue-50 border-2 border-blue-200'
+                      }`}>
+                        <div className="flex items-start gap-4">
+                          <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+                            applicationStatus === 'approved' || applicationStatus === 'active'
+                              ? 'bg-green-100'
+                              : applicationStatus === 'rejected'
+                              ? 'bg-red-100'
+                              : 'bg-blue-100'
+                          }`}>
+                            {applicationStatus === 'approved' || applicationStatus === 'active' ? (
+                              <CheckCircle2 className="h-6 w-6 text-green-600" />
+                            ) : (
+                              <Clock className={`h-6 w-6 ${
+                                applicationStatus === 'rejected' ? 'text-red-600' : 'text-blue-600'
+                              }`} />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className={`text-lg font-semibold mb-2 ${
+                              applicationStatus === 'approved' || applicationStatus === 'active'
+                                ? 'text-green-900'
+                                : applicationStatus === 'rejected'
+                                ? 'text-red-900'
+                                : 'text-blue-900'
+                            }`}>
+                              {applicationStatus === 'approved' 
+                                ? 'Application Approved'
+                                : applicationStatus === 'active'
+                                ? 'Active Campaign'
+                                : applicationStatus === 'rejected'
+                                ? 'Application Not Approved'
+                                : 'Application Pending Review'}
+                            </h3>
+                            <p className={`text-sm mb-4 ${
+                              applicationStatus === 'approved' || applicationStatus === 'active'
+                                ? 'text-green-700'
+                                : applicationStatus === 'rejected'
+                                ? 'text-red-700'
+                                : 'text-blue-700'
+                            }`}>
+                              {applicationStatus === 'approved'
+                                ? 'Your application has been approved! You can now start promoting this offer.'
+                                : applicationStatus === 'active'
+                                ? 'Your campaign is active. Keep up the great work!'
+                                : applicationStatus === 'rejected'
+                                ? 'Unfortunately, your application was not approved at this time. You cannot reapply to this offer.'
+                                : 'Your application is being reviewed. You\'ll hear back within 48 hours. You cannot submit another application while this one is pending.'}
+                            </p>
+                            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/50 rounded-lg p-3">
+                              <Clock className="h-4 w-4" />
+                              <span className="font-medium">Applied on:</span>
+                              <span>
+                                {new Date(existingApplication.createdAt).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                })}
+                              </span>
+                              <span>at</span>
+                              <span>
+                                {new Date(existingApplication.createdAt).toLocaleTimeString('en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  )}
 
-                  <div className="flex items-start gap-2 pt-4">
-                    <Checkbox
-                      id="terms"
-                      checked={termsAccepted}
-                      onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
-                    />
-                    <Label htmlFor="terms" className="text-sm font-normal cursor-pointer leading-relaxed">
-                      I accept the terms and conditions and agree to promote this offer ethically and authentically to my audience
-                    </Label>
-                  </div>
-                </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowApplyDialog(false)}
+                      >
+                        Close
+                      </Button>
+                    </DialogFooter>
+                  </>
+                ) : (
+                  // Show application form
+                  <>
+                    <DialogHeader>
+                      <DialogTitle>Apply to {offer.title}</DialogTitle>
+                      <DialogDescription>
+                        Tell {offer.company?.tradeName || 'the company'} why you're interested in promoting their offer
+                      </DialogDescription>
+                    </DialogHeader>
 
-                <DialogFooter className="gap-2 sm:gap-0">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowApplyDialog(false)}
-                    disabled={applyMutation.isPending}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => applyMutation.mutate()}
-                    disabled={!applicationMessage.trim() || !termsAccepted || applyMutation.isPending}
-                  >
-                    {applyMutation.isPending ? (
-                      <>
-                        <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent mr-2"></div>
-                        Submitting...
-                      </>
-                    ) : (
-                      "Submit Application"
-                    )}
-                  </Button>
-                </DialogFooter>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="message">Why are you interested? *</Label>
+                        <Textarea
+                          id="message"
+                          placeholder="Share details about your audience, content style, and why you'd be a great fit for this offer..."
+                          value={applicationMessage}
+                          onChange={(e) => setApplicationMessage(e.target.value.slice(0, 500))}
+                          className="min-h-32 resize-none"
+                        />
+                        <p className="text-xs text-muted-foreground text-right">
+                          {applicationMessage.length}/500 characters
+                        </p>
+                      </div>
+
+                      {offer.commissionType === 'hybrid' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="commission">Preferred Commission Model</Label>
+                          <Select value={preferredCommission} onValueChange={setPreferredCommission}>
+                            <SelectTrigger id="commission">
+                              <SelectValue placeholder="Select your preferred model" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="default">Standard Commission</SelectItem>
+                              <SelectItem value="per_sale">Per Sale</SelectItem>
+                              <SelectItem value="retainer">Monthly Retainer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      <div className="flex items-start gap-2 pt-4">
+                        <Checkbox
+                          id="terms"
+                          checked={termsAccepted}
+                          onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                        />
+                        <Label htmlFor="terms" className="text-sm font-normal cursor-pointer leading-relaxed">
+                          I accept the terms and conditions and agree to promote this offer ethically and authentically to my audience
+                        </Label>
+                      </div>
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowApplyDialog(false)}
+                        disabled={applyMutation.isPending}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => applyMutation.mutate()}
+                        disabled={!applicationMessage.trim() || !termsAccepted || applyMutation.isPending}
+                      >
+                        {applyMutation.isPending ? (
+                          <>
+                            <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent mr-2"></div>
+                            Submitting...
+                          </>
+                        ) : (
+                          "Submit Application"
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </>
+                )}
               </DialogContent>
             </Dialog>
           </div>
