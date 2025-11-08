@@ -244,10 +244,9 @@ export class PaymentProcessorService {
       };
 
     } catch (error: any) {
-      console.error('[PayPal Payout] Error:', error);
-
       // Enhanced error handling for PayPal API errors
       let errorMessage = error.message;
+      let errorDetails = '';
 
       // Check for specific PayPal error types
       if (error._originalError?.text) {
@@ -255,15 +254,24 @@ export class PaymentProcessorService {
           const errorData = JSON.parse(error._originalError.text);
           if (errorData.name === 'INSUFFICIENT_FUNDS') {
             errorMessage = 'Insufficient funds in PayPal business account. Please add funds to your PayPal account and retry.';
+            errorDetails = `PayPal Error: ${errorData.name} - ${errorData.message}`;
           } else if (errorData.message) {
             errorMessage = errorData.message;
+            errorDetails = `PayPal Error: ${errorData.name || 'Unknown'} - ${errorData.message}`;
           }
         } catch (parseError) {
           // Fallback to original error message
+          errorDetails = error.message;
         }
       } else if (error.statusCode) {
         errorMessage = `PayPal API Error (${error.statusCode}): ${error.message}`;
+        errorDetails = errorMessage;
+      } else {
+        errorDetails = error.message;
       }
+
+      // Log clean error message instead of full error object
+      console.error('[PayPal Payout] Failed:', errorDetails);
 
       return { success: false, error: errorMessage };
     }

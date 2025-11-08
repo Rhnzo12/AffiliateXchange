@@ -922,10 +922,18 @@ function AdminPaymentDashboard({
     },
     onError: (error: Error) => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/all"] });
+
+      // Extract clean error message
+      let errorMsg = error.message || "Failed to process payment";
+
+      // Check if it's an insufficient funds error
+      const isInsufficientFunds = errorMsg.toLowerCase().includes('insufficient funds');
+
       toast({
-        title: "Payment Failed",
-        description: error.message || "Failed to process payment",
+        title: isInsufficientFunds ? "Insufficient PayPal Balance" : "Payment Failed",
+        description: errorMsg,
         variant: "destructive",
+        duration: isInsufficientFunds ? 8000 : 5000, // Show longer for insufficient funds
       });
     },
   });
