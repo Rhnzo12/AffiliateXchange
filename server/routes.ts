@@ -1340,63 +1340,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ✅ NEW: Get single payment by ID (for all roles - creator, company, admin)
-  app.get("/api/payments/:id", requireAuth, async (req, res) => {
-    try {
-      const userId = (req.user as any).id;
-      const user = req.user as any;
-      const paymentId = req.params.id;
-
-      // Get the payment
-      const payment = await storage.getPayment(paymentId);
-      
-      if (!payment) {
-        return res.status(404).send("Payment not found");
-      }
-
-      // Verify the user has permission to view this payment
-      // Creators can view their own payments
-      // Companies can view payments they issued
-      // Admins can view all payments
-      if (user.role === 'creator') {
-        if (payment.creatorId !== userId) {
-          return res.status(403).send("Unauthorized: You don't have permission to view this payment");
-        }
-      } else if (user.role === 'company') {
-        const companyProfile = await storage.getCompanyProfile(userId);
-        if (!companyProfile || payment.companyId !== companyProfile.id) {
-          return res.status(403).send("Unauthorized: You don't have permission to view this payment");
-        }
-      } else if (user.role !== 'admin') {
-        return res.status(403).send("Unauthorized");
-      }
-
-      // Fetch additional details (offer, company) for richer display
-      let offer = null;
-      let company = null;
-
-      try {
-        offer = await storage.getOffer(payment.offerId);
-        if (offer) {
-          company = await storage.getCompanyProfileById(offer.companyId);
-        }
-      } catch (error) {
-        console.log('[Payment Detail] Could not fetch offer/company details:', error);
-        // Continue without these details - they're optional
-      }
-
-      // Return payment with additional context
-      res.json({
-        ...payment,
-        offer: offer,
-        company: company,
-      });
-    } catch (error: any) {
-      console.error('[GET /api/payments/:id] Error:', error);
-      res.status(500).send(error.message);
-    }
-  });
-
   // Payment routes for creators
   app.get("/api/payments/creator", requireAuth, requireRole('creator'), async (req, res) => {
     try {
@@ -1431,6 +1374,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const payments = await storage.getAllPayments();
       res.json(payments);
     } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // ✅ Get single payment by ID (for all roles - creator, company, admin)
+  // IMPORTANT: This MUST come AFTER specific routes like /creator, /company, /all
+  app.get("/api/payments/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = req.user as any;
+      const paymentId = req.params.id;
+
+      // Get the payment (works for both affiliate and retainer payments)
+      const payment = await storage.getPaymentOrRetainerPayment(paymentId);
+
+      if (!payment) {
+        return res.status(404).send("Payment not found");
+      }
+
+      // Verify the user has permission to view this payment
+      // Creators can view their own payments
+      // Companies can view payments they issued
+      // Admins can view all payments
+      if (user.role === 'creator') {
+        if (payment.creatorId !== userId) {
+          return res.status(403).send("Unauthorized: You don't have permission to view this payment");
+        }
+      } else if (user.role === 'company') {
+        const companyProfile = await storage.getCompanyProfile(userId);
+        if (!companyProfile || payment.companyId !== companyProfile.id) {
+          return res.status(403).send("Unauthorized: You don't have permission to view this payment");
+        }
+      } else if (user.role !== 'admin') {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Fetch additional details based on payment type
+      let offer = null;
+      let contract = null;
+      let company = null;
+
+      try {
+        if (payment.paymentType === 'affiliate' && payment.offerId) {
+          offer = await storage.getOffer(payment.offerId);
+          if (offer) {
+            company = await storage.getCompanyProfileById(offer.companyId);
+          }
+        } else if (payment.paymentType === 'retainer' && payment.contractId) {
+          contract = await storage.getRetainerContract(payment.contractId);
+          if (contract) {
+            company = await storage.getCompanyProfileById(contract.companyId);
+          }
+        }
+      } catch (error) {
+        console.log('[Payment Detail] Could not fetch offer/contract/company details:', error);
+        // Continue without these details - they're optional
+      }
+
+      // Return payment with additional context
+      res.json({
+        ...payment,
+        offer: offer,
+        contract: contract,
+        company: company,
+      });
+    } catch (error: any) {
+      console.error('[GET /api/payments/:id] Error:', error);
       res.status(500).send(error.message);
     }
   });
