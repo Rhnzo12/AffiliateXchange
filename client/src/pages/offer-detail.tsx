@@ -985,7 +985,12 @@ export default function OfferDetail() {
             </DialogHeader>
             <div className="aspect-video bg-muted rounded-lg overflow-hidden">
               {selectedVideo.videoUrl && (
-                <video src={selectedVideo.videoUrl} controls className="w-full h-full" />
+                <video
+                  src={proxiedSrc(selectedVideo.videoUrl)}
+                  controls
+                  className="w-full h-full"
+                  crossOrigin="anonymous"
+                />
               )}
             </div>
           </DialogContent>

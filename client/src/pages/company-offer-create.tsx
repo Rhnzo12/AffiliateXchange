@@ -32,42 +32,61 @@ const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     video.crossOrigin = 'anonymous';
-    video.src = videoUrl;
+    // Use proxied URL to avoid CORS issues
+    const proxiedUrl = `/proxy/image?url=${encodeURIComponent(videoUrl)}`;
+    video.src = proxiedUrl;
     video.muted = true;
-    
+
+    const timeout = setTimeout(() => {
+      reject(new Error('Thumbnail generation timed out'));
+    }, 15000); // 15 second timeout
+
     video.addEventListener('loadeddata', () => {
-      const seekTime = Math.min(1, video.duration * 0.1);
-      video.currentTime = seekTime;
+      try {
+        const seekTime = Math.min(1, video.duration * 0.1);
+        video.currentTime = seekTime;
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(new Error('Failed to seek video'));
+      }
     });
 
     video.addEventListener('seeked', () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Could not get canvas context'));
-        return;
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          clearTimeout(timeout);
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            clearTimeout(timeout);
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create thumbnail blob'));
+            }
+          },
+          'image/jpeg',
+          0.8
+        );
+      } catch (error) {
+        clearTimeout(timeout);
+        reject(error);
       }
-      
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create thumbnail blob'));
-          }
-        },
-        'image/jpeg',
-        0.8
-      );
     });
 
-    video.addEventListener('error', () => {
-      reject(new Error('Failed to load video'));
+    video.addEventListener('error', (e) => {
+      clearTimeout(timeout);
+      reject(new Error('Failed to load video for thumbnail generation'));
     });
   });
 };
@@ -286,6 +305,7 @@ export default function CompanyOfferCreate() {
 
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('resource_type', 'image'); // Explicitly set resource type for thumbnails
 
       if (uploadData.uploadPreset) {
         formData.append('upload_preset', uploadData.uploadPreset);
@@ -368,6 +388,7 @@ export default function CompanyOfferCreate() {
 
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('resource_type', 'video'); // Explicitly set resource type for videos
 
       if (uploadData.uploadPreset) {
         formData.append('upload_preset', uploadData.uploadPreset);
@@ -410,7 +431,8 @@ export default function CompanyOfferCreate() {
 
           const thumbnailFormData = new FormData();
           thumbnailFormData.append('file', thumbnailBlob, 'thumbnail.jpg');
-          
+          thumbnailFormData.append('resource_type', 'image'); // Explicitly set resource type for thumbnails
+
           if (thumbUploadData.uploadPreset) {
             thumbnailFormData.append('upload_preset', thumbUploadData.uploadPreset);
           } else if (thumbUploadData.signature) {
@@ -1190,6 +1212,7 @@ export default function CompanyOfferCreate() {
                 controls
                 autoPlay
                 className="w-full h-full"
+                crossOrigin="anonymous"
               >
                 Your browser does not support the video tag.
               </video>
