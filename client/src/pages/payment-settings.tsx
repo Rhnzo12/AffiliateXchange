@@ -163,20 +163,20 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
 
         <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-6">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm text-yellow-700">Pending Approval</span>
+            <span className="text-sm text-yellow-700">Pending Admin Approval</span>
             <Clock className="h-5 w-5 text-yellow-600" />
           </div>
           <div className="text-3xl font-bold text-yellow-900">${pendingEarnings.toFixed(2)}</div>
-          <div className="mt-1 text-xs text-yellow-700">Awaiting company</div>
+          <div className="mt-1 text-xs text-yellow-700">Company approved, awaiting admin</div>
         </div>
 
         <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm text-blue-700">Processing</span>
+            <span className="text-sm text-blue-700">Processing Payment</span>
             <Clock className="h-5 w-5 text-blue-600" />
           </div>
           <div className="text-3xl font-bold text-blue-900">${processingEarnings.toFixed(2)}</div>
-          <div className="mt-1 text-xs text-blue-700">Being processed</div>
+          <div className="mt-1 text-xs text-blue-700">Payment in progress</div>
         </div>
 
         <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
