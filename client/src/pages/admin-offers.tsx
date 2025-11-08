@@ -8,6 +8,7 @@ import { Badge } from "../components/ui/badge";
 import { TrendingUp, CheckCircle2, XCircle, DollarSign } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
+import { CardGridSkeleton } from "../components/skeletons";
 
 export default function AdminOffers() {
   const { toast } = useToast();
@@ -94,11 +95,7 @@ export default function AdminOffers() {
       </div>
 
       {loadingOffers ? (
-        <div className="text-center py-12">
-          <div className="animate-pulse text-lg text-muted-foreground">
-            Loading offers...
-          </div>
-        </div>
+        <CardGridSkeleton count={6} />
       ) : offers.length === 0 ? (
         <Card className="border-card-border">
           <CardContent className="flex flex-col items-center justify-center py-12">

@@ -21,6 +21,7 @@ import {
 } from "../components/ui/table";
 import { Badge } from "../components/ui/badge";
 import { TopNavBar } from "../components/TopNavBar";
+import { TableRowSkeleton } from "../components/skeletons";
 
 interface AuditLog {
   id: string;
@@ -169,8 +170,10 @@ export default function AdminAuditLogs() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Loading audit logs...
+            <div className="space-y-2">
+              {[...Array(10)].map((_, i) => (
+                <TableRowSkeleton key={i} />
+              ))}
             </div>
           ) : !logs || logs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">

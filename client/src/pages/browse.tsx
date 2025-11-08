@@ -29,6 +29,7 @@ import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
+import { OfferCardSkeleton } from "../components/skeletons";
 
 const NICHES = [
   "Technology", "Fashion", "Beauty", "Fitness", "Gaming", 
@@ -329,7 +330,19 @@ export default function Browse() {
         </div>
 
         {/* Trending Offers Section */}
-        {!offersLoading && trendingOffers.length > 0 && (
+        {offersLoading ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-orange-500" />
+              <h2 className="text-2xl font-bold text-foreground">Trending Offers</h2>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <OfferCardSkeleton key={i} />
+              ))}
+            </div>
+          </div>
+        ) : trendingOffers.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -467,14 +480,7 @@ export default function Browse() {
           {offersLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <Card key={i} className="overflow-hidden">
-                  <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 animate-pulse" />
-                  <CardContent className="p-4 space-y-3">
-                    <div className="h-5 bg-muted rounded animate-pulse" />
-                    <div className="h-4 bg-muted rounded w-2/3 animate-pulse" />
-                    <div className="h-4 bg-muted rounded w-1/2 animate-pulse" />
-                  </CardContent>
-                </Card>
+                <OfferCardSkeleton key={i} />
               ))}
             </div>
           ) : !regularOffers || regularOffers.length === 0 ? (

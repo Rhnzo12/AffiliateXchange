@@ -10,6 +10,7 @@ import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
+import { CardGridSkeleton } from "../components/skeletons";
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
@@ -88,17 +89,7 @@ export default function Favorites() {
 
       {/* Favorites Grid */}
       {favoritesLoading ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="animate-pulse border-card-border">
-              <div className="aspect-video bg-muted rounded-t-lg" />
-              <CardContent className="p-4 space-y-3">
-                <div className="h-4 bg-muted rounded" />
-                <div className="h-3 bg-muted rounded w-2/3" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <CardGridSkeleton count={8} />
       ) : !favorites || favorites.length === 0 ? (
         <Card className="border-card-border">
           <CardContent className="p-12 text-center">

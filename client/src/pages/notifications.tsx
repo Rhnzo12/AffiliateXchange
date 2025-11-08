@@ -4,6 +4,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { formatDistanceToNow } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
+import { ListSkeleton } from "../components/skeletons";
 
 interface Notification {
   id: string;
@@ -27,16 +28,14 @@ export default function Notifications() {
     queryFn: fetchNotifications,
   });
 
-  if (isLoading) {
-    return <div className="p-8 text-center">Loading notifications...</div>;
-  }
-
   return (
-    <div>
+    <div className="space-y-6">
       <TopNavBar />
-      <h1 className="text-2xl font-bold mb-4">Notifications</h1>
+      <h1 className="text-2xl font-bold">Notifications</h1>
 
-      {notifications.length === 0 ? (
+      {isLoading ? (
+        <ListSkeleton count={5} />
+      ) : notifications.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">No notifications</CardContent>
         </Card>

@@ -27,6 +27,7 @@ import {
 } from "../components/ui/alert-dialog";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
+import { CardGridSkeleton } from "../components/skeletons";
 
 export default function CompanyOffers() {
   const { toast } = useToast();
@@ -109,11 +110,7 @@ export default function CompanyOffers() {
       </div>
 
       {loadingOffers ? (
-        <div className="text-center py-12">
-          <div className="animate-pulse text-lg text-muted-foreground">
-            Loading offers...
-          </div>
-        </div>
+        <CardGridSkeleton count={6} />
       ) : offers.length === 0 ? (
         <Card className="border-card-border">
           <CardContent className="flex flex-col items-center justify-center py-12">

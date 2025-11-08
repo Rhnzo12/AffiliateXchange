@@ -14,6 +14,7 @@ import { FileText, CheckCircle, Clock, XCircle, MessageCircle, DollarSign } from
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
+import { ListSkeleton } from "../components/skeletons";
 
 export default function CompanyApplications() {
   const { toast } = useToast();
@@ -244,11 +245,7 @@ export default function CompanyApplications() {
       </div>
 
       {loadingApplications ? (
-        <div className="text-center py-12">
-          <div className="animate-pulse text-lg text-muted-foreground">
-            Loading applications...
-          </div>
-        </div>
+        <ListSkeleton count={5} />
       ) : applications.length === 0 ? (
         <Card className="border-card-border">
           <CardContent className="flex flex-col items-center justify-center py-12">

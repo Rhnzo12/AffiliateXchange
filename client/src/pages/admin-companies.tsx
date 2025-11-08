@@ -11,6 +11,7 @@ import { Label } from "../components/ui/label";
 import { Building2, CheckCircle2, XCircle } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
+import { CardGridSkeleton } from "../components/skeletons";
 
 export default function AdminCompanies() {
   const { toast } = useToast();
@@ -108,11 +109,7 @@ export default function AdminCompanies() {
       </div>
 
       {loadingCompanies ? (
-        <div className="text-center py-12">
-          <div className="animate-pulse text-lg text-muted-foreground">
-            Loading companies...
-          </div>
-        </div>
+        <CardGridSkeleton count={6} />
       ) : companies.length === 0 ? (
         <Card className="border-card-border">
           <CardContent className="flex flex-col items-center justify-center py-12">
