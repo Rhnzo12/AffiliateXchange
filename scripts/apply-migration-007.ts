@@ -4,6 +4,7 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
+// Fix for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 

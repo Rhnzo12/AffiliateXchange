@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { Heart, Star, Play, CheckCircle2, DollarSign, Clock, MapPin, Users, Check } from "lucide-react";
+import { proxiedSrc } from "../lib/image";
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
@@ -324,7 +325,15 @@ export default function OfferDetail() {
       {/* Hero Image */}
       <div className="aspect-[21/9] relative bg-muted rounded-lg overflow-hidden mb-6">
         {offer.featuredImageUrl ? (
-          <img src={offer.featuredImageUrl} alt={offer.title} className="w-full h-full object-cover" />
+          <img
+            src={proxiedSrc(offer.featuredImageUrl)}
+            alt={offer.title}
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Play className="h-20 w-20 text-muted-foreground/50" />
@@ -618,7 +627,15 @@ export default function OfferDetail() {
               >
                 <div className="aspect-video relative bg-muted rounded-t-lg overflow-hidden">
                   {video.thumbnailUrl ? (
-                    <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover" />
+                    <img
+                      src={proxiedSrc(video.thumbnailUrl)}
+                      alt={video.title}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <Play className="h-8 w-8 text-muted-foreground/50" />

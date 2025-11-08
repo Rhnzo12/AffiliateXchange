@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { TrendingUp, Plus, DollarSign, Users, Eye, MoreVertical, Trash2, Edit, ImageIcon } from "lucide-react";
 import { Link } from "wouter";
+import { proxiedSrc } from "../lib/image";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -135,7 +136,7 @@ export default function CompanyOffers() {
               <div className="aspect-video relative bg-muted rounded-t-lg overflow-hidden">
                 {offer.featuredImageUrl ? (
                   <img
-                    src={offer.featuredImageUrl}
+                    src={proxiedSrc(offer.featuredImageUrl)}
                     alt={offer.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {

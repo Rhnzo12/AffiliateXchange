@@ -3,7 +3,7 @@
 
 -- 1. Create platform_funding_accounts table
 CREATE TABLE IF NOT EXISTS platform_funding_accounts (
-  id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name varchar NOT NULL,
   type varchar NOT NULL, -- 'bank', 'wallet', 'card'
   last4 varchar NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS platform_funding_accounts (
   card_brand varchar,
   card_expiry varchar,
   notes text,
-  created_by varchar REFERENCES users(id),
+  created_by uuid REFERENCES users(id),
   created_at timestamp DEFAULT now(),
   updated_at timestamp DEFAULT now()
 );

@@ -832,12 +832,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Automatically create payment when work is completed
       // Calculate payment amounts based on offer commission
       let grossAmount = 0;
-      if (offer.commissionType === 'percentage' && offer.commissionPercentage) {
+      // Calculate gross amount based on configured commission type
+      // The canonical commission types are defined as: 'per_sale', 'per_lead', 'per_click', 'monthly_retainer', 'hybrid'
+      // If it's a per_sale type and a commissionPercentage is present, use percentage logic
+      if (offer.commissionType === 'per_sale' && offer.commissionPercentage) {
         // For percentage-based, use a base amount (this should come from actual sale data)
         // For now, we'll use a placeholder - in production, this would come from tracked conversions
         const baseAmount = parseFloat(req.body.saleAmount || '100');
         grossAmount = baseAmount * (parseFloat(offer.commissionPercentage.toString()) / 100);
-      } else if (offer.commissionType === 'fixed' && offer.commissionAmount) {
+      } else if (offer.commissionType !== 'per_sale' && offer.commissionAmount) {
+        // For non per_sale commission types we expect a fixed amount (per_click, per_lead, monthly_retainer, etc.)
         grossAmount = parseFloat(offer.commissionAmount.toString());
       }
 
@@ -1804,6 +1808,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single notification by id
+  app.get("/api/notifications/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const notification = await storage.getNotification(req.params.id);
+      if (!notification) return res.status(404).send("Not found");
+      if ((notification as any).userId !== userId) return res.status(403).send("Forbidden");
+      res.json(notification);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
   app.post("/api/notifications/:id/read", requireAuth, async (req, res) => {
     try {
       const notification = await storage.markNotificationAsRead(req.params.id);
@@ -2334,6 +2351,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error searching for public object:", error);
       return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Simple image proxy for allowed external hosts (e.g., Cloudinary)
+  // This makes images same-origin and helps avoid browser tracking-prevention blocking
+  app.get("/proxy/image", async (req, res) => {
+    try {
+      const url = (req.query.url as string) || req.query.u as string;
+      if (!url) return res.status(400).send("url query param is required");
+
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch (e) {
+        return res.status(400).send("invalid url");
+      }
+
+      // Only allow known safe hosts to avoid open proxy / SSRF
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
+      const hostname = parsed.hostname || "";
+      const allowed = allowedHosts.some((h) => hostname.endsWith(h));
+      if (!allowed) return res.status(403).send("forbidden host");
+
+      if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
+
+      const fetchRes = await fetch(url, { method: "GET" });
+      if (!fetchRes.ok) return res.status(fetchRes.status).send("failed to fetch image");
+
+      const contentType = fetchRes.headers.get("content-type");
+      if (contentType) res.setHeader("Content-Type", contentType);
+      const cacheControl = fetchRes.headers.get("cache-control");
+      if (cacheControl) res.setHeader("Cache-Control", cacheControl);
+
+      // Allow browsers to fetch this proxied resource from same-origin
+      res.setHeader("Access-Control-Allow-Origin", "*");
+
+      const arrayBuffer = await fetchRes.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      res.send(buffer);
+    } catch (error: any) {
+      console.error('[Proxy] Error fetching image:', error);
+      res.status(500).send(error?.message || 'proxy error');
     }
   });
 

@@ -92,11 +92,6 @@ export function AppSidebar() {
       icon: Heart,
     },
     {
-      title: "Settings",
-      url: "/settings",
-      icon: Settings,
-    },
-    {
       title: "Payment Management",
       url: "/creator/payment-settings",
       icon: DollarSign,
@@ -150,11 +145,6 @@ export function AppSidebar() {
       icon: Star,
     },
     {
-      title: "Settings",
-      url: "/settings",
-      icon: Settings,
-    },
-    {
       title: "Payment Management",
       url: "/company/payment-settings",
       icon: DollarSign,
@@ -202,6 +192,7 @@ export function AppSidebar() {
       url: "/admin/platform-settings",
       icon: Sliders,
     },
+    // Removed admin 'Account Settings' to avoid duplication with global Settings
   ];
 
   const getMenuItems = () => {

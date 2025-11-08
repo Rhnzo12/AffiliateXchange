@@ -677,7 +677,7 @@ export interface IStorage {
   getPaymentsByCreator(creatorId: string): Promise<Payment[]>;
   getPaymentsByCompany(companyId: string): Promise<Payment[]>;
   getAllPayments(): Promise<any[]>;
-  updatePaymentStatus(id: string, status: string, updates?: Partial<InsertPayment>): Promise<Payment | undefined>;
+  updatePaymentStatus(id: string, status: string, updates?: Partial<Payment>): Promise<Payment | undefined>;
 
   // Retainer Contracts
   getRetainerContract(id: string): Promise<any>;
@@ -954,12 +954,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOffers(_filters?: any): Promise<Offer[]> {
-    return await db
-      .select()
-      .from(offers)
-      .where(eq(offers.status, "approved"))
-      .orderBy(desc(offers.createdAt))
-      .limit(100);
+    // Support optional filters from the caller (status, companyId, limit)
+    // If a limit is provided, respect it. If not provided, return all matching offers.
+    const filters = _filters || {};
+
+    let query: any = db.select().from(offers);
+
+    if (filters.status) {
+      query = (query.where(eq(offers.status, filters.status)) as unknown) as typeof query;
+    } else {
+      query = (query.where(eq(offers.status, "approved")) as unknown) as typeof query;
+    }
+
+    if (filters.companyId) {
+      query = (query.where(eq(offers.companyId, filters.companyId)) as unknown) as typeof query;
+    }
+
+    query = (query.orderBy(desc(offers.createdAt)) as unknown) as typeof query;
+
+    if (filters.limit) {
+      const limit = parseInt(String(filters.limit), 10);
+      if (!Number.isNaN(limit) && limit > 0) {
+        query = (query.limit(limit) as unknown) as typeof query;
+      }
+    }
+
+    return await query;
   }
 
   async getOffersByCompany(companyId: string): Promise<Offer[]> {
@@ -2222,7 +2242,7 @@ export class DatabaseStorage implements IStorage {
   async updatePaymentStatus(
     id: string,
     status: string,
-    updates?: Partial<InsertPayment>,
+    updates?: Partial<Payment>,
   ): Promise<Payment | undefined> {
     const result = await db
       .update(payments)
@@ -2747,6 +2767,37 @@ export class DatabaseStorage implements IStorage {
           "[Storage] notifications relation missing while fetching notifications - returning empty array.",
         );
         return [];
+      }
+      throw error;
+    }
+  }
+
+  async getNotification(id: string): Promise<Notification | null> {
+    try {
+      const result = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.id, id))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      if (isLegacyNotificationColumnError(error)) {
+        console.warn(
+          "[Storage] notifications column mismatch while fetching single notification - attempting legacy fallback.",
+        );
+        // Fallback: try to fetch all notifications and find the id (legacy slow path)
+        try {
+          const all = await legacyFetchNotifications((null as unknown) as string, { limit: 1000 });
+          return all.find((n: any) => n.id === id) || null;
+        } catch (e) {
+          return null;
+        }
+      }
+      if (isMissingNotificationSchema(error)) {
+        console.warn(
+          "[Storage] notifications relation missing while fetching single notification - returning null.",
+        );
+        return null;
       }
       throw error;
     }

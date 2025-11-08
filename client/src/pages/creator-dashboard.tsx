@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { DollarSign, TrendingUp, FileText, MessageSquare, Heart, Star, Play, Settings } from "lucide-react";
 import { Link } from "wouter";
+import { proxiedSrc } from "../lib/image";
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
@@ -200,7 +201,7 @@ export default function CreatorDashboard() {
                   <Card className="hover-elevate cursor-pointer border-card-border h-full">
                     <div className="aspect-video relative bg-muted rounded-t-lg overflow-hidden">
                       {offer.featuredImageUrl ? (
-                        <img src={offer.featuredImageUrl} alt={offer.title} className="w-full h-full object-cover" />
+                        <img src={proxiedSrc(offer.featuredImageUrl)} alt={offer.title} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Play className="h-12 w-12 text-muted-foreground/50" />

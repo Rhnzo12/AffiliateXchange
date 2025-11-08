@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
 import type { UppyFile, UploadResult } from "@uppy/core";
 import { normalizeUploadResult, type NormalizedUploadResult } from "../lib/uppyAdapter";
+// @ts-ignore - Some @uppy/react versions don't export DashboardModal in the typings but runtime may provide it
 import { DashboardModal } from "@uppy/react";
 import XHRUpload from "@uppy/xhr-upload";
 import { Button } from "./ui/button";
