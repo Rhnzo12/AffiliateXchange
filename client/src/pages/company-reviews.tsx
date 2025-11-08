@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Star, MessageSquare, Reply } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { TopNavBar } from "../components/TopNavBar";
 
 export default function CompanyReviews() {
   const { toast } = useToast();
@@ -122,6 +123,7 @@ export default function CompanyReviews() {
 
   return (
     <div className="space-y-8">
+      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold">Reviews</h1>
         <p className="text-muted-foreground mt-1">

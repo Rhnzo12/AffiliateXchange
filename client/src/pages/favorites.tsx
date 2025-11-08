@@ -9,6 +9,7 @@ import { Heart, Star, Play, X } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { apiRequest, queryClient } from "../lib/queryClient";
+import { TopNavBar } from "../components/TopNavBar";
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
@@ -73,6 +74,7 @@ export default function Favorites() {
 
   return (
     <div className="space-y-6">
+      <TopNavBar />
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Favorite Offers</h1>

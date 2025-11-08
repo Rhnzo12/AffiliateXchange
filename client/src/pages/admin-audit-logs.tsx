@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "../components/ui/table";
 import { Badge } from "../components/ui/badge";
+import { TopNavBar } from "../components/TopNavBar";
 
 interface AuditLog {
   id: string;
@@ -75,6 +76,7 @@ export default function AdminAuditLogs() {
 
   return (
     <div className="space-y-6">
+      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold">Audit Trail</h1>
         <p className="text-muted-foreground mt-1">

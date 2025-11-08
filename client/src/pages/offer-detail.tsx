@@ -28,15 +28,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { 
-  Heart, 
-  Star, 
-  Play, 
-  CheckCircle2, 
-  DollarSign, 
-  Clock, 
-  MapPin, 
-  Users, 
+import {
+  Heart,
+  Star,
+  Play,
+  CheckCircle2,
+  DollarSign,
+  Clock,
+  MapPin,
+  Users,
   Check,
   ArrowLeft,
   TrendingUp,
@@ -51,6 +51,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
+import { TopNavBar } from "../components/TopNavBar";
 
 // Helper function to format duration in seconds to MM:SS
 function formatDuration(seconds: number | string): string {
@@ -401,6 +402,7 @@ export default function OfferDetail() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
+      <TopNavBar />
       {/* Top Navigation Bar */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">

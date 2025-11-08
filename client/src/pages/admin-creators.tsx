@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
+import { TopNavBar } from "../components/TopNavBar";
 
 export default function AdminCreators() {
   const { toast } = useToast();
@@ -147,6 +148,7 @@ export default function AdminCreators() {
 
   return (
     <div className="space-y-8">
+      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold">Creator Management</h1>
         <p className="text-muted-foreground mt-1">

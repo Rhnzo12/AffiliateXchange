@@ -13,6 +13,7 @@ import {
 } from "../components/ui/select";
 import { DollarSign, TrendingUp, MousePointerClick, Target, Download } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { TopNavBar } from "../components/TopNavBar";
 
 const DATE_RANGES = [
   { value: "7d", label: "Last 7 Days" },
@@ -97,6 +98,7 @@ export default function Analytics() {
 
   return (
     <div className="space-y-8">
+      <TopNavBar />
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>

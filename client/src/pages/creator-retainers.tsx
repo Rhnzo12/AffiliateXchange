@@ -29,6 +29,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
+import { TopNavBar } from "../components/TopNavBar";
 
 const applyRetainerSchema = z.object({
   message: z.string().min(20, "Message must be at least 20 characters"),
@@ -168,6 +169,7 @@ export default function CreatorRetainers() {
 
   return (
     <div className="space-y-6">
+      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold" data-testid="heading-creator-retainers">
           Monthly Retainers

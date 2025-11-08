@@ -19,6 +19,7 @@ import {
 import { Play, Trash2, ExternalLink } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
 import { useState } from "react";
+import { TopNavBar } from "../components/TopNavBar";
 
 export default function CompanyVideos() {
   const { toast } = useToast();
@@ -73,6 +74,7 @@ export default function CompanyVideos() {
 
   return (
     <div className="space-y-6">
+      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold" data-testid="heading-company-videos">Promotional Videos</h1>
         <p className="text-muted-foreground">

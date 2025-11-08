@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
 import { apiRequest, queryClient } from "../lib/queryClient";
+import { TopNavBar } from "../components/TopNavBar";
 
 export default function CompanyOffers() {
   const { toast } = useToast();
@@ -91,6 +92,7 @@ export default function CompanyOffers() {
 
   return (
     <div className="space-y-8">
+      <TopNavBar />
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">My Offers</h1>

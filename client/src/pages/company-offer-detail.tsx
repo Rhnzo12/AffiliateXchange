@@ -15,6 +15,7 @@ import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { TopNavBar } from "../components/TopNavBar";
 
 // Helper function to generate thumbnail from video
 const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
@@ -488,6 +489,7 @@ export default function CompanyOfferDetail() {
 
   return (
     <div className="space-y-6">
+      <TopNavBar />
       <div className="flex items-center gap-4">
         <Link href="/company/offers">
           <Button variant="ghost" size="icon" data-testid="button-back">

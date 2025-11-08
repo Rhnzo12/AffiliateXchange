@@ -8,6 +8,7 @@ import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Users, MessageSquare, TrendingUp, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
+import { TopNavBar } from "../components/TopNavBar";
 
 export default function CompanyCreators() {
   const { toast } = useToast();
@@ -63,6 +64,7 @@ export default function CompanyCreators() {
 
   return (
     <div className="space-y-8">
+      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold">Creators</h1>
         <p className="text-muted-foreground mt-1">

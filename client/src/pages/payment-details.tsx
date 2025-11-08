@@ -5,16 +5,17 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { format } from "date-fns";
-import { 
-  ArrowLeft, 
-  CheckCircle, 
-  Clock, 
-  XCircle, 
+import {
+  ArrowLeft,
+  CheckCircle,
+  Clock,
+  XCircle,
   DollarSign,
   TrendingUp,
   Building,
   FileText
 } from "lucide-react";
+import { TopNavBar } from "../components/TopNavBar";
 
 interface Payment {
   id: string;
@@ -136,6 +137,7 @@ export default function PaymentDetail() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <TopNavBar />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

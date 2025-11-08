@@ -17,6 +17,7 @@ import {
 } from "../components/ui/dialog";
 import { Badge } from "../components/ui/badge";
 import { Switch } from "../components/ui/switch";
+import { TopNavBar } from "../components/TopNavBar";
 
 interface PlatformSetting {
   id: string;
@@ -128,6 +129,7 @@ export default function AdminPlatformSettings() {
 
   return (
     <div className="space-y-6">
+      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold">Platform Settings</h1>
         <p className="text-muted-foreground mt-1">

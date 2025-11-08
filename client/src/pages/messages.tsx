@@ -23,6 +23,7 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
+import { TopNavBar } from "../components/TopNavBar";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -407,10 +408,12 @@ useEffect(() => {
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)]">
-      <div className="grid md:grid-cols-[320px_1fr] gap-4 h-full">
-        {/* Conversations List - Hidden on mobile when conversation is selected */}
-        <Card className={`border-card-border ${selectedConversation ? 'hidden md:block' : 'block'}`}>
+    <div className="space-y-6">
+      <TopNavBar />
+      <div className="h-[calc(100vh-12rem)]">
+        <div className="grid md:grid-cols-[320px_1fr] gap-4 h-full">
+          {/* Conversations List - Hidden on mobile when conversation is selected */}
+          <Card className={`border-card-border ${selectedConversation ? 'hidden md:block' : 'block'}`}>
           <CardContent className="p-0">
             <div className="p-4 border-b flex items-center justify-between">
               <h2 className="font-semibold text-lg">Messages</h2>
@@ -666,6 +669,7 @@ useEffect(() => {
             </>
           )}
         </Card>
+      </div>
       </div>
     </div>
   );
