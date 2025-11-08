@@ -248,7 +248,20 @@ export class PaymentProcessorService {
 
       // Enhanced error handling for PayPal API errors
       let errorMessage = error.message;
-      if (error.statusCode) {
+
+      // Check for specific PayPal error types
+      if (error._originalError?.text) {
+        try {
+          const errorData = JSON.parse(error._originalError.text);
+          if (errorData.name === 'INSUFFICIENT_FUNDS') {
+            errorMessage = 'Insufficient funds in PayPal business account. Please add funds to your PayPal account and retry.';
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (parseError) {
+          // Fallback to original error message
+        }
+      } else if (error.statusCode) {
         errorMessage = `PayPal API Error (${error.statusCode}): ${error.message}`;
       }
 
