@@ -2,12 +2,30 @@
 // Handles actual money transfers to creators via various payment methods
 
 import { storage } from "./storage";
+import * as paypal from '@paypal/payouts-sdk';
 
 export interface PaymentResult {
   success: boolean;
   transactionId?: string;
   providerResponse?: any;
   error?: string;
+}
+
+// Initialize PayPal Client
+function getPayPalClient() {
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  const mode = process.env.PAYPAL_MODE || 'sandbox';
+
+  if (!clientId || !clientSecret) {
+    throw new Error('PayPal credentials not configured. Please set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET in .env file');
+  }
+
+  const environment = mode === 'live'
+    ? new paypal.core.LiveEnvironment(clientId, clientSecret)
+    : new paypal.core.SandboxEnvironment(clientId, clientSecret);
+
+  return new paypal.core.PayPalHttpClient(environment);
 }
 
 export class PaymentProcessorService {
@@ -98,52 +116,60 @@ export class PaymentProcessorService {
     try {
       console.log(`[PayPal Payout] Sending $${amount} to ${paypalEmail}`);
 
-      // In production, you would integrate with PayPal Payouts API:
-      // const PayPal = require('@paypal/payouts-sdk');
-      // const client = new PayPal.core.PayPalHttpClient(environment);
-      // const request = new PayPal.payouts.PayoutsPostRequest();
-      // request.requestBody({
-      //   sender_batch_header: {
-      //     sender_batch_id: paymentId,
-      //     email_subject: 'You have a payout!',
-      //   },
-      //   items: [{
-      //     recipient_type: 'EMAIL',
-      //     amount: {
-      //       value: amount.toFixed(2),
-      //       currency: 'USD'
-      //     },
-      //     receiver: paypalEmail,
-      //     note: description,
-      //   }]
-      // });
-      // const response = await client.execute(request);
-      // return {
-      //   success: true,
-      //   transactionId: response.result.batch_header.payout_batch_id,
-      //   providerResponse: response.result
-      // };
+      // Get PayPal client
+      const client = getPayPalClient();
 
-      // For now, simulate successful PayPal payout
-      const mockTransactionId = `PP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      // Create payout request
+      const request = new paypal.payouts.PayoutsPostRequest();
+      request.requestBody({
+        sender_batch_header: {
+          sender_batch_id: `batch_${paymentId}_${Date.now()}`, // Must be unique
+          email_subject: 'You have received a payout!',
+          email_message: `You have received a payout from AffiliateXchange for $${amount.toFixed(2)}`
+        },
+        items: [{
+          recipient_type: 'EMAIL',
+          amount: {
+            value: amount.toFixed(2),
+            currency: 'USD'
+          },
+          receiver: paypalEmail,
+          note: description,
+          sender_item_id: paymentId
+        }]
+      });
 
-      console.log(`[PayPal Payout] SUCCESS - Transaction ID: ${mockTransactionId}`);
+      // Execute the payout
+      const response = await client.execute(request);
+
+      console.log(`[PayPal Payout] SUCCESS - Batch ID: ${response.result.batch_header.payout_batch_id}`);
+      console.log(`[PayPal Payout] Status: ${response.result.batch_header.batch_status}`);
 
       return {
         success: true,
-        transactionId: mockTransactionId,
+        transactionId: response.result.batch_header.payout_batch_id,
         providerResponse: {
+          batchId: response.result.batch_header.payout_batch_id,
+          batchStatus: response.result.batch_header.batch_status,
+          items: response.result.items,
+          senderBatchId: response.result.batch_header.sender_batch_header?.sender_batch_id,
           method: 'paypal',
           email: paypalEmail,
           amount: amount,
-          timestamp: new Date().toISOString(),
-          note: 'SIMULATED - In production, this would use PayPal Payouts API'
+          timestamp: new Date().toISOString()
         }
       };
 
     } catch (error: any) {
       console.error('[PayPal Payout] Error:', error);
-      return { success: false, error: error.message };
+
+      // Enhanced error handling for PayPal API errors
+      let errorMessage = error.message;
+      if (error.statusCode) {
+        errorMessage = `PayPal API Error (${error.statusCode}): ${error.message}`;
+      }
+
+      return { success: false, error: errorMessage };
     }
   }
 
