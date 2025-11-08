@@ -2941,7 +2941,8 @@ const platformFeeAmount = grossAmount * 0.04;
 const processingFeeAmount = grossAmount * 0.03;
 const netAmount = grossAmount - platformFeeAmount - processingFeeAmount;
 
-// Create payment for the approved deliverable
+// Create payment for the approved deliverable with 'pending' status
+// This puts it in the admin queue for processing
 const payment = await storage.createRetainerPayment({
   contractId: contract.id,
   deliverableId: deliverable.id,
@@ -2952,20 +2953,21 @@ const payment = await storage.createRetainerPayment({
   platformFeeAmount: platformFeeAmount.toFixed(2),
   processingFeeAmount: processingFeeAmount.toFixed(2),
   netAmount: netAmount.toFixed(2),
-  status: 'completed',
+  status: 'pending', // ✅ FIXED: Changed from 'completed' to 'pending' for admin review
   description: `Retainer payment for ${contract.title} - Month ${deliverable.monthNumber}, Video ${deliverable.videoNumber}`,
+  initiatedAt: new Date(),
 });
 
-console.log(`[Retainer Payment] Created payment of $${netAmount.toFixed(2)} (net) for creator ${deliverable.creatorId}`);
+console.log(`[Retainer Payment] Created pending payment of $${netAmount.toFixed(2)} (net) for creator ${deliverable.creatorId}`);
 
-// 🆕 SEND NOTIFICATION TO CREATOR ABOUT PAYMENT
+// 🆕 SEND NOTIFICATION TO CREATOR ABOUT PENDING PAYMENT
 const creatorUser = await storage.getUserById(deliverable.creatorId);
 if (creatorUser) {
   await notificationService.sendNotification(
     deliverable.creatorId,
-    'payment_received',
-    'Retainer Payment Received! 💰',
-    `You've received a payment of $${netAmount.toFixed(2)} for your approved deliverable on "${contract.title}".`,
+    'payment_pending',
+    'Deliverable Approved - Payment Pending 💰',
+    `Your deliverable for "${contract.title}" has been approved! Payment of $${netAmount.toFixed(2)} is pending admin processing.`,
     {
       userName: creatorUser.firstName || creatorUser.username,
       offerTitle: contract.title,
@@ -2973,8 +2975,26 @@ if (creatorUser) {
       paymentId: payment.id,
     }
   );
-  console.log(`[Notification] Sent retainer payment notification to creator ${creatorUser.username}`);
+  console.log(`[Notification] Sent payment pending notification to creator ${creatorUser.username}`);
 }
+
+// 🆕 SEND NOTIFICATION TO ADMIN ABOUT NEW PAYMENT TO PROCESS
+// Get admin users to notify them
+const adminUsers = await storage.getUsersByRole('admin');
+for (const admin of adminUsers) {
+  await notificationService.sendNotification(
+    admin.id,
+    'payment_pending',
+    'New Retainer Payment Ready for Processing',
+    `A retainer payment of $${netAmount.toFixed(2)} for creator ${creatorUser?.username || 'Unknown'} on "${contract.title}" is ready for processing.`,
+    {
+      offerTitle: contract.title,
+      amount: `$${netAmount.toFixed(2)}`,
+      paymentId: payment.id,
+    }
+  );
+}
+console.log(`[Notification] Notified admins about new payment ${payment.id}`);
 
 res.json(approved);
     } catch (error: any) {

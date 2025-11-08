@@ -3163,6 +3163,11 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
+  async getUsersByRole(role: 'creator' | 'company' | 'admin'): Promise<User[]> {
+    const results = await db.select().from(users).where(eq(users.role, role));
+    return results;
+  }
+
   // Audit Logs
   async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
     const result = await db.insert(auditLogs).values(log).returning();
