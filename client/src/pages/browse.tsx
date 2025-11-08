@@ -295,13 +295,24 @@ export default function Browse() {
 
                 {/* Commission Type */}
                 <div className="space-y-3">
-                  <Label>Commission Type</Label>
-                  <Select value={commissionType} onValueChange={setCommissionType}>
+                  <div className="flex items-center justify-between">
+                    <Label>Commission Type</Label>
+                    {commissionType && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCommissionType("")}
+                        className="h-auto p-0 text-xs"
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  <Select value={commissionType || undefined} onValueChange={(value) => setCommissionType(value)}>
                     <SelectTrigger data-testid="select-commission-type">
                       <SelectValue placeholder="All types" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All types</SelectItem>
                       {COMMISSION_TYPES.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
                           {type.label}
