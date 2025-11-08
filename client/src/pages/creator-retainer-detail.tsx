@@ -127,6 +127,7 @@ export default function CreatorRetainerDetail() {
         formData.append('signature', uploadData.signature);
         formData.append('timestamp', uploadData.timestamp.toString());
         formData.append('api_key', uploadData.apiKey);
+        formData.append('resource_type', 'video');
       }
 
       if (uploadData.folder) {
@@ -243,6 +244,7 @@ export default function CreatorRetainerDetail() {
         formData.append('signature', uploadData.signature);
         formData.append('timestamp', uploadData.timestamp.toString());
         formData.append('api_key', uploadData.apiKey);
+        formData.append('resource_type', 'video');
       }
 
       if (uploadData.folder) {
