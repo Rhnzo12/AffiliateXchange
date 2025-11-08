@@ -2462,45 +2462,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const publicId = req.path.replace("/objects/", "");
         const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dilp6tuin";
 
-        // Try both image and video resource types
-        const imageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${publicId}.jpg`;
-        const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${publicId}.mp4`;
-
         console.log(`[Objects Fallback] Trying Cloudinary URLs for ${publicId}`);
 
-        // Try image first
-        try {
-          const imageRes = await fetch(imageUrl);
-          if (imageRes.ok) {
-            console.log(`[Objects Fallback] ✓ Found as image, proxying from: ${imageUrl}`);
-            const contentType = imageRes.headers.get("content-type");
-            if (contentType) res.setHeader("Content-Type", contentType);
-            res.setHeader("Cache-Control", "public, max-age=31536000");
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            const buffer = await imageRes.arrayBuffer();
-            return res.send(Buffer.from(buffer));
+        // Common folder paths used in the app
+        const folderPatterns = [
+          'creatorlink/videos/thumbnails',
+          'creatorlink/videos',
+          'creatorlink/retainer',
+          'company-logos',
+          '' // Root folder (no prefix)
+        ];
+
+        // Try to fetch as image with different folder patterns
+        // We'll try the most common extension (jpg) first
+        for (const folder of folderPatterns) {
+          const path = folder ? `${folder}/${publicId}` : publicId;
+
+          // Try common image extensions
+          for (const ext of ['jpg', 'png', 'jpeg']) {
+            const imageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${path}.${ext}`;
+            try {
+              const imageRes = await fetch(imageUrl);
+              if (imageRes.ok) {
+                console.log(`[Objects Fallback] ✓ Found as image: ${imageUrl}`);
+                const contentType = imageRes.headers.get("content-type");
+                if (contentType) res.setHeader("Content-Type", contentType);
+                res.setHeader("Cache-Control", "public, max-age=31536000");
+                res.setHeader("Access-Control-Allow-Origin", "*");
+                const buffer = await imageRes.arrayBuffer();
+                return res.send(Buffer.from(buffer));
+              }
+            } catch (e) {
+              // Try next extension
+            }
           }
-        } catch (e) {
-          // Image not found, try video
         }
 
-        // Try video
-        try {
-          const videoRes = await fetch(videoUrl);
-          if (videoRes.ok) {
-            console.log(`[Objects Fallback] ✓ Found as video, proxying from: ${videoUrl}`);
-            const contentType = videoRes.headers.get("content-type");
-            if (contentType) res.setHeader("Content-Type", contentType);
-            res.setHeader("Cache-Control", "public, max-age=31536000");
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            const buffer = await videoRes.arrayBuffer();
-            return res.send(Buffer.from(buffer));
+        // Try to fetch as video with different folder patterns
+        for (const folder of folderPatterns) {
+          const path = folder ? `${folder}/${publicId}` : publicId;
+
+          // Try common video extensions
+          for (const ext of ['mp4', 'mov']) {
+            const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${path}.${ext}`;
+            try {
+              const videoRes = await fetch(videoUrl);
+              if (videoRes.ok) {
+                console.log(`[Objects Fallback] ✓ Found as video: ${videoUrl}`);
+                const contentType = videoRes.headers.get("content-type");
+                if (contentType) res.setHeader("Content-Type", contentType);
+                res.setHeader("Cache-Control", "public, max-age=31536000");
+                res.setHeader("Access-Control-Allow-Origin", "*");
+                const buffer = await videoRes.arrayBuffer();
+                return res.send(Buffer.from(buffer));
+              }
+            } catch (e) {
+              // Try next extension
+            }
           }
-        } catch (e) {
-          // Video not found either
         }
 
-        console.log(`[Objects Fallback] ✗ Not found in Cloudinary either`);
+        console.log(`[Objects Fallback] ✗ Not found in any Cloudinary folder`);
         return res.sendStatus(404);
       }
       return res.sendStatus(500);
@@ -3338,6 +3360,39 @@ res.json(approved);
 
   // Run once immediately on startup
   runAutoApprovalScheduler();
+
+  // Debug endpoint to check database URLs
+  app.get("/api/admin/debug-urls", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUserById(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      // Get sample URLs from database
+      const sampleOffers = await db.select().from(offers).limit(3);
+      const sampleVideos = await db.select().from(offerVideos).limit(5);
+
+      res.json({
+        offers: sampleOffers.map(o => ({
+          id: o.id,
+          title: o.title,
+          featuredImageUrl: o.featuredImageUrl
+        })),
+        videos: sampleVideos.map(v => ({
+          id: v.id,
+          title: v.title,
+          videoUrl: v.videoUrl,
+          thumbnailUrl: v.thumbnailUrl
+        }))
+      });
+    } catch (error: any) {
+      console.error('[Debug] Error:', error);
+      res.status(500).json({ error: "Debug failed", details: error.message });
+    }
+  });
 
   // Migration endpoint to fix normalized Cloudinary URLs
   app.post("/api/admin/migrate-cloudinary-urls", requireAuth, async (req, res) => {
