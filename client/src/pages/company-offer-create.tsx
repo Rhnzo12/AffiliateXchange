@@ -26,6 +26,7 @@ import {
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { ArrowLeft, Upload, Video, Play, Trash2, AlertCircle, Image as ImageIcon, X, FileText } from "lucide-react";
 import { Link } from "wouter";
+import { proxiedSrc } from "../lib/image";
 
 // Helper function to generate thumbnail from video
 const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
@@ -726,10 +727,11 @@ export default function CompanyOfferCreate() {
                 >
                   {formData.featuredImageUrl ? (
                     <div className="relative">
-                      <img 
-                        src={formData.featuredImageUrl} 
-                        alt="Offer thumbnail" 
+                      <img
+                        src={proxiedSrc(formData.featuredImageUrl)}
+                        alt="Offer thumbnail"
                         className="w-full h-48 object-cover rounded-lg"
+                        referrerPolicy="no-referrer"
                       />
                       <Button
                         type="button"
@@ -1000,10 +1002,11 @@ export default function CompanyOfferCreate() {
                           >
                             {video.thumbnailUrl ? (
                               <>
-                                <img 
-                                  src={video.thumbnailUrl} 
+                                <img
+                                  src={proxiedSrc(video.thumbnailUrl)}
                                   alt={video.title}
                                   className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
                                 />
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Play className="h-12 w-12 text-white" />

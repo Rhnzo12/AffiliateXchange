@@ -26,6 +26,7 @@ import {
   AlertCircle,
   XCircle,
 } from "lucide-react";
+import { proxiedSrc } from "../lib/image";
 
 const STATUS_CONFIG: Record<string, any> = {
   pending: {
@@ -334,9 +335,10 @@ export default function ApplicationDetail() {
               {application.offer?.featuredImageUrl && (
                 <div className="aspect-video rounded-lg overflow-hidden">
                   <img
-                    src={application.offer.featuredImageUrl}
+                    src={proxiedSrc(application.offer.featuredImageUrl)}
                     alt={application.offer.title}
                     className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
                   />
                 </div>
               )}
