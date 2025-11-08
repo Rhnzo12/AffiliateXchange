@@ -9,6 +9,7 @@ import { DollarSign, TrendingUp, FileText, MessageSquare, Heart, Star, Play, Set
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
+import { StatsGridSkeleton, OfferCardSkeleton } from "../components/skeletons";
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
@@ -39,12 +40,12 @@ export default function CreatorDashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: stats } = useQuery<any>({
+  const { data: stats, isLoading: statsLoading } = useQuery<any>({
     queryKey: ["/api/creator/stats"],
     enabled: isAuthenticated,
   });
 
-  const { data: recommendedOffersData, error: recommendedOffersError } = useQuery<any>({
+  const { data: recommendedOffersData, isLoading: offersLoading, error: recommendedOffersError } = useQuery<any>({
     queryKey: ["/api/offers/recommended"],
     enabled: isAuthenticated,
   });
@@ -70,57 +71,61 @@ export default function CreatorDashboard() {
       </div>
 
       {/* Stats Grid - Improved mobile spacing */}
-      <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Total Earnings</CardTitle>
-            <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-            <div className="text-xl sm:text-2xl font-bold font-mono">${stats?.totalEarnings || '0.00'}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              +${stats?.monthlyEarnings || '0.00'} this month
-            </p>
-          </CardContent>
-        </Card>
+      {statsLoading ? (
+        <StatsGridSkeleton />
+      ) : (
+        <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Earnings</CardTitle>
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+            </CardHeader>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-xl sm:text-2xl font-bold font-mono">${stats?.totalEarnings || '0.00'}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                +${stats?.monthlyEarnings || '0.00'} this month
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Active Offers</CardTitle>
-            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-            <div className="text-xl sm:text-2xl font-bold">{stats?.activeOffers || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats?.pendingApplications || 0} pending
-            </p>
-          </CardContent>
-        </Card>
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Active Offers</CardTitle>
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+            </CardHeader>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-xl sm:text-2xl font-bold">{stats?.activeOffers || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats?.pendingApplications || 0} pending
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Total Clicks</CardTitle>
-            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-            <div className="text-xl sm:text-2xl font-bold">{stats?.totalClicks || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats?.monthlyClicks || 0} this month
-            </p>
-          </CardContent>
-        </Card>
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Clicks</CardTitle>
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+            </CardHeader>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-xl sm:text-2xl font-bold">{stats?.totalClicks || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats?.monthlyClicks || 0} this month
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Messages</CardTitle>
-            <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-            <div className="text-xl sm:text-2xl font-bold">{stats?.unreadMessages || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">Unread</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Messages</CardTitle>
+              <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+            </CardHeader>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-xl sm:text-2xl font-bold">{stats?.unreadMessages || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">Unread</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Quick Actions - Better mobile touch targets */}
       <Card className="border-card-border">
@@ -167,7 +172,13 @@ export default function CreatorDashboard() {
           <p className="text-sm text-muted-foreground">Offers matching your niche and audience</p>
         </CardHeader>
         <CardContent>
-          {hasNoNiches ? (
+          {offersLoading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <OfferCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : hasNoNiches ? (
             <div className="text-center py-12">
               <Settings className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
               <p className="text-muted-foreground font-medium">Set Your Content Niches</p>

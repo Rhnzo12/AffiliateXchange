@@ -10,6 +10,7 @@ import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
+import { StatsGridSkeleton, ListItemSkeleton } from "../components/skeletons";
 
 export default function CompanyDashboard() {
   const { toast } = useToast();
@@ -28,7 +29,7 @@ export default function CompanyDashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: stats } = useQuery<any>({
+  const { data: stats, isLoading: statsLoading } = useQuery<any>({
     queryKey: ["/api/company/stats"],
     enabled: isAuthenticated,
   });
@@ -88,57 +89,61 @@ export default function CompanyDashboard() {
       </div>
 
       {/* Stats Grid - Improved mobile spacing */}
-      <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Active Creators</CardTitle>
-            <Users className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-            <div className="text-xl sm:text-2xl font-bold">{stats?.activeCreators || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats?.pendingApplications || 0} pending
-            </p>
-          </CardContent>
-        </Card>
+      {statsLoading ? (
+        <StatsGridSkeleton />
+      ) : (
+        <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Active Creators</CardTitle>
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+            </CardHeader>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-xl sm:text-2xl font-bold">{stats?.activeCreators || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats?.pendingApplications || 0} pending
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Live Offers</CardTitle>
-            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-            <div className="text-xl sm:text-2xl font-bold">{stats?.liveOffers || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats?.draftOffers || 0} drafts
-            </p>
-          </CardContent>
-        </Card>
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Live Offers</CardTitle>
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+            </CardHeader>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-xl sm:text-2xl font-bold">{stats?.liveOffers || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats?.draftOffers || 0} drafts
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Applications</CardTitle>
-            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-            <div className="text-xl sm:text-2xl font-bold">{stats?.totalApplications || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">All time</p>
-          </CardContent>
-        </Card>
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Applications</CardTitle>
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+            </CardHeader>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-xl sm:text-2xl font-bold">{stats?.totalApplications || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">All time</p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Total Clicks</CardTitle>
-            <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-            <div className="text-xl sm:text-2xl font-bold">{stats?.totalClicks || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats?.conversions || 0} conversions
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Clicks</CardTitle>
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+            </CardHeader>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-xl sm:text-2xl font-bold">{stats?.totalClicks || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats?.conversions || 0} conversions
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {stats?.companyProfile?.status === 'pending' && (
         <Card className="border-card-border bg-muted/50">
@@ -164,8 +169,21 @@ export default function CompanyDashboard() {
           </CardHeader>
           <CardContent>
             {loadingApplications ? (
-              <div className="text-center py-8">
-                <div className="animate-pulse text-sm text-muted-foreground">Loading applications...</div>
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="p-3 rounded-md border border-border">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                          <div className="h-5 w-16 bg-muted rounded animate-pulse" />
+                        </div>
+                        <div className="h-3 w-48 bg-muted rounded animate-pulse" />
+                        <div className="h-3 w-24 bg-muted rounded animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : applications.length === 0 ? (
               <div className="text-center py-8">

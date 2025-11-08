@@ -52,6 +52,7 @@ import {
 } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
+import { DetailPageSkeleton } from "../components/skeletons";
 
 // Helper function to format duration in seconds to MM:SS
 function formatDuration(seconds: number | string): string {
@@ -374,11 +375,9 @@ export default function OfferDetail() {
   // Loading state
   if (isLoading || offerLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
-          <p className="text-muted-foreground">Loading offer details...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <TopNavBar />
+        <DetailPageSkeleton />
       </div>
     );
   }

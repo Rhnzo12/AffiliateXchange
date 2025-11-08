@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { TopNavBar } from "../components/TopNavBar";
+import { ListSkeleton } from "../components/skeletons";
 
 export default function AdminCreators() {
   const { toast } = useToast();
@@ -209,11 +210,7 @@ export default function AdminCreators() {
 
       {/* Creators List */}
       {loadingCreators ? (
-        <div className="text-center py-12">
-          <div className="animate-pulse text-lg text-muted-foreground">
-            Loading creators...
-          </div>
-        </div>
+        <ListSkeleton count={5} />
       ) : filteredCreators.length === 0 ? (
         <Card className="border-card-border">
           <CardContent className="flex flex-col items-center justify-center py-12">

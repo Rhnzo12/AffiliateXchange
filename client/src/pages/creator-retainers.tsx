@@ -30,6 +30,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
+import { ListSkeleton } from "../components/skeletons";
 
 const applyRetainerSchema = z.object({
   message: z.string().min(20, "Message must be at least 20 characters"),
@@ -159,10 +160,12 @@ export default function CreatorRetainers() {
   if (isLoading) {
     return (
       <div className="space-y-6">
+        <TopNavBar />
         <div>
           <h1 className="text-3xl font-bold">Monthly Retainers</h1>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Browse ongoing monthly video production contracts</p>
         </div>
+        <ListSkeleton count={3} />
       </div>
     );
   }

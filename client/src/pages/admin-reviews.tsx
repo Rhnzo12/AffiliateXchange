@@ -11,6 +11,7 @@ import { Label } from "../components/ui/label";
 import { Star, Eye, EyeOff, Trash2, FileText, CheckCircle2, AlertCircle } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
+import { ListSkeleton } from "../components/skeletons";
 
 export default function AdminReviews() {
   const { toast } = useToast();
@@ -184,14 +185,6 @@ export default function AdminReviews() {
     );
   };
 
-  if (isLoading || loadingReviews) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-lg">Loading...</div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       <TopNavBar />
@@ -238,7 +231,9 @@ export default function AdminReviews() {
         </Card>
       </div>
 
-      {reviews.length === 0 ? (
+      {isLoading || loadingReviews ? (
+        <ListSkeleton count={5} />
+      ) : reviews.length === 0 ? (
         <Card className="border-card-border">
           <CardContent className="pt-6">
             <div className="text-center py-12">

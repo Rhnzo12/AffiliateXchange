@@ -8,6 +8,7 @@ import { Badge } from "../components/ui/badge";
 import { Users, Building2, TrendingUp, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
+import { StatsGridSkeleton } from "../components/skeletons";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -26,7 +27,7 @@ export default function AdminDashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: stats } = useQuery<any>({
+  const { data: stats, isLoading: statsLoading } = useQuery<any>({
     queryKey: ["/api/admin/stats"],
     enabled: isAuthenticated,
   });
@@ -45,53 +46,57 @@ export default function AdminDashboard() {
         <p className="text-muted-foreground mt-1">Platform oversight and moderation</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats?.newUsersThisWeek || 0} this week
-            </p>
-          </CardContent>
-        </Card>
+      {statsLoading ? (
+        <StatsGridSkeleton />
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {stats?.newUsersThisWeek || 0} this week
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Companies</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{stats?.pendingCompanies || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">Require review</p>
-          </CardContent>
-        </Card>
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Companies</CardTitle>
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">{stats?.pendingCompanies || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">Require review</p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Offers</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{stats?.pendingOffers || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">Awaiting approval</p>
-          </CardContent>
-        </Card>
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Offers</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">{stats?.pendingOffers || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">Awaiting approval</p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Offers</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.activeOffers || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">Live on platform</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="border-card-border">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Offers</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats?.activeOffers || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">Live on platform</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Quick Access Section */}
       <Card className="border-card-border">

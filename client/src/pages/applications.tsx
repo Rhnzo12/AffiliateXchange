@@ -13,6 +13,7 @@ import { Copy, ExternalLink, MessageSquare, TrendingUp, FileText, Clock, CheckCi
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
+import { ListSkeleton } from "../components/skeletons";
 
 const STATUS_COLORS: Record<string, any> = {
   pending: { variant: "secondary" as const, icon: Clock },
@@ -95,7 +96,7 @@ export default function Applications() {
     }
   }, [isAuthenticated, isLoading]);
 
-  const { data: applications } = useQuery<any[]>({
+  const { data: applications, isLoading: applicationsLoading } = useQuery<any[]>({
     queryKey: ["/api/applications"],
     enabled: isAuthenticated,
   });
@@ -248,7 +249,9 @@ export default function Applications() {
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4 mt-6">
-          {!filteredApplications || filteredApplications.length === 0 ? (
+          {applicationsLoading ? (
+            <ListSkeleton count={3} />
+          ) : !filteredApplications || filteredApplications.length === 0 ? (
             <Card className="border-card-border">
               <CardContent className="p-12 text-center">
                 <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />

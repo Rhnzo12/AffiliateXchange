@@ -14,6 +14,7 @@ import {
 import { DollarSign, TrendingUp, MousePointerClick, Target, Download } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TopNavBar } from "../components/TopNavBar";
+import { StatsGridSkeleton, ChartSkeleton } from "../components/skeletons";
 
 const DATE_RANGES = [
   { value: "7d", label: "Last 7 Days" },
@@ -94,6 +95,22 @@ export default function Analytics() {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-pulse text-lg">Loading...</div>
     </div>;
+  }
+
+  if (analyticsLoading) {
+    return (
+      <div className="space-y-8">
+        <TopNavBar />
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Track your performance across all offers</p>
+          </div>
+        </div>
+        <StatsGridSkeleton count={4} />
+        <ChartSkeleton />
+      </div>
+    );
   }
 
   return (
