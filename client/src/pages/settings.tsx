@@ -156,7 +156,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "company-logos" }),
+        body: JSON.stringify({ folder: "company-logos", resourceType: "image" }),
       });
       
       if (!uploadResponse.ok) {
