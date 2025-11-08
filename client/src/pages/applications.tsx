@@ -11,6 +11,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
 import { Copy, ExternalLink, MessageSquare, TrendingUp, FileText, Clock, CheckCircle2, Star, StarOff } from "lucide-react";
 import { Link } from "wouter";
+import { proxiedSrc } from "../lib/image";
 
 const STATUS_COLORS: Record<string, any> = {
   pending: { variant: "secondary" as const, icon: Clock },
@@ -270,9 +271,10 @@ export default function Applications() {
                       <div className="md:w-48 aspect-video bg-muted rounded-lg overflow-hidden flex-shrink-0">
                         {application.offer?.featuredImageUrl ? (
                           <img
-                            src={application.offer.featuredImageUrl}
+                            src={proxiedSrc(application.offer.featuredImageUrl)}
                             alt={application.offer.title}
                             className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">

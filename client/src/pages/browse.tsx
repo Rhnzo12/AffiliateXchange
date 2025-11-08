@@ -27,6 +27,7 @@ import {
 import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
+import { proxiedSrc } from "../lib/image";
 
 const NICHES = [
   "Technology", "Fashion", "Beauty", "Fitness", "Gaming", 
@@ -292,10 +293,11 @@ export default function Browse() {
                   <div className="aspect-video relative bg-muted rounded-t-lg overflow-hidden">
                     {offer.featuredImageUrl ? (
                       <>
-                        <img 
-                          src={offer.featuredImageUrl} 
-                          alt={offer.title} 
+                        <img
+                          src={proxiedSrc(offer.featuredImageUrl)}
+                          alt={offer.title}
                           className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
                           onError={(e) => {
                             console.error(`Image failed to load: ${offer.title}`, offer.featuredImageUrl);
                             (e.target as HTMLImageElement).style.display = 'none';
