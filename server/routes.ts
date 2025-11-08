@@ -1612,10 +1612,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Process monthly retainer payments for all active contracts
   app.post("/api/admin/retainer-payments/process-monthly", requireAuth, requireRole('admin'), async (req, res) => {
     try {
-      const { retainerPaymentScheduler } = await import('./retainerPaymentScheduler');
+      const { RetainerPaymentScheduler } = await import('./retainerPaymentScheduler');
+      const scheduler = new RetainerPaymentScheduler(notificationService);
 
       console.log('[Admin] Manually triggering monthly retainer payment processing...');
-      const results = await retainerPaymentScheduler.processMonthlyRetainerPayments();
+      const results = await scheduler.processMonthlyRetainerPayments();
 
       res.json({
         success: true,
@@ -1635,10 +1636,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/retainer-payments/process-contract/:contractId", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const { contractId } = req.params;
-      const { retainerPaymentScheduler } = await import('./retainerPaymentScheduler');
+      const { RetainerPaymentScheduler } = await import('./retainerPaymentScheduler');
+      const scheduler = new RetainerPaymentScheduler(notificationService);
 
       console.log(`[Admin] Manually processing payment for contract ${contractId}...`);
-      const result = await retainerPaymentScheduler.processContractMonthlyPayment(contractId);
+      const result = await scheduler.processContractMonthlyPayment(contractId);
 
       if (result.success) {
         res.json({

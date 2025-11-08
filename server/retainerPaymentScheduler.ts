@@ -3,9 +3,10 @@
 
 import { storage } from "./storage";
 import { paymentProcessor } from "./paymentProcessor";
-import { notificationService } from "./notificationService";
+import type { NotificationService } from "./notifications/notificationService";
 
 export class RetainerPaymentScheduler {
+  constructor(private notificationService: NotificationService) {}
   /**
    * Process monthly retainer payments for all active contracts
    * This should be called on the 1st of each month via a cron job
@@ -166,7 +167,7 @@ export class RetainerPaymentScheduler {
       });
 
       // Notify creator to configure payment method
-      await notificationService.sendNotification(
+      await this.notificationService.sendNotification(
         contract.assignedCreatorId,
         'action_required',
         'Payment Method Required',
@@ -195,7 +196,7 @@ export class RetainerPaymentScheduler {
       // Notify creator about successful payment
       const creator = await storage.getUserById(contract.assignedCreatorId);
       if (creator) {
-        await notificationService.sendNotification(
+        await this.notificationService.sendNotification(
           contract.assignedCreatorId,
           'payment_received',
           'Monthly Retainer Payment Received! 💰',
@@ -273,6 +274,3 @@ export class RetainerPaymentScheduler {
     }
   }
 }
-
-// Export singleton instance
-export const retainerPaymentScheduler = new RetainerPaymentScheduler();
