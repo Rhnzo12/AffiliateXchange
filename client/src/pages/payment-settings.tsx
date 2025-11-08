@@ -17,6 +17,16 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
+import {
   AlertTriangle,
   CheckCircle,
   Clock,
@@ -798,6 +808,8 @@ function AdminPaymentDashboard({
   const { toast } = useToast();
   const [selectedPayments, setSelectedPayments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [paymentToProcess, setPaymentToProcess] = useState<CreatorPayment | null>(null);
 
   const allPayments = payments;
 
@@ -879,6 +891,21 @@ function AdminPaymentDashboard({
     },
   });
 
+  // Handler to open confirmation dialog
+  const handleApprovePayment = (payment: CreatorPayment) => {
+    setPaymentToProcess(payment);
+    setConfirmDialogOpen(true);
+  };
+
+  // Handler to confirm and process payment
+  const confirmProcessPayment = () => {
+    if (paymentToProcess) {
+      processPaymentMutation.mutate(paymentToProcess.id);
+    }
+    setConfirmDialogOpen(false);
+    setPaymentToProcess(null);
+  };
+
   // Mutation to approve/process individual payment
   const processPaymentMutation = useMutation({
     mutationFn: async (paymentId: string) => {
@@ -893,8 +920,9 @@ function AdminPaymentDashboard({
       });
     },
     onError: (error: Error) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/all"] });
       toast({
-        title: "Error",
+        title: "Payment Failed",
         description: error.message || "Failed to process payment",
         variant: "destructive",
       });
@@ -1074,7 +1102,7 @@ function AdminPaymentDashboard({
                       {payment.status === 'pending' && (
                         <Button
                           size="sm"
-                          onClick={() => processPaymentMutation.mutate(payment.id)}
+                          onClick={() => handleApprovePayment(payment)}
                           disabled={processPaymentMutation.isPending}
                           className="bg-green-600 hover:bg-green-700 text-white"
                         >
@@ -1085,7 +1113,7 @@ function AdminPaymentDashboard({
                       {payment.status === 'processing' && (
                         <Button
                           size="sm"
-                          onClick={() => processPaymentMutation.mutate(payment.id)}
+                          onClick={() => handleApprovePayment(payment)}
                           disabled={processPaymentMutation.isPending}
                           className="bg-blue-600 hover:bg-blue-700 text-white"
                         >
@@ -1117,6 +1145,51 @@ function AdminPaymentDashboard({
           )}
         </div>
       </div>
+
+      {/* Payment Confirmation Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              Confirm Payment Processing
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3 pt-2">
+              <p>You are about to process a payment of <strong>${paymentToProcess?.netAmount}</strong> to the creator.</p>
+
+              <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm">
+                <div className="flex gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-yellow-900">
+                    <p className="font-semibold mb-1">Important:</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li>Ensure your PayPal business account has sufficient funds</li>
+                      <li>This will send real money to the creator's account</li>
+                      <li>If payment fails, you can retry from the dashboard</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-sm">Payment details:</p>
+              <div className="text-sm bg-gray-50 rounded p-2 space-y-1">
+                <div><strong>Amount:</strong> ${paymentToProcess?.netAmount}</div>
+                <div><strong>Description:</strong> {paymentToProcess?.description || 'Payment'}</div>
+                <div><strong>Status:</strong> {paymentToProcess?.status}</div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmProcessPayment}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Confirm & Process Payment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
