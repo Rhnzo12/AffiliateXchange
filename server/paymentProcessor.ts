@@ -2,7 +2,7 @@
 // Handles actual money transfers to creators via various payment methods
 
 import { storage } from "./storage";
-import * as paypal from '@paypal/payouts-sdk';
+import paypalSdk from '@paypal/payouts-sdk';
 
 export interface PaymentResult {
   success: boolean;
@@ -22,10 +22,10 @@ function getPayPalClient() {
   }
 
   const environment = mode === 'live'
-    ? new paypal.core.LiveEnvironment(clientId, clientSecret)
-    : new paypal.core.SandboxEnvironment(clientId, clientSecret);
+    ? new paypalSdk.core.LiveEnvironment(clientId, clientSecret)
+    : new paypalSdk.core.SandboxEnvironment(clientId, clientSecret);
 
-  return new paypal.core.PayPalHttpClient(environment);
+  return new paypalSdk.core.PayPalHttpClient(environment);
 }
 
 export class PaymentProcessorService {
@@ -203,7 +203,7 @@ export class PaymentProcessorService {
       }
 
       // Create payout request using PayPal SDK
-      const request = new paypal.payouts.PayoutsPostRequest();
+      const request = new paypalSdk.payouts.PayoutsPostRequest();
       request.requestBody({
         sender_batch_header: {
           sender_batch_id: `batch_${paymentId}_${Date.now()}`, // Must be unique
