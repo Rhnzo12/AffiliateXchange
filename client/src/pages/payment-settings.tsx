@@ -884,6 +884,50 @@ function AdminPaymentDashboard({
     },
   });
 
+  // Mutation to approve/process individual payment
+  const processPaymentMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const res = await apiRequest("PATCH", `/api/payments/${paymentId}/status`, { status: "completed" });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/all"] });
+      toast({
+        title: "Success",
+        description: "Payment processed and sent to creator",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process payment",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation to mark as processing
+  const markProcessingMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const res = await apiRequest("PATCH", `/api/payments/${paymentId}/status`, { status: "processing" });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/all"] });
+      toast({
+        title: "Success",
+        description: "Payment marked as processing",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update payment status",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -1000,6 +1044,9 @@ function AdminPaymentDashboard({
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Date
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
@@ -1027,6 +1074,46 @@ function AdminPaymentDashboard({
                       {payment.completedAt
                         ? new Date(payment.completedAt).toLocaleDateString()
                         : new Date(payment.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm">
+                      {payment.status === 'pending' && (
+                        <Button
+                          size="sm"
+                          onClick={() => processPaymentMutation.mutate(payment.id)}
+                          disabled={processPaymentMutation.isPending}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <CheckCircle className="mr-1 h-4 w-4" />
+                          Approve & Pay
+                        </Button>
+                      )}
+                      {payment.status === 'processing' && (
+                        <Button
+                          size="sm"
+                          onClick={() => processPaymentMutation.mutate(payment.id)}
+                          disabled={processPaymentMutation.isPending}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          <Send className="mr-1 h-4 w-4" />
+                          Send Payment
+                        </Button>
+                      )}
+                      {payment.status === 'completed' && (
+                        <span className="text-xs text-gray-500 italic">Completed</span>
+                      )}
+                      {payment.status === 'failed' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => markProcessingMutation.mutate(payment.id)}
+                          disabled={markProcessingMutation.isPending}
+                        >
+                          Retry
+                        </Button>
+                      )}
+                      {payment.status === 'refunded' && (
+                        <span className="text-xs text-gray-500 italic">Refunded</span>
+                      )}
                     </td>
                   </tr>
                 ))}
