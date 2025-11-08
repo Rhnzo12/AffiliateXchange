@@ -51,16 +51,11 @@ export class ObjectStorageService {
     const baseUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}`;
     const uploadUrl = `${baseUrl}/${resourceType}/upload`;
 
-    // Build params to sign - include resource_type if it's not 'auto'
+    // Build params to sign - do NOT include resource_type when it's in the URL path
     const paramsToSign: any = {
       timestamp,
       folder,
     };
-
-    // Only add resource_type to signature if it's explicitly set (not 'auto')
-    if (resourceType !== 'auto') {
-      paramsToSign.resource_type = resourceType;
-    }
 
     // If a custom folder is specified, use signed upload instead of preset
     // This ensures the folder parameter is respected and not overridden by preset config

@@ -312,7 +312,6 @@ export default function CompanyOfferCreate() {
         formData.append('signature', uploadData.signature);
         formData.append('timestamp', uploadData.timestamp.toString());
         formData.append('api_key', uploadData.apiKey);
-        formData.append('resource_type', 'image');
       }
 
       if (uploadData.folder) {
@@ -395,7 +394,6 @@ export default function CompanyOfferCreate() {
         formData.append('signature', uploadData.signature);
         formData.append('timestamp', uploadData.timestamp.toString());
         formData.append('api_key', uploadData.apiKey);
-        formData.append('resource_type', 'video');
       }
 
       if (uploadData.folder) {
@@ -438,7 +436,6 @@ export default function CompanyOfferCreate() {
             thumbnailFormData.append('signature', thumbUploadData.signature);
             thumbnailFormData.append('timestamp', thumbUploadData.timestamp.toString());
             thumbnailFormData.append('api_key', thumbUploadData.apiKey);
-            thumbnailFormData.append('resource_type', 'image');
           }
 
           if (thumbUploadData.folder) {
