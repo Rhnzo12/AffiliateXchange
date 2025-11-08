@@ -2082,6 +2082,63 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  // Get payment from either payments or retainerPayments table
+  async getPaymentOrRetainerPayment(id: string): Promise<any | undefined> {
+    // First try regular payments table
+    const regularPayment = await db.select().from(payments).where(eq(payments.id, id)).limit(1);
+    if (regularPayment[0]) {
+      return {
+        ...regularPayment[0],
+        paymentType: 'affiliate',
+      };
+    }
+
+    // Then try retainer payments table
+    const retainerPayment = await db.select().from(retainerPayments).where(eq(retainerPayments.id, id)).limit(1);
+    if (retainerPayment[0]) {
+      const p = retainerPayment[0];
+      // Format retainer payment to match payment structure
+      const netAmount = p.netAmount || p.amount || '0';
+      const grossAmount = p.grossAmount || (parseFloat(netAmount.toString()) / 0.93).toFixed(2);
+      const platformFeeAmount = p.platformFeeAmount || (parseFloat(grossAmount) * 0.04).toFixed(2);
+      const stripeFeeAmount = p.processingFeeAmount || (parseFloat(grossAmount) * 0.03).toFixed(2);
+
+      return {
+        ...p,
+        paymentType: 'retainer',
+        grossAmount,
+        platformFeeAmount,
+        stripeFeeAmount,
+        netAmount,
+        creatorId: p.creatorId,
+        companyId: p.companyId,
+      };
+    }
+
+    return undefined;
+  }
+
+  // Update payment status for either affiliate or retainer payments
+  async updatePaymentOrRetainerPaymentStatus(
+    id: string,
+    status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded',
+    updates?: any
+  ): Promise<any | undefined> {
+    // First try regular payments table
+    const regularPayment = await db.select().from(payments).where(eq(payments.id, id)).limit(1);
+    if (regularPayment[0]) {
+      return await this.updatePaymentStatus(id, status, updates);
+    }
+
+    // Then try retainer payments table
+    const retainerPayment = await db.select().from(retainerPayments).where(eq(retainerPayments.id, id)).limit(1);
+    if (retainerPayment[0]) {
+      return await this.updateRetainerPaymentStatus(id, status, updates);
+    }
+
+    return undefined;
+  }
+
   async getPaymentsByCreator(creatorId: string): Promise<any[]> {
     // Get affiliate commission payments
     const affiliatePayments = await db

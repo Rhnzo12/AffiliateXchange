@@ -1465,7 +1465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Company payment approval
   app.post("/api/company/payments/:id/approve", requireAuth, requireRole('company'), async (req, res) => {
     try {
-      const payment = await storage.getPayment(req.params.id);
+      const payment = await storage.getPaymentOrRetainerPayment(req.params.id);
       if (!payment) {
         return res.status(404).send("Payment not found");
       }
@@ -1482,23 +1482,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update payment status to processing
-      const updatedPayment = await storage.updatePaymentStatus(payment.id, 'processing');
+      const updatedPayment = await storage.updatePaymentOrRetainerPaymentStatus(payment.id, 'processing');
 
       // Send notification to creator
       const creator = await storage.getUserById(payment.creatorId);
-      const offer = await storage.getOffer(payment.offerId);
 
-      if (creator && offer) {
+      // Get title based on payment type
+      let paymentTitle = 'Payment';
+      if (payment.paymentType === 'affiliate' && payment.offerId) {
+        const offer = await storage.getOffer(payment.offerId);
+        paymentTitle = offer?.title || 'Affiliate Offer';
+      } else if (payment.paymentType === 'retainer' && payment.contractId) {
+        const contract = await storage.getRetainerContract(payment.contractId);
+        paymentTitle = contract?.title || 'Retainer Contract';
+      }
+
+      if (creator) {
         await notificationService.sendNotification(
           payment.creatorId,
           'payment_approved',
           'Payment Approved! 🎉',
-          `Great news! Your payment of $${payment.netAmount} for "${offer.title}" has been approved and is being processed.`,
+          `Great news! Your payment of $${payment.netAmount} for "${paymentTitle}" has been approved and is being processed.`,
           {
             userName: creator.firstName || creator.username,
-            offerTitle: offer.title,
+            offerTitle: paymentTitle,
             amount: `$${payment.netAmount}`,
-            linkUrl: `/creator/payment-settings`,
+            linkUrl: `/payment-settings`,
           }
         );
       }
@@ -1514,7 +1523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/company/payments/:id/dispute", requireAuth, requireRole('company'), async (req, res) => {
     try {
       const { reason } = req.body;
-      const payment = await storage.getPayment(req.params.id);
+      const payment = await storage.getPaymentOrRetainerPayment(req.params.id);
       if (!payment) {
         return res.status(404).send("Payment not found");
       }
@@ -1531,23 +1540,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update payment status to failed with reason
-      const updatedPayment = await storage.updatePaymentStatus(payment.id, 'failed', {
+      const updatedPayment = await storage.updatePaymentOrRetainerPaymentStatus(payment.id, 'failed', {
         description: `Disputed: ${reason || 'No reason provided'}`,
       });
 
       // Send notification to creator
       const creator = await storage.getUserById(payment.creatorId);
-      const offer = await storage.getOffer(payment.offerId);
 
-      if (creator && offer) {
+      // Get title based on payment type
+      let paymentTitle = 'Payment';
+      if (payment.paymentType === 'affiliate' && payment.offerId) {
+        const offer = await storage.getOffer(payment.offerId);
+        paymentTitle = offer?.title || 'Affiliate Offer';
+      } else if (payment.paymentType === 'retainer' && payment.contractId) {
+        const contract = await storage.getRetainerContract(payment.contractId);
+        paymentTitle = contract?.title || 'Retainer Contract';
+      }
+
+      if (creator) {
         await notificationService.sendNotification(
           payment.creatorId,
           'payment_disputed',
           'Payment Disputed',
-          `Your payment for "${offer.title}" has been disputed. Reason: ${reason || 'Not specified'}. Please contact the company for more information.`,
+          `Your payment for "${paymentTitle}" has been disputed. Reason: ${reason || 'Not specified'}. Please contact the company for more information.`,
           {
             userName: creator.firstName || creator.username,
-            offerTitle: offer.title,
+            offerTitle: paymentTitle,
             amount: `$${payment.netAmount}`,
             linkUrl: `/messages`,
           }
