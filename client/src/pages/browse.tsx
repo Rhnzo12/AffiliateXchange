@@ -84,6 +84,32 @@ const getCommissionValue = (offer: any): number => {
   return 0;
 };
 
+// Helper function to get offer category badge
+const getOfferCategory = (offer: any): { label: string; color: string } | null => {
+  const commissionValue = getCommissionValue(offer);
+  const createdDate = new Date(offer.createdAt);
+  const daysSinceCreated = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  // Priority order for badges
+  if (offer.isPriority) {
+    return { label: "TRENDING", color: "bg-gradient-to-r from-orange-500 to-pink-500" };
+  }
+
+  if (commissionValue >= 100) {
+    return { label: "HIGH COMMISSION", color: "bg-gradient-to-r from-green-600 to-emerald-600" };
+  }
+
+  if (daysSinceCreated <= 7) {
+    return { label: "NEW", color: "bg-gradient-to-r from-blue-600 to-cyan-600" };
+  }
+
+  if (offer.commissionType === 'monthly_retainer') {
+    return { label: "RETAINER", color: "bg-gradient-to-r from-purple-600 to-violet-600" };
+  }
+
+  return null;
+};
+
 export default function Browse() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -378,7 +404,8 @@ export default function Browse() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {trendingOffers.map((offer) => {
                 const isFavorite = favorites.some(f => f.offerId === offer.id);
-                
+                const category = getOfferCategory(offer);
+
                 return (
                   <Link key={offer.id} href={`/offers/${offer.id}`}>
                     <Card className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full">
@@ -405,7 +432,7 @@ export default function Browse() {
                           {/* Favorite button - Top Left */}
                           <button
                             className="absolute top-3 left-3 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-md backdrop-blur-sm"
-                            style={{ 
+                            style={{
                               width: '36px',
                               height: '36px',
                               backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -419,11 +446,11 @@ export default function Browse() {
                             <Heart className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
                           </button>
 
-                          {/* Status Badge - Top Right */}
-                          {offer.isPriority && (
-                            <Badge className="absolute top-3 right-3 bg-orange-500 text-white border-0 shadow-lg">
-                              TRENDING
-                            </Badge>
+                          {/* Category Badge - Top Right */}
+                          {category && (
+                            <div className={`absolute top-0 right-0 ${category.color} text-white px-3 py-1.5 rounded-bl-lg shadow-lg font-bold text-xs tracking-wide`}>
+                              {category.label}
+                            </div>
                           )}
                         </div>
 
@@ -521,7 +548,8 @@ export default function Browse() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
               {regularOffers.map((offer) => {
                 const isFavorite = favorites.some(f => f.offerId === offer.id);
-                
+                const category = getOfferCategory(offer);
+
                 return (
                   <Link key={offer.id} href={`/offers/${offer.id}`}>
                     <Card className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden h-full" data-testid={`card-offer-${offer.id}`}>
@@ -552,16 +580,10 @@ export default function Browse() {
                           </div>
                         )}
 
-                        {offer.isPriority && (
-                          <Badge className="absolute top-3 right-3 bg-primary shadow-md">
-                            Featured
-                          </Badge>
-                        )}
-                        
-                        {/* Favorite button */}
+                        {/* Favorite button - Top Left */}
                         <button
                           className="rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-lg backdrop-blur-md"
-                          style={{ 
+                          style={{
                             position: 'absolute',
                             top: '12px',
                             left: '12px',
@@ -577,6 +599,13 @@ export default function Browse() {
                         >
                           <Heart className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500 scale-110' : 'text-gray-600'}`} />
                         </button>
+
+                        {/* Category Badge - Top Right */}
+                        {category && (
+                          <div className={`absolute top-0 right-0 ${category.color} text-white px-3 py-1.5 rounded-bl-lg shadow-lg font-bold text-xs tracking-wide`}>
+                            {category.label}
+                          </div>
+                        )}
                       </div>
 
                       <CardContent className="p-5 space-y-3">
