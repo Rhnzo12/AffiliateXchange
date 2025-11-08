@@ -6,6 +6,11 @@ The payment processing system requires database migrations to add:
 - `platform_funding_accounts` table (for storing platform bank accounts/wallets)
 - `provider_transaction_id` column in payments table (stores PayPal batch ID, crypto hash, etc.)
 - `provider_response` column in payments table (stores full API response for audit trail)
+- **Retainer payment enhancements**:
+  - Fee calculation columns (gross_amount, platform_fee_amount, processing_fee_amount, net_amount)
+  - Payment tracking columns (provider_transaction_id, provider_response, payment_method)
+  - Monthly payment support (month_number, payment_type, initiated_at, completed_at, failed_at)
+  - Automated monthly retainer payment processing
 
 ## Step 1: Get Your DATABASE_URL
 
@@ -112,17 +117,31 @@ Once the database is set up:
    - ✅ PAYPAL_CLIENT_SECRET configured
    - ✅ PAYPAL_MODE set to 'sandbox'
 
-2. **Test Payment Flow**:
+2. **Test Regular Payment Flow**:
    - Create a test creator account
    - Add PayPal email to creator's payment settings
    - Create a payment as admin
    - Approve and complete the payment
    - Check that money is sent via PayPal Sandbox
 
-3. **Go Live** (when ready):
+3. **Test Retainer Payment Flow**:
+   - Create a retainer contract as a company
+   - Assign a creator to the contract
+   - Creator submits deliverables
+   - Company approves deliverables (payment automatically processed via PayPal)
+   - Check that money is sent to creator's PayPal account
+
+4. **Test Monthly Retainer Payments** (Admin only):
+   - Go to Admin panel
+   - Click "Process Monthly Retainer Payments" button
+   - System automatically creates and processes payments for all active retainer contracts
+   - Check that monthly payments are sent to creators via PayPal
+
+5. **Go Live** (when ready):
    - Get production PayPal credentials
    - Change PAYPAL_MODE to 'live'
    - Update DATABASE_URL to production database
+   - Set up a cron job to run monthly payments (call POST /api/admin/retainer-payments/process-monthly on the 1st of each month)
    - Test thoroughly before processing real money!
 
 ## Need Help?

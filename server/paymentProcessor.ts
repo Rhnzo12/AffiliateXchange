@@ -104,6 +104,122 @@ export class PaymentProcessorService {
   }
 
   /**
+   * Process a retainer payment to a creator
+   * Similar to processPayment but specifically for retainer payments
+   */
+  async processRetainerPayment(retainerPaymentId: string): Promise<PaymentResult> {
+    try {
+      // Get retainer payment details
+      const retainerPayment = await storage.getRetainerPayment(retainerPaymentId);
+      if (!retainerPayment) {
+        return { success: false, error: "Retainer payment not found" };
+      }
+
+      // Get creator's payment settings
+      const paymentSettings = await storage.getPaymentSettings(retainerPayment.creatorId);
+
+      if (!paymentSettings || paymentSettings.length === 0) {
+        return {
+          success: false,
+          error: "Creator has not configured payment method. Please ask creator to add payment details in settings."
+        };
+      }
+
+      // Use the default payment method
+      const defaultPaymentMethod = paymentSettings.find(ps => ps.isDefault) || paymentSettings[0];
+
+      const amount = parseFloat(retainerPayment.netAmount);
+
+      // Process payment based on method type
+      switch (defaultPaymentMethod.payoutMethod) {
+        case 'paypal':
+          return await this.processPayPalPayout(
+            defaultPaymentMethod.paypalEmail!,
+            amount,
+            retainerPayment.id,
+            retainerPayment.description || `Retainer payment - Month ${retainerPayment.monthNumber || 'N/A'}`
+          );
+
+        case 'etransfer':
+          return await this.processETransfer(
+            defaultPaymentMethod.payoutEmail!,
+            amount,
+            retainerPayment.id,
+            retainerPayment.description || `Retainer payment - Month ${retainerPayment.monthNumber || 'N/A'}`
+          );
+
+        case 'wire':
+          return await this.processBankTransfer(
+            defaultPaymentMethod.bankRoutingNumber!,
+            defaultPaymentMethod.bankAccountNumber!,
+            amount,
+            retainerPayment.id,
+            retainerPayment.description || `Retainer payment - Month ${retainerPayment.monthNumber || 'N/A'}`
+          );
+
+        case 'crypto':
+          return await this.processCryptoPayout(
+            defaultPaymentMethod.cryptoWalletAddress!,
+            defaultPaymentMethod.cryptoNetwork!,
+            amount,
+            retainerPayment.id
+          );
+
+        default:
+          return {
+            success: false,
+            error: `Unsupported payment method: ${defaultPaymentMethod.payoutMethod}`
+          };
+      }
+    } catch (error: any) {
+      console.error('[Payment Processor] Error processing retainer payment:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Validate that a creator has payment settings configured
+   */
+  async validateCreatorPaymentSettings(creatorId: string): Promise<{ valid: boolean; error?: string }> {
+    const paymentSettings = await storage.getPaymentSettings(creatorId);
+
+    if (!paymentSettings || paymentSettings.length === 0) {
+      return {
+        valid: false,
+        error: "Creator has not configured payment method"
+      };
+    }
+
+    const defaultMethod = paymentSettings.find(ps => ps.isDefault) || paymentSettings[0];
+
+    // Validate that required fields are present
+    switch (defaultMethod.payoutMethod) {
+      case 'paypal':
+        if (!defaultMethod.paypalEmail) {
+          return { valid: false, error: "PayPal email not configured" };
+        }
+        break;
+      case 'etransfer':
+        if (!defaultMethod.payoutEmail) {
+          return { valid: false, error: "E-transfer email not configured" };
+        }
+        break;
+      case 'wire':
+        if (!defaultMethod.bankRoutingNumber || !defaultMethod.bankAccountNumber) {
+          return { valid: false, error: "Bank account details not configured" };
+        }
+        break;
+      case 'crypto':
+        if (!defaultMethod.cryptoWalletAddress || !defaultMethod.cryptoNetwork) {
+          return { valid: false, error: "Crypto wallet details not configured" };
+        }
+        break;
+    }
+
+    return { valid: true };
+  }
+
+  /**
    * Process PayPal payout
    * Uses PayPal Payouts API to send money to creator's PayPal account
    */
