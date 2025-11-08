@@ -46,20 +46,41 @@ import {
   Globe,
   Sparkles,
   Shield,
-  Verified
+  Verified,
+  Hash,
+  ExternalLink
 } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
+
+// Helper function to format duration in seconds to MM:SS
+function formatDuration(seconds: number | string): string {
+  if (!seconds) return "0:00";
+  
+  // If it's already formatted (string like "3:45"), return as is
+  if (typeof seconds === 'string' && seconds.includes(':')) {
+    return seconds;
+  }
+  
+  // Convert to number if string
+  const numSeconds = typeof seconds === 'string' ? parseInt(seconds, 10) : seconds;
+  
+  if (isNaN(numSeconds) || numSeconds === 0) return "0:00";
+  
+  const mins = Math.floor(numSeconds / 60);
+  const secs = Math.floor(numSeconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
   if (!offer) return "$0";
   
   if (offer.commissionAmount) {
-    return `$${offer.commissionAmount}`;
+    return `$${offer.commissionAmount.toFixed(2)}`;
   } else if (offer.commissionPercentage) {
     return `${offer.commissionPercentage}%`;
   } else if (offer.commissionRate) {
-    return `$${offer.commissionRate}`;
+    return `$${offer.commissionRate.toFixed(2)}`;
   }
   return "$0";
 };
@@ -91,11 +112,12 @@ export default function OfferDetail() {
   const requirementsRef = useRef<HTMLDivElement>(null);
   const reviewsRef = useRef<HTMLDivElement>(null);
 
+  // Auth check
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
+        title: "Authentication Required",
+        description: "Please log in to view offer details.",
         variant: "destructive",
       });
       setTimeout(() => {
@@ -104,27 +126,30 @@ export default function OfferDetail() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Scroll spy effect
+  // Improved scroll spy with IntersectionObserver
   useEffect(() => {
     const observerOptions = {
       root: null,
-      rootMargin: "-80px 0px -60% 0px",
-      threshold: 0.1,
+      rootMargin: "-100px 0px -60% 0px",
+      threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
     };
 
     const observerCallback = (entries: IntersectionObserverEntry[]) => {
       if (isScrolling) return;
 
-      let maxEntry = entries[0];
+      // Find the most visible section
+      let mostVisibleEntry = entries[0];
+      let maxRatio = 0;
       
       entries.forEach((entry) => {
-        if (entry.isIntersecting && entry.intersectionRatio > (maxEntry?.intersectionRatio || 0)) {
-          maxEntry = entry;
+        if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+          maxRatio = entry.intersectionRatio;
+          mostVisibleEntry = entry;
         }
       });
 
-      if (maxEntry?.isIntersecting) {
-        const sectionId = maxEntry.target.getAttribute("data-section");
+      if (mostVisibleEntry?.isIntersecting) {
+        const sectionId = mostVisibleEntry.target.getAttribute("data-section");
         if (sectionId) {
           setActiveSection(sectionId);
         }
@@ -163,11 +188,11 @@ export default function OfferDetail() {
 
     const ref = refs[sectionId];
     if (ref.current) {
-      const stickyNavElement = document.querySelector('[class*="sticky"]');
-      const navHeight = stickyNavElement ? stickyNavElement.getBoundingClientRect().height : 80;
+      const stickyNavElement = document.querySelector('[data-sticky-nav]');
+      const navHeight = stickyNavElement ? stickyNavElement.getBoundingClientRect().height : 100;
       
       const elementPosition = ref.current.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - navHeight - 10;
+      const offsetPosition = elementPosition + window.pageYOffset - navHeight - 20;
       
       window.scrollTo({
         top: offsetPosition,
@@ -180,32 +205,38 @@ export default function OfferDetail() {
     }
   };
 
+  // Fetch offer details with company and videos
   const { data: offer, isLoading: offerLoading } = useQuery<any>({
-    queryKey: ["/api/offers", offerId],
+    queryKey: [`/api/offers/${offerId}`],
     enabled: !!offerId && isAuthenticated,
   });
 
+  // Check if favorited
   const { data: isFavorite } = useQuery<boolean>({
-    queryKey: ["/api/favorites", offerId],
+    queryKey: [`/api/favorites/${offerId}`],
     enabled: !!offerId && isAuthenticated,
   });
 
+  // Fetch user's applications
   const { data: applications } = useQuery<any[]>({
     queryKey: ["/api/applications"],
     enabled: isAuthenticated,
   });
 
+  // Fetch reviews
   const { data: reviews, isLoading: reviewsLoading } = useQuery<any[]>({
     queryKey: [`/api/offers/${offerId}/reviews`],
     enabled: !!offerId,
   });
 
+  // Check if user already applied
   const existingApplication = applications?.find(
-    app => app.offer?.id === offerId || app.offerId === offerId
+    app => app.offer?.id === Number(offerId) || app.offerId === Number(offerId)
   );
   const hasApplied = !!existingApplication;
   const applicationStatus = existingApplication?.status;
 
+  // Get apply button configuration based on status
   const getApplyButtonConfig = () => {
     if (!hasApplied) {
       return {
@@ -250,16 +281,18 @@ export default function OfferDetail() {
 
   const buttonConfig = getApplyButtonConfig();
 
+  // Toggle favorite mutation
   const favoriteMutation = useMutation({
     mutationFn: async () => {
       if (isFavorite) {
         await apiRequest("DELETE", `/api/favorites/${offerId}`);
       } else {
-        await apiRequest("POST", "/api/favorites", { offerId });
+        await apiRequest("POST", "/api/favorites", { offerId: offerId });
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/favorites", offerId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/favorites/${offerId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/favorites"] });
       toast({
         title: isFavorite ? "Removed from favorites" : "Added to favorites",
       });
@@ -268,7 +301,7 @@ export default function OfferDetail() {
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
+          description: "Session expired. Please log in again.",
           variant: "destructive",
         });
         setTimeout(() => {
@@ -284,13 +317,20 @@ export default function OfferDetail() {
     },
   });
 
+  // Apply mutation - FIXED: Send offerId as string, not number
   const applyMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/applications", {
-        offerId,
+      const payload: any = {
+        offerId: offerId, // Keep as string - don't convert to Number
         message: applicationMessage,
-        preferredCommission,
-      });
+      };
+      
+      // Only include preferredCommission if it has a value
+      if (preferredCommission) {
+        payload.preferredCommission = preferredCommission;
+      }
+      
+      return await apiRequest("POST", "/api/applications", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
@@ -307,7 +347,7 @@ export default function OfferDetail() {
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
+          description: "Session expired. Please log in again.",
           variant: "destructive",
         });
         setTimeout(() => {
@@ -317,7 +357,7 @@ export default function OfferDetail() {
       }
       toast({
         title: "Error",
-        description: "Failed to submit application",
+        description: error.message || "Failed to submit application",
         variant: "destructive",
       });
     },
@@ -329,28 +369,45 @@ export default function OfferDetail() {
       ? reviews.reduce((acc: number, r: any) => acc + (r.overallRating || 0), 0) / reviews.length 
       : 0);
 
+  // Loading state
   if (isLoading || offerLoading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-pulse text-lg">Loading...</div>
-    </div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+          <p className="text-muted-foreground">Loading offer details...</p>
+        </div>
+      </div>
+    );
   }
 
+  // Not found state
   if (!offer) {
-    return <div className="text-center py-12">
-      <p className="text-muted-foreground">Offer not found</p>
-    </div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="max-w-md">
+          <CardContent className="p-12 text-center">
+            <p className="text-muted-foreground mb-4">Offer not found</p>
+            <Button onClick={() => setLocation("/browse")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Browse
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div className="pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
       {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-50 bg-background border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setLocation("/browse")}
-            className="rounded-full"
+            className="h-10 w-10 rounded-full hover:bg-accent"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -358,56 +415,75 @@ export default function OfferDetail() {
           <Button
             variant="outline"
             onClick={() => favoriteMutation.mutate()}
+            disabled={favoriteMutation.isPending}
             className="gap-2"
           >
-            <Heart className={`h-4 w-4 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
-            Save
+            <Heart 
+              className={`h-4 w-4 transition-all ${
+                isFavorite ? 'fill-red-500 text-red-500' : ''
+              }`} 
+            />
+            <span className="hidden sm:inline">
+              {isFavorite ? 'Saved' : 'Save'}
+            </span>
           </Button>
         </div>
       </div>
 
       {/* Hero Section with Gradient Background */}
       <div className="relative">
-        {/* Hero Image/Gradient Background */}
-        <div className="h-[300px] relative bg-gradient-to-br from-primary/20 via-primary/10 to-background overflow-hidden">
+        {/* Hero Background */}
+        <div className="h-[280px] sm:h-[320px] relative overflow-hidden">
           {offer.featuredImageUrl ? (
             <div className="absolute inset-0">
               <img
                 src={proxiedSrc(offer.featuredImageUrl)}
                 alt={offer.title}
-                className="w-full h-full object-cover opacity-30"
+                className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-background" />
             </div>
-          ) : null}
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/20 to-background">
+              <div 
+                className="absolute inset-0 opacity-10"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Company Info Card - Overlapping Hero */}
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="relative -mt-32">
-            <Card className="border-2 shadow-xl">
-              <CardContent className="p-8">
-                {/* Company Logo Circle */}
-                <div className="flex justify-center -mt-20 mb-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="relative -mt-28 sm:-mt-32">
+            <Card className="border-2 shadow-2xl">
+              <CardContent className="p-6 sm:p-8">
+                {/* Company Logo Circle - Overlapping */}
+                <div className="flex justify-start -mt-16 sm:-mt-20 mb-6 ml-4">
                   <div className="relative">
-                    <Avatar className="h-32 w-32 border-4 border-background shadow-lg">
-                      <AvatarImage src={offer.company?.logoUrl} alt={offer.company?.tradeName} />
-                      <AvatarFallback className="text-3xl">
+                    <Avatar className="h-28 w-28 sm:h-32 sm:w-32 border-4 border-background shadow-xl ring-2 ring-primary/10">
+                      <AvatarImage 
+                        src={offer.company?.logoUrl} 
+                        alt={offer.company?.tradeName}
+                      />
+                      <AvatarFallback className="text-2xl sm:text-3xl font-bold bg-gradient-to-br from-primary to-purple-600 text-white">
                         {offer.company?.tradeName?.[0] || offer.title[0]}
                       </AvatarFallback>
                     </Avatar>
                   </div>
                 </div>
 
-                {/* Company Name & Rating */}
-                <div className="text-center mb-6">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <h1 className="text-2xl font-bold">
+                {/* Company Name & Verification */}
+                <div className="text-left mb-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
                       {offer.company?.tradeName || offer.company?.legalName || offer.title}
                     </h1>
                     {offer.company?.status === 'approved' && (
-                      <Badge className="bg-green-500 text-white gap-1 text-xs">
+                      <Badge className="bg-green-500 hover:bg-green-600 text-white gap-1 text-xs">
                         <Verified className="h-3 w-3" />
                         Verified
                       </Badge>
@@ -416,7 +492,7 @@ export default function OfferDetail() {
                   
                   {/* Star Rating */}
                   {averageRating > 0 && (
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div className="flex">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
@@ -424,7 +500,7 @@ export default function OfferDetail() {
                             className={`h-4 w-4 ${
                               star <= Math.round(averageRating)
                                 ? "fill-yellow-400 text-yellow-400"
-                                : "text-gray-300"
+                                : "fill-gray-200 text-gray-200"
                             }`}
                           />
                         ))}
@@ -436,72 +512,85 @@ export default function OfferDetail() {
                   )}
                 </div>
 
-                {/* Large Commission Card */}
-                <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white mb-6">
-                  <div className="text-center">
-                    <div className="text-5xl font-bold mb-2">
-                      {formatCommission(offer)}
+                {/* Large Commission Card - White with Black Text */}
+                <div className="bg-white border-2 border-gray-200 rounded-xl p-6 mb-6 shadow-lg">
+                  <div className="text-left">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="h-8 w-8 sm:h-10 sm:w-10 text-gray-900" />
+                      <div className="text-4xl sm:text-5xl font-bold text-gray-900">
+                        {formatCommission(offer).replace('$', '')}
+                      </div>
                     </div>
-                    <div className="text-lg opacity-90">
+                    <div className="text-base sm:text-lg text-gray-700 capitalize">
                       {getCommissionTypeLabel(offer)}
                     </div>
                     
                     {/* Additional Commission Details */}
-                    <div className="flex items-center justify-center gap-6 mt-4 text-sm opacity-90">
-                      {offer.cookieDuration && (
-                        <div>
-                          {offer.cookieDuration}-day cookie duration
-                        </div>
-                      )}
-                      {offer.averageOrderValue && (
-                        <div>
-                          Average order: ${offer.averageOrderValue}
-                        </div>
-                      )}
-                    </div>
+                    {(offer.cookieDuration || offer.averageOrderValue) && (
+                      <div className="flex items-center gap-6 mt-4 text-sm text-gray-600">
+                        {offer.cookieDuration && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {offer.cookieDuration}-day cookie
+                          </div>
+                        )}
+                        {offer.averageOrderValue && (
+                          <div className="flex items-center gap-1">
+                            <TrendingUp className="h-4 w-4" />
+                            Avg: ${offer.averageOrderValue}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-4 text-center text-sm">
+                <div className="grid grid-cols-3 gap-4 text-center text-xs sm:text-sm">
                   <div className="flex flex-col items-center gap-1">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      <span>{offer.activeCreatorCount || 0} active creators</span>
-                    </div>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-semibold text-gray-900">
+                      {offer.activeCreatorCount || 0}
+                    </span>
+                    <span className="text-muted-foreground hidden sm:inline">active</span>
                   </div>
                   
                   <div className="flex flex-col items-center gap-1">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <MousePointer className="h-4 w-4" />
-                      <span>{offer.totalClicks || 0} clicks this month</span>
-                    </div>
+                    <MousePointer className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-semibold text-gray-900">
+                      {offer.totalClicks || 0}
+                    </span>
+                    <span className="text-muted-foreground hidden sm:inline">clicks/mo</span>
                   </div>
                   
                   <div className="flex flex-col items-center gap-1">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Wallet className="h-4 w-4" />
-                      <span>${offer.minimumPayout || 50} minimum payout</span>
-                    </div>
+                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-semibold text-gray-900">
+                      ${offer.minimumPayout || 50}
+                    </span>
+                    <span className="text-muted-foreground hidden sm:inline">min payout</span>
                   </div>
                 </div>
 
                 {/* Hashtag Badges */}
-                {(offer.primaryNiche || offer.secondaryNiche) && (
-                  <div className="flex flex-wrap gap-2 justify-center mt-6 pt-6 border-t">
+                {(offer.primaryNiche || offer.secondaryNiche || offer.additionalNiches?.length > 0) && (
+                  <div className="flex flex-wrap gap-2 justify-start mt-6 pt-6 border-t">
                     {offer.primaryNiche && (
-                      <Badge variant="secondary" className="text-sm">
-                        #{offer.primaryNiche}
+                      <Badge variant="secondary" className="text-xs sm:text-sm">
+                        <Hash className="h-3 w-3 mr-1" />
+                        {offer.primaryNiche}
                       </Badge>
                     )}
                     {offer.secondaryNiche && (
-                      <Badge variant="secondary" className="text-sm">
-                        #{offer.secondaryNiche}
+                      <Badge variant="secondary" className="text-xs sm:text-sm">
+                        <Hash className="h-3 w-3 mr-1" />
+                        {offer.secondaryNiche}
                       </Badge>
                     )}
                     {offer.additionalNiches?.map((niche: string) => (
-                      <Badge key={niche} variant="secondary" className="text-sm">
-                        #{niche}
+                      <Badge key={niche} variant="secondary" className="text-xs sm:text-sm">
+                        <Hash className="h-3 w-3 mr-1" />
+                        {niche}
                       </Badge>
                     ))}
                   </div>
@@ -513,45 +602,48 @@ export default function OfferDetail() {
       </div>
 
       {/* Sticky Tab Navigation */}
-      <div className="sticky top-[73px] z-30 bg-background/95 backdrop-blur border-b mt-8">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex">
+      <div 
+        data-sticky-nav
+        className="sticky top-[57px] sm:top-[65px] z-40 bg-background/95 backdrop-blur border-b mt-6 sm:mt-8"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex overflow-x-auto hide-scrollbar">
             <button
               onClick={() => scrollToSection("overview")}
-              className={`flex-1 px-6 py-4 font-medium text-sm transition-colors border-b-2 ${
+              className={`flex-1 min-w-[100px] px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-all border-b-2 whitespace-nowrap ${
                 activeSection === "overview"
                   ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
               }`}
             >
               Overview
             </button>
             <button
               onClick={() => scrollToSection("videos")}
-              className={`flex-1 px-6 py-4 font-medium text-sm transition-colors border-b-2 ${
+              className={`flex-1 min-w-[100px] px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-all border-b-2 whitespace-nowrap ${
                 activeSection === "videos"
                   ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
               }`}
             >
               Videos
             </button>
             <button
               onClick={() => scrollToSection("requirements")}
-              className={`flex-1 px-6 py-4 font-medium text-sm transition-colors border-b-2 ${
+              className={`flex-1 min-w-[120px] px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-all border-b-2 whitespace-nowrap ${
                 activeSection === "requirements"
                   ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
               }`}
             >
               Requirements
             </button>
             <button
               onClick={() => scrollToSection("reviews")}
-              className={`flex-1 px-6 py-4 font-medium text-sm transition-colors border-b-2 ${
+              className={`flex-1 min-w-[100px] px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-all border-b-2 whitespace-nowrap ${
                 activeSection === "reviews"
                   ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
               }`}
             >
               Reviews
@@ -561,50 +653,59 @@ export default function OfferDetail() {
       </div>
 
       {/* Content Sections */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-12 sm:space-y-16">
         {/* Overview Section */}
-        <div ref={overviewRef} data-section="overview" className="space-y-6 mb-16">
+        <div ref={overviewRef} data-section="overview" className="scroll-mt-32">
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">About This Offer</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                About This Offer
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="prose prose-sm max-w-none">
+            <CardContent className="space-y-6">
+              <div className="prose prose-sm sm:prose max-w-none">
                 <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {offer.fullDescription || offer.description || offer.shortDescription || "No description available"}
+                  {offer.fullDescription || offer.description || offer.shortDescription || "No description available."}
                 </p>
               </div>
               
               {/* Commission Details Grid */}
-              <div className="grid sm:grid-cols-2 gap-6 pt-6 border-t">
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Commission Structure</div>
-                  <div className="text-2xl font-bold text-primary">
+              <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 pt-6 border-t">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg">
+                  <div className="text-xs sm:text-sm text-muted-foreground mb-1">Commission</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-green-600">
                     {formatCommission(offer)}
                   </div>
-                  <Badge variant="secondary" className="mt-2">
+                  <Badge variant="secondary" className="mt-2 text-xs capitalize">
                     {getCommissionTypeLabel(offer)}
                   </Badge>
                 </div>
                 
                 {offer.paymentSchedule && (
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Payment Schedule</div>
-                    <div className="text-lg font-semibold">{offer.paymentSchedule}</div>
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-lg">
+                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Payment Schedule</div>
+                    <div className="text-base sm:text-lg font-semibold text-blue-600 capitalize">
+                      {offer.paymentSchedule.replace(/_/g, ' ')}
+                    </div>
                   </div>
                 )}
                 
                 {offer.minimumPayout && (
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Minimum Payout</div>
-                    <div className="text-lg font-semibold font-mono">${offer.minimumPayout}</div>
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-lg">
+                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Minimum Payout</div>
+                    <div className="text-base sm:text-lg font-semibold font-mono text-purple-600">
+                      ${offer.minimumPayout}
+                    </div>
                   </div>
                 )}
                 
                 {offer.cookieDuration && (
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Cookie Duration</div>
-                    <div className="text-lg font-semibold">{offer.cookieDuration} days</div>
+                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-lg">
+                    <div className="text-xs sm:text-sm text-muted-foreground mb-1">Cookie Duration</div>
+                    <div className="text-base sm:text-lg font-semibold text-orange-600">
+                      {offer.cookieDuration} days
+                    </div>
                   </div>
                 )}
               </div>
@@ -613,9 +714,10 @@ export default function OfferDetail() {
 
           {/* About the Company */}
           {offer.company && (
-            <Card>
+            <Card className="mt-6">
               <CardHeader>
-                <CardTitle className="text-2xl">
+                <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                   About {offer.company.tradeName || offer.company.legalName}
                 </CardTitle>
               </CardHeader>
@@ -634,7 +736,9 @@ export default function OfferDetail() {
                       </div>
                       <div>
                         <div className="font-medium">Industry</div>
-                        <div className="text-sm text-muted-foreground capitalize">{offer.company.industry}</div>
+                        <div className="text-sm text-muted-foreground capitalize">
+                          {offer.company.industry.replace(/_/g, ' ')}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -644,15 +748,16 @@ export default function OfferDetail() {
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <Globe className="h-5 w-5 text-primary" />
                       </div>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="font-medium">Website</div>
                         <a 
                           href={offer.company.websiteUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline break-all"
+                          className="text-sm text-primary hover:underline break-all flex items-center gap-1"
                         >
                           {offer.company.websiteUrl.replace(/^https?:\/\//, '')}
+                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
                         </a>
                       </div>
                     </div>
@@ -677,7 +782,9 @@ export default function OfferDetail() {
                       </div>
                       <div>
                         <div className="font-medium">Company Size</div>
-                        <div className="text-sm text-muted-foreground capitalize">{offer.company.companySize}</div>
+                        <div className="text-sm text-muted-foreground capitalize">
+                          {offer.company.companySize.replace(/_/g, ' ')}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -688,27 +795,30 @@ export default function OfferDetail() {
         </div>
 
         {/* Videos Section */}
-        <div ref={videosRef} data-section="videos" className="space-y-6 mb-16">
-          <div className="flex items-center gap-2">
-            <Video className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold">
-              Example Videos ({offer.videos?.length || 0})
+        <div ref={videosRef} data-section="videos" className="scroll-mt-32">
+          <div className="flex items-center gap-2 mb-6">
+            <Video className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            <h2 className="text-xl sm:text-2xl font-bold">
+              Example Videos {offer.videos?.length > 0 && `(${offer.videos.length})`}
             </h2>
           </div>
           
           {!offer.videos || offer.videos.length === 0 ? (
             <Card>
-              <CardContent className="p-16 text-center">
-                <Play className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
-                <p className="text-muted-foreground">No example videos available</p>
+              <CardContent className="p-12 sm:p-16 text-center">
+                <Video className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-muted-foreground">No example videos available yet</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Videos will be added soon to help you understand the offer better
+                </p>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {offer.videos.map((video: any) => (
                 <Card
                   key={video.id}
-                  className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden group"
+                  className="hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group"
                   onClick={() => setSelectedVideo(video)}
                 >
                   <div className="aspect-video relative bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 overflow-hidden">
@@ -716,28 +826,32 @@ export default function OfferDetail() {
                       <img
                         src={proxiedSrc(video.thumbnailUrl)}
                         alt={video.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         referrerPolicy="no-referrer"
                       />
-                    ) : null}
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Video className="h-12 w-12 text-white/50" />
+                      </div>
+                    )}
                     
                     {/* Play Button Overlay */}
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                      <div className="bg-white/90 rounded-full p-3">
-                        <Play className="h-8 w-8 text-primary fill-primary" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                      <div className="bg-white/90 backdrop-blur rounded-full p-3 transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                        <Play className="h-6 w-6 sm:h-8 sm:w-8 text-primary fill-primary" />
                       </div>
                     </div>
 
-                    {/* Duration Badge */}
-                    {video.duration && (
-                      <Badge className="absolute bottom-3 right-3 bg-black/80 text-white border-0">
-                        {video.duration}
-                      </Badge>
-                    )}
+                    {/* Duration Badge - Always Show */}
+                    <div className="absolute bottom-2 right-2 bg-black/90 text-white px-2 py-1 rounded text-xs font-medium">
+                      {video.duration ? formatDuration(video.duration) : "0:00"}
+                    </div>
                   </div>
                   
                   <CardContent className="p-4">
-                    <h4 className="font-semibold text-sm line-clamp-2 mb-1">{video.title}</h4>
+                    <h4 className="font-semibold text-sm line-clamp-2 mb-1">
+                      {video.title || "Untitled Video"}
+                    </h4>
                     {video.creatorCredit && (
                       <p className="text-xs text-muted-foreground">by {video.creatorCredit}</p>
                     )}
@@ -748,27 +862,27 @@ export default function OfferDetail() {
           )}
         </div>
 
-        {/* Requirements Section - Icon Based */}
-        <div ref={requirementsRef} data-section="requirements" className="space-y-6 mb-16">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-6 w-6 text-green-500" />
-            <h2 className="text-2xl font-bold">Creator Requirements</h2>
+        {/* Requirements Section */}
+        <div ref={requirementsRef} data-section="requirements" className="scroll-mt-32">
+          <div className="flex items-center gap-2 mb-6">
+            <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-green-500" />
+            <h2 className="text-xl sm:text-2xl font-bold">Creator Requirements</h2>
           </div>
           
           <Card>
-            <CardContent className="p-8 space-y-6">
+            <CardContent className="p-6 sm:p-8 space-y-6">
               {/* Minimum Followers */}
               {offer.minimumFollowers && (
                 <div className="flex items-start gap-4">
-                  <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                    <Users className="h-6 w-6 text-purple-500" />
+                  <div className="h-12 w-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+                    <Users className="h-6 w-6 text-purple-600" />
                   </div>
                   <div className="flex-1">
-                    <div className="font-semibold text-lg mb-1">
+                    <div className="font-semibold text-base sm:text-lg mb-1">
                       Minimum {offer.minimumFollowers.toLocaleString()} followers
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      On at least one platform (YouTube, TikTok, or Instagram)
+                      Required on at least one platform (YouTube, TikTok, or Instagram)
                     </div>
                   </div>
                 </div>
@@ -777,35 +891,35 @@ export default function OfferDetail() {
               {/* Allowed Platforms */}
               {offer.allowedPlatforms && offer.allowedPlatforms.length > 0 && (
                 <div className="flex items-start gap-4">
-                  <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                    <Video className="h-6 w-6 text-purple-500" />
+                  <div className="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <Video className="h-6 w-6 text-blue-600" />
                   </div>
                   <div className="flex-1">
-                    <div className="font-semibold text-lg mb-1">
+                    <div className="font-semibold text-base sm:text-lg mb-1">
                       Platforms: {offer.allowedPlatforms.join(", ")}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Must be able to post video content
+                      Content must be posted on these platforms
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Geographic Restrictions */}
+              {/* Geographic Requirements */}
               <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
-                  <Globe className="h-6 w-6 text-cyan-500" />
+                <div className="h-12 w-12 rounded-xl bg-cyan-100 flex items-center justify-center flex-shrink-0">
+                  <Globe className="h-6 w-6 text-cyan-600" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-semibold text-lg mb-1">
+                  <div className="font-semibold text-base sm:text-lg mb-1">
                     Location: {offer.geographicRestrictions && offer.geographicRestrictions.length > 0 
                       ? offer.geographicRestrictions.join(", ")
                       : "Worldwide"}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {offer.geographicRestrictions && offer.geographicRestrictions.length > 0
-                      ? "Restricted to specific regions"
-                      : "No geographic restrictions"}
+                      ? "Limited to specific regions for this offer"
+                      : "No geographic restrictions - creators from all countries welcome"}
                   </div>
                 </div>
               </div>
@@ -813,15 +927,15 @@ export default function OfferDetail() {
               {/* Content Style */}
               {offer.contentStyleRequirements && (
                 <div className="flex items-start gap-4">
-                  <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="h-6 w-6 text-purple-500" />
+                  <div className="h-12 w-12 rounded-xl bg-pink-100 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="h-6 w-6 text-pink-600" />
                   </div>
                   <div className="flex-1">
-                    <div className="font-semibold text-lg mb-1">
-                      Content Style: {offer.contentStyleRequirements}
+                    <div className="font-semibold text-base sm:text-lg mb-1">
+                      Content Style
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      We welcome all authentic content styles
+                      {offer.contentStyleRequirements}
                     </div>
                   </div>
                 </div>
@@ -830,24 +944,25 @@ export default function OfferDetail() {
               {/* Brand Safety */}
               {offer.brandSafetyRequirements && (
                 <div className="flex items-start gap-4">
-                  <div className="h-12 w-12 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
-                    <Shield className="h-6 w-6 text-orange-500" />
+                  <div className="h-12 w-12 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                    <Shield className="h-6 w-6 text-orange-600" />
                   </div>
                   <div className="flex-1">
-                    <div className="font-semibold text-lg mb-1">
-                      Brand Safety: {offer.brandSafetyRequirements}
+                    <div className="font-semibold text-base sm:text-lg mb-1">
+                      Brand Safety Guidelines
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      No explicit, political, or controversial content
+                      {offer.brandSafetyRequirements}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* General Requirements Text */}
+              {/* General Requirements */}
               {(offer.creatorRequirements || offer.requirements) && (
-                <div className="pt-4 border-t">
-                  <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                <div className="pt-6 border-t">
+                  <h4 className="font-semibold mb-3">Additional Requirements</h4>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
                     {offer.creatorRequirements || offer.requirements}
                   </p>
                 </div>
@@ -860,8 +975,10 @@ export default function OfferDetail() {
                !offer.brandSafetyRequirements &&
                !offer.creatorRequirements &&
                !offer.requirements && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No specific requirements listed
+                <div className="text-center py-12 text-muted-foreground">
+                  <CheckCircle2 className="h-12 w-12 text-green-500/30 mx-auto mb-4" />
+                  <p className="font-medium">No specific requirements</p>
+                  <p className="text-sm mt-2">All creators are welcome to apply!</p>
                 </div>
               )}
             </CardContent>
@@ -869,45 +986,51 @@ export default function OfferDetail() {
         </div>
 
         {/* Reviews Section */}
-        <div ref={reviewsRef} data-section="reviews" className="space-y-6 mb-16">
-          <h2 className="text-2xl font-bold">Creator Reviews</h2>
+        <div ref={reviewsRef} data-section="reviews" className="scroll-mt-32">
+          <div className="flex items-center gap-2 mb-6">
+            <Star className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500" />
+            <h2 className="text-xl sm:text-2xl font-bold">Creator Reviews</h2>
+          </div>
           
           <Card>
-            <CardContent className="p-8">
+            <CardContent className="p-6 sm:p-8">
               {reviewsLoading ? (
                 <div className="text-center py-12">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
                   <p className="text-muted-foreground">Loading reviews...</p>
                 </div>
               ) : !reviews || reviews.length === 0 ? (
                 <div className="text-center py-12">
-                  <Star className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
-                  <p className="text-muted-foreground text-lg">No reviews yet</p>
+                  <Star className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground/20 mx-auto mb-4" />
+                  <p className="text-muted-foreground text-base sm:text-lg font-medium">No reviews yet</p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Be the first to work with this offer and leave a review
+                    Be the first creator to work with this offer and share your experience
                   </p>
                 </div>
               ) : (
                 <div className="space-y-8">
                   {reviews.map((review: any) => (
-                    <div key={review.id} className="border-b pb-8 last:border-0">
-                      <div className="flex items-start justify-between mb-4">
+                    <div key={review.id} className="border-b pb-8 last:border-0 last:pb-0">
+                      <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
                         <div>
                           <div className="flex items-center gap-3 mb-2">
                             <div className="flex">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                   key={star}
-                                  className={`h-5 w-5 ${
+                                  className={`h-4 w-4 sm:h-5 sm:w-5 ${
                                     star <= review.overallRating
                                       ? "fill-yellow-400 text-yellow-400"
-                                      : "text-gray-300"
+                                      : "fill-gray-200 text-gray-200"
                                   }`}
                                 />
                               ))}
                             </div>
-                            <span className="font-semibold">{review.overallRating}/5</span>
+                            <span className="font-semibold text-sm sm:text-base">
+                              {review.overallRating.toFixed(1)}/5
+                            </span>
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             {new Date(review.createdAt).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'long',
@@ -918,91 +1041,101 @@ export default function OfferDetail() {
                       </div>
 
                       {review.reviewText && (
-                        <p className="mb-4 leading-relaxed">{review.reviewText}</p>
+                        <p className="mb-4 leading-relaxed text-sm sm:text-base">{review.reviewText}</p>
                       )}
 
                       {/* Rating breakdown */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                        {review.paymentSpeedRating && (
-                          <div>
-                            <div className="text-muted-foreground mb-1">Payment Speed</div>
-                            <div className="flex items-center gap-1">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className={`h-3 w-3 ${
-                                    star <= review.paymentSpeedRating
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "text-gray-300"
-                                  }`}
-                                />
-                              ))}
+                      {(review.paymentSpeedRating || review.communicationRating || 
+                        review.offerQualityRating || review.supportRating) && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs sm:text-sm">
+                          {review.paymentSpeedRating && (
+                            <div>
+                              <div className="text-muted-foreground mb-1">Payment Speed</div>
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`h-3 w-3 ${
+                                      star <= review.paymentSpeedRating
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "fill-gray-200 text-gray-200"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                        {review.communicationRating && (
-                          <div>
-                            <div className="text-muted-foreground mb-1">Communication</div>
-                            <div className="flex items-center gap-1">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className={`h-3 w-3 ${
-                                    star <= review.communicationRating
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "text-gray-300"
-                                  }`}
-                                />
-                              ))}
+                          )}
+                          {review.communicationRating && (
+                            <div>
+                              <div className="text-muted-foreground mb-1">Communication</div>
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`h-3 w-3 ${
+                                      star <= review.communicationRating
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "fill-gray-200 text-gray-200"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                        {review.offerQualityRating && (
-                          <div>
-                            <div className="text-muted-foreground mb-1">Offer Quality</div>
-                            <div className="flex items-center gap-1">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className={`h-3 w-3 ${
-                                    star <= review.offerQualityRating
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "text-gray-300"
-                                  }`}
-                                />
-                              ))}
+                          )}
+                          {review.offerQualityRating && (
+                            <div>
+                              <div className="text-muted-foreground mb-1">Offer Quality</div>
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`h-3 w-3 ${
+                                      star <= review.offerQualityRating
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "fill-gray-200 text-gray-200"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                        {review.supportRating && (
-                          <div>
-                            <div className="text-muted-foreground mb-1">Support</div>
-                            <div className="flex items-center gap-1">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className={`h-3 w-3 ${
-                                    star <= review.supportRating
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "text-gray-300"
-                                  }`}
-                                />
-                              ))}
+                          )}
+                          {review.supportRating && (
+                            <div>
+                              <div className="text-muted-foreground mb-1">Support</div>
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`h-3 w-3 ${
+                                      star <= review.supportRating
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "fill-gray-200 text-gray-200"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
 
-                      {/* Company response */}
+                      {/* Company Response */}
                       {review.companyResponse && (
                         <div className="mt-6 bg-muted/50 rounded-lg p-4">
-                          <p className="font-medium mb-2">Company Response</p>
-                          <p className="text-sm text-muted-foreground">{review.companyResponse}</p>
-                          {review.companyRespondedAt && (
-                            <p className="text-xs text-muted-foreground mt-2">
-                              Responded on {new Date(review.companyRespondedAt).toLocaleDateString()}
-                            </p>
-                          )}
+                          <div className="flex items-start gap-3">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <CheckCircle2 className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-sm mb-2">Company Response</p>
+                              <p className="text-sm text-muted-foreground">{review.companyResponse}</p>
+                              {review.companyRespondedAt && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Responded on {new Date(review.companyRespondedAt).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1015,21 +1148,21 @@ export default function OfferDetail() {
       </div>
 
       {/* Sticky Apply Button */}
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur p-4 z-40">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-lg shadow-2xl p-3 sm:p-4 z-50">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div>
-              <div className="text-sm text-muted-foreground">Commission</div>
-              <div className="text-xl font-bold text-primary">
+              <div className="text-xs text-muted-foreground">Commission</div>
+              <div className="text-lg sm:text-xl font-bold text-green-600">
                 {formatCommission(offer)}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {hasApplied && existingApplication?.createdAt && (
-              <Badge variant="secondary" className="hidden sm:flex">
-                Applied on {new Date(existingApplication.createdAt).toLocaleDateString()}
+              <Badge variant="secondary" className="hidden md:flex text-xs">
+                Applied {new Date(existingApplication.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </Badge>
             )}
             
@@ -1037,7 +1170,7 @@ export default function OfferDetail() {
               <DialogTrigger asChild>
                 <Button 
                   size="lg" 
-                  className="gap-2" 
+                  className="gap-2 text-sm sm:text-base" 
                   disabled={buttonConfig.disabled}
                   variant={buttonConfig.variant}
                 >
@@ -1045,65 +1178,77 @@ export default function OfferDetail() {
                   {buttonConfig.text}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Apply to {offer.title}</DialogTitle>
                   <DialogDescription>
-                    Tell the company why you're interested in promoting their offer
+                    Tell {offer.company?.tradeName || 'the company'} why you're interested in promoting their offer
                   </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="message">Why are you interested?</Label>
+                    <Label htmlFor="message">Why are you interested? *</Label>
                     <Textarea
                       id="message"
-                      placeholder="Tell the company about your audience and why you'd be a great fit..."
+                      placeholder="Share details about your audience, content style, and why you'd be a great fit for this offer..."
                       value={applicationMessage}
                       onChange={(e) => setApplicationMessage(e.target.value.slice(0, 500))}
-                      className="min-h-32"
+                      className="min-h-32 resize-none"
                     />
                     <p className="text-xs text-muted-foreground text-right">
-                      {applicationMessage.length}/500
+                      {applicationMessage.length}/500 characters
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="commission">Preferred Commission Model</Label>
-                    <Select value={preferredCommission} onValueChange={setPreferredCommission}>
-                      <SelectTrigger id="commission">
-                        <SelectValue placeholder="Select preferred model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">Standard Commission</SelectItem>
-                        {offer.commissionType === 'hybrid' && (
-                          <>
-                            <SelectItem value="per_sale">Per Sale</SelectItem>
-                            <SelectItem value="retainer">Monthly Retainer</SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {offer.commissionType === 'hybrid' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="commission">Preferred Commission Model</Label>
+                      <Select value={preferredCommission} onValueChange={setPreferredCommission}>
+                        <SelectTrigger id="commission">
+                          <SelectValue placeholder="Select your preferred model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Standard Commission</SelectItem>
+                          <SelectItem value="per_sale">Per Sale</SelectItem>
+                          <SelectItem value="retainer">Monthly Retainer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
-                  <div className="flex items-center gap-2 pt-4">
+                  <div className="flex items-start gap-2 pt-4">
                     <Checkbox
                       id="terms"
                       checked={termsAccepted}
                       onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
                     />
-                    <Label htmlFor="terms" className="text-sm font-normal cursor-pointer">
-                      I accept the terms and conditions and agree to promote this offer ethically
+                    <Label htmlFor="terms" className="text-sm font-normal cursor-pointer leading-relaxed">
+                      I accept the terms and conditions and agree to promote this offer ethically and authentically to my audience
                     </Label>
                   </div>
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowApplyDialog(false)}
+                    disabled={applyMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
                   <Button
                     onClick={() => applyMutation.mutate()}
-                    disabled={!applicationMessage || !termsAccepted || applyMutation.isPending}
+                    disabled={!applicationMessage.trim() || !termsAccepted || applyMutation.isPending}
                   >
-                    {applyMutation.isPending ? "Submitting..." : "Submit Application"}
+                    {applyMutation.isPending ? (
+                      <>
+                        <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent mr-2"></div>
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit Application"
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -1117,24 +1262,43 @@ export default function OfferDetail() {
         <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>{selectedVideo.title}</DialogTitle>
+              <DialogTitle>{selectedVideo.title || "Video"}</DialogTitle>
               {selectedVideo.description && (
                 <DialogDescription>{selectedVideo.description}</DialogDescription>
               )}
             </DialogHeader>
-            <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-              {selectedVideo.videoUrl && (
+            <div className="aspect-video bg-black rounded-lg overflow-hidden">
+              {selectedVideo.videoUrl ? (
                 <video
                   src={proxiedSrc(selectedVideo.videoUrl)}
                   controls
+                  autoPlay
                   className="w-full h-full"
                   crossOrigin="anonymous"
                 />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white">
+                  <div className="text-center">
+                    <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <p>Video not available</p>
+                  </div>
+                </div>
               )}
             </div>
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Hide scrollbar for tab navigation */}
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }
