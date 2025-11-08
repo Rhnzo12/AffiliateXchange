@@ -562,12 +562,24 @@ export const retainerDeliverablesRelations = relations(retainerDeliverables, ({ 
 export const retainerPayments = pgTable("retainer_payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   contractId: varchar("contract_id").notNull().references(() => retainerContracts.id, { onDelete: 'cascade' }),
-  deliverableId: varchar("deliverable_id").notNull().references(() => retainerDeliverables.id, { onDelete: 'cascade' }),
+  deliverableId: varchar("deliverable_id").references(() => retainerDeliverables.id, { onDelete: 'cascade' }), // Optional for monthly auto-payments
   creatorId: varchar("creator_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   companyId: varchar("company_id").notNull().references(() => companyProfiles.id, { onDelete: 'cascade' }),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  monthNumber: integer("month_number"), // Which month of the contract (1-12, etc.)
+  paymentType: varchar("payment_type").notNull().default('deliverable'), // 'deliverable', 'monthly', 'bonus'
+  grossAmount: decimal("gross_amount", { precision: 10, scale: 2 }).notNull(), // Full amount before fees
+  platformFeeAmount: decimal("platform_fee_amount", { precision: 10, scale: 2 }).notNull().default('0'),
+  processingFeeAmount: decimal("processing_fee_amount", { precision: 10, scale: 2 }).notNull().default('0'),
+  netAmount: decimal("net_amount", { precision: 10, scale: 2 }).notNull(), // Amount creator receives
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(), // Legacy field, kept for backwards compatibility
+  providerTransactionId: varchar("provider_transaction_id"), // PayPal batch ID, bank TX ID, crypto hash
+  providerResponse: jsonb("provider_response"), // Full response from payment provider
+  paymentMethod: varchar("payment_method"), // 'paypal', 'wire', 'crypto', 'etransfer'
   status: paymentStatusEnum("status").notNull().default('pending'),
   description: text("description"),
+  initiatedAt: timestamp("initiated_at"),
+  completedAt: timestamp("completed_at"),
+  failedAt: timestamp("failed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
