@@ -958,7 +958,14 @@ export class DatabaseStorage implements IStorage {
     // If a limit is provided, respect it. If not provided, return all matching offers.
     const filters = _filters || {};
 
-    let query: any = db.select().from(offers);
+    // ✅ ADD: JOIN with companyProfiles
+    let query: any = db
+      .select({
+        offer: offers,
+        company: companyProfiles,
+      })
+      .from(offers)
+      .leftJoin(companyProfiles, eq(offers.companyId, companyProfiles.id));
 
     if (filters.status) {
       query = (query.where(eq(offers.status, filters.status)) as unknown) as typeof query;
@@ -979,7 +986,13 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    return await query;
+    const results = await query;
+
+    // ✅ ADD: Map to include company data
+    return results.map((row: any) => ({
+      ...row.offer,
+      company: row.company,
+    }));
   }
 
   async getOffersByCompany(companyId: string): Promise<Offer[]> {
