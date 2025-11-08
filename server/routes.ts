@@ -3339,6 +3339,39 @@ res.json(approved);
   // Run once immediately on startup
   runAutoApprovalScheduler();
 
+  // Debug endpoint to check database URLs
+  app.get("/api/admin/debug-urls", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUserById(userId);
+
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      // Get sample URLs from database
+      const sampleOffers = await db.select().from(offers).limit(3);
+      const sampleVideos = await db.select().from(offerVideos).limit(5);
+
+      res.json({
+        offers: sampleOffers.map(o => ({
+          id: o.id,
+          title: o.title,
+          featuredImageUrl: o.featuredImageUrl
+        })),
+        videos: sampleVideos.map(v => ({
+          id: v.id,
+          title: v.title,
+          videoUrl: v.videoUrl,
+          thumbnailUrl: v.thumbnailUrl
+        }))
+      });
+    } catch (error: any) {
+      console.error('[Debug] Error:', error);
+      res.status(500).json({ error: "Debug failed", details: error.message });
+    }
+  });
+
   // Migration endpoint to fix normalized Cloudinary URLs
   app.post("/api/admin/migrate-cloudinary-urls", requireAuth, async (req, res) => {
     try {
