@@ -8,7 +8,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { db } from "./db";
-import { offerVideos, applications, analytics, offers, companyProfiles } from "../shared/schema";
+import { offerVideos, applications, analytics, offers, companyProfiles, payments } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
@@ -1158,7 +1158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               offerBreakdown.push({
                 offerId: offer.id,
                 offerTitle: offer.title,
-                companyName: companyProfile.companyName,
+                companyName: companyProfile.legalName || companyProfile.tradeName || 'Unknown Company',
                 clicks: offerClicks,
                 conversions: offerConversions,
                 earnings: offerSpent,
@@ -1211,7 +1211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 offerBreakdown.push({
                   offerId: offer?.id,
                   offerTitle: offer?.title || 'Unknown Offer',
-                  companyName: companyProfile?.companyName || 'Unknown Company',
+                  companyName: companyProfile?.legalName || companyProfile?.tradeName || 'Unknown Company',
                   clicks: totals.clicks,
                   conversions: totals.conversions,
                   earnings: totals.earnings,
@@ -2339,10 +2339,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const payment of pendingPayments) {
         const creator = await storage.getUserById(payment.creatorId);
         const application = payment.applicationId
-          ? await storage.getApplicationById(payment.applicationId)
+          ? await storage.getApplication(payment.applicationId)
           : null;
         const offer = application?.offerId
-          ? await storage.getOfferById(application.offerId)
+          ? await storage.getOffer(application.offerId)
           : null;
 
         for (const admin of adminUsers) {

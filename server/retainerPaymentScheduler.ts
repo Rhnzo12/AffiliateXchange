@@ -73,11 +73,11 @@ export class RetainerPaymentScheduler {
    * Get all active retainer contracts that should receive monthly payments
    */
   private async getActiveRetainerContracts() {
-    const allContracts = await storage.getAllRetainerContracts();
+    const allContracts = await storage.getRetainerContracts();
 
     const now = new Date();
 
-    return allContracts.filter(contract => {
+    return allContracts.filter((contract: any) => {
       // Must have an assigned creator
       if (!contract.assignedCreatorId) return false;
 
@@ -169,7 +169,7 @@ export class RetainerPaymentScheduler {
       // Notify creator to configure payment method
       await this.notificationService.sendNotification(
         contract.assignedCreatorId,
-        'action_required',
+        'payment_pending',
         'Payment Method Required',
         `Your monthly retainer payment of $${netAmount.toFixed(2)} for "${contract.title}" is pending. Please configure your payment method to receive funds.`,
         {
