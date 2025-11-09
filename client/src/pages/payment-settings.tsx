@@ -1258,7 +1258,7 @@ function AdminPaymentDashboard({
                   </li>
                   <li className="flex gap-2">
                     <span>•</span>
-                    <span>You will need to contact the company to inform them about adding funds</span>
+                    <span>An email notification has been sent to the company informing them about this issue</span>
                   </li>
                 </ul>
               </div>

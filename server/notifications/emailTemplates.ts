@@ -202,6 +202,65 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
   return { subject, html };
 }
 
+export function paymentFailedInsufficientFundsEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Payment Processing Failed - Insufficient Funds`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #F59E0B;">
+          <h1>Payment Processing Alert</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName || data.companyName},</p>
+          <p>We attempted to process a payment request but encountered an issue:</p>
+
+          <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; font-weight: 600; color: #92400E;">Your PayPal business account has insufficient funds to complete this payment.</p>
+          </div>
+
+          ${data.amount ? `
+            <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #374151;">Payment Details:</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; color: #6B7280;">Amount:</td>
+                  <td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">${data.amount}</td>
+                </tr>
+              </table>
+            </div>
+          ` : ''}
+
+          <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0 0 10px 0; font-weight: 600; color: #065F46;">What to do next:</p>
+            <ol style="margin: 0; padding-left: 20px; color: #047857;">
+              <li style="margin-bottom: 8px;">Add funds to your PayPal business account</li>
+              <li style="margin-bottom: 8px;">Wait a few moments for the funds to become available</li>
+              <li style="margin-bottom: 0;">Contact the admin to retry the payment</li>
+            </ol>
+          </div>
+
+          <p style="color: #6B7280; font-size: 14px; font-style: italic;">The payment status has been updated to "failed" and can be retried once your account has sufficient funds.</p>
+
+          <a href="${data.linkUrl || '/payment-settings'}" class="button" style="background-color: #F59E0B;">View Payment Details</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
 export function offerApprovedEmail(data: EmailTemplateData): { subject: string; html: string } {
   const subject = `Your offer "${data.offerTitle}" has been approved!`;
 

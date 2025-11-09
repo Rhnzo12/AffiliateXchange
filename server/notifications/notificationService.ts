@@ -34,6 +34,7 @@ export type NotificationType =
   | 'payment_pending'
   | 'payment_approved'
   | 'payment_disputed'
+  | 'payment_failed_insufficient_funds'
   | 'offer_approved'
   | 'offer_rejected'
   | 'new_application'
@@ -124,6 +125,7 @@ export class NotificationService {
       case 'payment_pending':
       case 'payment_approved':
       case 'payment_disputed':
+      case 'payment_failed_insufficient_funds':
       case 'work_completion_approval':
         // ✅ FIXED: Link to specific payment detail page if paymentId is provided
         if (data.paymentId) {
@@ -279,6 +281,9 @@ export class NotificationService {
         case 'payment_received':
           emailContent = emailTemplates.paymentReceivedEmail(data);
           break;
+        case 'payment_failed_insufficient_funds':
+          emailContent = emailTemplates.paymentFailedInsufficientFundsEmail(data);
+          break;
         case 'offer_approved':
           emailContent = emailTemplates.offerApprovedEmail(data);
           break;
@@ -381,6 +386,7 @@ export class NotificationService {
       case 'new_message':
         return preferences.emailNewMessage;
       case 'payment_received':
+      case 'payment_failed_insufficient_funds':
       case 'work_completion_approval':
         return preferences.emailPayment;
       case 'offer_approved':
@@ -408,6 +414,7 @@ export class NotificationService {
       case 'new_message':
         return preferences.pushNewMessage;
       case 'payment_received':
+      case 'payment_failed_insufficient_funds':
       case 'work_completion_approval':
         return preferences.pushPayment;
       default:
