@@ -2158,6 +2158,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Notify admins about existing pending offers and payments (admin only)
+  app.post("/api/admin/notify-pending-items", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      console.log('[Admin] Sending notifications for pending items...');
+
+      let notificationCount = 0;
+      const adminUsers = await storage.getUsersByRole('admin');
+
+      // Notify about pending offers
+      const pendingOffers = await storage.getPendingOffers();
+      for (const offer of pendingOffers) {
+        const companyProfile = await storage.getCompanyProfileById(offer.companyId);
+
+        for (const admin of adminUsers) {
+          await notificationService.sendNotification(
+            admin.id,
+            'new_application',
+            'Offer Pending Review',
+            `${companyProfile?.legalName || companyProfile?.tradeName || 'A company'} has an offer "${offer.title}" pending review.`,
+            {
+              userName: admin.firstName || admin.username,
+              companyName: companyProfile?.legalName || companyProfile?.tradeName || '',
+              offerTitle: offer.title,
+              offerId: offer.id,
+            }
+          );
+          notificationCount++;
+        }
+      }
+
+      // Notify about pending payments
+      const pendingPayments = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.status, 'pending'));
+
+      for (const payment of pendingPayments) {
+        const creator = await storage.getUserById(payment.creatorId);
+        const application = payment.applicationId
+          ? await storage.getApplicationById(payment.applicationId)
+          : null;
+        const offer = application?.offerId
+          ? await storage.getOfferById(application.offerId)
+          : null;
+
+        for (const admin of adminUsers) {
+          await notificationService.sendNotification(
+            admin.id,
+            'payment_pending',
+            'Payment Ready for Processing',
+            `A payment of $${(payment.netAmount / 100).toFixed(2)} for creator ${creator?.username || 'Unknown'} is ready for processing.`,
+            {
+              userName: admin.firstName || admin.username,
+              offerTitle: offer?.title || 'Unknown Offer',
+              amount: `$${(payment.netAmount / 100).toFixed(2)}`,
+              paymentId: payment.id,
+            }
+          );
+          notificationCount++;
+        }
+      }
+
+      console.log(`[Admin] Sent ${notificationCount} notifications for ${pendingOffers.length} pending offers and ${pendingPayments.length} pending payments`);
+      res.json({
+        success: true,
+        notificationsSent: notificationCount,
+        pendingOffers: pendingOffers.length,
+        pendingPayments: pendingPayments.length
+      });
+    } catch (error: any) {
+      console.error('[Admin] Error sending pending item notifications:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Fix tracking codes for existing approved applications (admin only)
   app.post("/api/admin/fix-tracking-codes", requireAuth, requireRole('admin'), async (req, res) => {
     try {

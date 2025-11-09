@@ -1,18 +1,20 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { Users, Building2, TrendingUp, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Users, Building2, TrendingUp, AlertCircle, CheckCircle2, Bell } from "lucide-react";
 import { Link } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
 import { StatsGridSkeleton } from "../components/skeletons";
+import { apiRequest } from "../lib/api";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -30,6 +32,28 @@ export default function AdminDashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery<any>({
     queryKey: ["/api/admin/stats"],
     enabled: isAuthenticated,
+  });
+
+  const notifyPendingItemsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/notify-pending-items");
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: `Sent ${data.notificationsSent} notifications for ${data.pendingOffers} pending offers and ${data.pendingPayments} pending payments.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread/count"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send notifications",
+        variant: "destructive",
+      });
+    },
   });
 
   if (isLoading) {
@@ -104,7 +128,7 @@ export default function AdminDashboard() {
           <CardTitle>Quick Access</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-3 gap-4 mb-4">
             <Link to="/admin/reviews">
               <Button variant="outline" className="w-full h-auto py-6 flex flex-col gap-2" data-testid="button-manage-reviews">
                 <AlertCircle className="h-6 w-6" />
@@ -126,6 +150,20 @@ export default function AdminDashboard() {
                 <span className="text-xs text-muted-foreground">Review and approve offers</span>
               </Button>
             </Link>
+          </div>
+          <div className="border-t pt-4">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => notifyPendingItemsMutation.mutate()}
+              disabled={notifyPendingItemsMutation.isPending}
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              {notifyPendingItemsMutation.isPending ? "Sending Notifications..." : "Refresh Pending Notifications"}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Manually trigger notifications for existing pending offers and payments
+            </p>
           </div>
         </CardContent>
       </Card>
