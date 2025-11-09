@@ -813,6 +813,7 @@ function AdminPaymentDashboard({
   const [paymentToProcess, setPaymentToProcess] = useState<CreatorPayment | null>(null);
   const [insufficientFundsDialogOpen, setInsufficientFundsDialogOpen] = useState(false);
   const [failedPayment, setFailedPayment] = useState<CreatorPayment | null>(null);
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
 
   const allPayments = payments;
 
@@ -971,6 +972,33 @@ function AdminPaymentDashboard({
       });
     },
   });
+
+  // Handler to send insufficient funds notification to company
+  const handleSendInsufficientFundsNotification = async () => {
+    if (!failedPayment?.id) return;
+
+    setIsSendingNotification(true);
+    try {
+      const res = await apiRequest("POST", `/api/payments/${failedPayment.id}/notify-insufficient-funds`, {});
+      const result = await res.json();
+
+      toast({
+        title: "Notification Sent",
+        description: "The company has been notified about the insufficient funds issue",
+      });
+
+      setInsufficientFundsDialogOpen(false);
+      setFailedPayment(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send notification",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingNotification(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -1258,7 +1286,7 @@ function AdminPaymentDashboard({
                   </li>
                   <li className="flex gap-2">
                     <span>•</span>
-                    <span>An email notification has been sent to the company informing them about this issue</span>
+                    <span>Click "Send Notification" below to inform the company about this issue</span>
                   </li>
                 </ul>
               </div>
@@ -1278,11 +1306,15 @@ function AdminPaymentDashboard({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSendingNotification}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => setInsufficientFundsDialogOpen(false)}
-              className="bg-blue-600 hover:bg-blue-700 w-full"
+              onClick={handleSendInsufficientFundsNotification}
+              disabled={isSendingNotification}
+              className="bg-blue-600 hover:bg-blue-700"
             >
-              Understood
+              {isSendingNotification ? "Sending..." : "Send Notification to Company"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
