@@ -327,6 +327,9 @@ export class NotificationService {
         case 'priority_listing_expiring':
           emailContent = emailTemplates.priorityListingExpiringEmail(data);
           break;
+        case 'payment_pending':
+          emailContent = emailTemplates.paymentPendingEmail(data);
+          break;
         default:
           console.warn(`[Notifications] Unknown email type: ${type}`);
           return;
@@ -399,6 +402,7 @@ export class NotificationService {
         return preferences.emailNewMessage;
       case 'payment_received':
       case 'payment_approved':
+      case 'payment_pending':
       case 'payment_failed_insufficient_funds':
       case 'work_completion_approval':
         return preferences.emailPayment;
@@ -428,6 +432,7 @@ export class NotificationService {
         return preferences.pushNewMessage;
       case 'payment_received':
       case 'payment_approved':
+      case 'payment_pending':
       case 'payment_failed_insufficient_funds':
       case 'work_completion_approval':
         return preferences.pushPayment;
