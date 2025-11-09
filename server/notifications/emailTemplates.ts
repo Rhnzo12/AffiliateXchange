@@ -202,6 +202,44 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
   return { subject, html };
 }
 
+export function paymentApprovedEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Payment sent successfully: ${data.amount}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #10B981;">
+          <h1>Payment Sent Successfully!</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>Your payment of <strong>${data.amount}</strong> has been successfully sent to the creator.</p>
+          ${data.offerTitle ? `
+            <p>This payment was for <strong>${data.offerTitle}</strong>.</p>
+          ` : ''}
+          <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #065F46;">✓ Payment processed successfully</p>
+            <p style="margin: 5px 0 0 0; color: #047857; font-size: 14px;">The creator will receive the funds according to their payment method settings.</p>
+          </div>
+          <a href="${data.linkUrl || '/payment-settings'}" class="button" style="background-color: #10B981;">View Payment Details</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
 export function paymentFailedInsufficientFundsEmail(data: EmailTemplateData): { subject: string; html: string } {
   const subject = `Payment Processing Failed - Insufficient Funds`;
 

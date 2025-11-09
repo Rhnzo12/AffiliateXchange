@@ -72,14 +72,22 @@ export default function NotificationDetail() {
 
     switch (n.type) {
       case "payment_received":
+      case "payment_approved":
       case "payment": {
         const amount = meta.amount || meta.total || (n.message.match(/\$\d+[\d,.]*/)?.[0]) || null;
+        const isApproved = n.type === 'payment_approved';
         return (
           <div className="space-y-4">
             <p className="text-lg">{n.message}</p>
-            {amount && <div className="text-2xl font-bold">{amount}</div>}
+            {amount && (
+              <div className={`text-2xl font-bold ${isApproved ? 'text-blue-600' : 'text-green-600'}`}>
+                {amount}
+              </div>
+            )}
             {n.linkUrl && (
-              <a href={n.linkUrl} className="text-primary hover:underline">View payment details</a>
+              <Link href={n.linkUrl}>
+                <Button className="w-full">View Payment Details</Button>
+              </Link>
             )}
           </div>
         );

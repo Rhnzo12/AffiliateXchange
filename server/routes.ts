@@ -1544,6 +1544,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`[Notification] Sent payment notification to creator ${creator.username}`);
         }
 
+        // Send notification to company
+        if (payment.companyId) {
+          const companyProfile = await storage.getCompanyProfileById(payment.companyId);
+          if (companyProfile) {
+            const companyUser = await storage.getUserById(companyProfile.userId);
+            if (companyUser) {
+              await notificationService.sendNotification(
+                companyUser.id,
+                'payment_approved',
+                'Payment Sent Successfully ✓',
+                `Payment of $${payment.netAmount} has been successfully sent to the creator for "${paymentTitle}". Transaction ID: ${paymentResult.transactionId}`,
+                {
+                  userName: companyUser.firstName || companyUser.username,
+                  companyName: companyProfile.legalName || companyProfile.tradeName || companyUser.username,
+                  offerTitle: paymentTitle,
+                  amount: `$${payment.netAmount}`,
+                  paymentId: payment.id,
+                }
+              );
+              console.log(`[Notification] Sent payment success notification to company user ${companyUser.username}`);
+            }
+          }
+        }
+
         res.json(updatedPayment);
       } else {
         // For other status changes (not completed), just update status
