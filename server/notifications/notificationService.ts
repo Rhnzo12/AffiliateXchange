@@ -198,9 +198,11 @@ export class NotificationService {
     data: NotificationData = {}
   ): Promise<void> {
     try {
+      console.log(`[Notifications] Starting notification send for user ${userId}, type: ${type}`);
       const preferences = await this.storage.getUserNotificationPreferences(userId);
+      console.log(`[Notifications] User preferences:`, preferences);
       const user = await this.storage.getUserById(userId);
-      
+
       if (!user) {
         console.error(`[Notifications] User ${userId} not found`);
         return;
@@ -211,9 +213,13 @@ export class NotificationService {
 
       // Generate the correct linkUrl automatically
       const linkUrl = this.generateLinkUrl(type, data, user.role);
+      console.log(`[Notifications] Generated linkUrl: ${linkUrl}`);
 
+      console.log(`[Notifications] Checking in-app notifications: preferences?.inAppNotifications = ${preferences?.inAppNotifications}, will send = ${preferences?.inAppNotifications !== false}`);
       if (preferences?.inAppNotifications !== false) {
         await this.sendInAppNotification(userId, type, title, message, linkUrl, data);
+      } else {
+        console.log(`[Notifications] Skipping in-app notification (disabled by preferences)`);
       }
 
       if (preferences?.emailNotifications !== false && this.shouldSendEmail(type, preferences)) {
@@ -238,6 +244,7 @@ export class NotificationService {
     data: NotificationData
   ): Promise<void> {
     try {
+      console.log(`[Notifications] Creating in-app notification for user ${userId}`);
       const notification: InsertNotification = {
         userId,
         type,
@@ -248,10 +255,12 @@ export class NotificationService {
         isRead: false,
       };
 
-      await this.storage.createNotification(notification);
-      console.log(`[Notifications] In-app notification created for user ${userId}: ${type} -> ${linkUrl}`);
+      console.log(`[Notifications] Notification object:`, JSON.stringify(notification, null, 2));
+      const created = await this.storage.createNotification(notification);
+      console.log(`[Notifications] In-app notification created for user ${userId}: ${type} -> ${linkUrl}`, created);
     } catch (error) {
       console.error('[Notifications] Error creating in-app notification:', error);
+      console.error('[Notifications] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     }
   }
 
