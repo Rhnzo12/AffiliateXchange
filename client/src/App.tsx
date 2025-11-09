@@ -44,6 +44,8 @@ import Onboarding from "./pages/onboarding";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import SelectRole from "./pages/select-role";
+import CompanyRegister from "./pages/company-register";
+import CompanyPending from "./pages/company-pending";
 
 // Public routes that don't require authentication
 function PublicRouter() {
@@ -52,6 +54,7 @@ function PublicRouter() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/company-register" component={CompanyRegister} />
       <Route path="/select-role" component={SelectRole} />
       <Route component={Landing} />
     </Switch>
@@ -119,6 +122,7 @@ function ProtectedRouter() {
                     <Route path="/" component={CompanyDashboard} />
                     <Route path="/company" component={CompanyDashboard} />
                     <Route path="/company/dashboard" component={CompanyDashboard} />
+                    <Route path="/company/pending" component={CompanyPending} />
                     <Route path="/company/offers" component={CompanyOffers} />
                     <Route path="/company/offers/create" component={CompanyOfferCreate} />
                     <Route path="/company/offers/:id" component={CompanyOfferDetail} />
@@ -176,7 +180,7 @@ function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
   // Define public routes
-  const publicRoutes = ['/login', '/register', '/select-role'];
+  const publicRoutes = ['/login', '/register', '/company-register', '/select-role'];
   const isPublicRoute = publicRoutes.includes(location);
 
   // While loading, show a loading state
