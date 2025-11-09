@@ -209,12 +209,14 @@ export default function CompanyVideos() {
                 <AlertDialogDescription>{selectedVideo.description}</AlertDialogDescription>
               )}
             </AlertDialogHeader>
-            <VideoPlayer
-              videoUrl={selectedVideo.videoUrl}
-              thumbnail={selectedVideo.thumbnailUrl}
-              autoPlay
-              className="aspect-video"
-            />
+            <div className="w-full">
+              <VideoPlayer
+                videoUrl={selectedVideo.videoUrl}
+                thumbnail={selectedVideo.thumbnailUrl}
+                autoPlay
+                className="aspect-video w-full"
+              />
+            </div>
             {(selectedVideo.creatorCredit || selectedVideo.originalPlatform) && (
               <div className="flex gap-4 text-sm text-muted-foreground">
                 {selectedVideo.creatorCredit && (

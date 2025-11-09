@@ -1209,11 +1209,13 @@ export default function CompanyOfferCreate() {
             <DialogTitle>Video Preview</DialogTitle>
           </DialogHeader>
           {selectedVideoUrl && (
-            <VideoPlayer
-              videoUrl={selectedVideoUrl}
-              autoPlay
-              className="aspect-video"
-            />
+            <div className="w-full">
+              <VideoPlayer
+                videoUrl={selectedVideoUrl}
+                autoPlay
+                className="aspect-video w-full"
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>
