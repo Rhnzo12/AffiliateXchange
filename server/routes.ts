@@ -1705,7 +1705,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   companyName: companyProfile.legalName || companyProfile.tradeName || companyUser.username,
                   offerTitle: paymentTitle,
                   amount: `$${payment.netAmount}`,
+                  grossAmount: `$${payment.grossAmount}`,
+                  platformFee: `$${payment.platformFeeAmount}`,
+                  processingFee: `$${payment.stripeFeeAmount}`,
+                  transactionId: paymentResult.transactionId,
                   paymentId: payment.id,
+                  linkUrl: `/payments/${payment.id}`,
                 }
               );
               console.log(`[Notification] Sent payment success notification to company user ${companyUser.username}`);
