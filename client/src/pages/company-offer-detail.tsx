@@ -1088,12 +1088,14 @@ export default function CompanyOfferDetail() {
               )}
             </DialogHeader>
             {selectedVideo.videoUrl ? (
-              <VideoPlayer
-                videoUrl={selectedVideo.videoUrl}
-                thumbnail={selectedVideo.thumbnailUrl}
-                autoPlay
-                className="aspect-video"
-              />
+              <div className="w-full">
+                <VideoPlayer
+                  videoUrl={selectedVideo.videoUrl}
+                  thumbnail={selectedVideo.thumbnailUrl}
+                  autoPlay
+                  className="aspect-video w-full"
+                />
+              </div>
             ) : (
               <div className="aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center text-white">
                 <div className="text-center">
