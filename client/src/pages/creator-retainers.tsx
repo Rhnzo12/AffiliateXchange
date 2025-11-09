@@ -23,7 +23,7 @@ import {
 } from "../components/ui/form";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
-import { DollarSign, Video, Calendar, Briefcase, Send, CheckCircle, XCircle, Clock } from "lucide-react";
+import { DollarSign, Video, Calendar, Briefcase, Send, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -202,7 +202,7 @@ export default function CreatorRetainers() {
             return (
               <Card
                 key={contract.id}
-                className="hover-elevate border-card-border"
+                className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-purple-400/30 hover:ring-purple-500 hover:shadow-purple-500/20"
                 data-testid={`retainer-card-${contract.id}`}
               >
                 <CardHeader>
@@ -242,8 +242,8 @@ export default function CreatorRetainers() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
+                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
                         <DollarSign className="h-5 w-5 text-primary" />
                       </div>
                       <div>
@@ -254,8 +254,8 @@ export default function CreatorRetainers() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
+                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
                         <Video className="h-5 w-5 text-primary" />
                       </div>
                       <div>
@@ -264,8 +264,8 @@ export default function CreatorRetainers() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
+                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
                         <Calendar className="h-5 w-5 text-primary" />
                       </div>
                       <div>
@@ -274,8 +274,8 @@ export default function CreatorRetainers() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
+                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
                         <Briefcase className="h-5 w-5 text-primary" />
                       </div>
                       <div>
@@ -308,9 +308,10 @@ export default function CreatorRetainers() {
                     <Link href={`/retainers/${contract.id}`} className="flex-1">
                       <Button
                         variant="outline"
-                        className="w-full"
+                        className="w-full group/btn hover:bg-primary/5 hover:border-primary/50 transition-all duration-200"
                         data-testid={`button-view-details-${contract.id}`}
                       >
+                        <Eye className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200" />
                         View Details
                       </Button>
                     </Link>
