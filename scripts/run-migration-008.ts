@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Script to run migration 008: Add payment_failed_insufficient_funds to notification_type enum
+ * Script to run migration 008: Add payment notification types to notification_type enum
  * Usage: tsx --env-file=.env scripts/run-migration-008.ts
  */
 
@@ -11,20 +11,18 @@ import { join } from "path";
 
 async function runMigration() {
   try {
-    console.log("[Migration] Running migration 008: Add payment_failed_insufficient_funds to notification_type enum");
+    console.log("[Migration] Running migration 008: Add payment notification types to notification_type enum");
 
-    // Read the migration file
-    const migrationPath = join(process.cwd(), "db", "migrations", "008_add_insufficient_funds_notification.sql");
-    const migrationSQL = readFileSync(migrationPath, "utf-8");
-
-    console.log("[Migration] Executing SQL...");
-
-    // Execute the migration
-    // Note: ADD VALUE requires a non-transactional context in PostgreSQL
+    console.log("[Migration] Adding 'payment_failed_insufficient_funds' to enum...");
     await db.execute(sql.raw(`ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'payment_failed_insufficient_funds'`));
+    console.log("[Migration] ✅ Added 'payment_failed_insufficient_funds'");
+
+    console.log("[Migration] Adding 'payment_approved' to enum...");
+    await db.execute(sql.raw(`ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'payment_approved'`));
+    console.log("[Migration] ✅ Added 'payment_approved'");
 
     console.log("[Migration] ✅ Migration completed successfully!");
-    console.log("[Migration] The 'payment_failed_insufficient_funds' notification type has been added to the database.");
+    console.log("[Migration] Both notification types have been added to the database.");
 
     process.exit(0);
   } catch (error: any) {
@@ -32,7 +30,7 @@ async function runMigration() {
 
     // Check if the value already exists
     if (error.message?.includes("already exists")) {
-      console.log("[Migration] ℹ️  The value 'payment_failed_insufficient_funds' already exists in the enum.");
+      console.log("[Migration] ℹ️  The values already exist in the enum.");
       process.exit(0);
     }
 
