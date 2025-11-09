@@ -1471,25 +1471,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Automatically send notification to company if insufficient funds
           if (isInsufficientFunds && payment.companyId) {
-            console.log(`[Payment] Detected insufficient funds error, sending notification to company ${payment.companyId}`);
+            console.log(`[Payment] Detected insufficient funds error, sending notification to company profile ${payment.companyId}`);
 
-            const company = await storage.getUserById(payment.companyId);
+            // Get company profile first (payment.companyId is a company profile ID, not user ID)
+            const companyProfile = await storage.getCompanyProfileById(payment.companyId);
 
-            if (company) {
-              await notificationService.sendNotification(
-                payment.companyId,
-                'payment_failed_insufficient_funds',
-                'Payment Processing Failed - Insufficient Funds',
-                `The payment request for $${payment.netAmount} could not be processed due to insufficient funds in your PayPal account.`,
-                {
-                  userName: company.firstName || company.username,
-                  amount: `$${payment.netAmount}`,
-                  paymentId: payment.id,
-                  companyName: company?.companyName || company?.username,
-                }
-              );
+            if (companyProfile) {
+              // Get the user associated with this company profile
+              const companyUser = await storage.getUserById(companyProfile.userId);
 
-              console.log(`[Payment] Notification sent to company ${company.username} about insufficient funds`);
+              if (companyUser) {
+                await notificationService.sendNotification(
+                  companyUser.id,
+                  'payment_failed_insufficient_funds',
+                  'Payment Processing Failed - Insufficient Funds',
+                  `The payment request for $${payment.netAmount} could not be processed due to insufficient funds in your PayPal account.`,
+                  {
+                    userName: companyUser.firstName || companyUser.username,
+                    amount: `$${payment.netAmount}`,
+                    paymentId: payment.id,
+                    companyName: companyProfile.legalName || companyProfile.tradeName || companyUser.username,
+                  }
+                );
+
+                console.log(`[Payment] Notification sent to company user ${companyUser.username} about insufficient funds`);
+              }
             }
           }
 
@@ -1569,22 +1575,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { NotificationService } = await import('./notifications/notificationService');
       const notificationService = new NotificationService(storage);
 
-      const company = await storage.getUserById(payment.companyId);
+      // Get company profile first (payment.companyId is a company profile ID, not user ID)
+      const companyProfile = await storage.getCompanyProfileById(payment.companyId);
+
+      if (!companyProfile) {
+        return res.status(404).send("Company profile not found");
+      }
+
+      // Get the user associated with this company profile
+      const companyUser = await storage.getUserById(companyProfile.userId);
+
+      if (!companyUser) {
+        return res.status(404).send("Company user not found");
+      }
 
       await notificationService.sendNotification(
-        payment.companyId,
+        companyUser.id,
         'payment_failed_insufficient_funds',
         'Payment Processing Failed - Insufficient Funds',
         `The payment request for $${payment.netAmount} could not be processed due to insufficient funds in your PayPal account.`,
         {
-          userName: company?.firstName || company?.username,
+          userName: companyUser.firstName || companyUser.username,
           amount: `$${payment.netAmount}`,
           paymentId: payment.id,
-          companyName: company?.companyName || company?.username,
+          companyName: companyProfile.legalName || companyProfile.tradeName || companyUser.username,
         }
       );
 
-      console.log(`[Payment] Notification sent to company ${payment.companyId} about insufficient funds for payment ${id}`);
+      console.log(`[Payment] Notification sent to company user ${companyUser.username} about insufficient funds for payment ${id}`);
 
       res.json({ success: true, message: 'Notification sent to company' });
     } catch (error: any) {
