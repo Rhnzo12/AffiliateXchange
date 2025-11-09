@@ -9,7 +9,7 @@ import { Users, Building2, TrendingUp, AlertCircle, CheckCircle2, Bell } from "l
 import { Link } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
 import { StatsGridSkeleton } from "../components/skeletons";
-import { apiRequest } from "../lib/api";
+import { apiRequest } from "../lib/queryClient";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
