@@ -205,7 +205,12 @@ export class RetainerPaymentScheduler {
             userName: creator.firstName || creator.username,
             offerTitle: contract.title,
             amount: `$${netAmount.toFixed(2)}`,
-            linkUrl: `/creator/retainer-contracts`,
+            grossAmount: `$${grossAmount.toFixed(2)}`,
+            platformFee: `$${platformFeeAmount.toFixed(2)}`,
+            processingFee: `$${processingFeeAmount.toFixed(2)}`,
+            transactionId: paymentResult.transactionId,
+            paymentId: payment.id,
+            linkUrl: `/payments/${payment.id}`,
           }
         );
       }
