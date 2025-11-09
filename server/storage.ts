@@ -996,11 +996,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOffersByCompany(companyId: string): Promise<Offer[]> {
-    return await db
-      .select()
+    const results = await db
+      .select({
+        offer: offers,
+        company: companyProfiles,
+      })
       .from(offers)
+      .leftJoin(companyProfiles, eq(offers.companyId, companyProfiles.id))
       .where(eq(offers.companyId, companyId))
       .orderBy(desc(offers.createdAt));
+
+    // Map to include company data
+    return results.map((row: any) => ({
+      ...row.offer,
+      company: row.company,
+    }));
   }
 
   async createOffer(offer: InsertOffer): Promise<Offer> {
