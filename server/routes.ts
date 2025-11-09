@@ -2350,11 +2350,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             admin.id,
             'payment_pending',
             'Payment Ready for Processing',
-            `A payment of $${(payment.netAmount / 100).toFixed(2)} for creator ${creator?.username || 'Unknown'} is ready for processing.`,
+            `A payment of $${(Number(payment.netAmount) / 100).toFixed(2)} for creator ${creator?.username || 'Unknown'} is ready for processing.`,
             {
               userName: admin.firstName || admin.username,
               offerTitle: offer?.title || 'Unknown Offer',
-              amount: `$${(payment.netAmount / 100).toFixed(2)}`,
+              amount: `$${(Number(payment.netAmount) / 100).toFixed(2)}`,
               paymentId: payment.id,
             }
           );
