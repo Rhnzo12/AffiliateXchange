@@ -2247,13 +2247,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const pendingCompanies = await storage.getPendingCompanies();
       const pendingOffers = await storage.getPendingOffers();
+      const allUsers = await storage.getAllUsers();
+      const activeOffers = await storage.getOffers({ status: 'approved' });
+
+      // Calculate users created in the last 7 days
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      const newUsersThisWeek = allUsers.filter(user =>
+        user.createdAt && new Date(user.createdAt) >= oneWeekAgo
+      ).length;
 
       const stats = {
-        totalUsers: 0, // TODO: Count all users
-        newUsersThisWeek: 0, // TODO: Count users created this week
+        totalUsers: allUsers.length,
+        newUsersThisWeek: newUsersThisWeek,
         pendingCompanies: pendingCompanies.length,
         pendingOffers: pendingOffers.length,
-        activeOffers: 0, // TODO: Count approved offers
+        activeOffers: activeOffers.length,
       };
 
       res.json(stats);
