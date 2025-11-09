@@ -1466,6 +1466,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
             description: `Payment failed: ${paymentResult.error}`,
           });
 
+          // Check if the error is due to insufficient funds
+          const isInsufficientFunds = paymentResult.error?.toLowerCase().includes('insufficient funds');
+
+          // Automatically send notification to company if insufficient funds
+          if (isInsufficientFunds && payment.companyId) {
+            console.log(`[Payment] Detected insufficient funds error, sending notification to company ${payment.companyId}`);
+
+            const company = await storage.getUserById(payment.companyId);
+
+            if (company) {
+              await notificationService.sendNotification(
+                payment.companyId,
+                'payment_failed_insufficient_funds',
+                'Payment Processing Failed - Insufficient Funds',
+                `The payment request for $${payment.netAmount} could not be processed due to insufficient funds in your PayPal account.`,
+                {
+                  userName: company.firstName || company.username,
+                  amount: `$${payment.netAmount}`,
+                  paymentId: payment.id,
+                  companyName: company?.companyName || company?.username,
+                }
+              );
+
+              console.log(`[Payment] Notification sent to company ${company.username} about insufficient funds`);
+            }
+          }
+
           return res.status(400).json({
             error: paymentResult.error,
             message: "Failed to process payment. Status updated to 'failed'."
@@ -1550,6 +1577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Payment Processing Failed - Insufficient Funds',
         `The payment request for $${payment.netAmount} could not be processed due to insufficient funds in your PayPal account.`,
         {
+          userName: company?.firstName || company?.username,
           amount: `$${payment.netAmount}`,
           paymentId: payment.id,
           companyName: company?.companyName || company?.username,
