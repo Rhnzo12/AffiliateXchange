@@ -589,3 +589,55 @@ export function priorityListingExpiringEmail(data: EmailTemplateData): { subject
 
   return { subject, html };
 }
+
+export function paymentPendingEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `New Affiliate Payment Ready for Processing`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #F59E0B;">
+          <h1>Payment Pending Review</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>A new affiliate payment is ready for processing and requires your review.</p>
+          ${data.amount ? `
+            <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #374151;">Payment Details:</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; color: #6B7280;">Amount:</td>
+                  <td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">${data.amount}</td>
+                </tr>
+                ${data.offerTitle ? `
+                  <tr>
+                    <td style="padding: 8px 0; color: #6B7280;">Offer:</td>
+                    <td style="padding: 8px 0; color: #111827; text-align: right;">${data.offerTitle}</td>
+                  </tr>
+                ` : ''}
+              </table>
+            </div>
+          ` : ''}
+          <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; font-weight: 600; color: #92400E;">Action Required</p>
+            <p style="margin: 5px 0 0 0; color: #78350F; font-size: 14px;">Please review and process this payment at your earliest convenience.</p>
+          </div>
+          <a href="${data.linkUrl || '/admin/payments'}" class="button" style="background-color: #F59E0B;">Review Payment</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
