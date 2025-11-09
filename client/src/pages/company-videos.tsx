@@ -20,6 +20,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
@@ -209,11 +210,11 @@ export default function CompanyVideos() {
       {/* Video Preview Dialog */}
       {selectedVideo && (
         <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{selectedVideo.title || "Video"}</DialogTitle>
+              <DialogTitle className="line-clamp-2">{selectedVideo.title || "Video"}</DialogTitle>
               {selectedVideo.description && (
-                <DialogDescription>{selectedVideo.description}</DialogDescription>
+                <DialogDescription className="line-clamp-3">{selectedVideo.description}</DialogDescription>
               )}
             </DialogHeader>
             {selectedVideo.videoUrl ? (
@@ -234,15 +235,26 @@ export default function CompanyVideos() {
               </div>
             )}
             {(selectedVideo.creatorCredit || selectedVideo.originalPlatform) && (
-              <div className="flex gap-4 text-sm text-muted-foreground">
+              <div className="flex flex-col gap-2 text-sm text-muted-foreground pt-2">
                 {selectedVideo.creatorCredit && (
-                  <span>Creator: {selectedVideo.creatorCredit}</span>
+                  <div className="flex items-start gap-2">
+                    <span className="font-medium flex-shrink-0">Creator:</span>
+                    <span className="break-words line-clamp-2">{selectedVideo.creatorCredit}</span>
+                  </div>
                 )}
                 {selectedVideo.originalPlatform && (
-                  <span>Platform: {selectedVideo.originalPlatform}</span>
+                  <div className="flex items-start gap-2">
+                    <span className="font-medium flex-shrink-0">Platform:</span>
+                    <span className="break-words line-clamp-2">{selectedVideo.originalPlatform}</span>
+                  </div>
                 )}
               </div>
             )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedVideo(null)}>
+                Close
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
