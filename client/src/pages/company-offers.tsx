@@ -235,7 +235,7 @@ export default function CompanyOffers() {
                         ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100'
                         : 'bg-gradient-to-br from-purple-100 to-pink-100'
                     }`}>
-                      {offer.featuredImageUrl ? (
+                      {!isRetainer && offer.featuredImageUrl ? (
                         <img
                           src={proxiedSrc(offer.featuredImageUrl)}
                           alt={offer.title}
@@ -245,11 +245,11 @@ export default function CompanyOffers() {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
                         />
-                      ) : (
+                      ) : !isRetainer ? (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <Play className="h-12 w-12 text-muted-foreground/30" />
                         </div>
-                      )}
+                      ) : null}
 
                       {/* Action Menu Button - Top Left */}
                       <div className="absolute top-3 left-3 z-10">
