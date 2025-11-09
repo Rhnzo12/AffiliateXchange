@@ -909,20 +909,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get company profile for current user
-  app.get("/api/company-profile", requireAuth, requireRole('company'), async (req, res) => {
-    try {
-      const userId = (req.user as any).id;
-      const companyProfile = await storage.getCompanyProfile(userId);
-      if (!companyProfile) {
-        return res.status(404).json({ error: "Company profile not found" });
-      }
-      res.json(companyProfile);
-    } catch (error: any) {
-      res.status(500).send(error.message);
-    }
-  });
-
   app.get("/api/company/applications", requireAuth, requireRole('company'), async (req, res) => {
     try {
       const userId = (req.user as any).id;
@@ -933,7 +919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('[/api/company/applications] No company profile found for user:', userId);
         return res.status(404).send("Company profile not found");
       }
-
+      
       // Pass company profile ID, not user ID
       const applications = await storage.getApplicationsByCompany(companyProfile.id);
       console.log('[/api/company/applications] Found', applications.length, 'applications');
@@ -2455,24 +2441,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/companies/:id/approve", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const company = await storage.approveCompany(req.params.id);
-
-      if (company) {
-        // Get user info for notification
-        const user = await storage.getUser(company.userId);
-
-        if (user) {
-          // Send approval notification
-          const notificationService = new NotificationService();
-          await notificationService.sendNotification({
-            userId: user.id,
-            type: 'registration_approved',
-            title: 'Company Registration Approved',
-            message: `Congratulations! Your company "${company.legalName}" has been approved. You can now create and publish offers.`,
-            linkUrl: '/company/dashboard',
-          });
-        }
-      }
-
       res.json(company);
     } catch (error: any) {
       res.status(500).send(error.message);
@@ -2481,79 +2449,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/companies/:id/reject", requireAuth, requireRole('admin'), async (req, res) => {
     try {
-      const { reason, daysUntilReapply } = req.body;
+      const { reason } = req.body;
       const company = await storage.rejectCompany(req.params.id, reason);
-
-      if (company && daysUntilReapply) {
-        // Set reapplication date
-        const reapplyDate = new Date();
-        reapplyDate.setDate(reapplyDate.getDate() + parseInt(daysUntilReapply));
-        await storage.updateCompanyProfile(company.userId, {
-          reapplyAfterDate: reapplyDate,
-        });
-      }
-
-      if (company) {
-        // Get user info for notification
-        const user = await storage.getUser(company.userId);
-
-        if (user) {
-          // Send rejection notification
-          const notificationService = new NotificationService();
-          await notificationService.sendNotification({
-            userId: user.id,
-            type: 'registration_rejected',
-            title: 'Company Registration Not Approved',
-            message: `We're sorry, but your company registration was not approved. Reason: ${reason}`,
-            linkUrl: '/company/pending',
-          });
-        }
-      }
-
-      res.json(company);
-    } catch (error: any) {
-      res.status(500).send(error.message);
-    }
-  });
-
-  // Request more information from company
-  app.post("/api/admin/companies/:id/request-info", requireAuth, requireRole('admin'), async (req, res) => {
-    try {
-      const { message } = req.body;
-
-      if (!message) {
-        return res.status(400).json({ error: "Message is required" });
-      }
-
-      const result = await db
-        .update(companyProfiles)
-        .set({
-          status: 'pending_more_info',
-          additionalInfoRequested: message,
-          updatedAt: new Date(),
-        })
-        .where(eq(companyProfiles.id, req.params.id))
-        .returning();
-
-      const company = result[0];
-
-      if (company) {
-        // Get user info for notification
-        const user = await storage.getUser(company.userId);
-
-        if (user) {
-          // Send notification
-          const notificationService = new NotificationService();
-          await notificationService.sendNotification({
-            userId: user.id,
-            type: 'system_announcement',
-            title: 'Additional Information Required',
-            message: `Please provide additional information for your company registration: ${message}`,
-            linkUrl: '/company/pending',
-          });
-        }
-      }
-
       res.json(company);
     } catch (error: any) {
       res.status(500).send(error.message);
@@ -3008,29 +2905,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType);
     console.log('[Upload API] Upload params returned:', uploadParams);
     res.json(uploadParams);
-  });
-
-  // Upload endpoints for company registration (no auth required during registration)
-  app.post("/api/upload/logo", async (req, res) => {
-    try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadParams = await objectStorageService.getObjectEntityUploadURL('company-logos', 'image');
-      res.json(uploadParams);
-    } catch (error) {
-      console.error("Error getting logo upload params:", error);
-      res.status(500).json({ error: "Failed to get upload parameters" });
-    }
-  });
-
-  app.post("/api/upload/verification-document", async (req, res) => {
-    try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadParams = await objectStorageService.getObjectEntityUploadURL('verification-documents', 'auto');
-      res.json(uploadParams);
-    } catch (error) {
-      console.error("Error getting document upload params:", error);
-      res.status(500).json({ error: "Failed to get upload parameters" });
-    }
   });
 
   app.put("/api/company-logos", requireAuth, requireRole('company'), async (req, res) => {

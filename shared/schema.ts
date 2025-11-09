@@ -18,7 +18,7 @@ import { z } from "zod";
 // Enums
 export const userRoleEnum = pgEnum('user_role', ['creator', 'company', 'admin']);
 export const userAccountStatusEnum = pgEnum('user_account_status', ['active', 'suspended', 'banned']);
-export const companyStatusEnum = pgEnum('company_status', ['pending', 'approved', 'rejected', 'pending_more_info']);
+export const companyStatusEnum = pgEnum('company_status', ['pending', 'approved', 'rejected']);
 export const offerStatusEnum = pgEnum('offer_status', ['draft', 'pending_review', 'approved', 'paused', 'archived']);
 export const commissionTypeEnum = pgEnum('commission_type', ['per_sale', 'per_lead', 'per_click', 'monthly_retainer', 'hybrid']);
 export const applicationStatusEnum = pgEnum('application_status', ['pending', 'approved', 'active', 'completed', 'rejected']);
@@ -130,15 +130,6 @@ export const companyProfiles = pgTable("company_profiles", {
   phoneNumber: varchar("phone_number"),
   businessAddress: text("business_address"),
   verificationDocumentUrl: varchar("verification_document_url"),
-  einTaxId: varchar("ein_tax_id"),
-  websiteVerificationMethod: varchar("website_verification_method"),
-  websiteVerificationToken: varchar("website_verification_token"),
-  websiteVerified: boolean("website_verified").default(false),
-  socialMediaProfiles: jsonb("social_media_profiles"),
-  emailVerified: boolean("email_verified").default(false),
-  emailVerificationToken: varchar("email_verification_token"),
-  additionalInfoRequested: text("additional_info_requested"),
-  reapplyAfterDate: timestamp("reapply_after_date"),
   status: companyStatusEnum("status").notNull().default('pending'),
   approvedAt: timestamp("approved_at"),
   rejectionReason: text("rejection_reason"),
