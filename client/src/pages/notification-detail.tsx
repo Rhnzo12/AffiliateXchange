@@ -85,6 +85,40 @@ export default function NotificationDetail() {
         );
       }
 
+      case "payment_failed_insufficient_funds": {
+        const amount = meta.amount || (n.message.match(/\$\d+[\d,.]*/)?.[0]) || null;
+        return (
+          <div className="space-y-4">
+            <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">
+                Payment Processing Failed
+              </h3>
+              <p className="text-orange-800 dark:text-orange-200">{n.message}</p>
+              {amount && (
+                <div className="mt-3 text-lg font-bold text-orange-900 dark:text-orange-100">
+                  Payment Amount: {amount}
+                </div>
+              )}
+            </div>
+            <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">
+                What to do next:
+              </h4>
+              <ol className="list-decimal list-inside space-y-1 text-green-800 dark:text-green-200">
+                <li>Add funds to your PayPal business account</li>
+                <li>Wait a few moments for the funds to become available</li>
+                <li>Contact the admin to retry the payment</li>
+              </ol>
+            </div>
+            {n.linkUrl && (
+              <Link href={n.linkUrl}>
+                <Button className="w-full">View Payment Details</Button>
+              </Link>
+            )}
+          </div>
+        );
+      }
+
       case "new_message":
       case "message": {
         const convId = meta.conversationId || meta.conversation_id;
