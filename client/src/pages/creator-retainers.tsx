@@ -202,42 +202,44 @@ export default function CreatorRetainers() {
             return (
               <Card
                 key={contract.id}
-                className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-purple-400/30 hover:ring-purple-500 hover:shadow-purple-500/20"
+                className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-primary/30 hover:ring-primary/50 hover:shadow-primary/20"
                 data-testid={`retainer-card-${contract.id}`}
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <CardTitle className="text-xl" data-testid={`text-retainer-title-${contract.id}`}>
-                          {contract.title}
-                        </CardTitle>
-                        {applicationStatus.badge && (
-                          <Badge 
-                            variant={
-                              applicationStatus.variant === 'default' && applicationStatus.badge.includes('Approved') 
-                                ? 'default' 
-                                : applicationStatus.variant === 'destructive' 
-                                ? 'destructive' 
-                                : 'secondary'
-                            }
-                            className={
-                              applicationStatus.badge.includes('Approved')
-                                ? 'bg-green-500 hover:bg-green-600'
-                                : ''
-                            }
-                          >
-                            {applicationStatus.badge}
-                          </Badge>
-                        )}
+                <CardHeader className="pb-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <CardTitle className="text-xl" data-testid={`text-retainer-title-${contract.id}`}>
+                            {contract.title}
+                          </CardTitle>
+                          {applicationStatus.badge && (
+                            <Badge
+                              variant={
+                                applicationStatus.variant === 'default' && applicationStatus.badge.includes('Approved')
+                                  ? 'default'
+                                  : applicationStatus.variant === 'destructive'
+                                  ? 'destructive'
+                                  : 'secondary'
+                              }
+                              className={
+                                applicationStatus.badge.includes('Approved')
+                                  ? 'bg-green-500 hover:bg-green-600'
+                                  : ''
+                              }
+                            >
+                              {applicationStatus.badge}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          by {contract.company?.tradeName || contract.company?.legalName || "Company"}
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        by {contract.company?.tradeName || contract.company?.legalName || "Company"}
-                      </p>
-                      <p className="text-muted-foreground line-clamp-3">
-                        {contract.description}
-                      </p>
                     </div>
+                    <p className="text-muted-foreground line-clamp-2 leading-relaxed">
+                      {contract.description}
+                    </p>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -304,11 +306,11 @@ export default function CreatorRetainers() {
                     </div>
                   )}
 
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex gap-3 pt-2">
                     <Link href={`/retainers/${contract.id}`} className="flex-1">
                       <Button
                         variant="outline"
-                        className="w-full group/btn hover:bg-primary/5 hover:border-primary/50 transition-all duration-200"
+                        className="w-full group/btn hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200 font-medium"
                         data-testid={`button-view-details-${contract.id}`}
                       >
                         <Eye className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200" />
@@ -321,15 +323,15 @@ export default function CreatorRetainers() {
                         setOpen(true);
                       }}
                       variant={
-                        applicationStatus.badge?.includes('Approved') 
+                        applicationStatus.badge?.includes('Approved')
                           ? 'default'
                           : applicationStatus.variant === 'destructive'
                           ? 'destructive'
                           : 'default'
                       }
-                      className={`flex-1 ${
-                        applicationStatus.badge?.includes('Approved') 
-                          ? 'bg-green-500 hover:bg-green-600' 
+                      className={`flex-1 font-medium ${
+                        applicationStatus.badge?.includes('Approved')
+                          ? 'bg-green-500 hover:bg-green-600'
                           : ''
                       }`}
                       disabled={applicationStatus.disabled}
