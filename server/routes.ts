@@ -112,7 +112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const stats = {
         totalEarnings: analyticsData?.totalEarnings || 0,
         monthlyEarnings: 0, // TODO: Calculate monthly
-        activeOffers: applications.filter(a => a.status === 'active').length,
+        activeOffers: applications.filter(a => a.status === 'active' || a.status === 'approved').length,
         pendingApplications: applications.filter(a => a.status === 'pending').length,
         totalClicks: analyticsData?.totalClicks || 0,
         monthlyClicks: 0, // TODO: Calculate monthly
