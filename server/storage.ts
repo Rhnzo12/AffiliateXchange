@@ -1885,10 +1885,7 @@ export class DatabaseStorage implements IStorage {
         })
         .from(retainerPayments)
         .where(
-          and(
-            eq(retainerPayments.companyId, companyId),
-            eq(retainerPayments.status, 'completed')
-          )
+          sql`${retainerPayments.companyId} = ${companyId} AND ${retainerPayments.status} = 'completed'`
         );
 
       const affiliateSpent = analyticsResult[0]?.totalSpent || 0;
