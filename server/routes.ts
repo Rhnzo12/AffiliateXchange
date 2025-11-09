@@ -1143,9 +1143,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const appAnalytics = await storage.getAnalyticsByApplication(app.id);
               if (appAnalytics && appAnalytics.length > 0) {
                 const totals = appAnalytics.reduce((acc: any, curr: any) => ({
-                  clicks: acc.clicks + (curr.clicks || 0),
-                  conversions: acc.conversions + (curr.conversions || 0),
-                  earnings: acc.earnings + (curr.earnings || 0),
+                  clicks: acc.clicks + (Number(curr.clicks) || 0),
+                  conversions: acc.conversions + (Number(curr.conversions) || 0),
+                  earnings: acc.earnings + (Number(curr.earnings) || 0),
                 }), { clicks: 0, conversions: 0, earnings: 0 });
 
                 offerClicks += totals.clicks;
