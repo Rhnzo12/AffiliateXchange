@@ -1006,11 +1006,19 @@ export class DatabaseStorage implements IStorage {
       .where(eq(offers.companyId, companyId))
       .orderBy(desc(offers.createdAt));
 
-    // Map to include company data
-    return results.map((row: any) => ({
-      ...row.offer,
-      company: row.company,
-    }));
+    // Map to include company data and fetch videos for each offer
+    const offersWithData = await Promise.all(
+      results.map(async (row: any) => {
+        const videos = await this.getOfferVideos(row.offer.id);
+        return {
+          ...row.offer,
+          company: row.company,
+          videos,
+        };
+      })
+    );
+
+    return offersWithData;
   }
 
   async createOffer(offer: InsertOffer): Promise<Offer> {
