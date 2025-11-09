@@ -406,13 +406,21 @@ export default function Browse() {
                 const isFavorite = favorites.some(f => f.offerId === offer.id);
                 const category = getOfferCategory(offer);
 
+                const isRetainer = offer.commissionType === 'monthly_retainer';
+
                 return (
                   <Link key={offer.id} href={`/offers/${offer.id}`}>
-                    <Card className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full">
+                    <Card className={`group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full ${
+                      isRetainer ? 'ring-2 ring-purple-400/50 hover:ring-purple-500 hover:shadow-purple-500/20' : ''
+                    }`}>
                       {/* Thumbnail Container with Logo */}
                       <div className="relative">
                         {/* Clean Thumbnail - No Gradient Overlay */}
-                        <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-purple-100 to-pink-100 rounded-t-lg">
+                        <div className={`aspect-video relative overflow-hidden rounded-t-lg ${
+                          isRetainer
+                            ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100'
+                            : 'bg-gradient-to-br from-purple-100 to-pink-100'
+                        }`}>
                           {offer.featuredImageUrl ? (
                             <img
                               src={proxiedSrc(offer.featuredImageUrl)}
@@ -496,14 +504,18 @@ export default function Browse() {
                         {/* Commission and Stats */}
                         <div className="flex items-end justify-between pt-2">
                           <div>
-                            <div className="text-2xl font-bold text-green-600">
+                            <div className={`text-2xl font-bold ${
+                              isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-green-600'
+                            } transition-colors`}>
                               {formatCommission(offer)}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className={`text-xs ${
+                              isRetainer ? 'text-purple-600/70 font-medium' : 'text-muted-foreground'
+                            }`}>
                               {getCommissionTypeLabel(offer)}
                             </div>
                           </div>
-                          
+
                           {/* Active creators (if you have this data) */}
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Users className="h-4 w-4" />
@@ -549,12 +561,17 @@ export default function Browse() {
               {regularOffers.map((offer) => {
                 const isFavorite = favorites.some(f => f.offerId === offer.id);
                 const category = getOfferCategory(offer);
+                const isRetainer = offer.commissionType === 'monthly_retainer';
 
                 return (
                   <Link key={offer.id} href={`/offers/${offer.id}`}>
-                    <Card className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden h-full" data-testid={`card-offer-${offer.id}`}>
+                    <Card className={`group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden h-full ${
+                      isRetainer ? 'ring-2 ring-purple-400/50 hover:ring-purple-500 hover:shadow-purple-500/20' : ''
+                    }`} data-testid={`card-offer-${offer.id}`}>
                       {/* Thumbnail */}
-                      <div className="aspect-video relative overflow-hidden">
+                      <div className={`aspect-video relative overflow-hidden ${
+                        isRetainer ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100' : ''
+                      }`}>
                         {offer.featuredImageUrl ? (
                           <>
                             <img
@@ -570,12 +587,20 @@ export default function Browse() {
                               }}
                             />
                             {/* Fallback if image fails */}
-                            <div className="hidden absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
+                            <div className={`hidden absolute inset-0 flex items-center justify-center ${
+                              isRetainer
+                                ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100'
+                                : 'bg-gradient-to-br from-primary/10 to-purple-500/10'
+                            }`}>
                               <Play className="h-12 w-12 text-muted-foreground/50" />
                             </div>
                           </>
                         ) : (
-                          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
+                          <div className={`absolute inset-0 flex items-center justify-center ${
+                            isRetainer
+                              ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100'
+                              : 'bg-gradient-to-br from-primary/10 to-purple-500/10'
+                          }`}>
                             <Play className="h-12 w-12 text-muted-foreground/50" />
                           </div>
                         )}
@@ -631,7 +656,9 @@ export default function Browse() {
                             <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                             <span className="font-medium text-foreground">{offer.company?.averageRating?.toFixed(1) || '5.0'}</span>
                           </div>
-                          <div className="flex items-center gap-1 font-mono font-bold text-primary">
+                          <div className={`flex items-center gap-1 font-mono font-bold ${
+                            isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-primary'
+                          } transition-colors`}>
                             <DollarSign className="h-4 w-4" />
                             {formatCommission(offer)}
                           </div>
