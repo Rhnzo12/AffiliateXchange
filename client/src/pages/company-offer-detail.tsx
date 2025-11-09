@@ -1,39 +1,84 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRoute, Link } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
-import { proxiedSrc } from "../lib/image";
+import { useRoute, Link, useLocation } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { ArrowLeft, DollarSign, Users, Eye, Calendar, Upload, Trash2, Video, AlertCircle, Play, Building2, FileText, Package } from "lucide-react";
-import { apiRequest, queryClient } from "../lib/queryClient";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import {
+  ArrowLeft,
+  Star,
+  Play,
+  DollarSign,
+  Clock,
+  Users,
+  Edit,
+  Video,
+  Sparkles,
+  Shield,
+  Hash,
+  Upload,
+  Trash2,
+  AlertCircle,
+  CheckCircle2,
+  MousePointer,
+  Wallet,
+  TrendingUp,
+} from "lucide-react";
+import { proxiedSrc } from "../lib/image";
+import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
+import { DetailPageSkeleton } from "../components/skeletons";
+
+// Helper function to format commission display
+const formatCommission = (offer: any) => {
+  if (!offer) return "$0";
+
+  if (offer.commissionAmount) {
+    return `$${offer.commissionAmount.toFixed(2)}`;
+  } else if (offer.commissionPercentage) {
+    return `${offer.commissionPercentage}%`;
+  } else if (offer.commissionRate) {
+    return `$${offer.commissionRate.toFixed(2)}`;
+  }
+  return "$0";
+};
+
+// Helper to get commission type label
+const getCommissionTypeLabel = (offer: any) => {
+  if (!offer?.commissionType) return "per sale";
+  return offer.commissionType.replace(/_/g, " ");
+};
 
 // Helper function to generate thumbnail from video
 const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     video.crossOrigin = 'anonymous';
-    // Use proxied URL to avoid CORS issues
     const proxiedUrl = `/proxy/image?url=${encodeURIComponent(videoUrl)}`;
     video.src = proxiedUrl;
     video.muted = true;
 
     const timeout = setTimeout(() => {
       reject(new Error('Thumbnail generation timed out'));
-    }, 15000); // 15 second timeout
+    }, 15000);
 
     video.addEventListener('loadeddata', () => {
       try {
-        // Seek to 1 second or 10% of video duration, whichever is less
         const seekTime = Math.min(1, video.duration * 0.1);
         video.currentTime = seekTime;
       } catch (error) {
@@ -44,7 +89,6 @@ const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
 
     video.addEventListener('seeked', () => {
       try {
-        // Create canvas and draw video frame
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth || 1280;
         canvas.height = video.videoHeight || 720;
@@ -58,7 +102,6 @@ const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
 
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Convert canvas to blob
         canvas.toBlob(
           (blob) => {
             clearTimeout(timeout);
@@ -88,41 +131,13 @@ export default function CompanyOfferDetail() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [, params] = useRoute("/company/offers/:id");
+  const [, setLocation] = useLocation();
   const offerId = params?.id;
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 500);
-    }
-  }, [isAuthenticated, isLoading, toast]);
-
-  const { data: offer, isLoading: offerLoading } = useQuery<any>({
-    queryKey: [`/api/offers/${offerId}`],
-    enabled: !!offerId && isAuthenticated,
-  });
-
-  const { data: applications = [] } = useQuery<any[]>({
-    queryKey: ["/api/company/applications"],
-    enabled: isAuthenticated,
-  });
-
-  const { data: videos = [], isLoading: videosLoading } = useQuery<any[]>({
-    queryKey: [`/api/offers/${offerId}/videos`],
-    enabled: !!offerId && isAuthenticated,
-  });
-
-  // Filter applications for this offer
-  const offerApplications = applications.filter((app: any) => app.offerId === offerId);
-
-  // Video upload state
+  const [activeSection, setActiveSection] = useState("overview");
+  const [isScrolling, setIsScrolling] = useState(false);
   const [showVideoDialog, setShowVideoDialog] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const [videoUrl, setVideoUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
@@ -131,11 +146,127 @@ export default function CompanyOfferDetail() {
   const [originalPlatform, setOriginalPlatform] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
-  // Memoized handler for dialog state to prevent input focus loss
+  // Refs for sections
+  const overviewRef = useRef<HTMLDivElement>(null);
+  const videosRef = useRef<HTMLDivElement>(null);
+  const applicationsRef = useRef<HTMLDivElement>(null);
+
+  // Auth check
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to view offer details.",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 500);
+    }
+  }, [isAuthenticated, isLoading, toast]);
+
+  // Scroll spy with IntersectionObserver
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: "-100px 0px -60% 0px",
+      threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
+    };
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      if (isScrolling) return;
+
+      let mostVisibleEntry = entries[0];
+      let maxRatio = 0;
+
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+          maxRatio = entry.intersectionRatio;
+          mostVisibleEntry = entry;
+        }
+      });
+
+      if (mostVisibleEntry?.isIntersecting) {
+        const sectionId = mostVisibleEntry.target.getAttribute("data-section");
+        if (sectionId) {
+          setActiveSection(sectionId);
+        }
+      }
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+
+    const sections = [overviewRef, videosRef, applicationsRef];
+    sections.forEach((ref) => {
+      if (ref.current) {
+        observer.observe(ref.current);
+      }
+    });
+
+    return () => {
+      sections.forEach((ref) => {
+        if (ref.current) {
+          observer.unobserve(ref.current);
+        }
+      });
+    };
+  }, [isScrolling]);
+
+  // Smooth scroll to section
+  const scrollToSection = (sectionId: string) => {
+    setActiveSection(sectionId);
+    setIsScrolling(true);
+
+    const refs: Record<string, React.RefObject<HTMLDivElement>> = {
+      overview: overviewRef,
+      videos: videosRef,
+      applications: applicationsRef,
+    };
+
+    const ref = refs[sectionId];
+    if (ref.current) {
+      const stickyNavElement = document.querySelector('[data-sticky-nav]');
+      const navHeight = stickyNavElement ? stickyNavElement.getBoundingClientRect().height : 100;
+
+      const elementPosition = ref.current.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - navHeight - 20;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+
+      setTimeout(() => {
+        setIsScrolling(false);
+      }, 1000);
+    }
+  };
+
+  // Fetch offer details
+  const { data: offer, isLoading: offerLoading } = useQuery<any>({
+    queryKey: [`/api/offers/${offerId}`],
+    enabled: !!offerId && isAuthenticated,
+  });
+
+  // Fetch applications for this offer
+  const { data: applications = [] } = useQuery<any[]>({
+    queryKey: ["/api/company/applications"],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch videos
+  const { data: videos = [], isLoading: videosLoading } = useQuery<any[]>({
+    queryKey: [`/api/offers/${offerId}/videos`],
+    enabled: !!offerId && isAuthenticated,
+  });
+
+  // Filter applications for this offer
+  const offerApplications = applications.filter((app: any) => app.offerId === offerId);
+
+  // Video management
   const handleDialogOpenChange = useCallback((open: boolean) => {
     setShowVideoDialog(open);
     if (!open) {
-      // Reset form when dialog closes
       setVideoUrl("");
       setThumbnailUrl("");
       setVideoTitle("");
@@ -187,15 +318,13 @@ export default function CompanyOfferDetail() {
     },
   });
 
-  // Handle file selection and automatic upload with thumbnail generation
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     const videoExtensions = ['.mp4', '.mov', '.avi', '.wmv', '.flv', '.webm', '.mkv', '.m4v'];
     const isVideo = videoExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
-    
+
     if (!isVideo) {
       toast({
         title: "Invalid File Type",
@@ -205,7 +334,6 @@ export default function CompanyOfferDetail() {
       return;
     }
 
-    // Validate file size (500MB)
     if (file.size > 524288000) {
       toast({
         title: "File Too Large",
@@ -215,26 +343,20 @@ export default function CompanyOfferDetail() {
       return;
     }
 
-    // Start uploading
     setIsUploading(true);
 
     try {
-      // Get Cloudinary upload parameters
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folder: "creatorlink/videos", resourceType: "video" }),
       });
       const uploadData = await uploadResponse.json();
 
-      // Create FormData for Cloudinary upload
       const formData = new FormData();
       formData.append('file', file);
 
-      // Add Cloudinary parameters
       if (uploadData.uploadPreset) {
         formData.append('upload_preset', uploadData.uploadPreset);
       } else if (uploadData.signature) {
@@ -247,7 +369,6 @@ export default function CompanyOfferDetail() {
         formData.append('folder', uploadData.folder);
       }
 
-      // Upload video to Cloudinary
       const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "POST",
         body: formData,
@@ -256,28 +377,23 @@ export default function CompanyOfferDetail() {
       if (uploadResult.ok) {
         const cloudinaryResponse = await uploadResult.json();
         const uploadedVideoUrl = cloudinaryResponse.secure_url;
-        
+
         toast({
           title: "Video Uploaded",
           description: "Generating thumbnail...",
         });
 
-        // Generate thumbnail from the uploaded video
         try {
           const thumbnailBlob = await generateThumbnail(uploadedVideoUrl);
-          
-          // Get fresh upload parameters for thumbnail
+
           const thumbUploadResponse = await fetch("/api/objects/upload", {
             method: "POST",
             credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ folder: "creatorlink/videos/thumbnails", resourceType: "image" }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
-          // Upload thumbnail to Cloudinary
           const thumbnailFormData = new FormData();
           thumbnailFormData.append('file', thumbnailBlob, 'thumbnail.jpg');
 
@@ -301,17 +417,16 @@ export default function CompanyOfferDetail() {
           if (thumbnailUploadResult.ok) {
             const thumbnailResponse = await thumbnailUploadResult.json();
             const uploadedThumbnailUrl = thumbnailResponse.secure_url;
-            
+
             setVideoUrl(uploadedVideoUrl);
             setThumbnailUrl(uploadedThumbnailUrl);
             setIsUploading(false);
-            
+
             toast({
               title: "Success!",
               description: "Video and thumbnail uploaded successfully. Fill in the details below.",
             });
           } else {
-            // Thumbnail upload failed, but video is uploaded
             setVideoUrl(uploadedVideoUrl);
             setIsUploading(false);
             toast({
@@ -320,8 +435,6 @@ export default function CompanyOfferDetail() {
             });
           }
         } catch (thumbnailError) {
-          // Thumbnail generation failed, but video is uploaded
-          console.error('Thumbnail generation error:', thumbnailError);
           setVideoUrl(uploadedVideoUrl);
           setIsUploading(false);
           toast({
@@ -343,7 +456,6 @@ export default function CompanyOfferDetail() {
   }, [toast]);
 
   const handleSubmitVideo = useCallback(() => {
-    // Validation
     if (!videoUrl) {
       toast({
         title: "Video Required",
@@ -357,24 +469,6 @@ export default function CompanyOfferDetail() {
       toast({
         title: "Title Required",
         description: "Please provide a title for your video",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (videoTitle.length > 100) {
-      toast({
-        title: "Title Too Long",
-        description: "Video title must be 100 characters or less",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (videoDescription.length > 500) {
-      toast({
-        title: "Description Too Long",
-        description: "Video description must be 500 characters or less",
         variant: "destructive",
       });
       return;
@@ -394,7 +488,6 @@ export default function CompanyOfferDetail() {
   const canAddMoreVideos = videoCount < 12;
   const hasMinimumVideos = videoCount >= 6;
 
-  // Memoize the video uploader to prevent re-renders that cause input focus loss
   const VideoUploader = useMemo(() => (
     <div className="relative">
       <input
@@ -414,31 +507,20 @@ export default function CompanyOfferDetail() {
         <div className="flex flex-col items-center gap-2">
           {isUploading ? (
             <>
-              <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                <Upload className="h-6 w-6 text-blue-600 dark:text-blue-400 animate-pulse" />
+              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <Upload className="h-6 w-6 text-blue-600 animate-pulse" />
               </div>
-              <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
+              <div className="text-sm font-medium text-blue-600">
                 Uploading Video...
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Please wait while your video is being uploaded
               </div>
             </>
           ) : videoUrl ? (
             <>
-              <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                <Video className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                <Video className="h-6 w-6 text-green-600" />
               </div>
-              <div className="text-sm font-medium text-green-600 dark:text-green-400">
+              <div className="text-sm font-medium text-green-600">
                 Video Ready ✓
-              </div>
-              {thumbnailUrl && (
-                <div className="text-xs text-green-600 dark:text-green-400">
-                  Thumbnail generated ✓
-                </div>
-              )}
-              <div className="text-xs text-muted-foreground">
-                Click to select a different video
               </div>
             </>
           ) : (
@@ -452,244 +534,337 @@ export default function CompanyOfferDetail() {
               <div className="text-xs text-muted-foreground">
                 MP4, MOV, AVI, WebM (max 500MB)
               </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Video will upload automatically after selection
-              </div>
             </>
           )}
         </div>
       </label>
     </div>
-  ), [videoUrl, thumbnailUrl, isUploading, handleFileSelect]);
+  ), [videoUrl, isUploading, handleFileSelect]);
 
+  // Loading state
   if (isLoading || offerLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-lg">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <TopNavBar />
+        <DetailPageSkeleton />
       </div>
     );
   }
 
+  // Not found state
   if (!offer) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <h2 className="text-2xl font-bold">Offer not found</h2>
-        <Link href="/company/offers">
-          <Button>Back to My Offers</Button>
-        </Link>
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="max-w-md">
+          <CardContent className="p-12 text-center">
+            <p className="text-muted-foreground mb-4">Offer not found</p>
+            <Button onClick={() => setLocation("/company/offers")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to My Offers
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // Get company info from the offer
   const company = offer.company;
-  const companyName = company?.tradeName || company?.legalName || "Company";
-  const companyLogo = company?.logoUrl;
-  const companyInitials = companyName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const companyName = company?.tradeName || company?.legalName || "My Company";
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
       <TopNavBar />
-      <div className="flex items-center gap-4">
-        <Link href="/company/offers">
-          <Button variant="ghost" size="icon" data-testid="button-back">
+
+      {/* Top Navigation Bar */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setLocation("/company/offers")}
+            className="h-10 w-10 rounded-full hover:bg-accent"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold">{offer.title}</h1>
-          <p className="text-muted-foreground mt-1">{offer.productName}</p>
+
+          <Link href={`/company/offers/${offerId}/edit`}>
+            <Button variant="outline" className="gap-2">
+              <Edit className="h-4 w-4" />
+              <span className="hidden sm:inline">Edit Offer</span>
+            </Button>
+          </Link>
         </div>
-        <Badge
-          variant={offer.status === 'approved' ? 'default' : 'secondary'}
-          data-testid="badge-status"
-        >
-          {offer.status}
-        </Badge>
       </div>
 
-      {/* NEW: Company Information Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Company Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              {companyLogo ? (
-                <AvatarImage src={companyLogo} alt={companyName} />
-              ) : null}
-              <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-                {companyInitials}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h3 className="text-xl font-semibold">{companyName}</h3>
-              {company?.industry && (
-                <p className="text-sm text-muted-foreground">{company.industry}</p>
-              )}
-              {company?.websiteUrl && (
-                <a 
-                  href={company.websiteUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline"
-                >
-                  {company.websiteUrl}
-                </a>
-              )}
+      {/* Hero Section with Gradient Background */}
+      <div className="relative">
+        <div className="h-[280px] sm:h-[320px] relative overflow-hidden">
+          {offer.featuredImageUrl ? (
+            <div className="absolute inset-0">
+              <img
+                src={proxiedSrc(offer.featuredImageUrl)}
+                alt={offer.title}
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-gray-50" />
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Applications</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{offerApplications.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">View Count</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{offer.viewCount || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Commission</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {offer.commissionPercentage ? `${offer.commissionPercentage}%` : 
-               offer.commissionAmount ? `$${offer.commissionAmount}` : 'N/A'}
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/20 to-background">
+              <div
+                className="absolute inset-0 opacity-10"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+                }}
+              />
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Created</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm font-bold">
-              {new Date(offer.createdAt).toLocaleDateString()}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Offer Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Featured Image */}
-          {offer.featuredImageUrl && (
-            <div>
-              <h3 className="font-semibold mb-2">Featured Image</h3>
-              <div className="aspect-video relative bg-muted rounded-lg overflow-hidden max-w-2xl">
-                <img
-                  src={proxiedSrc(offer.featuredImageUrl)}
-                  alt={offer.title}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                  crossOrigin="anonymous"
-                  loading="lazy"
-                  decoding="async"
-                  onError={(e) => {
-                    console.error(`Failed to load featured image for: ${offer.title}`);
-                    (e.target as HTMLImageElement).style.display = 'none';
-                    const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                    if (fallback) (fallback as HTMLElement).style.display = 'flex';
-                  }}
-                />
-                <div
-                  className="w-full h-full flex items-center justify-center bg-muted"
-                  style={{ display: 'none' }}
-                >
-                  <Package className="h-16 w-16 text-muted-foreground/30" />
+        {/* Company Info Card - Overlapping Hero */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="relative -mt-28 sm:-mt-32">
+            <Card className="border-2 shadow-2xl rounded-2xl">
+              <CardContent className="p-6 sm:p-8">
+                {/* Company Logo Circle */}
+                <div className="flex justify-start -mt-16 sm:-mt-20 mb-6 ml-4">
+                  <div className="relative">
+                    <Avatar className="h-32 w-32 sm:h-36 sm:w-36 border-4 border-background shadow-2xl ring-2 ring-primary/20">
+                      <AvatarImage
+                        src={company?.logoUrl}
+                        alt={companyName}
+                      />
+                      <AvatarFallback className="text-3xl sm:text-4xl font-bold bg-gradient-to-br from-primary to-purple-600 text-white">
+                        {companyName[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
 
-          <div>
-            <h3 className="font-semibold mb-2">Short Description</h3>
-            <p className="text-muted-foreground">{offer.shortDescription}</p>
+                {/* Title & Status */}
+                <div className="text-left mb-8">
+                  <div className="flex items-center gap-3 mb-3">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
+                      {offer.title}
+                    </h1>
+                    <Badge
+                      variant={offer.status === 'approved' ? 'default' : 'secondary'}
+                      className="px-3 py-1 text-sm"
+                    >
+                      {offer.status}
+                    </Badge>
+                  </div>
+
+                  {offer.company?.tradeName && (
+                    <p className="text-gray-600 text-base sm:text-lg">
+                      by {offer.company.tradeName}
+                    </p>
+                  )}
+                </div>
+
+                {/* Commission Card */}
+                <div className="bg-white rounded-2xl p-6 sm:p-8 mb-8 border-2 border-gray-200 shadow-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-3 mb-2">
+                        <div className="text-5xl sm:text-6xl font-bold text-green-600">
+                          {formatCommission(offer)}
+                        </div>
+                      </div>
+                      <div className="text-lg sm:text-xl text-gray-700 font-medium capitalize mb-4">
+                        {getCommissionTypeLabel(offer)}
+                      </div>
+
+                      {(offer.cookieDuration || offer.averageOrderValue) && (
+                        <div className="flex items-center gap-4 flex-wrap text-sm text-gray-600">
+                          {offer.cookieDuration && (
+                            <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
+                              <Clock className="h-4 w-4 text-gray-600" />
+                              <span className="font-medium">{offer.cookieDuration}-day cookie</span>
+                            </div>
+                          )}
+                          {offer.averageOrderValue && (
+                            <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
+                              <TrendingUp className="h-4 w-4 text-gray-600" />
+                              <span className="font-medium">Avg: ${offer.averageOrderValue}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats Row */}
+                <div className="grid grid-cols-3 gap-4 sm:gap-6 mb-8">
+                  <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
+                      <Users className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                      {offerApplications.length}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Applications</div>
+                  </div>
+
+                  <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
+                      <MousePointer className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                      {offer.viewCount || 0}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Views</div>
+                  </div>
+
+                  <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
+                      <Wallet className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                      {videos.length}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Videos</div>
+                  </div>
+                </div>
+
+                {/* Hashtag Badges */}
+                {(offer.primaryNiche || offer.secondaryNiche) && (
+                  <div className="flex flex-wrap gap-3 pt-8 border-t">
+                    {offer.primaryNiche && (
+                      <Badge variant="secondary" className="text-xs sm:text-sm px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors">
+                        <Hash className="h-4 w-4 mr-1.5" />
+                        {offer.primaryNiche}
+                      </Badge>
+                    )}
+                    {offer.secondaryNiche && (
+                      <Badge variant="secondary" className="text-xs sm:text-sm px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors">
+                        <Hash className="h-4 w-4 mr-1.5" />
+                        {offer.secondaryNiche}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
+        </div>
+      </div>
 
-          <div>
-            <h3 className="font-semibold mb-2">Full Description</h3>
-            <p className="text-muted-foreground whitespace-pre-wrap">{offer.fullDescription}</p>
-          </div>
-
-          {/* NEW: Creator Requirements Section */}
-          {offer.creatorRequirements && (
-            <div>
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Creator Requirements
-              </h3>
-              <div className="bg-muted/50 rounded-lg p-4 border border-border">
-                <p className="text-muted-foreground whitespace-pre-wrap">{offer.creatorRequirements}</p>
-              </div>
-            </div>
-          )}
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <h3 className="font-semibold mb-2">Primary Niche</h3>
-              <Badge variant="outline">{offer.primaryNiche}</Badge>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">Commission Type</h3>
-              <Badge variant="outline">{offer.commissionType?.replace(/_/g, ' ')}</Badge>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-semibold mb-2">Product URL</h3>
-            <a 
-              href={offer.productUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
+      {/* Sticky Tab Navigation */}
+      <div
+        data-sticky-nav
+        className="sticky top-[57px] sm:top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b shadow-sm mt-6 sm:mt-8"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex overflow-x-auto hide-scrollbar gap-8">
+            <button
+              onClick={() => scrollToSection("overview")}
+              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
+                activeSection === "overview"
+                  ? "text-primary"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
             >
-              {offer.productUrl}
-            </a>
+              Overview
+              {activeSection === "overview" && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+              )}
+            </button>
+            <button
+              onClick={() => scrollToSection("videos")}
+              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
+                activeSection === "videos"
+                  ? "text-primary"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Videos
+              {activeSection === "videos" && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+              )}
+            </button>
+            <button
+              onClick={() => scrollToSection("applications")}
+              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
+                activeSection === "applications"
+                  ? "text-primary"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Applications
+              {activeSection === "applications" && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+              )}
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Video className="h-5 w-5" />
-            Promotional Videos
-          </CardTitle>
-          <CardDescription>
-            Upload 6-12 videos showcasing your product. Videos help creators understand and promote your offer.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* Content Sections */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-12 sm:space-y-16">
+        {/* Overview Section */}
+        <div ref={overviewRef} data-section="overview" className="scroll-mt-32">
+          <Card className="rounded-2xl shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-xl sm:text-2xl lg:text-3xl flex items-center gap-3">
+                <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+                About This Offer
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="prose prose-sm sm:prose max-w-none">
+                <p className="text-muted-foreground text-base sm:text-lg whitespace-pre-wrap leading-relaxed">
+                  {offer.fullDescription || offer.description || offer.shortDescription || "No description available."}
+                </p>
+              </div>
+
+              {/* Commission Details Grid */}
+              <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 pt-6 border-t">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl">
+                  <div className="text-xs sm:text-sm text-gray-600 mb-2">Commission Rate</div>
+                  <div className="text-3xl sm:text-4xl font-bold text-green-600 mb-2">
+                    {formatCommission(offer)}
+                  </div>
+                  <Badge variant="secondary" className="mt-2 text-xs capitalize bg-white/60">
+                    {getCommissionTypeLabel(offer)}
+                  </Badge>
+                </div>
+
+                {offer.paymentSchedule && (
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl">
+                    <div className="text-xs sm:text-sm text-gray-600 mb-2">Payment Schedule</div>
+                    <div className="text-xl sm:text-2xl font-bold text-blue-600 capitalize">
+                      {offer.paymentSchedule.replace(/_/g, ' ')}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Videos Section */}
+        <div ref={videosRef} data-section="videos" className="scroll-mt-32">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Video className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              <h2 className="text-xl sm:text-2xl font-bold">
+                Promotional Videos {videos.length > 0 && `(${videos.length})`}
+              </h2>
+            </div>
+            <Button
+              onClick={() => setShowVideoDialog(true)}
+              disabled={!canAddMoreVideos || createVideoMutation.isPending}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Add Video
+            </Button>
+          </div>
+
           {!hasMinimumVideos && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 You need at least 6 videos to publish this offer. Currently: {videoCount}/6
@@ -697,87 +872,129 @@ export default function CompanyOfferDetail() {
             </Alert>
           )}
 
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              {videoCount} of 12 videos uploaded
-            </div>
-            <Button
-              onClick={() => setShowVideoDialog(true)}
-              disabled={!canAddMoreVideos || createVideoMutation.isPending}
-              data-testid="button-add-video"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Add Video
-            </Button>
-          </div>
-
           {videosLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading videos...</div>
-          ) : videos.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No videos uploaded yet. Add your first video to get started.
-            </div>
+            <Card className="rounded-2xl">
+              <CardContent className="p-12 sm:p-16 text-center">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+                <p className="text-muted-foreground">Loading videos...</p>
+              </CardContent>
+            </Card>
+          ) : !videos || videos.length === 0 ? (
+            <Card className="rounded-2xl">
+              <CardContent className="p-12 sm:p-16 text-center">
+                <Video className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-muted-foreground">No videos uploaded yet</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Add promotional videos to help creators understand your offer
+                </p>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {videos.map((video: any) => (
-                <Card key={video.id} className="overflow-hidden">
-                  <CardContent className="p-4 space-y-2">
-                    <div className="aspect-video bg-muted rounded-md relative overflow-hidden">
-                      {video.thumbnailUrl ? (
-                        <>
-                          <img 
-                            src={proxiedSrc(video.thumbnailUrl)} 
-                            alt={video.title}
-                            className="w-full h-full object-cover"
-                            referrerPolicy="no-referrer"
-                            crossOrigin="anonymous"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                            <Play className="h-8 w-8 text-white" />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Video className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                      )}
+                <Card
+                  key={video.id}
+                  className="hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group rounded-xl relative"
+                  onClick={() => setSelectedVideo(video)}
+                >
+                  <div className="aspect-video relative bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 overflow-hidden">
+                    {video.thumbnailUrl ? (
+                      <img
+                        src={proxiedSrc(video.thumbnailUrl)}
+                        alt={video.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Video className="h-12 w-12 text-white/50" />
+                      </div>
+                    )}
+
+                    {/* Play Button Overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                      <div className="bg-white/90 backdrop-blur rounded-full p-3 transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                        <Play className="h-6 w-6 sm:h-8 sm:w-8 text-primary fill-primary" />
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-sm line-clamp-1" data-testid={`text-video-title-${video.id}`}>
-                        {video.title}
-                      </h4>
-                      {video.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {video.description}
-                        </p>
-                      )}
-                      {video.creatorCredit && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Credit: {video.creatorCredit}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => deleteVideoMutation.mutate(video.id)}
-                      disabled={deleteVideoMutation.isPending}
-                      data-testid={`button-delete-video-${video.id}`}
+
+                    {/* Delete Button */}
+                    <button
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteVideoMutation.mutate(video.id);
+                      }}
                     >
-                      <Trash2 className="h-3 w-3 mr-2" />
-                      Delete
-                    </Button>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <CardContent className="p-4">
+                    <h4 className="font-semibold text-sm line-clamp-2 mb-1">
+                      {video.title || "Untitled Video"}
+                    </h4>
+                    {video.creatorCredit && (
+                      <p className="text-xs text-muted-foreground">by {video.creatorCredit}</p>
+                    )}
                   </CardContent>
                 </Card>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
+        {/* Applications Section */}
+        <div ref={applicationsRef} data-section="applications" className="scroll-mt-32">
+          <div className="flex items-center gap-2 mb-6">
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-500" />
+            <h2 className="text-xl sm:text-2xl font-bold">Applications</h2>
+          </div>
+
+          <Card className="rounded-2xl">
+            <CardContent className="p-6 sm:p-8">
+              {offerApplications.length === 0 ? (
+                <div className="text-center py-12">
+                  <CheckCircle2 className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground/20 mx-auto mb-4" />
+                  <p className="text-muted-foreground text-base sm:text-lg font-medium">No applications yet</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Creators will apply to your offer once it's published
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {offerApplications.map((app: any) => (
+                    <div key={app.id} className="border-b pb-8 last:border-0 last:pb-0">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="font-semibold text-lg">
+                            {app.creatorName || 'Creator'}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Applied {new Date(app.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                        <Badge variant={app.status === 'approved' ? 'default' : 'secondary'}>
+                          {app.status}
+                        </Badge>
+                      </div>
+                      {app.message && (
+                        <p className="text-sm text-muted-foreground mb-4">{app.message}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Video Upload Dialog */}
       <Dialog open={showVideoDialog} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -792,16 +1009,6 @@ export default function CompanyOfferDetail() {
                 Video File <span className="text-destructive">*</span>
               </Label>
               {VideoUploader}
-              {!videoUrl && !isUploading && (
-                <p className="text-xs text-muted-foreground">
-                  Select a video file to automatically upload, then fill in the details below
-                </p>
-              )}
-              {videoUrl && (
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  ✓ Video uploaded successfully. {thumbnailUrl && 'Thumbnail generated automatically.'} Now fill in the details and click "Add Video"
-                </p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -814,11 +1021,7 @@ export default function CompanyOfferDetail() {
                 onChange={(e) => setVideoTitle(e.target.value)}
                 placeholder="e.g., Product Demo, Tutorial, Review"
                 maxLength={100}
-                data-testid="input-video-title"
               />
-              <p className="text-xs text-muted-foreground">
-                {videoTitle.length}/100 characters
-              </p>
             </div>
 
             <div className="space-y-2">
@@ -830,11 +1033,7 @@ export default function CompanyOfferDetail() {
                 placeholder="Provide a brief description of what this video shows..."
                 rows={4}
                 maxLength={500}
-                data-testid="input-video-description"
               />
-              <p className="text-xs text-muted-foreground">
-                {videoDescription.length}/500 characters
-              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -845,11 +1044,7 @@ export default function CompanyOfferDetail() {
                   value={creatorCredit}
                   onChange={(e) => setCreatorCredit(e.target.value)}
                   placeholder="@username or creator name"
-                  data-testid="input-creator-credit"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Optional: Credit the original creator
-                </p>
               </div>
 
               <div className="space-y-2">
@@ -859,11 +1054,7 @@ export default function CompanyOfferDetail() {
                   value={originalPlatform}
                   onChange={(e) => setOriginalPlatform(e.target.value)}
                   placeholder="TikTok, Instagram, YouTube"
-                  data-testid="input-original-platform"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Optional: Where was this posted?
-                </p>
               </div>
             </div>
           </div>
@@ -872,67 +1063,60 @@ export default function CompanyOfferDetail() {
               variant="outline"
               onClick={() => handleDialogOpenChange(false)}
               disabled={createVideoMutation.isPending}
-              data-testid="button-cancel-video"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSubmitVideo}
               disabled={!videoUrl || !videoTitle || isUploading || createVideoMutation.isPending}
-              data-testid="button-submit-video"
             >
-              {createVideoMutation.isPending ? (
-                <>
-                  <Upload className="h-4 w-4 mr-2 animate-pulse" />
-                  Adding Video...
-                </>
-              ) : isUploading ? (
-                <>
-                  <Upload className="h-4 w-4 mr-2 animate-pulse" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Video className="h-4 w-4 mr-2" />
-                  Add Video
-                </>
-              )}
+              {createVideoMutation.isPending ? "Adding..." : "Add Video"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {offerApplications.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Applications</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {offerApplications.slice(0, 5).map((app: any) => (
-                <div key={app.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                  <div>
-                    <p className="font-medium">{app.creatorName || 'Creator'}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(app.createdAt).toLocaleDateString()}
-                    </p>
+      {/* Video Player Dialog */}
+      {selectedVideo && (
+        <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{selectedVideo.title || "Video"}</DialogTitle>
+              {selectedVideo.description && (
+                <DialogDescription>{selectedVideo.description}</DialogDescription>
+              )}
+            </DialogHeader>
+            <div className="aspect-video bg-black rounded-lg overflow-hidden">
+              {selectedVideo.videoUrl ? (
+                <video
+                  src={proxiedSrc(selectedVideo.videoUrl)}
+                  controls
+                  autoPlay
+                  className="w-full h-full"
+                  crossOrigin="anonymous"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white">
+                  <div className="text-center">
+                    <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <p>Video not available</p>
                   </div>
-                  <Badge variant={app.status === 'approved' ? 'default' : 'secondary'}>
-                    {app.status}
-                  </Badge>
                 </div>
-              ))}
+              )}
             </div>
-            {offerApplications.length > 5 && (
-              <Link href="/company/applications">
-                <Button variant="outline" className="w-full mt-4" data-testid="button-view-all">
-                  View All Applications
-                </Button>
-              </Link>
-            )}
-          </CardContent>
-        </Card>
+          </DialogContent>
+        </Dialog>
       )}
+
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }
