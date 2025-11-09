@@ -2250,16 +2250,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allUsers = await storage.getAllUsers();
       const activeOffers = await storage.getOffers({ status: 'approved' });
 
-      // Calculate users created in the last 7 days
+      // Split users by role
+      const creators = allUsers.filter(user => user.role === 'creator');
+      const companies = allUsers.filter(user => user.role === 'company');
+
+      // Calculate new users created in the last 7 days
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      const newUsersThisWeek = allUsers.filter(user =>
+      const newCreatorsThisWeek = creators.filter(user =>
+        user.createdAt && new Date(user.createdAt) >= oneWeekAgo
+      ).length;
+      const newCompaniesThisWeek = companies.filter(user =>
         user.createdAt && new Date(user.createdAt) >= oneWeekAgo
       ).length;
 
       const stats = {
-        totalUsers: allUsers.length,
-        newUsersThisWeek: newUsersThisWeek,
+        totalCreators: creators.length,
+        totalCompanies: companies.length,
+        newCreatorsThisWeek: newCreatorsThisWeek,
+        newCompaniesThisWeek: newCompaniesThisWeek,
         pendingCompanies: pendingCompanies.length,
         pendingOffers: pendingOffers.length,
         activeOffers: activeOffers.length,
