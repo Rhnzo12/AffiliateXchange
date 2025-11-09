@@ -4,6 +4,7 @@ import { useToast } from "../hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { isUnauthorizedError } from "../lib/authUtils";
+import { Link } from "wouter";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -247,32 +248,48 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {payments.map((payment) => (
-                  <tr key={payment.id} className="transition hover:bg-gray-50">
+                  <tr key={payment.id} className="transition hover:bg-gray-50 cursor-pointer">
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      {payment.id.slice(0, 8)}...
+                      <Link href={`/payments/${payment.id}`} className="block hover:text-primary">
+                        {payment.id.slice(0, 8)}...
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                      {payment.description || "Payment"}
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        {payment.description || "Payment"}
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      ${parseFloat(payment.grossAmount).toFixed(2)}
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        ${parseFloat(payment.grossAmount).toFixed(2)}
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-red-600">
-                      -${parseFloat(payment.platformFeeAmount).toFixed(2)}
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        -${parseFloat(payment.platformFeeAmount).toFixed(2)}
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-red-600">
-                      -${parseFloat(payment.stripeFeeAmount).toFixed(2)}
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        -${parseFloat(payment.stripeFeeAmount).toFixed(2)}
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-bold text-green-600">
-                      ${parseFloat(payment.netAmount).toFixed(2)}
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        ${parseFloat(payment.netAmount).toFixed(2)}
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <StatusBadge status={payment.status} />
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        <StatusBadge status={payment.status} />
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
-                      {payment.completedAt
-                        ? new Date(payment.completedAt).toLocaleDateString()
-                        : new Date(payment.createdAt).toLocaleDateString()}
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        {payment.completedAt
+                          ? new Date(payment.completedAt).toLocaleDateString()
+                          : new Date(payment.createdAt).toLocaleDateString()}
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -1095,35 +1112,49 @@ function AdminPaymentDashboard({
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {filteredPayments.map((payment) => (
-                  <tr key={payment.id} className="transition hover:bg-gray-50">
+                  <tr key={payment.id} className="transition hover:bg-gray-50 cursor-pointer">
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      {payment.id.slice(0, 8)}...
+                      <Link href={`/payments/${payment.id}`} className="block hover:text-primary">
+                        {payment.id.slice(0, 8)}...
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                      {payment.description || "Payment"}
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        {payment.description || "Payment"}
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      ${parseFloat(payment.grossAmount).toFixed(2)}
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        ${parseFloat(payment.grossAmount).toFixed(2)}
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-purple-600">
-                      ${(parseFloat(payment.platformFeeAmount) + parseFloat(payment.stripeFeeAmount)).toFixed(2)}
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        ${(parseFloat(payment.platformFeeAmount) + parseFloat(payment.stripeFeeAmount)).toFixed(2)}
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-green-600">
-                      ${parseFloat(payment.netAmount).toFixed(2)}
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        ${parseFloat(payment.netAmount).toFixed(2)}
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <StatusBadge status={payment.status} />
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        <StatusBadge status={payment.status} />
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
-                      {payment.completedAt
-                        ? new Date(payment.completedAt).toLocaleDateString()
-                        : new Date(payment.createdAt).toLocaleDateString()}
+                      <Link href={`/payments/${payment.id}`} className="block">
+                        {payment.completedAt
+                          ? new Date(payment.completedAt).toLocaleDateString()
+                          : new Date(payment.createdAt).toLocaleDateString()}
+                      </Link>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm">
+                    <td className="whitespace-nowrap px-6 py-4 text-sm" onClick={(e) => e.stopPropagation()}>
                       {payment.status === 'pending' && (
                         <Button
                           size="sm"
-                          onClick={() => handleApprovePayment(payment)}
+                          onClick={(e) => { e.preventDefault(); handleApprovePayment(payment); }}
                           disabled={processPaymentMutation.isPending}
                           className="bg-green-600 hover:bg-green-700 text-white"
                         >
@@ -1134,7 +1165,7 @@ function AdminPaymentDashboard({
                       {payment.status === 'processing' && (
                         <Button
                           size="sm"
-                          onClick={() => handleApprovePayment(payment)}
+                          onClick={(e) => { e.preventDefault(); handleApprovePayment(payment); }}
                           disabled={processPaymentMutation.isPending}
                           className="bg-blue-600 hover:bg-blue-700 text-white"
                         >
@@ -1149,7 +1180,7 @@ function AdminPaymentDashboard({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => markProcessingMutation.mutate(payment.id)}
+                          onClick={(e) => { e.preventDefault(); markProcessingMutation.mutate(payment.id); }}
                           disabled={markProcessingMutation.isPending}
                         >
                           Retry
