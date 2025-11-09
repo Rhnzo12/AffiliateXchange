@@ -217,17 +217,24 @@ export default function CompanyOffers() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {offers.map((offer: any) => {
               const category = getOfferCategory(offer);
+              const isRetainer = offer.commissionType === 'monthly_retainer';
 
               return (
                 <Link key={offer.id} href={`/company/offers/${offer.id}`}>
                   <Card
-                    className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full relative"
+                    className={`group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full relative ${
+                      isRetainer ? 'ring-2 ring-purple-400/50 hover:ring-purple-500 hover:shadow-purple-500/20' : ''
+                    }`}
                     data-testid={`card-offer-${offer.id}`}
                   >
                   {/* Thumbnail Container with Logo */}
                   <div className="relative">
                     {/* Thumbnail */}
-                    <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-purple-100 to-pink-100 rounded-t-lg">
+                    <div className={`aspect-video relative overflow-hidden rounded-t-lg ${
+                      isRetainer
+                        ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100'
+                        : 'bg-gradient-to-br from-purple-100 to-pink-100'
+                    }`}>
                       {offer.featuredImageUrl ? (
                         <img
                           src={proxiedSrc(offer.featuredImageUrl)}
@@ -356,10 +363,14 @@ export default function CompanyOffers() {
                     {/* Commission and Stats */}
                     <div className="flex items-end justify-between pt-2">
                       <div>
-                        <div className="text-2xl font-bold text-green-600">
+                        <div className={`text-2xl font-bold ${
+                          isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-green-600'
+                        } transition-colors`}>
                           {formatCommission(offer)}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className={`text-xs ${
+                          isRetainer ? 'text-purple-600/70 font-medium' : 'text-muted-foreground'
+                        }`}>
                           {getCommissionTypeLabel(offer)}
                         </div>
                       </div>
