@@ -2790,6 +2790,7 @@ export class DatabaseStorage implements IStorage {
   // Notifications
   async createNotification(notification: InsertNotification): Promise<Notification> {
     try {
+      console.log(`[Storage] Creating notification for user ${notification.userId}, type: ${notification.type}`);
       const result = await db
         .insert(notifications)
         .values({
@@ -2798,18 +2799,22 @@ export class DatabaseStorage implements IStorage {
           createdAt: new Date(),
         })
         .returning();
+      console.log(`[Storage] Notification created successfully:`, result[0]);
       return result[0];
     } catch (error) {
+      console.error(`[Storage] Error creating notification:`, error);
       if (isLegacyNotificationColumnError(error)) {
         console.warn(
           "[Storage] notifications column mismatch while creating notification - returning ephemeral notification.",
         );
+        console.warn("[Storage] WARNING: Ephemeral notifications are NOT persisted to database!");
         return buildEphemeralNotification(notification);
       }
       if (isMissingNotificationSchema(error)) {
         console.warn(
           "[Storage] notifications relation missing while creating notification - returning ephemeral notification.",
         );
+        console.warn("[Storage] WARNING: Ephemeral notifications are NOT persisted to database!");
         return buildEphemeralNotification(notification);
       }
       throw error;
