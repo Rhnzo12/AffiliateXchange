@@ -501,6 +501,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'pending_review',
       });
 
+      // Notify admins about new offer pending review
+      const companyUser = await storage.getUserById(userId);
+      const adminUsers = await storage.getUsersByRole('admin');
+      for (const admin of adminUsers) {
+        await notificationService.sendNotification(
+          admin.id,
+          'new_application',
+          'New Offer Pending Review',
+          `${companyProfile.legalName || companyProfile.tradeName} has submitted a new offer "${offer.title}" for review.`,
+          {
+            userName: admin.firstName || admin.username,
+            companyName: companyProfile.legalName || companyProfile.tradeName || '',
+            offerTitle: offer.title,
+            offerId: offer.id,
+          }
+        );
+      }
+      console.log(`[Notification] Notified admins about new offer ${offer.id} pending review`);
+
       res.json(offer);
     } catch (error: any) {
       if (error.name === 'ZodError') {
@@ -864,6 +883,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         );
       }
+
+      // Send notification to admins about new payment to process
+      const adminUsers = await storage.getUsersByRole('admin');
+      for (const admin of adminUsers) {
+        await notificationService.sendNotification(
+          admin.id,
+          'payment_pending',
+          'New Affiliate Payment Ready for Processing',
+          `A payment of $${netAmount.toFixed(2)} for creator ${creator?.username || 'Unknown'} on "${offer.title}" is ready for processing.`,
+          {
+            userName: admin.firstName || admin.username,
+            offerTitle: offer.title,
+            amount: `$${netAmount.toFixed(2)}`,
+            paymentId: payment.id,
+          }
+        );
+      }
+      console.log(`[Notification] Notified admins about new affiliate payment ${payment.id}`);
 
       res.json({ application: completed, payment });
     } catch (error: any) {
