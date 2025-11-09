@@ -425,7 +425,7 @@ export default function Browse() {
                             <img
                               src={proxiedSrc(offer.featuredImageUrl)}
                               alt={offer.title}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                               referrerPolicy="no-referrer"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
@@ -577,7 +577,7 @@ export default function Browse() {
                             <img
                               src={proxiedSrc(offer.featuredImageUrl)}
                               alt={offer.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                               referrerPolicy="no-referrer"
                               onError={(e) => {
                                 console.error(`Image failed to load: ${offer.title}`, offer.featuredImageUrl);
