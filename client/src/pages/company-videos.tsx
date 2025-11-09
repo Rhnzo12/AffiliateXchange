@@ -16,7 +16,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
-import { Play, Trash2, ExternalLink } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import { Play, Trash2, ExternalLink, Video } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
 import { useState } from "react";
 import { TopNavBar } from "../components/TopNavBar";
@@ -201,22 +208,31 @@ export default function CompanyVideos() {
 
       {/* Video Preview Dialog */}
       {selectedVideo && (
-        <AlertDialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
-          <AlertDialogContent className="max-w-4xl">
-            <AlertDialogHeader>
-              <AlertDialogTitle>{selectedVideo.title}</AlertDialogTitle>
+        <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{selectedVideo.title || "Video"}</DialogTitle>
               {selectedVideo.description && (
-                <AlertDialogDescription>{selectedVideo.description}</AlertDialogDescription>
+                <DialogDescription>{selectedVideo.description}</DialogDescription>
               )}
-            </AlertDialogHeader>
-            <div className="w-full">
-              <VideoPlayer
-                videoUrl={selectedVideo.videoUrl}
-                thumbnail={selectedVideo.thumbnailUrl}
-                autoPlay
-                className="aspect-video w-full"
-              />
-            </div>
+            </DialogHeader>
+            {selectedVideo.videoUrl ? (
+              <div className="w-full">
+                <VideoPlayer
+                  videoUrl={selectedVideo.videoUrl}
+                  thumbnail={selectedVideo.thumbnailUrl}
+                  autoPlay
+                  className="aspect-video w-full"
+                />
+              </div>
+            ) : (
+              <div className="aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center text-white">
+                <div className="text-center">
+                  <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p>Video not available</p>
+                </div>
+              </div>
+            )}
             {(selectedVideo.creatorCredit || selectedVideo.originalPlatform) && (
               <div className="flex gap-4 text-sm text-muted-foreground">
                 {selectedVideo.creatorCredit && (
@@ -227,11 +243,8 @@ export default function CompanyVideos() {
                 )}
               </div>
             )}
-            <AlertDialogFooter>
-              <AlertDialogCancel>Close</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
