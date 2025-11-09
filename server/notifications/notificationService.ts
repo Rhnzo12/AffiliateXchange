@@ -99,7 +99,14 @@ export class NotificationService {
         return '/applications';
 
       case 'new_application':
-        // Company: go to applications page, optionally filtered to show the specific application
+        // Admin: go to offers page to review (new_application is used for admins reviewing new offers)
+        // Company: go to applications page
+        if (userRole === 'admin') {
+          if (data.offerId) {
+            return `/admin/offers?highlight=${data.offerId}`;
+          }
+          return '/admin/offers';
+        }
         if (data.applicationId) {
           return `/company/applications?highlight=${data.applicationId}`;
         }
@@ -127,7 +134,11 @@ export class NotificationService {
       case 'payment_disputed':
       case 'payment_failed_insufficient_funds':
       case 'work_completion_approval':
-        // ✅ FIXED: Link to specific payment detail page if paymentId is provided
+        // Admin: go to payment settings to process payments
+        if (userRole === 'admin') {
+          return '/payment-settings';
+        }
+        // Creator: link to specific payment detail page if paymentId is provided
         if (data.paymentId) {
           return `/payments/${data.paymentId}`;
         }

@@ -364,7 +364,9 @@ export function offerRejectedEmail(data: EmailTemplateData): { subject: string; 
 }
 
 export function newApplicationEmail(data: EmailTemplateData): { subject: string; html: string } {
-  const subject = `New application for "${data.offerTitle}"`;
+  const subject = data.offerTitle
+    ? `New offer pending review: "${data.offerTitle}"`
+    : `New application for "${data.offerTitle}"`;
 
   const html = `
     <!DOCTYPE html>
@@ -375,13 +377,18 @@ export function newApplicationEmail(data: EmailTemplateData): { subject: string;
     <body>
       <div class="container">
         <div class="header">
-          <h1>New Application Received</h1>
+          <h1>${data.companyName ? 'New Offer Pending Review' : 'New Application Received'}</h1>
         </div>
         <div class="content">
           <p>Hi ${data.userName},</p>
-          <p>You've received a new application for your offer <strong>"${data.offerTitle}"</strong>.</p>
-          <p>Review the creator's profile and application to make your decision.</p>
-          <a href="${data.linkUrl || '/company-applications'}" class="button">View Application</a>
+          ${data.companyName ? `
+            <p>${data.companyName} has submitted a new offer <strong>"${data.offerTitle}"</strong> for review.</p>
+            <p>Please review and approve or reject this offer.</p>
+          ` : `
+            <p>You've received a new application for your offer <strong>"${data.offerTitle}"</strong>.</p>
+            <p>Review the creator's profile and application to make your decision.</p>
+          `}
+          <a href="${data.linkUrl || (data.companyName ? '/admin/offers' : '/company/applications')}" class="button">${data.companyName ? 'Review Offer' : 'View Application'}</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
@@ -628,7 +635,7 @@ export function paymentPendingEmail(data: EmailTemplateData): { subject: string;
             <p style="margin: 0; font-weight: 600; color: #92400E;">Action Required</p>
             <p style="margin: 5px 0 0 0; color: #78350F; font-size: 14px;">Please review and process this payment at your earliest convenience.</p>
           </div>
-          <a href="${data.linkUrl || '/admin/payments'}" class="button" style="background-color: #F59E0B;">Review Payment</a>
+          <a href="${data.linkUrl || '/payment-settings'}" class="button" style="background-color: #F59E0B;">Review Payment</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
