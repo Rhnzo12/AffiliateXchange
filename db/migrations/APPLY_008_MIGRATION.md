@@ -1,15 +1,16 @@
-# Apply Migration 008: Add payment_failed_insufficient_funds Notification Type
+# Apply Migration 008: Add Payment Notification Types
 
 ## Problem
-The database error:
+The database errors:
 ```
 invalid input value for enum notification_type: "payment_failed_insufficient_funds"
+invalid input value for enum notification_type: "payment_approved"
 ```
 
-This occurs because the `notification_type` enum in the database doesn't include the `payment_failed_insufficient_funds` value.
+These occur because the `notification_type` enum in the database doesn't include these values.
 
 ## Solution
-Run the migration to add this value to the enum.
+Run the migration to add both notification types to the enum.
 
 ## How to Run the Migration
 
@@ -27,29 +28,36 @@ psql $DATABASE_URL -f db/migrations/008_add_insufficient_funds_notification.sql
 Connect to your PostgreSQL database and run:
 ```sql
 ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'payment_failed_insufficient_funds';
+ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'payment_approved';
 ```
 
 ### Option 4: Using your database client (Neon, Supabase, etc.)
 1. Open your database client (e.g., Neon Console, pgAdmin, DBeaver)
 2. Connect to your database
-3. Execute this SQL:
+3. Execute these SQL commands:
    ```sql
    ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'payment_failed_insufficient_funds';
+   ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'payment_approved';
    ```
 
 ## Verification
 After running the migration:
 1. Restart your server
-2. Trigger an insufficient funds notification
+2. Process a payment (successful or failed)
 3. Check the logs - you should see:
    ```
    [Storage] Notification created successfully: ...
    [Notifications] In-app notification created for user...
    ```
-4. Check the company's notification bell - it should show the notification!
+4. Check the company's notification bell - notifications should appear!
 
 ## What This Fixes
 - ✅ In-app notifications for insufficient funds will be created and saved to database
-- ✅ Company users will see notifications in the notification bell
+- ✅ In-app notifications for successful payments will be created and saved to database
+- ✅ Company users will see both success and failure notifications in the notification bell
 - ✅ Clicking notifications will navigate to payment details
 - ✅ Email notifications already work (this fixes the in-app part)
+
+## Notification Types Added
+1. **payment_failed_insufficient_funds** - When PayPal account has insufficient funds
+2. **payment_approved** - When payment is successfully sent to creator
