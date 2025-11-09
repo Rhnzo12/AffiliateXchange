@@ -811,6 +811,8 @@ function AdminPaymentDashboard({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [paymentToProcess, setPaymentToProcess] = useState<CreatorPayment | null>(null);
+  const [insufficientFundsDialogOpen, setInsufficientFundsDialogOpen] = useState(false);
+  const [failedPayment, setFailedPayment] = useState<CreatorPayment | null>(null);
 
   const allPayments = payments;
 
@@ -920,7 +922,7 @@ function AdminPaymentDashboard({
         description: "Payment processed and sent to creator",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, paymentId: string) => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/all"] });
 
       // Extract clean error message
@@ -929,12 +931,22 @@ function AdminPaymentDashboard({
       // Check if it's an insufficient funds error
       const isInsufficientFunds = errorMsg.toLowerCase().includes('insufficient funds');
 
-      toast({
-        title: isInsufficientFunds ? "Insufficient PayPal Balance" : "Payment Failed",
-        description: errorMsg,
-        variant: "destructive",
-        duration: isInsufficientFunds ? 8000 : 5000, // Show longer for insufficient funds
-      });
+      if (isInsufficientFunds) {
+        // Find the payment that failed
+        const payment = allPayments.find(p => p.id === paymentId);
+        if (payment) {
+          setFailedPayment(payment);
+        }
+        setInsufficientFundsDialogOpen(true);
+      } else {
+        // Show error toast for other types of errors
+        toast({
+          title: "Payment Failed",
+          description: errorMsg,
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
     },
   });
 
@@ -1195,6 +1207,64 @@ function AdminPaymentDashboard({
               className="bg-green-600 hover:bg-green-700"
             >
               Confirm & Process Payment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Insufficient Funds Dialog */}
+      <AlertDialog open={insufficientFundsDialogOpen} onOpenChange={setInsufficientFundsDialogOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-blue-900">
+              <DollarSign className="h-6 w-6 text-blue-600" />
+              PayPal Account Needs Funding
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 pt-3">
+              <div className="rounded-lg bg-blue-50 border-2 border-blue-200 p-4">
+                <p className="text-gray-800 leading-relaxed">
+                  Your PayPal business account doesn't have enough funds to process this payment right now.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-700">Payment Details:</p>
+                <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Amount:</span>
+                    <span className="font-semibold text-gray-900">${failedPayment?.netAmount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Description:</span>
+                    <span className="font-medium text-gray-900">{failedPayment?.description || 'Payment'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Payment ID:</span>
+                    <span className="font-mono text-xs text-gray-700">{failedPayment?.id.slice(0, 12)}...</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-green-50 border border-green-200 p-3">
+                <p className="text-sm font-semibold text-green-900 mb-2">What to do next:</p>
+                <ol className="list-decimal list-inside space-y-1.5 text-sm text-green-800">
+                  <li>Add funds to your PayPal business account</li>
+                  <li>Wait a few moments for the funds to be available</li>
+                  <li>Click the "Retry" button on the failed payment</li>
+                </ol>
+              </div>
+
+              <p className="text-xs text-gray-500 italic">
+                The payment status has been updated to "failed" and you can retry it anytime from the dashboard.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => setInsufficientFundsDialogOpen(false)}
+              className="bg-blue-600 hover:bg-blue-700 w-full"
+            >
+              Got it, I'll add funds
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
