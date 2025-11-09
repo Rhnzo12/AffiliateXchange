@@ -1838,7 +1838,7 @@ export class DatabaseStorage implements IStorage {
       const companyOffers = await db
         .select()
         .from(offers)
-        .where(eq(offers.companyProfileId, companyProfile.id));
+        .where(eq(offers.companyId, companyProfile.id));
 
       if (companyOffers.length === 0) {
         return {
@@ -1900,7 +1900,7 @@ export class DatabaseStorage implements IStorage {
         affiliateSpent: Number(affiliateSpent),
         retainerSpent: Number(retainerSpent),
         activeCreators: activeCreatorsResult[0]?.count || 0,
-        activeOffers: companyOffers.filter(o => o.status === 'active').length,
+        activeOffers: companyOffers.filter(o => o.status === 'approved').length,
       };
     } catch (error) {
       console.error("[getAnalyticsByCompany] Error:", error);
@@ -1929,7 +1929,7 @@ export class DatabaseStorage implements IStorage {
       const companyOffers = await db
         .select()
         .from(offers)
-        .where(eq(offers.companyProfileId, companyProfile.id));
+        .where(eq(offers.companyId, companyProfile.id));
 
       if (companyOffers.length === 0) {
         return [];
