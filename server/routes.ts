@@ -1115,25 +1115,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics routes
   app.get("/api/analytics", requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as any).id;
+      const user = req.user as any;
+      const userId = user.id;
+      const userRole = user.role;
       const dateRange = (req.query.range as string) || '30d';
-      const analyticsData = await storage.getAnalyticsByCreator(userId);
-      const applications = await storage.getApplicationsByCreator(userId);
-      const chartData = await storage.getAnalyticsTimeSeriesByCreator(userId, dateRange);
 
-      const stats = {
-        totalEarnings: analyticsData?.totalEarnings || 0,
-        activeOffers: applications.filter(a => a.status === 'active' || a.status === 'approved').length,
-        totalClicks: analyticsData?.totalClicks || 0,
-        uniqueClicks: analyticsData?.uniqueClicks || 0,
-        conversions: analyticsData?.conversions || 0,
-        conversionRate: analyticsData?.totalClicks > 0 
-          ? ((analyticsData?.conversions || 0) / analyticsData.totalClicks * 100).toFixed(1)
-          : 0,
-        chartData: chartData,
-      };
+      if (userRole === 'company') {
+        // Company analytics
+        const analyticsData = await storage.getAnalyticsByCompany(userId);
+        const chartData = await storage.getAnalyticsTimeSeriesByCompany(userId, dateRange);
 
-      res.json(stats);
+        // Get offer breakdown for company
+        const companyProfile = await storage.getCompanyProfile(userId);
+        const offerBreakdown: any[] = [];
+
+        if (companyProfile) {
+          const companyOffers = await storage.getOffersByCompany(companyProfile.id);
+
+          for (const offer of companyOffers) {
+            const offerApplications = await storage.getApplicationsByOffer(offer.id);
+
+            let offerClicks = 0;
+            let offerConversions = 0;
+            let offerSpent = 0;
+
+            for (const app of offerApplications) {
+              const appAnalytics = await storage.getAnalyticsByApplication(app.id);
+              if (appAnalytics && appAnalytics.length > 0) {
+                const totals = appAnalytics.reduce((acc: any, curr: any) => ({
+                  clicks: acc.clicks + (curr.clicks || 0),
+                  conversions: acc.conversions + (curr.conversions || 0),
+                  earnings: acc.earnings + (curr.earnings || 0),
+                }), { clicks: 0, conversions: 0, earnings: 0 });
+
+                offerClicks += totals.clicks;
+                offerConversions += totals.conversions;
+                offerSpent += totals.earnings;
+              }
+            }
+
+            if (offerClicks > 0 || offerConversions > 0 || offerSpent > 0) {
+              offerBreakdown.push({
+                offerId: offer.id,
+                offerTitle: offer.title,
+                companyName: companyProfile.companyName,
+                clicks: offerClicks,
+                conversions: offerConversions,
+                earnings: offerSpent,
+              });
+            }
+          }
+        }
+
+        const stats = {
+          totalEarnings: analyticsData?.totalSpent || 0,
+          totalSpent: analyticsData?.totalSpent || 0,
+          affiliateSpent: analyticsData?.affiliateSpent || 0,
+          retainerSpent: analyticsData?.retainerSpent || 0,
+          activeOffers: analyticsData?.activeOffers || 0,
+          activeCreators: analyticsData?.activeCreators || 0,
+          totalClicks: analyticsData?.totalClicks || 0,
+          uniqueClicks: analyticsData?.uniqueClicks || 0,
+          conversions: analyticsData?.conversions || 0,
+          conversionRate: analyticsData?.totalClicks > 0
+            ? ((analyticsData?.conversions || 0) / analyticsData.totalClicks * 100).toFixed(1)
+            : 0,
+          chartData: chartData,
+          offerBreakdown: offerBreakdown,
+        };
+
+        res.json(stats);
+      } else {
+        // Creator analytics
+        const analyticsData = await storage.getAnalyticsByCreator(userId);
+        const applications = await storage.getApplicationsByCreator(userId);
+        const chartData = await storage.getAnalyticsTimeSeriesByCreator(userId, dateRange);
+
+        // Get offer breakdown for creator
+        const offerBreakdown: any[] = [];
+
+        for (const app of applications) {
+          if (app.status === 'active' || app.status === 'approved') {
+            const offer = await storage.getOffer(app.offerId);
+            const companyProfile = offer ? await storage.getCompanyProfile(offer.companyId) : null;
+            const appAnalytics = await storage.getAnalyticsByApplication(app.id);
+
+            if (appAnalytics && appAnalytics.length > 0) {
+              const totals = appAnalytics.reduce((acc: any, curr: any) => ({
+                clicks: acc.clicks + (curr.clicks || 0),
+                conversions: acc.conversions + (curr.conversions || 0),
+                earnings: acc.earnings + (curr.earnings || 0),
+              }), { clicks: 0, conversions: 0, earnings: 0 });
+
+              if (totals.clicks > 0 || totals.conversions > 0 || totals.earnings > 0) {
+                offerBreakdown.push({
+                  offerId: offer?.id,
+                  offerTitle: offer?.title || 'Unknown Offer',
+                  companyName: companyProfile?.companyName || 'Unknown Company',
+                  clicks: totals.clicks,
+                  conversions: totals.conversions,
+                  earnings: totals.earnings,
+                });
+              }
+            }
+          }
+        }
+
+        const stats = {
+          totalEarnings: analyticsData?.totalEarnings || 0,
+          affiliateEarnings: analyticsData?.affiliateEarnings || 0,
+          retainerEarnings: analyticsData?.retainerEarnings || 0,
+          activeOffers: applications.filter(a => a.status === 'active' || a.status === 'approved').length,
+          totalClicks: analyticsData?.totalClicks || 0,
+          uniqueClicks: analyticsData?.uniqueClicks || 0,
+          conversions: analyticsData?.conversions || 0,
+          conversionRate: analyticsData?.totalClicks > 0
+            ? ((analyticsData?.conversions || 0) / analyticsData.totalClicks * 100).toFixed(1)
+            : 0,
+          chartData: chartData,
+          offerBreakdown: offerBreakdown,
+        };
+
+        res.json(stats);
+      }
     } catch (error: any) {
       res.status(500).send(error.message);
     }

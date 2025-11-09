@@ -647,6 +647,8 @@ export interface IStorage {
   // Analytics
   getAnalyticsByCreator(creatorId: string): Promise<any>;
   getAnalyticsTimeSeriesByCreator(creatorId: string, dateRange: string): Promise<any[]>;
+  getAnalyticsByCompany(companyId: string): Promise<any>;
+  getAnalyticsTimeSeriesByCompany(companyId: string, dateRange: string): Promise<any[]>;
   getAnalyticsByApplication(applicationId: string): Promise<any[]>;
   logTrackingClick(
     applicationId: string,
@@ -1813,6 +1815,156 @@ export class DatabaseStorage implements IStorage {
       return result || [];
     } catch (error) {
       console.error("[getAnalyticsTimeSeriesByCreator] Error:", error);
+      return [];
+    }
+  }
+
+  async getAnalyticsByCompany(companyId: string): Promise<any> {
+    try {
+      // Get company profile to find offers
+      const companyProfile = await this.getCompanyProfile(companyId);
+      if (!companyProfile) {
+        return {
+          totalClicks: 0,
+          uniqueClicks: 0,
+          conversions: 0,
+          totalSpent: 0,
+          activeCreators: 0,
+          activeOffers: 0,
+        };
+      }
+
+      // Get all offers for this company
+      const companyOffers = await db
+        .select()
+        .from(offers)
+        .where(eq(offers.companyProfileId, companyProfile.id));
+
+      if (companyOffers.length === 0) {
+        return {
+          totalClicks: 0,
+          uniqueClicks: 0,
+          conversions: 0,
+          totalSpent: 0,
+          activeCreators: 0,
+          activeOffers: companyOffers.length,
+        };
+      }
+
+      const offerIds = companyOffers.map(offer => offer.id);
+
+      // Get analytics from all applications for these offers
+      const analyticsResult = await db
+        .select({
+          totalClicks: sql<number>`COALESCE(SUM(${analytics.clicks}), 0)`,
+          uniqueClicks: sql<number>`COALESCE(SUM(${analytics.uniqueClicks}), 0)`,
+          conversions: sql<number>`COALESCE(SUM(${analytics.conversions}), 0)`,
+          totalSpent: sql<number>`COALESCE(SUM(${analytics.earnings}), 0)`,
+        })
+        .from(analytics)
+        .innerJoin(applications, eq(analytics.applicationId, applications.id))
+        .where(sql`${applications.offerId} IN (${sql.raw(offerIds.map(() => '?').join(','))})`);
+
+      // Get count of active creators (unique creators with approved/active applications)
+      const activeCreatorsResult = await db
+        .select({
+          count: sql<number>`COUNT(DISTINCT ${applications.creatorId})`,
+        })
+        .from(applications)
+        .where(
+          and(
+            sql`${applications.offerId} IN (${sql.raw(offerIds.map(() => '?').join(','))})`,
+            sql`${applications.status} IN ('approved', 'active')`
+          )
+        );
+
+      // Get retainer payments from company
+      const retainerResult = await db
+        .select({
+          totalRetainerSpent: sql<number>`COALESCE(SUM(CAST(${retainerPayments.amount} AS DECIMAL)), 0)`,
+        })
+        .from(retainerPayments)
+        .where(
+          sql`${retainerPayments.companyId} = ${companyId} AND ${retainerPayments.status} = 'completed'`
+        );
+
+      const affiliateSpent = analyticsResult[0]?.totalSpent || 0;
+      const retainerSpent = retainerResult[0]?.totalRetainerSpent || 0;
+      const totalSpent = Number(affiliateSpent) + Number(retainerSpent);
+
+      return {
+        totalClicks: analyticsResult[0]?.totalClicks || 0,
+        uniqueClicks: analyticsResult[0]?.uniqueClicks || 0,
+        conversions: analyticsResult[0]?.conversions || 0,
+        totalSpent: totalSpent,
+        affiliateSpent: Number(affiliateSpent),
+        retainerSpent: Number(retainerSpent),
+        activeCreators: activeCreatorsResult[0]?.count || 0,
+        activeOffers: companyOffers.filter(o => o.status === 'active').length,
+      };
+    } catch (error) {
+      console.error("[getAnalyticsByCompany] Error:", error);
+      return {
+        totalClicks: 0,
+        uniqueClicks: 0,
+        conversions: 0,
+        totalSpent: 0,
+        affiliateSpent: 0,
+        retainerSpent: 0,
+        activeCreators: 0,
+        activeOffers: 0,
+      };
+    }
+  }
+
+  async getAnalyticsTimeSeriesByCompany(companyId: string, dateRange: string): Promise<any[]> {
+    try {
+      // Get company profile to find offers
+      const companyProfile = await this.getCompanyProfile(companyId);
+      if (!companyProfile) {
+        return [];
+      }
+
+      // Get all offers for this company
+      const companyOffers = await db
+        .select()
+        .from(offers)
+        .where(eq(offers.companyProfileId, companyProfile.id));
+
+      if (companyOffers.length === 0) {
+        return [];
+      }
+
+      const offerIds = companyOffers.map(offer => offer.id);
+      const whereClauses: any[] = [
+        sql`${applications.offerId} IN (${sql.raw(offerIds.map(() => '?').join(','))})`
+      ];
+
+      if (dateRange !== "all") {
+        let daysBack = 30;
+        if (dateRange === "7d") daysBack = 7;
+        else if (dateRange === "30d") daysBack = 30;
+        else if (dateRange === "90d") daysBack = 90;
+
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - daysBack);
+        whereClauses.push(sql`${analytics.date} >= ${startDate}`);
+      }
+
+      const result = await db
+        .select({
+          date: sql<string>`TO_CHAR(${analytics.date}, 'Mon DD')`,
+          clicks: sql<number>`COALESCE(SUM(${analytics.clicks}), 0)`,
+        })
+        .from(analytics)
+        .innerJoin(applications, eq(analytics.applicationId, applications.id))
+        .where(and(...whereClauses))
+        .groupBy(analytics.date)
+        .orderBy(analytics.date);
+
+      return result || [];
+    } catch (error) {
+      console.error("[getAnalyticsTimeSeriesByCompany] Error:", error);
       return [];
     }
   }
