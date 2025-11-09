@@ -130,7 +130,7 @@ async function fixCompanyLogos() {
   for (const company of companiesWithNormalizedLogos) {
     if (company.logoUrl) {
       const denormalizedUrl = denormalizeCloudinaryPath(company.logoUrl, 'image');
-      console.log(`  Company ${company.id} (${company.companyName}):`);
+      console.log(`  Company ${company.id} (${company.legalName || company.tradeName}):`);
       console.log(`    Old: ${company.logoUrl}`);
       console.log(`    New: ${denormalizedUrl}`);
 

@@ -63,6 +63,10 @@ interface NotificationData {
   trackingLink?: string;
   trackingCode?: string;
   amount?: string;
+  grossAmount?: string;
+  platformFee?: string;
+  processingFee?: string;
+  transactionId?: string;
   reviewRating?: number;
   reviewText?: string;
   messagePreview?: string;
