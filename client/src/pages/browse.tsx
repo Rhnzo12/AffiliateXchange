@@ -421,7 +421,7 @@ export default function Browse() {
                             ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100'
                             : 'bg-gradient-to-br from-purple-100 to-pink-100'
                         }`}>
-                          {offer.featuredImageUrl ? (
+                          {!isRetainer && offer.featuredImageUrl ? (
                             <img
                               src={proxiedSrc(offer.featuredImageUrl)}
                               alt={offer.title}
@@ -431,11 +431,11 @@ export default function Browse() {
                                 (e.target as HTMLImageElement).style.display = 'none';
                               }}
                             />
-                          ) : (
+                          ) : !isRetainer ? (
                             <div className="absolute inset-0 flex items-center justify-center">
                               <Play className="h-12 w-12 text-muted-foreground/30" />
                             </div>
-                          )}
+                          ) : null}
 
                           {/* Favorite button - Top Left */}
                           <button
@@ -572,7 +572,7 @@ export default function Browse() {
                       <div className={`aspect-video relative overflow-hidden ${
                         isRetainer ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100' : ''
                       }`}>
-                        {offer.featuredImageUrl ? (
+                        {!isRetainer && offer.featuredImageUrl ? (
                           <>
                             <img
                               src={proxiedSrc(offer.featuredImageUrl)}
@@ -587,23 +587,15 @@ export default function Browse() {
                               }}
                             />
                             {/* Fallback if image fails */}
-                            <div className={`hidden absolute inset-0 flex items-center justify-center ${
-                              isRetainer
-                                ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100'
-                                : 'bg-gradient-to-br from-primary/10 to-purple-500/10'
-                            }`}>
+                            <div className="hidden absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
                               <Play className="h-12 w-12 text-muted-foreground/50" />
                             </div>
                           </>
-                        ) : (
-                          <div className={`absolute inset-0 flex items-center justify-center ${
-                            isRetainer
-                              ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100'
-                              : 'bg-gradient-to-br from-primary/10 to-purple-500/10'
-                          }`}>
+                        ) : !isRetainer ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
                             <Play className="h-12 w-12 text-muted-foreground/50" />
                           </div>
-                        )}
+                        ) : null}
 
                         {/* Favorite button - Top Left */}
                         <button
