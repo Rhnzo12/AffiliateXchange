@@ -1,6 +1,6 @@
 // path: src/server/storage.ts
 import { randomUUID } from "crypto";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, desc, sql, count, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
 import geoip from "geoip-lite";
 import {
@@ -1863,7 +1863,7 @@ export class DatabaseStorage implements IStorage {
         })
         .from(analytics)
         .innerJoin(applications, eq(analytics.applicationId, applications.id))
-        .where(sql`${applications.offerId} IN (${sql.raw(offerIds.map(() => '?').join(','))})`);
+        .where(inArray(applications.offerId, offerIds));
 
       // Get count of active creators (unique creators with approved/active applications)
       const activeCreatorsResult = await db
@@ -1873,7 +1873,7 @@ export class DatabaseStorage implements IStorage {
         .from(applications)
         .where(
           and(
-            sql`${applications.offerId} IN (${sql.raw(offerIds.map(() => '?').join(','))})`,
+            inArray(applications.offerId, offerIds),
             sql`${applications.status} IN ('approved', 'active')`
           )
         );
@@ -1885,7 +1885,10 @@ export class DatabaseStorage implements IStorage {
         })
         .from(retainerPayments)
         .where(
-          sql`${retainerPayments.companyId} = ${companyId} AND ${retainerPayments.status} = 'completed'`
+          and(
+            eq(retainerPayments.companyId, companyId),
+            eq(retainerPayments.status, 'completed')
+          )
         );
 
       const affiliateSpent = analyticsResult[0]?.totalSpent || 0;
@@ -1937,7 +1940,7 @@ export class DatabaseStorage implements IStorage {
 
       const offerIds = companyOffers.map(offer => offer.id);
       const whereClauses: any[] = [
-        sql`${applications.offerId} IN (${sql.raw(offerIds.map(() => '?').join(','))})`
+        inArray(applications.offerId, offerIds)
       ];
 
       if (dateRange !== "all") {
