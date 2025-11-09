@@ -1630,8 +1630,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   {
                     userName: companyUser.firstName || companyUser.username,
                     amount: `$${payment.netAmount}`,
+                    grossAmount: `$${payment.grossAmount}`,
+                    platformFee: `$${payment.platformFeeAmount}`,
+                    processingFee: `$${payment.stripeFeeAmount}`,
                     paymentId: payment.id,
                     companyName: companyProfile.legalName || companyProfile.tradeName || companyUser.username,
+                    linkUrl: `/payments/${payment.id}`,
                   }
                 );
 
@@ -1771,8 +1775,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           userName: companyUser.firstName || companyUser.username,
           amount: `$${payment.netAmount}`,
+          grossAmount: `$${payment.grossAmount}`,
+          platformFee: `$${payment.platformFeeAmount}`,
+          processingFee: `$${payment.stripeFeeAmount}`,
           paymentId: payment.id,
           companyName: companyProfile.legalName || companyProfile.tradeName || companyUser.username,
+          linkUrl: `/payments/${payment.id}`,
         }
       );
 
@@ -1830,8 +1838,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: paymentTitle,
             amount: `$${payment.netAmount}`,
+            grossAmount: `$${payment.grossAmount}`,
+            platformFee: `$${payment.platformFeeAmount}`,
+            processingFee: `$${payment.stripeFeeAmount}`,
             paymentId: payment.id,
-            linkUrl: `/payment-settings`,
+            linkUrl: `/payments/${payment.id}`,
           }
         );
       }
