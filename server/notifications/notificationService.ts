@@ -290,6 +290,9 @@ export class NotificationService {
         case 'payment_received':
           emailContent = emailTemplates.paymentReceivedEmail(data);
           break;
+        case 'payment_approved':
+          emailContent = emailTemplates.paymentApprovedEmail(data);
+          break;
         case 'payment_failed_insufficient_funds':
           emailContent = emailTemplates.paymentFailedInsufficientFundsEmail(data);
           break;
@@ -395,6 +398,7 @@ export class NotificationService {
       case 'new_message':
         return preferences.emailNewMessage;
       case 'payment_received':
+      case 'payment_approved':
       case 'payment_failed_insufficient_funds':
       case 'work_completion_approval':
         return preferences.emailPayment;
@@ -423,6 +427,7 @@ export class NotificationService {
       case 'new_message':
         return preferences.pushNewMessage;
       case 'payment_received':
+      case 'payment_approved':
       case 'payment_failed_insufficient_funds':
       case 'work_completion_approval':
         return preferences.pushPayment;
