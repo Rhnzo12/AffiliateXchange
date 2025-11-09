@@ -20,6 +20,7 @@ import { Play, Trash2, ExternalLink } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
 import { useState } from "react";
 import { TopNavBar } from "../components/TopNavBar";
+import { VideoPlayer } from "../components/VideoPlayer";
 
 export default function CompanyVideos() {
   const { toast } = useToast();
@@ -208,16 +209,12 @@ export default function CompanyVideos() {
                 <AlertDialogDescription>{selectedVideo.description}</AlertDialogDescription>
               )}
             </AlertDialogHeader>
-            <div className="aspect-video bg-muted rounded-md overflow-hidden">
-              <video
-                src={selectedVideo.videoUrl}
-                controls
-                className="w-full h-full"
-                autoPlay
-              >
-                Your browser does not support the video tag.
-              </video>
-            </div>
+            <VideoPlayer
+              videoUrl={selectedVideo.videoUrl}
+              thumbnail={selectedVideo.thumbnailUrl}
+              autoPlay
+              className="aspect-video"
+            />
             {(selectedVideo.creatorCredit || selectedVideo.originalPlatform) && (
               <div className="flex gap-4 text-sm text-muted-foreground">
                 {selectedVideo.creatorCredit && (
