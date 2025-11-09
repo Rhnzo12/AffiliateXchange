@@ -463,11 +463,11 @@ export default function Browse() {
                         </div>
 
                         {/* Company Logo - Positioned outside thumbnail but inside wrapper */}
-                        {offer.company?.logoUrl && (
+                        {!isRetainer && offer.company?.logoUrl && (
                           <div className="absolute -bottom-7 left-4 h-14 w-14 rounded-xl overflow-hidden bg-white shadow-lg border-2 border-background z-20">
-                            <img 
-                              src={offer.company.logoUrl} 
-                              alt={offer.company.tradeName} 
+                            <img
+                              src={offer.company.logoUrl}
+                              alt={offer.company.tradeName}
                               className="h-full w-full object-cover"
                             />
                           </div>
@@ -628,7 +628,7 @@ export default function Browse() {
                       <CardContent className="p-5 space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="font-semibold text-base line-clamp-1 flex-1">{offer.title}</h3>
-                          {offer.company?.logoUrl && (
+                          {!isRetainer && offer.company?.logoUrl && (
                             <img src={offer.company.logoUrl} alt={offer.company.tradeName} className="h-9 w-9 rounded-full object-cover ring-2 ring-border" />
                           )}
                         </div>
