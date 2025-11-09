@@ -1218,17 +1218,17 @@ function AdminPaymentDashboard({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-blue-900">
               <DollarSign className="h-6 w-6 text-blue-600" />
-              PayPal Account Needs Funding
+              Payment Request On Hold
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-4 pt-3">
               <div className="rounded-lg bg-blue-50 border-2 border-blue-200 p-4">
                 <p className="text-gray-800 leading-relaxed">
-                  Your PayPal business account doesn't have enough funds to process this payment right now.
+                  The company's PayPal account has insufficient funds to process this payment request. The payment cannot be completed at this time.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-gray-700">Payment Details:</p>
+                <p className="text-sm font-semibold text-gray-700">Payment Request Details:</p>
                 <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Amount:</span>
@@ -1245,17 +1245,35 @@ function AdminPaymentDashboard({
                 </div>
               </div>
 
+              <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
+                <p className="text-sm font-semibold text-yellow-900 mb-2">Action Taken:</p>
+                <ul className="space-y-1.5 text-sm text-yellow-800">
+                  <li className="flex gap-2">
+                    <span>•</span>
+                    <span>A notification reminder has been sent to the company about this payment request</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>•</span>
+                    <span>The company has been informed that their PayPal account has insufficient balance</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>•</span>
+                    <span>The payment status has been updated to "failed"</span>
+                  </li>
+                </ul>
+              </div>
+
               <div className="rounded-lg bg-green-50 border border-green-200 p-3">
-                <p className="text-sm font-semibold text-green-900 mb-2">What to do next:</p>
+                <p className="text-sm font-semibold text-green-900 mb-2">Next Steps:</p>
                 <ol className="list-decimal list-inside space-y-1.5 text-sm text-green-800">
-                  <li>Add funds to your PayPal business account</li>
-                  <li>Wait a few moments for the funds to be available</li>
-                  <li>Click the "Retry" button on the failed payment</li>
+                  <li>Wait for the company to add funds to their PayPal account</li>
+                  <li>Once notified that funds are available, retry the payment</li>
+                  <li>Use the "Retry" button on the failed payment in the dashboard</li>
                 </ol>
               </div>
 
               <p className="text-xs text-gray-500 italic">
-                The payment status has been updated to "failed" and you can retry it anytime from the dashboard.
+                This payment request will remain in "failed" status until the company resolves the funding issue and you retry the transaction.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1264,7 +1282,7 @@ function AdminPaymentDashboard({
               onClick={() => setInsufficientFundsDialogOpen(false)}
               className="bg-blue-600 hover:bg-blue-700 w-full"
             >
-              Got it, I'll add funds
+              Understood
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
