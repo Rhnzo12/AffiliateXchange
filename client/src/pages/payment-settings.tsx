@@ -34,6 +34,7 @@ import {
   CreditCard,
   DollarSign,
   Download,
+  Eye,
   Filter,
   Send,
   TrendingUp,
@@ -244,51 +245,46 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Date
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {payments.map((payment) => (
-                  <tr key={payment.id} className="transition hover:bg-gray-50 cursor-pointer">
+                  <tr key={payment.id} className="transition hover:bg-gray-50">
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      <Link href={`/payments/${payment.id}`} className="block hover:text-primary">
-                        {payment.id.slice(0, 8)}...
-                      </Link>
+                      {payment.id.slice(0, 8)}...
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        {payment.description || "Payment"}
-                      </Link>
+                      {payment.description || "Payment"}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        ${parseFloat(payment.grossAmount).toFixed(2)}
-                      </Link>
+                      ${parseFloat(payment.grossAmount).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-red-600">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        -${parseFloat(payment.platformFeeAmount).toFixed(2)}
-                      </Link>
+                      -${parseFloat(payment.platformFeeAmount).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-red-600">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        -${parseFloat(payment.stripeFeeAmount).toFixed(2)}
-                      </Link>
+                      -${parseFloat(payment.stripeFeeAmount).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-bold text-green-600">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        ${parseFloat(payment.netAmount).toFixed(2)}
-                      </Link>
+                      ${parseFloat(payment.netAmount).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        <StatusBadge status={payment.status} />
-                      </Link>
+                      <StatusBadge status={payment.status} />
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        {payment.completedAt
-                          ? new Date(payment.completedAt).toLocaleDateString()
-                          : new Date(payment.createdAt).toLocaleDateString()}
+                      {payment.completedAt
+                        ? new Date(payment.completedAt).toLocaleDateString()
+                        : new Date(payment.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <Link href={`/payments/${payment.id}`}>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Eye className="h-4 w-4" />
+                          View Details
+                        </Button>
                       </Link>
                     </td>
                   </tr>
@@ -782,6 +778,9 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Date
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
@@ -806,6 +805,14 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
                       {payout.completedAt
                         ? new Date(payout.completedAt).toLocaleDateString()
                         : new Date(payout.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <Link href={`/payments/${payout.id}`}>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <Eye className="h-4 w-4" />
+                          View Details
+                        </Button>
+                      </Link>
                     </td>
                   </tr>
                 ))}
