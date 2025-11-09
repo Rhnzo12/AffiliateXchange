@@ -1246,19 +1246,19 @@ function AdminPaymentDashboard({
               </div>
 
               <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
-                <p className="text-sm font-semibold text-yellow-900 mb-2">Action Taken:</p>
+                <p className="text-sm font-semibold text-yellow-900 mb-2">What Happened:</p>
                 <ul className="space-y-1.5 text-sm text-yellow-800">
                   <li className="flex gap-2">
                     <span>•</span>
-                    <span>A notification reminder has been sent to the company about this payment request</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span>•</span>
-                    <span>The company has been informed that their PayPal account has insufficient balance</span>
+                    <span>The payment could not be processed due to insufficient funds in the company's PayPal account</span>
                   </li>
                   <li className="flex gap-2">
                     <span>•</span>
                     <span>The payment status has been updated to "failed"</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>•</span>
+                    <span>An email notification has been sent to the company informing them about this issue</span>
                   </li>
                 </ul>
               </div>

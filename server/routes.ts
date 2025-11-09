@@ -1466,6 +1466,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             description: `Payment failed: ${paymentResult.error}`,
           });
 
+          // Check if this is an insufficient funds error
+          const isInsufficientFunds = paymentResult.error?.toLowerCase().includes('insufficient funds');
+
+          if (isInsufficientFunds && payment.companyId) {
+            // Send notification to company about insufficient funds
+            const { NotificationService } = await import('./notifications/notificationService');
+            const notificationService = new NotificationService(storage);
+
+            const company = await storage.getUserById(payment.companyId);
+
+            await notificationService.sendNotification(
+              payment.companyId,
+              'payment_failed_insufficient_funds',
+              'Payment Processing Failed - Insufficient Funds',
+              `The payment request for $${payment.netAmount} could not be processed due to insufficient funds in your PayPal account.`,
+              {
+                amount: `$${payment.netAmount}`,
+                paymentId: payment.id,
+                companyName: company?.companyName || company?.username,
+              }
+            );
+
+            console.log(`[Payment] Notification sent to company ${payment.companyId} about insufficient funds`);
+          }
+
           return res.status(400).json({
             error: paymentResult.error,
             message: "Failed to process payment. Status updated to 'failed'."
