@@ -1678,8 +1678,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userName: creator.firstName || creator.username,
               offerTitle: paymentTitle,
               amount: `$${payment.netAmount}`,
+              grossAmount: `$${payment.grossAmount}`,
+              platformFee: `$${payment.platformFeeAmount}`,
+              processingFee: `$${payment.stripeFeeAmount}`,
+              transactionId: paymentResult.transactionId,
               paymentId: payment.id,
-              linkUrl: `/payment-settings`,
+              linkUrl: `/payments/${payment.id}`,
             }
           );
           console.log(`[Notification] Sent payment notification to creator ${creator.username}`);

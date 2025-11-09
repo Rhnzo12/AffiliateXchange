@@ -75,18 +75,81 @@ export default function NotificationDetail() {
       case "payment_approved":
       case "payment": {
         const amount = meta.amount || meta.total || (n.message.match(/\$\d+[\d,.]*/)?.[0]) || null;
+        const grossAmount = meta.grossAmount;
+        const platformFee = meta.platformFee;
+        const processingFee = meta.processingFee;
+        const transactionId = meta.transactionId;
         const isApproved = n.type === 'payment_approved';
+        const hasBreakdown = grossAmount && platformFee && processingFee;
+
         return (
           <div className="space-y-4">
             <p className="text-lg">{n.message}</p>
+
+            {/* Net Amount Display */}
             {amount && (
-              <div className={`text-2xl font-bold ${isApproved ? 'text-blue-600' : 'text-green-600'}`}>
-                {amount}
+              <div className={`p-6 rounded-lg border-2 ${
+                isApproved
+                  ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800'
+                  : 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800'
+              }`}>
+                <p className={`text-sm font-medium mb-2 ${
+                  isApproved ? 'text-blue-700 dark:text-blue-300' : 'text-green-700 dark:text-green-300'
+                }`}>
+                  {n.type === 'payment_received' ? 'Amount You Received' : 'Payment Amount'}
+                </p>
+                <div className={`text-4xl font-bold ${
+                  isApproved ? 'text-blue-900 dark:text-blue-100' : 'text-green-900 dark:text-green-100'
+                }`}>
+                  {amount}
+                </div>
               </div>
             )}
+
+            {/* Payment Breakdown */}
+            {hasBreakdown && (
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 space-y-3">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100">Payment Breakdown</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Gross Amount</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{grossAmount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-red-600 dark:text-red-400">Platform Fee (4%)</span>
+                    <span className="font-semibold text-red-600 dark:text-red-400">-{platformFee}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-red-600 dark:text-red-400">Processing Fee (3%)</span>
+                    <span className="font-semibold text-red-600 dark:text-red-400">-{processingFee}</span>
+                  </div>
+                  <div className="pt-2 border-t border-gray-300 dark:border-gray-700 flex justify-between">
+                    <span className="font-bold text-green-700 dark:text-green-300">Net Amount</span>
+                    <span className="font-bold text-green-700 dark:text-green-300 text-lg">{amount}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Fee Explanation */}
+            {hasBreakdown && (
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  <strong>💡 How fees work:</strong> Platform fee (4%) and processing fee (3%) are automatically deducted from your gross earnings. The net amount is what you receive in your payment method.
+                </p>
+              </div>
+            )}
+
+            {/* Transaction ID */}
+            {transactionId && (
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                <strong>Transaction ID:</strong> {transactionId}
+              </div>
+            )}
+
             {n.linkUrl && (
               <Link href={n.linkUrl}>
-                <Button className="w-full">View Payment Details</Button>
+                <Button className="w-full">View Full Payment Details</Button>
               </Link>
             )}
           </div>

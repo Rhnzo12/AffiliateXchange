@@ -6,6 +6,10 @@ interface EmailTemplateData {
   trackingLink?: string;
   trackingCode?: string;
   amount?: string;
+  grossAmount?: string;
+  platformFee?: string;
+  processingFee?: string;
+  transactionId?: string;
   reviewRating?: number;
   reviewText?: string;
   messagePreview?: string;
@@ -179,16 +183,62 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
     </head>
     <body>
       <div class="container">
-        <div class="header">
-          <h1>Payment Received!</h1>
+        <div class="header" style="background-color: #10B981;">
+          <h1>💰 Payment Received!</h1>
         </div>
         <div class="content">
           <p>Hi ${data.userName},</p>
-          <p>Great news! You've received a payment of <strong>${data.amount}</strong>.</p>
-          ${data.offerTitle ? `
-            <p>This payment is for your work on <strong>${data.offerTitle}</strong>.</p>
+          <p>Great news! You've received a payment for your work${data.offerTitle ? ` on <strong>${data.offerTitle}</strong>` : ''}.</p>
+
+          ${data.amount ? `
+            <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 20px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #065F46;">Amount You Received</p>
+              <p style="margin: 0; font-size: 32px; font-weight: bold; color: #047857;">${data.amount}</p>
+            </div>
           ` : ''}
-          <a href="${data.linkUrl || '/payment-settings'}" class="button">View Payment Details</a>
+
+          ${data.grossAmount && data.platformFee && data.processingFee ? `
+            <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #374151;">Payment Breakdown:</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid #D1D5DB;">
+                  <td style="padding: 12px 0; color: #6B7280;">Gross Amount</td>
+                  <td style="padding: 12px 0; font-weight: 600; color: #111827; text-align: right;">${data.grossAmount}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #D1D5DB;">
+                  <td style="padding: 12px 0; color: #DC2626;">Platform Fee (4%)</td>
+                  <td style="padding: 12px 0; font-weight: 600; color: #DC2626; text-align: right;">-${data.platformFee}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #D1D5DB;">
+                  <td style="padding: 12px 0; color: #DC2626;">Processing Fee (3%)</td>
+                  <td style="padding: 12px 0; font-weight: 600; color: #DC2626; text-align: right;">-${data.processingFee}</td>
+                </tr>
+                <tr style="background-color: #ECFDF5;">
+                  <td style="padding: 12px 0; color: #065F46; font-weight: bold;">Net Amount (You Receive)</td>
+                  <td style="padding: 12px 0; font-weight: bold; color: #047857; text-align: right; font-size: 18px;">${data.amount}</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0; font-size: 14px; color: #1E40AF;">
+                💡 <strong>How fees are calculated:</strong><br>
+                Platform fee (4%) and processing fee (3%) are automatically deducted from your gross earnings. The remaining amount is what you receive.
+              </p>
+            </div>
+          ` : ''}
+
+          ${data.transactionId ? `
+            <p style="font-size: 14px; color: #6B7280; margin-top: 20px;">
+              <strong>Transaction ID:</strong> ${data.transactionId}
+            </p>
+          ` : ''}
+
+          <a href="${data.linkUrl || '/payment-settings'}" class="button" style="background-color: #10B981;">View Full Payment Details</a>
+
+          <p style="margin-top: 30px; font-size: 14px; color: #6B7280;">
+            The payment has been successfully processed and will be sent to your configured payment method.
+          </p>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
