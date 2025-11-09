@@ -219,11 +219,11 @@ export default function CompanyOffers() {
               const category = getOfferCategory(offer);
 
               return (
-                <Card
-                  key={offer.id}
-                  className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full relative"
-                  data-testid={`card-offer-${offer.id}`}
-                >
+                <Link key={offer.id} href={`/company/offers/${offer.id}`}>
+                  <Card
+                    className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full relative"
+                    data-testid={`card-offer-${offer.id}`}
+                  >
                   {/* Thumbnail Container with Logo */}
                   <div className="relative">
                     {/* Thumbnail */}
@@ -378,6 +378,7 @@ export default function CompanyOffers() {
                     </div>
                   </CardContent>
                 </Card>
+              </Link>
               );
             })}
           </div>
