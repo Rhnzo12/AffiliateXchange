@@ -28,6 +28,7 @@ import { ArrowLeft, Upload, Video, Play, Trash2, AlertCircle, Image as ImageIcon
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
+import { VideoPlayer } from "../components/VideoPlayer";
 
 // Helper function to generate thumbnail from video
 const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
@@ -1207,19 +1208,13 @@ export default function CompanyOfferCreate() {
           <DialogHeader>
             <DialogTitle>Video Preview</DialogTitle>
           </DialogHeader>
-          <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-            {selectedVideoUrl && (
-              <video
-                src={selectedVideoUrl}
-                controls
-                autoPlay
-                className="w-full h-full"
-                crossOrigin="anonymous"
-              >
-                Your browser does not support the video tag.
-              </video>
-            )}
-          </div>
+          {selectedVideoUrl && (
+            <VideoPlayer
+              videoUrl={selectedVideoUrl}
+              autoPlay
+              className="aspect-video"
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

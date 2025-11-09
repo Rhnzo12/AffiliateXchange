@@ -42,6 +42,7 @@ import {
 import { proxiedSrc } from "../lib/image";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
+import { VideoPlayer } from "../components/VideoPlayer";
 import { DetailPageSkeleton } from "../components/skeletons";
 
 // Helper function to format commission display
@@ -1086,24 +1087,21 @@ export default function CompanyOfferDetail() {
                 <DialogDescription>{selectedVideo.description}</DialogDescription>
               )}
             </DialogHeader>
-            <div className="aspect-video bg-black rounded-lg overflow-hidden">
-              {selectedVideo.videoUrl ? (
-                <video
-                  src={proxiedSrc(selectedVideo.videoUrl)}
-                  controls
-                  autoPlay
-                  className="w-full h-full"
-                  crossOrigin="anonymous"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white">
-                  <div className="text-center">
-                    <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p>Video not available</p>
-                  </div>
+            {selectedVideo.videoUrl ? (
+              <VideoPlayer
+                videoUrl={selectedVideo.videoUrl}
+                thumbnail={selectedVideo.thumbnailUrl}
+                autoPlay
+                className="aspect-video"
+              />
+            ) : (
+              <div className="aspect-video bg-black rounded-lg overflow-hidden flex items-center justify-center text-white">
+                <div className="text-center">
+                  <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p>Video not available</p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       )}
