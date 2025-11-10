@@ -1131,11 +1131,23 @@ export class DatabaseStorage implements IStorage {
 
     const results = await query;
 
-    // ✅ ADD: Map to include company data
-    return results.map((row: any) => ({
-      ...row.offer,
-      company: row.company,
-    }));
+    // ✅ ADD: Map to include company data and stats
+    const offersWithStats = await Promise.all(
+      results.map(async (row: any) => {
+        const activeCreatorsCount = await this.getActiveCreatorsCountForOffer(row.offer.id);
+        const clickStats = await this.getOfferClickStats(row.offer.id);
+
+        return {
+          ...row.offer,
+          company: row.company,
+          activeCreatorsCount,
+          totalClicks: clickStats.totalClicks,
+          uniqueClicks: clickStats.uniqueClicks,
+        };
+      })
+    );
+
+    return offersWithStats;
   }
 
   async getOffersByCompany(companyId: string): Promise<Offer[]> {
