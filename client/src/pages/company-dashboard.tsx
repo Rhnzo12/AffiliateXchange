@@ -5,7 +5,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { Users, FileText, TrendingUp, DollarSign, Plus, CheckCircle } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { Users, FileText, TrendingUp, DollarSign, Plus, CheckCircle, MousePointer } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
@@ -65,6 +66,34 @@ export default function CompanyDashboard() {
       completeApplicationMutation.mutate(applicationId);
     }
   };
+
+  // Calculate top performing creators (by total clicks)
+  const topCreators = applications
+    .filter((app: any) => app.status === 'approved' || app.status === 'active')
+    .reduce((acc: any[], app: any) => {
+      // Group by creator
+      const existing = acc.find((c: any) => c.creatorId === app.creatorId);
+      if (existing) {
+        existing.totalClicks += Number(app.clickCount || 0);
+        existing.totalConversions += Number(app.conversionCount || 0);
+        existing.totalEarnings += Number(app.totalEarnings || 0);
+        existing.applicationsCount += 1;
+      } else {
+        acc.push({
+          creatorId: app.creatorId,
+          creatorName: app.creatorName || `${app.creator?.firstName} ${app.creator?.lastName}`.trim() || 'Unknown',
+          creatorEmail: app.creatorEmail || app.creator?.email,
+          creatorProfileImageUrl: app.creator?.profileImageUrl,
+          totalClicks: Number(app.clickCount || 0),
+          totalConversions: Number(app.conversionCount || 0),
+          totalEarnings: Number(app.totalEarnings || 0),
+          applicationsCount: 1,
+        });
+      }
+      return acc;
+    }, [])
+    .sort((a: any, b: any) => b.totalClicks - a.totalClicks)
+    .slice(0, 5); // Top 5 creators
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
@@ -237,10 +266,50 @@ export default function CompanyDashboard() {
             <CardTitle>Top Performing Creators</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <Users className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No creators yet</p>
-            </div>
+            {topCreators.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No active creators yet</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {topCreators.map((creator: any, index: number) => (
+                  <div key={creator.creatorId} className="flex items-center justify-between p-4 rounded-lg border border-border hover:border-primary/50 transition-colors">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
+                        {index + 1}
+                      </div>
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={creator.creatorProfileImageUrl} alt={creator.creatorName} />
+                        <AvatarFallback>
+                          {creator.creatorName?.charAt(0)?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{creator.creatorName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{creator.creatorEmail}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <MousePointer className="h-3 w-3" />
+                          <span className="font-medium">{creator.totalClicks}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">clicks</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-green-600">
+                          <DollarSign className="h-3 w-3" />
+                          <span className="font-medium">{Number(creator.totalEarnings).toFixed(2)}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">earned</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
