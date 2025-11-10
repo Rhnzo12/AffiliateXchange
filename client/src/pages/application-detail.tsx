@@ -389,29 +389,68 @@ export default function ApplicationDetail() {
 
           {/* Tracking Link (if approved) */}
           {(application.status === 'approved' || application.status === 'active') && application.trackingLink && (
-            <Card>
+            <Card className="border-2 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
               <CardHeader>
-                <CardTitle>Your Tracking Link</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <ExternalLink className="h-5 w-5 text-blue-600" />
+                  Your Tracking Link
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
                   Use this unique link in your content to track clicks and conversions. Every sale made through this link will be attributed to you.
                 </p>
-                <div className="flex gap-2">
-                  <code className="flex-1 text-sm bg-muted px-4 py-3 rounded-lg border overflow-x-auto">
-                    {application.trackingLink}
-                  </code>
-                  <Button
-                    size="lg"
-                    onClick={() => copyTrackingLink(application.trackingLink)}
-                    className="gap-2"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copy
-                  </Button>
+
+                {/* Tracking Link Display */}
+                <div className="bg-white dark:bg-gray-900 rounded-lg border-2 border-blue-200 dark:border-blue-700 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <code className="text-sm text-blue-600 dark:text-blue-400 break-all">
+                        {application.trackingLink}
+                      </code>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyTrackingLink(application.trackingLink)}
+                      className="flex-shrink-0"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <AlertCircle className="h-4 w-4" />
+
+                {/* Tracking Code */}
+                {application.trackingCode && (
+                  <div className="bg-white dark:bg-gray-900 rounded-lg border border-blue-200 dark:border-blue-700 p-3">
+                    <div className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                      <span className="font-semibold">Tracking Code:</span> {application.trackingCode}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Action Buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open(application.trackingLink, '_blank')}
+                    className="flex-1"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Test Link
+                  </Button>
+                  <Link href={`/analytics/${application.id}`} className="flex-1">
+                    <Button size="sm" variant="default" className="w-full">
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      View Analytics
+                    </Button>
+                  </Link>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/30 p-3 rounded-lg">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
                   <span>Keep this link safe and use it consistently across all platforms</span>
                 </div>
               </CardContent>
