@@ -36,6 +36,7 @@ import CompanyRetainerDetail from "./pages/company-retainer-detail";
 import AdminDashboard from "./pages/admin-dashboard";
 import AdminReviews from "./pages/admin-reviews";
 import AdminCompanies from "./pages/admin-companies";
+import AdminCompanyDetail from "./pages/admin-company-detail";
 import AdminOffers from "./pages/admin-offers";
 import AdminCreators from "./pages/admin-creators";
 import AdminAuditLogs from "./pages/admin-audit-logs";
@@ -142,6 +143,7 @@ function ProtectedRouter() {
                     <Route path="/admin" component={AdminDashboard} />
                     <Route path="/admin/dashboard" component={AdminDashboard} />
                     <Route path="/admin/companies" component={AdminCompanies} />
+                    <Route path="/admin/companies/:id" component={AdminCompanyDetail} />
                     <Route path="/admin/offers" component={AdminOffers} />
                     <Route path="/admin/creators" component={AdminCreators} />
                     <Route path="/admin/reviews" component={AdminReviews} />
