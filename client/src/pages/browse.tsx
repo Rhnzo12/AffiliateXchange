@@ -9,6 +9,8 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Slider } from "../components/ui/slider";
 import { Checkbox } from "../components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Switch } from "../components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -24,7 +26,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../components/ui/sheet";
-import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, ArrowRight, Users } from "lucide-react";
+import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, ArrowRight, Users, Sparkles, Award } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { proxiedSrc } from "../lib/image";
@@ -136,11 +138,16 @@ const formatApplicationDate = (date: string | Date): string => {
 export default function Browse() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [commissionType, setCommissionType] = useState<string>("");
   const [commissionRange, setCommissionRange] = useState([0, 10000]);
+  const [minimumPayout, setMinimumPayout] = useState([0]);
+  const [minRating, setMinRating] = useState(0);
+  const [showTrending, setShowTrending] = useState(false);
+  const [showPriority, setShowPriority] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
@@ -165,11 +172,97 @@ export default function Browse() {
 
       return data;
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && activeTab === "all",
   });
 
+  // Trending offers query (most applied in last 7 days)
+  const { data: trendingOffersData, isLoading: trendingLoading } = useQuery<any[]>({
+    queryKey: ["/api/offers/trending"],
+    queryFn: async () => {
+      const res = await fetch('/api/offers/trending', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch trending offers');
+      return res.json();
+    },
+    enabled: isAuthenticated && activeTab === "trending",
+  });
+
+  // Recommended offers query (based on creator niches)
+  const { data: recommendedOffersData, isLoading: recommendedLoading } = useQuery<any[]>({
+    queryKey: ["/api/offers/recommended"],
+    queryFn: async () => {
+      const res = await fetch('/api/offers/recommended', { credentials: 'include' });
+      if (!res.ok) {
+        if (res.status === 404) {
+          return [];
+        }
+        throw new Error('Failed to fetch recommended offers');
+      }
+      const data = await res.json();
+      // Handle error responses from backend
+      if (data.error) {
+        return [];
+      }
+      return data;
+    },
+    enabled: isAuthenticated && activeTab === "recommended",
+  });
+
+  // New listings query (recently approved)
+  const { data: newListingsData, isLoading: newListingsLoading } = useQuery<any[]>({
+    queryKey: ["/api/offers/new"],
+    queryFn: async () => {
+      const res = await fetch('/api/offers?sortBy=newest', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch new listings');
+      return res.json();
+    },
+    enabled: isAuthenticated && activeTab === "new",
+  });
+
+  // Highest commission query
+  const { data: highestCommissionData, isLoading: highestCommissionLoading } = useQuery<any[]>({
+    queryKey: ["/api/offers/highest-commission"],
+    queryFn: async () => {
+      const res = await fetch('/api/offers?sortBy=highest_commission', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch highest commission offers');
+      return res.json();
+    },
+    enabled: isAuthenticated && activeTab === "highest-commission",
+  });
+
+  // Get current data based on active tab
+  const getCurrentOffers = () => {
+    switch (activeTab) {
+      case "trending":
+        return trendingOffersData || [];
+      case "recommended":
+        return recommendedOffersData || [];
+      case "new":
+        return newListingsData || [];
+      case "highest-commission":
+        return highestCommissionData || [];
+      default:
+        return offers || [];
+    }
+  };
+
+  // Get loading state based on active tab
+  const isCurrentLoading = () => {
+    switch (activeTab) {
+      case "trending":
+        return trendingLoading;
+      case "recommended":
+        return recommendedLoading;
+      case "new":
+        return newListingsLoading;
+      case "highest-commission":
+        return highestCommissionLoading;
+      default:
+        return offersLoading;
+    }
+  };
+
   // Apply client-side filters
-  const filteredOffers = offers?.filter(offer => {
+  const filteredOffers = getCurrentOffers()?.filter(offer => {
     // Category filter (from category pills)
     if (selectedCategory !== "All" && offer.primaryNiche !== selectedCategory) {
       return false;
@@ -181,15 +274,35 @@ export default function Browse() {
       return false;
     }
 
+    // Minimum payout filter
+    if (minimumPayout[0] > 0 && commissionValue < minimumPayout[0]) {
+      return false;
+    }
+
+    // Company rating filter
+    if (minRating > 0 && (offer.company?.averageRating || 0) < minRating) {
+      return false;
+    }
+
+    // Trending toggle filter
+    if (showTrending && !offer.isPriority && getCommissionValue(offer) <= 15) {
+      return false;
+    }
+
+    // Priority listings filter
+    if (showPriority && !offer.isPriority) {
+      return false;
+    }
+
     return true;
   }) || [];
 
-  // Get trending offers (priority + high commission)
-  const trendingOffers = filteredOffers
+  // Get trending offers for the trending section (only on "all" tab)
+  const trendingOffers = activeTab === "all" ? filteredOffers
     ?.filter(offer => offer.isPriority || getCommissionValue(offer) > 15)
-    ?.slice(0, 4) || [];
+    ?.slice(0, 4) || [] : [];
 
-  const regularOffers = filteredOffers || [];
+  const regularOffers = activeTab === "all" ? filteredOffers || [] : filteredOffers;
 
   const toggleNiche = (niche: string) => {
     setSelectedNiches(prev =>
@@ -201,6 +314,10 @@ export default function Browse() {
     setSelectedNiches([]);
     setCommissionType("");
     setCommissionRange([0, 10000]);
+    setMinimumPayout([0]);
+    setMinRating(0);
+    setShowTrending(false);
+    setShowPriority(false);
     setSearchTerm("");
     setSelectedCategory("All");
   };
@@ -273,6 +390,32 @@ export default function Browse() {
           <p className="text-muted-foreground text-base">Discover exclusive affiliate opportunities from verified brands</p>
         </div>
 
+        {/* Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+            <TabsTrigger value="all" className="flex items-center gap-2 py-3">
+              <Star className="h-4 w-4" />
+              <span>All Offers</span>
+            </TabsTrigger>
+            <TabsTrigger value="trending" className="flex items-center gap-2 py-3">
+              <TrendingUp className="h-4 w-4" />
+              <span>Trending</span>
+            </TabsTrigger>
+            <TabsTrigger value="highest-commission" className="flex items-center gap-2 py-3">
+              <DollarSign className="h-4 w-4" />
+              <span>Highest Commission</span>
+            </TabsTrigger>
+            <TabsTrigger value="new" className="flex items-center gap-2 py-3">
+              <Clock className="h-4 w-4" />
+              <span>New Listings</span>
+            </TabsTrigger>
+            <TabsTrigger value="recommended" className="flex items-center gap-2 py-3">
+              <Sparkles className="h-4 w-4" />
+              <span>For You</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {/* Category Pills - Horizontal Scroll */}
         <div className="relative">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -311,9 +454,9 @@ export default function Browse() {
               <Button variant="outline" data-testid="button-filters" className="gap-2">
                 <SlidersHorizontal className="h-4 w-4" />
                 Filters
-                {(selectedNiches.length > 0 || commissionType) && (
+                {(selectedNiches.length > 0 || commissionType || minimumPayout[0] > 0 || minRating > 0 || showTrending || showPriority) && (
                   <Badge variant="secondary" className="ml-1">
-                    {selectedNiches.length + (commissionType ? 1 : 0)}
+                    {selectedNiches.length + (commissionType ? 1 : 0) + (minimumPayout[0] > 0 ? 1 : 0) + (minRating > 0 ? 1 : 0) + (showTrending ? 1 : 0) + (showPriority ? 1 : 0)}
                   </Badge>
                 )}
               </Button>
@@ -391,8 +534,68 @@ export default function Browse() {
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span>${commissionRange[0]}</span>
-                    <span>${commissionRange[1]}</span>
+                    <span>${commissionRange[1]}+</span>
                   </div>
+                </div>
+
+                {/* Minimum Payout */}
+                <div className="space-y-3">
+                  <Label>Minimum Payout</Label>
+                  <div className="px-2 py-4">
+                    <Slider
+                      value={minimumPayout}
+                      onValueChange={setMinimumPayout}
+                      max={5000}
+                      step={50}
+                      data-testid="slider-minimum-payout"
+                    />
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    ${minimumPayout[0]}+
+                  </div>
+                </div>
+
+                {/* Company Rating */}
+                <div className="space-y-3">
+                  <Label>Minimum Company Rating</Label>
+                  <Select value={minRating.toString()} onValueChange={(value) => setMinRating(Number(value))}>
+                    <SelectTrigger data-testid="select-min-rating">
+                      <SelectValue placeholder="Any rating" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Any rating</SelectItem>
+                      <SelectItem value="3">3+ stars</SelectItem>
+                      <SelectItem value="4">4+ stars</SelectItem>
+                      <SelectItem value="4.5">4.5+ stars</SelectItem>
+                      <SelectItem value="5">5 stars only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Trending Toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Trending Only</Label>
+                    <p className="text-xs text-muted-foreground">Show only trending offers</p>
+                  </div>
+                  <Switch
+                    checked={showTrending}
+                    onCheckedChange={setShowTrending}
+                    data-testid="switch-trending"
+                  />
+                </div>
+
+                {/* Priority Listings Toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Priority Listings</Label>
+                    <p className="text-xs text-muted-foreground">Show only priority offers</p>
+                  </div>
+                  <Switch
+                    checked={showPriority}
+                    onCheckedChange={setShowPriority}
+                    data-testid="switch-priority"
+                  />
                 </div>
 
                 <div className="pt-4 flex gap-3">
@@ -405,20 +608,20 @@ export default function Browse() {
           </Sheet>
         </div>
 
-        {/* Trending Offers Section */}
-        {offersLoading ? (
+        {/* Loading State */}
+        {isCurrentLoading() ? (
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-orange-500" />
-              <h2 className="text-2xl font-bold text-foreground">Trending Offers</h2>
-            </div>
+            <h2 className="text-2xl font-bold text-foreground">Loading...</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <OfferCardSkeleton key={i} />
               ))}
             </div>
           </div>
-        ) : trendingOffers.length > 0 && (
+        ) : (
+          <>
+            {/* Trending Offers Section - Only on "all" tab */}
+            {activeTab === "all" && trendingOffers.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -579,19 +782,26 @@ export default function Browse() {
           </div>
         )}
 
-        {/* All Offers Grid */}
-        <div className="space-y-4">
-          {!offersLoading && regularOffers.length > 0 && trendingOffers.length > 0 && (
-            <h2 className="text-2xl font-bold text-foreground">All Offers</h2>
-          )}
+            {/* Main Offers Grid */}
+            <div className="space-y-4">
+              {/* Tab-specific headers */}
+              {activeTab === "all" && regularOffers.length > 0 && trendingOffers.length > 0 && (
+                <h2 className="text-2xl font-bold text-foreground">All Offers</h2>
+              )}
+              {activeTab === "trending" && regularOffers.length > 0 && (
+                <h2 className="text-2xl font-bold text-foreground">Trending Offers</h2>
+              )}
+              {activeTab === "highest-commission" && regularOffers.length > 0 && (
+                <h2 className="text-2xl font-bold text-foreground">Highest Commission</h2>
+              )}
+              {activeTab === "new" && regularOffers.length > 0 && (
+                <h2 className="text-2xl font-bold text-foreground">New Listings</h2>
+              )}
+              {activeTab === "recommended" && regularOffers.length > 0 && (
+                <h2 className="text-2xl font-bold text-foreground">Recommended For You</h2>
+              )}
 
-          {offersLoading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <OfferCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : !regularOffers || regularOffers.length === 0 ? (
+              {!regularOffers || regularOffers.length === 0 ? (
             <Card className="border-dashed border-2">
               <CardContent className="p-16 text-center">
                 <div className="mx-auto w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-6">
@@ -730,7 +940,9 @@ export default function Browse() {
               })}
             </div>
           )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
