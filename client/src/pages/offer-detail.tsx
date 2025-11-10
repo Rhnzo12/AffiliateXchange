@@ -250,33 +250,40 @@ export default function OfferDetail() {
       };
     }
 
-    // If already applied, allow clicking to view status
+    // If already applied, gray out the button
     switch (applicationStatus) {
       case "pending":
         return {
-          text: "View Application",
-          disabled: false, // Changed: Allow clicking to view status
+          text: "Applied - Pending",
+          disabled: true,
           variant: "secondary" as const,
           icon: <Clock className="h-4 w-4" />,
         };
       case "approved":
         return {
-          text: "View Application",
-          disabled: false, // Changed: Allow clicking to view status
-          variant: "default" as const,
+          text: "Applied - Approved",
+          disabled: true,
+          variant: "outline" as const,
           icon: <CheckCircle2 className="h-4 w-4" />,
         };
       case "active":
         return {
-          text: "View Campaign",
-          disabled: false, // Changed: Allow clicking to view status
-          variant: "default" as const,
+          text: "Applied - Active",
+          disabled: true,
+          variant: "outline" as const,
+          icon: <Check className="h-4 w-4" />,
+        };
+      case "rejected":
+        return {
+          text: "Applied - Rejected",
+          disabled: true,
+          variant: "outline" as const,
           icon: <Check className="h-4 w-4" />,
         };
       default:
         return {
-          text: "View Application",
-          disabled: false, // Changed: Allow clicking to view status
+          text: "Already Applied",
+          disabled: true,
           variant: "secondary" as const,
           icon: <Check className="h-4 w-4" />,
         };
@@ -1283,10 +1290,11 @@ export default function OfferDetail() {
             
             <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
               <DialogTrigger asChild>
-                <Button 
-                  size="lg" 
-                  className="gap-2 text-sm sm:text-base rounded-xl shadow-lg hover:shadow-xl transition-all" 
+                <Button
+                  size="lg"
+                  className="gap-2 text-sm sm:text-base rounded-xl shadow-lg hover:shadow-xl transition-all"
                   variant={buttonConfig.variant}
+                  disabled={buttonConfig.disabled}
                 >
                   {buttonConfig.icon}
                   {buttonConfig.text}
