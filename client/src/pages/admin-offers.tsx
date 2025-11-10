@@ -298,14 +298,16 @@ export default function AdminOffers() {
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
                         <DollarSign className="h-3 w-3" />
-                        {offer.commissionType === 'per_sale' && offer.commissionPercentage
+                        {offer.commissionPercentage
                           ? `${offer.commissionPercentage}%`
                           : offer.commissionAmount
                           ? `$${offer.commissionAmount}`
+                          : offer.retainerAmount
+                          ? `$${offer.retainerAmount}`
                           : 'N/A'}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {offer.commissionType?.replace(/_/g, ' ')}
+                        {offer.commissionType?.replace(/_/g, ' ') || 'N/A'}
                       </div>
                     </TableCell>
                     <TableCell className="text-center">

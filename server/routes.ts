@@ -2555,13 +2555,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { status, niche, commissionType } = req.query;
       const filters: any = {};
 
-      if (status) filters.status = status;
-      if (niche) filters.niche = niche;
-      if (commissionType) filters.commissionType = commissionType;
+      // Only add filters if they're not "all" or empty
+      if (status && status !== 'all') filters.status = status;
+      if (niche && niche !== 'all') filters.niche = niche;
+      if (commissionType && commissionType !== 'all') filters.commissionType = commissionType;
 
       const offers = await storage.getAllOffersForAdmin(filters);
       res.json(offers);
     } catch (error: any) {
+      console.error('Error fetching admin offers:', error);
       res.status(500).send(error.message);
     }
   });
