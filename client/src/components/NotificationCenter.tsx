@@ -160,6 +160,8 @@ export function NotificationCenter() {
       case "payment_received":
       case "payment_approved":
         return <DollarSign {...iconProps} className="h-5 w-5 text-green-600" />;
+      case "payment_pending":
+        return <DollarSign {...iconProps} className="h-5 w-5 text-yellow-600" />;
       case "payment_failed_insufficient_funds":
         return <AlertTriangle {...iconProps} className="h-5 w-5 text-orange-600" />;
       case "new_application":

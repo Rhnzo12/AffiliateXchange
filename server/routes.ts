@@ -919,6 +919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             offerTitle: offer.title,
             amount: `$${netAmount.toFixed(2)}`,
             paymentId: payment.id,
+            linkUrl: `/payments/${payment.id}`, // Link to specific payment detail page
           }
         );
       }

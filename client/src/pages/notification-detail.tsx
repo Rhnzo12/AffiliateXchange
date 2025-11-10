@@ -156,6 +156,66 @@ export default function NotificationDetail() {
         );
       }
 
+      case "payment_pending": {
+        const amount = meta.amount || (n.message.match(/\$\d+[\d,.]*/)?.[0]) || null;
+        const offerTitle = meta.offerTitle;
+        const paymentId = meta.paymentId;
+
+        return (
+          <div className="space-y-4">
+            <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+                ⏳ Payment Awaiting Processing
+              </h3>
+              <p className="text-yellow-800 dark:text-yellow-200">{n.message}</p>
+            </div>
+
+            {/* Payment Amount Display */}
+            {amount && (
+              <div className="p-6 rounded-lg border-2 bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-800">
+                <p className="text-sm font-medium mb-2 text-yellow-700 dark:text-yellow-300">
+                  Net Payment Amount
+                </p>
+                <div className="text-4xl font-bold text-yellow-900 dark:text-yellow-100">
+                  {amount}
+                </div>
+                {offerTitle && (
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-2">
+                    For offer: <strong>{offerTitle}</strong>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Action Required */}
+            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                Action Required
+              </h4>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                This payment needs to be reviewed and approved before it can be sent to the creator.
+                Click below to view the full payment details and process the payment.
+              </p>
+            </div>
+
+            {/* Payment ID */}
+            {paymentId && (
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                Payment ID: {paymentId}
+              </div>
+            )}
+
+            {n.linkUrl && (
+              <Link href={n.linkUrl}>
+                <Button className="w-full bg-yellow-600 hover:bg-yellow-700">
+                  Review & Process Payment
+                </Button>
+              </Link>
+            )}
+          </div>
+        );
+      }
+
       case "payment_failed_insufficient_funds": {
         const amount = meta.amount || (n.message.match(/\$\d+[\d,.]*/)?.[0]) || null;
         return (
