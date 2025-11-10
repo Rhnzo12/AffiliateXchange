@@ -110,6 +110,29 @@ const getOfferCategory = (offer: any): { label: string; color: string } | null =
   return null;
 };
 
+// Helper function to get application status badge configuration
+const getApplicationStatusBadge = (status: string): { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' } => {
+  switch (status) {
+    case 'pending':
+      return { label: 'Pending', variant: 'secondary' };
+    case 'approved':
+    case 'active':
+      return { label: 'Approved', variant: 'default' };
+    case 'rejected':
+      return { label: 'Rejected', variant: 'destructive' };
+    case 'completed':
+      return { label: 'Completed', variant: 'outline' };
+    default:
+      return { label: status, variant: 'outline' };
+  }
+};
+
+// Helper function to format date
+const formatApplicationDate = (date: string | Date): string => {
+  const d = new Date(date);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 export default function Browse() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -184,6 +207,12 @@ export default function Browse() {
 
   const { data: favorites = [] } = useQuery<any[]>({
     queryKey: ["/api/favorites"],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch creator's applications to show status on cards
+  const { data: applications = [] } = useQuery<any[]>({
+    queryKey: ["/api/applications"],
     enabled: isAuthenticated,
   });
 
@@ -405,8 +434,11 @@ export default function Browse() {
               {trendingOffers.map((offer) => {
                 const isFavorite = favorites.some(f => f.offerId === offer.id);
                 const category = getOfferCategory(offer);
-
                 const isRetainer = offer.commissionType === 'monthly_retainer';
+
+                // Check if creator has applied to this offer
+                const application = applications.find((app: any) => app.offerId === offer.id);
+                const hasApplied = !!application;
 
                 return (
                   <Link key={offer.id} href={`/offers/${offer.id}`}>
@@ -522,6 +554,22 @@ export default function Browse() {
                             <span>{offer.activeCreatorsCount || 0} active</span>
                           </div>
                         </div>
+
+                        {/* Application Status */}
+                        {hasApplied && application && (
+                          <div className="pt-3 border-t mt-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={getApplicationStatusBadge(application.status).variant}>
+                                  {getApplicationStatusBadge(application.status).label}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Applied: {formatApplicationDate(application.createdAt)}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </Link>
@@ -562,6 +610,10 @@ export default function Browse() {
                 const isFavorite = favorites.some(f => f.offerId === offer.id);
                 const category = getOfferCategory(offer);
                 const isRetainer = offer.commissionType === 'monthly_retainer';
+
+                // Check if creator has applied to this offer
+                const application = applications.find((app: any) => app.offerId === offer.id);
+                const hasApplied = !!application;
 
                 return (
                   <Link key={offer.id} href={`/offers/${offer.id}`}>
@@ -655,6 +707,22 @@ export default function Browse() {
                             {formatCommission(offer)}
                           </div>
                         </div>
+
+                        {/* Application Status */}
+                        {hasApplied && application && (
+                          <div className="pt-3 border-t">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={getApplicationStatusBadge(application.status).variant}>
+                                  {getApplicationStatusBadge(application.status).label}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Applied: {formatApplicationDate(application.createdAt)}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </Link>
