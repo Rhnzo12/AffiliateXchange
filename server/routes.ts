@@ -2116,7 +2116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).id;
       const companyProfile = await storage.getCompanyProfile(userId);
-      
+
       if (!companyProfile) {
         return res.json({
           activeCreators: 0,
@@ -2146,14 +2146,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .map(app => app.creatorId)
       );
 
+      // Get analytics data including total clicks and conversions
+      const analyticsData = await storage.getAnalyticsByCompany(companyProfile.id);
+
       const stats = {
         activeCreators: activeCreatorIds.size,
         pendingApplications: allApplications.filter(app => app.status === 'pending').length,
         liveOffers: offers.filter(o => o.status === 'approved').length,
         draftOffers: offers.filter(o => o.status === 'draft').length,
         totalApplications: allApplications.length,
-        totalClicks: 0, // TODO: Aggregate from analytics
-        conversions: 0, // TODO: Aggregate from analytics
+        totalClicks: analyticsData.totalClicks || 0,
+        conversions: analyticsData.conversions || 0,
         companyProfile,
       };
 
