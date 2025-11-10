@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { useRoute, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import {
@@ -11,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { DollarSign, TrendingUp, MousePointerClick, Target, Download } from "lucide-react";
+import { DollarSign, TrendingUp, MousePointerClick, Target, Download, ArrowLeft } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TopNavBar } from "../components/TopNavBar";
 import { StatsGridSkeleton, ChartSkeleton } from "../components/skeletons";
@@ -27,6 +28,8 @@ export default function Analytics() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [dateRange, setDateRange] = useState("30d");
+  const [, params] = useRoute("/analytics/:id");
+  const applicationId = params?.id;
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -35,9 +38,11 @@ export default function Analytics() {
   }, [isAuthenticated, isLoading]);
 
   const { data: analytics, isLoading: analyticsLoading, error } = useQuery<any>({
-    queryKey: ["/api/analytics", { range: dateRange }],
+    queryKey: ["/api/analytics", { range: dateRange, applicationId }],
     queryFn: async () => {
-      const url = `/api/analytics?range=${dateRange}`;
+      const url = applicationId
+        ? `/api/analytics?range=${dateRange}&applicationId=${applicationId}`
+        : `/api/analytics?range=${dateRange}`;
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) {
         if (res.status === 401) {
@@ -119,8 +124,27 @@ export default function Analytics() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Track your performance across all offers</p>
+          {applicationId && (
+            <Link href="/applications">
+              <Button variant="ghost" size="sm" className="mb-2 gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Applications
+              </Button>
+            </Link>
+          )}
+          <h1 className="text-3xl font-bold">
+            {applicationId ? "Application Analytics" : "Analytics Dashboard"}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {applicationId
+              ? "Track performance for this specific application"
+              : "Track your performance across all offers"}
+          </p>
+          {analytics?.offerTitle && applicationId && (
+            <p className="text-sm font-medium text-primary mt-2">
+              {analytics.offerTitle}
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <Select value={dateRange} onValueChange={setDateRange}>
@@ -135,9 +159,9 @@ export default function Analytics() {
               ))}
             </SelectContent>
           </Select>
-          <Button 
-            variant="outline" 
-            data-testid="button-export" 
+          <Button
+            variant="outline"
+            data-testid="button-export"
             className="gap-2"
             onClick={exportData}
             disabled={!analytics || chartData.length === 0}
@@ -258,46 +282,48 @@ export default function Analytics() {
         </CardContent>
       </Card>
 
-      {/* Per-Offer Breakdown */}
-      <Card className="border-card-border">
-        <CardHeader>
-          <CardTitle>Performance by Offer</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {analytics?.offerBreakdown && analytics.offerBreakdown.length > 0 ? (
-            <div className="space-y-4">
-              {analytics.offerBreakdown.map((offer: any) => (
-                <div key={offer.offerId} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-semibold">{offer.offerTitle}</h4>
-                    <p className="text-sm text-muted-foreground">{offer.companyName}</p>
+      {/* Per-Offer Breakdown - Only show for general analytics, not per-application */}
+      {!applicationId && (
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Performance by Offer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {analytics?.offerBreakdown && analytics.offerBreakdown.length > 0 ? (
+              <div className="space-y-4">
+                {analytics.offerBreakdown.map((offer: any) => (
+                  <div key={offer.offerId} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{offer.offerTitle}</h4>
+                      <p className="text-sm text-muted-foreground">{offer.companyName}</p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-6 text-center">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Clicks</div>
+                        <div className="font-semibold">{offer.clicks || 0}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Conv.</div>
+                        <div className="font-semibold">{offer.conversions || 0}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Earned</div>
+                        <div className="font-semibold font-mono">${Number(offer.earnings || 0).toFixed(2)}</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-6 text-center">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Clicks</div>
-                      <div className="font-semibold">{offer.clicks || 0}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Conv.</div>
-                      <div className="font-semibold">{offer.conversions || 0}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Earned</div>
-                      <div className="font-semibold font-mono">${Number(offer.earnings || 0).toFixed(2)}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-              <p className="text-muted-foreground">No active offers yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Apply to offers to start tracking performance</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No active offers yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Apply to offers to start tracking performance</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
