@@ -1,5 +1,5 @@
 // Migration to add missing notification_type enum values
-import { pool } from '../db';
+import { pool } from '../db.js';
 
 export async function up() {
   const client = await pool.connect();
