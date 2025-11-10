@@ -599,6 +599,7 @@ export interface IStorage {
   getOffersByCompany(companyId: string): Promise<Offer[]>;
   createOffer(offer: InsertOffer): Promise<Offer>;
   updateOffer(id: string, updates: Partial<InsertOffer>): Promise<Offer | undefined>;
+  incrementOfferViewCount(id: string): Promise<void>;
   deleteOffer(id: string): Promise<void>;
   getPendingOffers(): Promise<Offer[]>;
   approveOffer(offerId: string): Promise<Offer | undefined>;
@@ -613,6 +614,9 @@ export interface IStorage {
   getApplicationByTrackingCode(trackingCode: string): Promise<Application | undefined>;
   getApplicationsByCreator(creatorId: string): Promise<Application[]>;
   getApplicationsByOffer(offerId: string): Promise<Application[]>;
+  getExistingApplication(creatorId: string, offerId: string): Promise<Application | undefined>;
+  getActiveCreatorsCountForOffer(offerId: string): Promise<number>;
+  getOfferClickStats(offerId: string): Promise<{ totalClicks: number; uniqueClicks: number }>;
   getAllPendingApplications(): Promise<Application[]>;
   createApplication(application: InsertApplication): Promise<Application>;
   updateApplication(id: string, updates: Partial<InsertApplication>): Promise<Application | undefined>;
@@ -1145,14 +1149,20 @@ export class DatabaseStorage implements IStorage {
       .where(eq(offers.companyId, companyId))
       .orderBy(desc(offers.createdAt));
 
-    // Map to include company data and fetch videos for each offer
+    // Map to include company data and fetch videos and stats for each offer
     const offersWithData = await Promise.all(
       results.map(async (row: any) => {
         const videos = await this.getOfferVideos(row.offer.id);
+        const activeCreatorsCount = await this.getActiveCreatorsCountForOffer(row.offer.id);
+        const clickStats = await this.getOfferClickStats(row.offer.id);
+
         return {
           ...row.offer,
           company: row.company,
           videos,
+          activeCreatorsCount,
+          totalClicks: clickStats.totalClicks,
+          uniqueClicks: clickStats.uniqueClicks,
         };
       })
     );
@@ -1231,6 +1241,16 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async incrementOfferViewCount(id: string): Promise<void> {
+    await db
+      .update(offers)
+      .set({
+        viewCount: sql`COALESCE(${offers.viewCount}, 0) + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, id));
+  }
+
   async deleteOffer(id: string): Promise<void> {
     await db.delete(offers).where(eq(offers.id, id));
   }
@@ -1276,13 +1296,27 @@ export class DatabaseStorage implements IStorage {
 
     const results = await query.orderBy(desc(offers.createdAt));
 
-    // Ensure all fields have proper defaults for display
-    return results.map(offer => ({
+    // Ensure all fields have proper defaults and add stats for display
+    const offersWithStats = await Promise.all(
+      results.map(async (offer) => {
+        const activeCreatorsCount = await this.getActiveCreatorsCountForOffer(offer.id);
+        const clickStats = await this.getOfferClickStats(offer.id);
+
+        return {
+          ...offer,
+          viewCount: offer.viewCount ?? 0,
+          applicationCount: offer.applicationCount ?? 0,
+          featuredOnHomepage: offer.featuredOnHomepage ?? false,
+          listingFee: offer.listingFee ?? '0',
+          activeCreatorsCount,
+          totalClicks: clickStats.totalClicks,
+          uniqueClicks: clickStats.uniqueClicks,
+        };
+      })
+    );
+
+    return offersWithStats.map(offer => ({
       ...offer,
-      viewCount: offer.viewCount ?? 0,
-      applicationCount: offer.applicationCount ?? 0,
-      featuredOnHomepage: offer.featuredOnHomepage ?? false,
-      listingFee: offer.listingFee ?? '0',
       editRequests: offer.editRequests ?? [],
     }));
   }
@@ -1474,6 +1508,51 @@ export class DatabaseStorage implements IStorage {
       .from(applications)
       .where(eq(applications.offerId, offerId))
       .orderBy(desc(applications.createdAt));
+  }
+
+  async getExistingApplication(creatorId: string, offerId: string): Promise<Application | undefined> {
+    const result = await db
+      .select()
+      .from(applications)
+      .where(
+        and(
+          eq(applications.creatorId, creatorId),
+          eq(applications.offerId, offerId)
+        )
+      )
+      .limit(1);
+    return result[0];
+  }
+
+  async getActiveCreatorsCountForOffer(offerId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(applications)
+      .where(
+        and(
+          eq(applications.offerId, offerId),
+          or(
+            eq(applications.status, 'approved'),
+            eq(applications.status, 'active')
+          )
+        )
+      );
+    return Number(result[0]?.count || 0);
+  }
+
+  async getOfferClickStats(offerId: string): Promise<{ totalClicks: number; uniqueClicks: number }> {
+    const result = await db
+      .select({
+        totalClicks: sql<number>`COALESCE(SUM(${analytics.clicks}), 0)`,
+        uniqueClicks: sql<number>`COALESCE(SUM(${analytics.uniqueClicks}), 0)`,
+      })
+      .from(analytics)
+      .where(eq(analytics.offerId, offerId));
+
+    return {
+      totalClicks: Number(result[0]?.totalClicks || 0),
+      uniqueClicks: Number(result[0]?.uniqueClicks || 0),
+    };
   }
 
   async getAllPendingApplications(): Promise<Application[]> {

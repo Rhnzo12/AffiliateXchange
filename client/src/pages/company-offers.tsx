@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { TrendingUp, Plus, DollarSign, Users, Eye, MoreVertical, Trash2, Edit, ImageIcon, Play, Star } from "lucide-react";
+import { TrendingUp, Plus, DollarSign, Users, Eye, MoreVertical, Trash2, Edit, ImageIcon, Play, Star, MousePointer } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import {
@@ -382,10 +382,20 @@ export default function CompanyOffers() {
                       </div>
                     </div>
 
-                    {/* View Count */}
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2 border-t">
-                      <Eye className="h-3 w-3" />
-                      <span>{offer.viewCount || 0} views</span>
+                    {/* Stats Row */}
+                    <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground pt-2 border-t">
+                      <div className="flex items-center gap-1">
+                        <Eye className="h-3 w-3" />
+                        <span>{offer.viewCount || 0} views</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>{offer.activeCreatorsCount || 0} active</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MousePointer className="h-3 w-3" />
+                        <span>{offer.totalClicks || 0} clicks</span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
