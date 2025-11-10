@@ -762,6 +762,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userName: creator.firstName || creator.username,
             offerTitle: offer.title,
             trackingLink: trackingLink,
+            trackingCode: trackingCode,
             applicationId: application.id,
             applicationStatus: 'approved',
           }
@@ -3985,6 +3986,7 @@ res.json(approved);
                     userName: creator.firstName || creator.username,
                     offerTitle: offer.title,
                     trackingLink: trackingLink,
+                    trackingCode: trackingCode,
                     applicationId: application.id,
                     applicationStatus: 'approved',
                   }

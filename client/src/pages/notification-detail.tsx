@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { format } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
+import { Copy, CheckCircle, ExternalLink } from "lucide-react";
+import { useToast } from "../hooks/use-toast";
 
 interface Notification {
   id: string;
@@ -35,6 +37,9 @@ export default function NotificationDetail() {
   const [, params] = useRoute("/notifications/:id");
   const id = params?.id as string | undefined;
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [copiedLink, setCopiedLink] = useState(false);
+
   const { data: notification, isLoading } = useQuery<Notification | null>({
     queryKey: ["/api/notifications", id],
     queryFn: () => fetchNotificationById(id),
@@ -67,6 +72,24 @@ export default function NotificationDetail() {
       </div>
     );
   }
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedLink(true);
+      toast({
+        title: "Copied!",
+        description: "Tracking link copied to clipboard",
+      });
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Please copy the link manually",
+        variant: "destructive",
+      });
+    }
+  };
+
   const renderBody = (n: Notification) => {
     const meta = n.metadata || {};
 
@@ -269,13 +292,114 @@ export default function NotificationDetail() {
       case "application_status_change":
       case "application": {
         const appId = meta.applicationId || meta.application_id;
+        const trackingLink = meta.trackingLink;
+        const trackingCode = meta.trackingCode;
+        const applicationStatus = meta.applicationStatus;
+        const offerTitle = meta.offerTitle;
+
         return (
           <div className="space-y-4">
-            <p>{n.message}</p>
-            {appId && (
-              <Link href={`/applications/${appId}`}><Button>View application</Button></Link>
+            {/* Status Badge */}
+            {applicationStatus === 'approved' && (
+              <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <h3 className="font-semibold text-green-900 dark:text-green-100">
+                    Application Approved! 🎉
+                  </h3>
+                </div>
+                <p className="text-green-800 dark:text-green-200">{n.message}</p>
+              </div>
             )}
-            {n.linkUrl && !appId && <a href={n.linkUrl} className="text-primary hover:underline">Open</a>}
+
+            {applicationStatus === 'rejected' && (
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <p className="text-red-800 dark:text-red-200">{n.message}</p>
+              </div>
+            )}
+
+            {!applicationStatus && <p>{n.message}</p>}
+
+            {/* Tracking Link Section - Only show for approved applications */}
+            {trackingLink && applicationStatus === 'approved' && (
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 space-y-4">
+                <div>
+                  <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                    Your Tracking Link
+                  </h4>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Use this link to promote {offerTitle && `"${offerTitle}"`} and track your conversions
+                  </p>
+                </div>
+
+                {/* Tracking Link Display */}
+                <div className="bg-white dark:bg-gray-900 rounded-lg border border-blue-200 dark:border-blue-700 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <code className="text-sm text-blue-600 dark:text-blue-400 break-all">
+                        {trackingLink}
+                      </code>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(trackingLink)}
+                      className="flex-shrink-0"
+                    >
+                      {copiedLink ? (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Tracking Code */}
+                {trackingCode && (
+                  <div className="text-xs text-blue-600 dark:text-blue-400 font-mono">
+                    Tracking Code: {trackingCode}
+                  </div>
+                )}
+
+                {/* Quick Action Buttons */}
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open(trackingLink, '_blank')}
+                    className="flex-1"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Test Link
+                  </Button>
+                  {appId && (
+                    <Link href={`/applications/${appId}`} className="flex-1">
+                      <Button size="sm" variant="default" className="w-full">
+                        View Details
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* View Application Button - For non-approved or when no tracking link */}
+            {(!trackingLink || applicationStatus !== 'approved') && appId && (
+              <Link href={`/applications/${appId}`}>
+                <Button className="w-full">View Application</Button>
+              </Link>
+            )}
+
+            {n.linkUrl && !appId && (
+              <a href={n.linkUrl} className="text-primary hover:underline">Open</a>
+            )}
           </div>
         );
       }
