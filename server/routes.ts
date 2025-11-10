@@ -2109,19 +2109,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const offers = await storage.getOffersByCompany(companyProfile.id);
-      let totalApplications = 0;
 
+      // Collect all applications and calculate stats
+      const allApplications = [];
       for (const offer of offers) {
         const apps = await storage.getApplicationsByOffer(offer.id);
-        totalApplications += apps.length;
+        allApplications.push(...apps);
       }
 
+      // Count unique active creators
+      const activeCreatorIds = new Set(
+        allApplications
+          .filter(app => app.status === 'approved' || app.status === 'active')
+          .map(app => app.creatorId)
+      );
+
       const stats = {
-        activeCreators: 0, // TODO: Count unique active creators
-        pendingApplications: 0, // TODO: Count pending applications
+        activeCreators: activeCreatorIds.size,
+        pendingApplications: allApplications.filter(app => app.status === 'pending').length,
         liveOffers: offers.filter(o => o.status === 'approved').length,
         draftOffers: offers.filter(o => o.status === 'draft').length,
-        totalApplications,
+        totalApplications: allApplications.length,
         totalClicks: 0, // TODO: Aggregate from analytics
         conversions: 0, // TODO: Aggregate from analytics
         companyProfile,

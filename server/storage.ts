@@ -1742,13 +1742,13 @@ export class DatabaseStorage implements IStorage {
       // Get affiliate earnings from analytics table
       const affiliateResult = await db
         .select({
-          totalEarnings: sql<number>`COALESCE(SUM(${analytics.earnings}), 0)`,
+          totalEarnings: sql<number>`COALESCE(SUM(CAST(${analytics.earnings} AS DECIMAL)), 0)`,
           totalClicks: sql<number>`COALESCE(SUM(${analytics.clicks}), 0)`,
           uniqueClicks: sql<number>`COALESCE(SUM(${analytics.uniqueClicks}), 0)`,
           conversions: sql<number>`COALESCE(SUM(${analytics.conversions}), 0)`,
         })
-        .from(analytics)
-        .innerJoin(applications, eq(analytics.applicationId, applications.id))
+        .from(applications)
+        .leftJoin(analytics, eq(analytics.applicationId, applications.id))
         .where(eq(applications.creatorId, creatorId));
 
       // Get retainer earnings from retainer_payments table (only completed payments)
@@ -1761,17 +1761,17 @@ export class DatabaseStorage implements IStorage {
           sql`${retainerPayments.creatorId} = ${creatorId} AND ${retainerPayments.status} = 'completed'`
         );
 
-      const affiliateEarnings = affiliateResult[0]?.totalEarnings || 0;
-      const retainerEarnings = retainerResult[0]?.totalRetainerEarnings || 0;
-      const totalEarnings = Number(affiliateEarnings) + Number(retainerEarnings);
+      const affiliateEarnings = Number(affiliateResult[0]?.totalEarnings || 0);
+      const retainerEarnings = Number(retainerResult[0]?.totalRetainerEarnings || 0);
+      const totalEarnings = affiliateEarnings + retainerEarnings;
 
       return {
         totalEarnings: totalEarnings,
-        affiliateEarnings: Number(affiliateEarnings),
-        retainerEarnings: Number(retainerEarnings),
-        totalClicks: affiliateResult[0]?.totalClicks || 0,
-        uniqueClicks: affiliateResult[0]?.uniqueClicks || 0,
-        conversions: affiliateResult[0]?.conversions || 0,
+        affiliateEarnings: affiliateEarnings,
+        retainerEarnings: retainerEarnings,
+        totalClicks: Number(affiliateResult[0]?.totalClicks || 0),
+        uniqueClicks: Number(affiliateResult[0]?.uniqueClicks || 0),
+        conversions: Number(affiliateResult[0]?.conversions || 0),
       };
     } catch (error) {
       console.error("[getAnalyticsByCreator] Error:", error);
