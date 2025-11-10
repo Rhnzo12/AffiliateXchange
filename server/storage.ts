@@ -1,6 +1,6 @@
 // path: src/server/storage.ts
 import { randomUUID } from "crypto";
-import { eq, and, desc, sql, count, inArray, gte, lte } from "drizzle-orm";
+import { eq, and, or, desc, sql, count, inArray, gte, lte } from "drizzle-orm";
 import { db, pool } from "./db";
 import geoip from "geoip-lite";
 import {
