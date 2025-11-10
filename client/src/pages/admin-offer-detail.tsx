@@ -198,7 +198,7 @@ export default function AdminOfferDetail() {
         title: "Success",
         description: "Offer removed from platform",
       });
-      navigate("/admin-offers");
+      navigate("/admin/offers");
     },
     onError: (error: any) => {
       toast({
@@ -248,7 +248,7 @@ export default function AdminOfferDetail() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <XCircle className="h-12 w-12 text-destructive mb-4" />
             <h3 className="text-lg font-semibold mb-2">Offer not found</h3>
-            <Button onClick={() => navigate("/admin-offers")}>Back to Offers</Button>
+            <Button onClick={() => navigate("/admin/offers")}>Back to Offers</Button>
           </CardContent>
         </Card>
       </div>
@@ -264,7 +264,7 @@ export default function AdminOfferDetail() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/admin-offers")}>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/admin/offers")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>

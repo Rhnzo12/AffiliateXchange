@@ -516,10 +516,10 @@ export default function Browse() {
                             </div>
                           </div>
 
-                          {/* Active creators (if you have this data) */}
+                          {/* Active creators */}
                           <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <Users className="h-4 w-4" />
-                            <span>0 active</span>
+                            <span>{offer.activeCreatorsCount || 0} active</span>
                           </div>
                         </div>
                       </CardContent>
