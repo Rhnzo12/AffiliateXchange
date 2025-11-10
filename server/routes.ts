@@ -2586,7 +2586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Send notification to company
-      const company = await storage.getCompanyProfileByCompanyId(offer.companyId);
+      const company = await storage.getCompanyProfileById(offer.companyId);
       if (company) {
         await storage.createNotification({
           userId: company.userId,
@@ -2616,7 +2616,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Send notification to company
-      const company = await storage.getCompanyProfileByCompanyId(offer.companyId);
+      const company = await storage.getCompanyProfileById(offer.companyId);
       if (company) {
         await storage.createNotification({
           userId: company.userId,
@@ -2640,13 +2640,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Edit notes are required" });
       }
 
-      const offer = await storage.requestOfferEdits(req.params.id, notes, req.user!.id);
+      const userId = (req.user as any)?.id || '';
+      const offer = await storage.requestOfferEdits(req.params.id, notes, userId);
       if (!offer) {
         return res.status(404).json({ error: "Offer not found" });
       }
 
       // Send notification to company
-      const company = await storage.getCompanyProfileByCompanyId(offer.companyId);
+      const company = await storage.getCompanyProfileById(offer.companyId);
       if (company) {
         await storage.createNotification({
           userId: company.userId,
@@ -2689,7 +2690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Send notification to company
-      const company = await storage.getCompanyProfileByCompanyId(offer.companyId);
+      const company = await storage.getCompanyProfileById(offer.companyId);
       if (company) {
         await storage.createNotification({
           userId: company.userId,

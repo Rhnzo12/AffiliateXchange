@@ -1292,7 +1292,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async requestOfferEdits(offerId: string, notes: string, adminId: string): Promise<Offer | undefined> {
-    const offer = await this.getOfferById(offerId);
+    const offer = await this.getOffer(offerId);
     if (!offer) return undefined;
 
     const editRequests = Array.isArray(offer.editRequests) ? offer.editRequests : [];
@@ -1364,7 +1364,7 @@ export class DatabaseStorage implements IStorage {
       approvalRate: number;
     };
   }> {
-    const offer = await this.getOfferById(offerId);
+    const offer = await this.getOffer(offerId);
     if (!offer) {
       return {
         offer: undefined,
