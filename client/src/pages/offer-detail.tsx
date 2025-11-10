@@ -234,10 +234,20 @@ export default function OfferDetail() {
 
   // Check if user already applied
   const existingApplication = applications?.find(
-    app => app.offer?.id === Number(offerId) || app.offerId === Number(offerId)
+    app => app.offer?.id === offerId || app.offerId === offerId
   );
   const hasApplied = !!existingApplication;
   const applicationStatus = existingApplication?.status;
+
+  // Debug log to check application matching
+  console.log('[OfferDetail] Checking application status:', {
+    offerId,
+    hasApplications: !!applications,
+    applicationCount: applications?.length,
+    existingApplication: existingApplication?.id,
+    hasApplied,
+    applicationStatus
+  });
 
   // Get apply button configuration based on status
   const getApplyButtonConfig = () => {
