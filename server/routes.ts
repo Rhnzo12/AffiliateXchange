@@ -2549,10 +2549,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Offer Management
   app.get("/api/admin/offers", requireAuth, requireRole('admin'), async (req, res) => {
     try {
-      const offers = await storage.getPendingOffers();
+      const { status, niche, commissionType } = req.query;
+      const filters: any = {};
+
+      if (status) filters.status = status;
+      if (niche) filters.niche = niche;
+      if (commissionType) filters.commissionType = commissionType;
+
+      const offers = await storage.getAllOffersForAdmin(filters);
       res.json(offers);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.get("/api/admin/offers/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const offerData = await storage.getOfferWithStats(req.params.id);
+      if (!offerData.offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+      res.json(offerData);
     } catch (error: any) {
       res.status(500).send(error.message);
     }
@@ -2561,6 +2581,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/offers/:id/approve", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const offer = await storage.approveOffer(req.params.id);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      // Send notification to company
+      const company = await storage.getCompanyProfileByCompanyId(offer.companyId);
+      if (company) {
+        await storage.createNotification({
+          userId: company.userId,
+          type: 'offer_approved',
+          title: 'Offer Approved',
+          message: `Your offer "${offer.title}" has been approved and is now live!`,
+          metadata: { offerId: offer.id },
+        });
+      }
+
+      res.json(offer);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/admin/offers/:id/reject", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { reason } = req.body;
+      if (!reason) {
+        return res.status(400).json({ error: "Rejection reason is required" });
+      }
+
+      const offer = await storage.rejectOffer(req.params.id, reason);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      // Send notification to company
+      const company = await storage.getCompanyProfileByCompanyId(offer.companyId);
+      if (company) {
+        await storage.createNotification({
+          userId: company.userId,
+          type: 'offer_rejected',
+          title: 'Offer Rejected',
+          message: `Your offer "${offer.title}" has been rejected. Reason: ${reason}`,
+          metadata: { offerId: offer.id, reason },
+        });
+      }
+
+      res.json(offer);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/admin/offers/:id/request-edits", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { notes } = req.body;
+      if (!notes) {
+        return res.status(400).json({ error: "Edit notes are required" });
+      }
+
+      const offer = await storage.requestOfferEdits(req.params.id, notes, req.user!.id);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      // Send notification to company
+      const company = await storage.getCompanyProfileByCompanyId(offer.companyId);
+      if (company) {
+        await storage.createNotification({
+          userId: company.userId,
+          type: 'offer_edit_requested',
+          title: 'Edits Requested for Offer',
+          message: `An admin has requested edits to your offer "${offer.title}". Please review the notes and make the necessary changes.`,
+          metadata: { offerId: offer.id, notes },
+        });
+      }
+
+      res.json(offer);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/admin/offers/:id/feature", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { featured } = req.body;
+      if (typeof featured !== 'boolean') {
+        return res.status(400).json({ error: "Featured status (boolean) is required" });
+      }
+
+      const offer = await storage.featureOfferOnHomepage(req.params.id, featured);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      res.json(offer);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.delete("/api/admin/offers/:id/remove", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const offer = await storage.removeOfferFromPlatform(req.params.id);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      // Send notification to company
+      const company = await storage.getCompanyProfileByCompanyId(offer.companyId);
+      if (company) {
+        await storage.createNotification({
+          userId: company.userId,
+          type: 'offer_removed',
+          title: 'Offer Removed',
+          message: `Your offer "${offer.title}" has been removed from the platform.`,
+          metadata: { offerId: offer.id },
+        });
+      }
+
+      res.json({ success: true, offer });
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.put("/api/admin/offers/:id/listing-fee", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { fee } = req.body;
+      if (fee === undefined || fee === null) {
+        return res.status(400).json({ error: "Listing fee is required" });
+      }
+
+      const offer = await storage.adjustOfferListingFee(req.params.id, fee.toString());
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
       res.json(offer);
     } catch (error: any) {
       res.status(500).send(error.message);

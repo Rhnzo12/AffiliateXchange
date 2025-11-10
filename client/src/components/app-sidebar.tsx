@@ -162,7 +162,7 @@ export function AppSidebar() {
       icon: Building2,
     },
     {
-      title: "Offer Approvals",
+      title: "Offer Management",
       url: "/admin/offers",
       icon: TrendingUp,
     },

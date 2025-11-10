@@ -210,7 +210,7 @@ export default function AdminDashboard() {
 
         <Card className="border-card-border">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Pending Offer Approvals</CardTitle>
+            <CardTitle>Pending Offers</CardTitle>
             <Badge variant="secondary">{stats?.pendingOffers || 0}</Badge>
           </CardHeader>
           <CardContent>
