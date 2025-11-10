@@ -450,10 +450,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send("Offer not found");
       }
 
+      // 🆕 INCREMENT VIEW COUNT
+      await storage.incrementOfferViewCount(offer.id);
+
       const videos = await storage.getOfferVideos(offer.id);
       const company = await storage.getCompanyProfileById(offer.companyId);
 
-      res.json({ ...offer, videos, company });
+      // 🆕 GET OFFER STATS
+      const activeCreatorsCount = await storage.getActiveCreatorsCountForOffer(offer.id);
+      const clickStats = await storage.getOfferClickStats(offer.id);
+
+      res.json({
+        ...offer,
+        videos,
+        company,
+        activeCreatorsCount,
+        totalClicks: clickStats.totalClicks,
+        uniqueClicks: clickStats.uniqueClicks,
+      });
     } catch (error: any) {
       res.status(500).send(error.message);
     }
@@ -659,6 +673,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         creatorId: userId,
         status: 'pending',
       });
+
+      // 🆕 CHECK IF CREATOR HAS ALREADY APPLIED TO THIS OFFER
+      const existingApplication = await storage.getExistingApplication(userId, validated.offerId);
+      if (existingApplication) {
+        return res.status(400).json({
+          error: "You have already applied to this offer. Only one application per offer is allowed."
+        });
+      }
 
       const application = await storage.createApplication(validated);
 

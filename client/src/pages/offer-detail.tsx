@@ -649,11 +649,11 @@ export default function OfferDetail() {
                       <Users className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
                     </div>
                     <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                      {offer.activeCreatorCount || 0}
+                      {offer.activeCreatorsCount || 0}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600 font-medium">Active Creators</div>
                   </div>
-                  
+
                   <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
                       <MousePointer className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
@@ -661,7 +661,7 @@ export default function OfferDetail() {
                     <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                       {offer.totalClicks || 0}
                     </div>
-                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Clicks/Month</div>
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Total Clicks</div>
                   </div>
                   
                   <div className="text-center bg-white rounded-xl p-4 border border-gray-200">

@@ -265,6 +265,8 @@ export default function AdminOffers() {
                   <TableHead>Commission</TableHead>
                   <TableHead className="text-center">Applications</TableHead>
                   <TableHead className="text-center">Views</TableHead>
+                  <TableHead className="text-center">Active</TableHead>
+                  <TableHead className="text-center">Clicks</TableHead>
                   <TableHead className="text-center">Featured</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -315,6 +317,12 @@ export default function AdminOffers() {
                     </TableCell>
                     <TableCell className="text-center">
                       {offer.viewCount || 0}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {offer.activeCreatorsCount || 0}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {offer.totalClicks || 0}
                     </TableCell>
                     <TableCell className="text-center">
                       {offer.featuredOnHomepage ? (
