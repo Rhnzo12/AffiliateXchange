@@ -34,7 +34,7 @@ export default function AdminCompanies() {
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [industryFilter, setIndustryFilter] = useState<string>("");
+  const [industryFilter, setIndustryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function AdminCompanies() {
     if (statusFilter && statusFilter !== "all") {
       params.append("status", statusFilter);
     }
-    if (industryFilter) {
+    if (industryFilter && industryFilter !== "all") {
       params.append("industry", industryFilter);
     }
     return params.toString();
@@ -103,11 +103,11 @@ export default function AdminCompanies() {
 
   const clearFilters = () => {
     setStatusFilter("all");
-    setIndustryFilter("");
+    setIndustryFilter("all");
     setSearchQuery("");
   };
 
-  const hasActiveFilters = statusFilter !== "all" || industryFilter || searchQuery;
+  const hasActiveFilters = statusFilter !== "all" || industryFilter !== "all" || searchQuery;
 
   if (isLoading) {
     return (
@@ -183,7 +183,7 @@ export default function AdminCompanies() {
                   <SelectValue placeholder="All industries" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Industries</SelectItem>
+                  <SelectItem value="all">All Industries</SelectItem>
                   {uniqueIndustries.map((industry) => (
                     <SelectItem key={industry} value={industry!}>
                       {industry}
