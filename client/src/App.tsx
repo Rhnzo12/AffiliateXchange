@@ -108,6 +108,7 @@ function ProtectedRouter() {
                     <Route path="/applications" component={Applications} />
                     <Route path="/applications/:id" component={ApplicationDetail} />
                     <Route path="/analytics" component={Analytics} />
+                    <Route path="/analytics/:id" component={Analytics} />
                     <Route path="/messages" component={Messages} />
                     <Route path="/favorites" component={Favorites} />
                     <Route path="/creator/payment-settings" component={PaymentSettings} />

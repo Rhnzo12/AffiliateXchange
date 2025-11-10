@@ -1154,6 +1154,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = user.id;
       const userRole = user.role;
       const dateRange = (req.query.range as string) || '30d';
+      const applicationId = req.query.applicationId as string | undefined;
+
+      // If applicationId is provided, return analytics for that specific application
+      if (applicationId) {
+        const application = await storage.getApplication(applicationId);
+        if (!application) {
+          return res.status(404).send("Application not found");
+        }
+
+        // Verify the user has access to this application
+        if (userRole === 'creator' && application.creatorId !== userId) {
+          return res.status(403).send("Access denied");
+        }
+        if (userRole === 'company') {
+          const offer = await storage.getOffer(application.offerId);
+          const companyProfile = await storage.getCompanyProfile(userId);
+          if (!offer || !companyProfile || offer.companyId !== companyProfile.id) {
+            return res.status(403).send("Access denied");
+          }
+        }
+
+        // Get analytics for this specific application
+        const appAnalytics = await storage.getAnalyticsByApplication(applicationId);
+        const offer = await storage.getOffer(application.offerId);
+        const companyProfile = offer ? await storage.getCompanyProfile(offer.companyId) : null;
+
+        // Calculate totals
+        const totals = appAnalytics && appAnalytics.length > 0
+          ? appAnalytics.reduce((acc: any, curr: any) => ({
+              clicks: acc.clicks + (Number(curr.clicks) || 0),
+              conversions: acc.conversions + (Number(curr.conversions) || 0),
+              earnings: acc.earnings + (Number(curr.earnings) || 0),
+            }), { clicks: 0, conversions: 0, earnings: 0 })
+          : { clicks: 0, conversions: 0, earnings: 0 };
+
+        // Get time series data
+        const chartData = await storage.getAnalyticsTimeSeriesByApplication(applicationId, dateRange);
+
+        const stats = {
+          totalEarnings: totals.earnings,
+          totalClicks: totals.clicks,
+          uniqueClicks: totals.clicks, // TODO: Track unique clicks separately
+          conversions: totals.conversions,
+          conversionRate: totals.clicks > 0
+            ? ((totals.conversions / totals.clicks) * 100).toFixed(1)
+            : 0,
+          activeOffers: 1,
+          chartData: chartData,
+          offerTitle: offer?.title,
+          companyName: companyProfile?.legalName || companyProfile?.tradeName,
+          offerBreakdown: [], // Empty for single application view
+        };
+
+        return res.json(stats);
+      }
 
       if (userRole === 'company') {
         // Company analytics

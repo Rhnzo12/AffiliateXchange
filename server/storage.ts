@@ -654,6 +654,7 @@ export interface IStorage {
   getAnalyticsByCompany(companyId: string): Promise<any>;
   getAnalyticsTimeSeriesByCompany(companyId: string, dateRange: string): Promise<any[]>;
   getAnalyticsByApplication(applicationId: string): Promise<any[]>;
+  getAnalyticsTimeSeriesByApplication(applicationId: string, dateRange: string): Promise<any[]>;
   logTrackingClick(
     applicationId: string,
     clickData: {
@@ -2263,6 +2264,40 @@ export class DatabaseStorage implements IStorage {
       return result || [];
     } catch (error) {
       console.error("[getAnalyticsTimeSeriesByCreator] Error:", error);
+      return [];
+    }
+  }
+
+  async getAnalyticsTimeSeriesByApplication(applicationId: string, dateRange: string): Promise<any[]> {
+    try {
+      const whereClauses: any[] = [eq(analytics.applicationId, applicationId)];
+
+      if (dateRange !== "all") {
+        let daysBack = 30;
+        if (dateRange === "7d") daysBack = 7;
+        else if (dateRange === "30d") daysBack = 30;
+        else if (dateRange === "90d") daysBack = 90;
+
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - daysBack);
+        whereClauses.push(sql`${analytics.date} >= ${startDate}`);
+      }
+
+      const result = await db
+        .select({
+          date: sql<string>`TO_CHAR(${analytics.date}, 'Mon DD')`,
+          clicks: sql<number>`COALESCE(SUM(${analytics.clicks}), 0)`,
+          conversions: sql<number>`COALESCE(SUM(${analytics.conversions}), 0)`,
+          earnings: sql<number>`COALESCE(SUM(${analytics.earnings}), 0)`,
+        })
+        .from(analytics)
+        .where(and(...whereClauses))
+        .groupBy(analytics.date)
+        .orderBy(analytics.date);
+
+      return result || [];
+    } catch (error) {
+      console.error("[getAnalyticsTimeSeriesByApplication] Error:", error);
       return [];
     }
   }
