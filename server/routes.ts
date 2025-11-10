@@ -135,6 +135,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/offers/trending", requireAuth, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+      const offers = await storage.getTrendingOffers(limit);
+      res.json(offers);
+    } catch (error: any) {
+      console.error('[Trending Offers] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   app.get("/api/offers/recommended", requireAuth, async (req, res) => {
     try {
       const userId = (req.user as any).id;

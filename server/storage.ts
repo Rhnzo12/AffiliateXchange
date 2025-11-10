@@ -1150,6 +1150,64 @@ export class DatabaseStorage implements IStorage {
     return offersWithStats;
   }
 
+  async getTrendingOffers(limit: number = 20): Promise<Offer[]> {
+    // Get offers with most applications in last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const trendingResults = await db
+      .select({
+        offerId: applications.offerId,
+        applicationCount: sql<number>`COUNT(*)::int`,
+      })
+      .from(applications)
+      .where(gte(applications.createdAt, sevenDaysAgo))
+      .groupBy(applications.offerId)
+      .orderBy(desc(sql`COUNT(*)`))
+      .limit(limit);
+
+    // Get full offer details for trending offers
+    if (trendingResults.length === 0) {
+      // Fallback to newest approved offers if no trending data
+      return this.getOffers({ status: 'approved', limit });
+    }
+
+    const offerIds = trendingResults.map(r => r.offerId);
+
+    const offerData = await db
+      .select({
+        offer: offers,
+        company: companyProfiles,
+      })
+      .from(offers)
+      .leftJoin(companyProfiles, eq(offers.companyId, companyProfiles.id))
+      .where(and(
+        inArray(offers.id, offerIds),
+        eq(offers.status, 'approved')
+      ));
+
+    // Map to include stats and application counts
+    const offersWithStats = await Promise.all(
+      offerData.map(async (row: any) => {
+        const activeCreatorsCount = await this.getActiveCreatorsCountForOffer(row.offer.id);
+        const clickStats = await this.getOfferClickStats(row.offer.id);
+        const trendingData = trendingResults.find(t => t.offerId === row.offer.id);
+
+        return {
+          ...row.offer,
+          company: row.company,
+          activeCreatorsCount,
+          totalClicks: clickStats.totalClicks,
+          uniqueClicks: clickStats.uniqueClicks,
+          applicationCountLast7Days: trendingData?.applicationCount || 0,
+        };
+      })
+    );
+
+    // Sort by application count
+    return offersWithStats.sort((a, b) => b.applicationCountLast7Days - a.applicationCountLast7Days);
+  }
+
   async getOffersByCompany(companyId: string): Promise<Offer[]> {
     const results = await db
       .select({
