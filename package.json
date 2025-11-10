@@ -8,6 +8,7 @@
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "dev": "cross-env NODE_ENV=development NODE_NO_WARNINGS=1 tsx watch --clear-screen=false server/index.ts",
     "migrate:aliases": "node scripts/convert-aliases.cjs",
+    "migrate:notifications": "tsx --env-file=.env server/migrations/run-migrations.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
