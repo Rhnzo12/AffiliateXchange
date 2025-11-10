@@ -1274,7 +1274,17 @@ export class DatabaseStorage implements IStorage {
       query = query.where(and(...conditions)) as any;
     }
 
-    return await query.orderBy(desc(offers.createdAt));
+    const results = await query.orderBy(desc(offers.createdAt));
+
+    // Ensure all fields have proper defaults for display
+    return results.map(offer => ({
+      ...offer,
+      viewCount: offer.viewCount ?? 0,
+      applicationCount: offer.applicationCount ?? 0,
+      featuredOnHomepage: offer.featuredOnHomepage ?? false,
+      listingFee: offer.listingFee ?? '0',
+      editRequests: offer.editRequests ?? [],
+    }));
   }
 
   async rejectOffer(offerId: string, reason: string): Promise<Offer | undefined> {
