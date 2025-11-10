@@ -2437,6 +2437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get pending companies (legacy endpoint for backward compatibility)
   app.get("/api/admin/companies", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const companies = await storage.getPendingCompanies();
@@ -2446,6 +2447,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all companies with filters (new comprehensive endpoint)
+  app.get("/api/admin/companies/all", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { status, industry, startDate, endDate } = req.query;
+      const filters: any = {};
+
+      if (status) filters.status = status;
+      if (industry) filters.industry = industry;
+      if (startDate) filters.startDate = new Date(startDate as string);
+      if (endDate) filters.endDate = new Date(endDate as string);
+
+      const companies = await storage.getAllCompanies(filters);
+      res.json(companies);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get individual company details
+  app.get("/api/admin/companies/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const company = await storage.getCompanyById(req.params.id);
+      if (!company) {
+        return res.status(404).send("Company not found");
+      }
+      res.json(company);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get company offers
+  app.get("/api/admin/companies/:id/offers", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const offers = await storage.getCompanyOffers(req.params.id);
+      res.json(offers);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get company payments
+  app.get("/api/admin/companies/:id/payments", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const payments = await storage.getCompanyPayments(req.params.id);
+      res.json(payments);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get company creator relationships
+  app.get("/api/admin/companies/:id/creators", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const relationships = await storage.getCompanyCreatorRelationships(req.params.id);
+      res.json(relationships);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Approve company
   app.post("/api/admin/companies/:id/approve", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const company = await storage.approveCompany(req.params.id);
@@ -2455,10 +2518,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reject company
   app.post("/api/admin/companies/:id/reject", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const { reason } = req.body;
       const company = await storage.rejectCompany(req.params.id, reason);
+      res.json(company);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Suspend company
+  app.post("/api/admin/companies/:id/suspend", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const company = await storage.suspendCompany(req.params.id);
+      res.json(company);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Unsuspend company
+  app.post("/api/admin/companies/:id/unsuspend", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const company = await storage.unsuspendCompany(req.params.id);
       res.json(company);
     } catch (error: any) {
       res.status(500).send(error.message);

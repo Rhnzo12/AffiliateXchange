@@ -1,24 +1,41 @@
 import { useEffect, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
-import { Textarea } from "../components/ui/textarea";
-import { Label } from "../components/ui/label";
-import { Building2, CheckCircle2, XCircle } from "lucide-react";
-import { apiRequest, queryClient } from "../lib/queryClient";
+import { Input } from "../components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { Building2, ExternalLink, Filter, X } from "lucide-react";
 import { TopNavBar } from "../components/TopNavBar";
-import { CardGridSkeleton } from "../components/skeletons";
+import { useLocation } from "wouter";
+
+type Company = {
+  id: string;
+  legalName: string;
+  tradeName?: string;
+  industry?: string;
+  websiteUrl?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  createdAt: string;
+  approvedAt?: string;
+  user?: {
+    email: string;
+    username: string;
+  };
+};
 
 export default function AdminCompanies() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
-  const [selectedCompany, setSelectedCompany] = useState<any>(null);
-  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
+  const [, navigate] = useLocation();
+
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [industryFilter, setIndustryFilter] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -33,62 +50,64 @@ export default function AdminCompanies() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: companies = [], isLoading: loadingCompanies } = useQuery<any[]>({
-    queryKey: ["/api/admin/companies"],
+  // Fetch all companies with filters
+  const buildQueryParams = () => {
+    const params = new URLSearchParams();
+    if (statusFilter && statusFilter !== "all") {
+      params.append("status", statusFilter);
+    }
+    if (industryFilter) {
+      params.append("industry", industryFilter);
+    }
+    return params.toString();
+  };
+
+  const { data: companies = [], isLoading: loadingCompanies } = useQuery<Company[]>({
+    queryKey: ["/api/admin/companies/all", statusFilter, industryFilter],
+    queryFn: async () => {
+      const queryParams = buildQueryParams();
+      const url = `/api/admin/companies/all${queryParams ? `?${queryParams}` : ''}`;
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch companies");
+      return response.json();
+    },
     enabled: isAuthenticated,
   });
 
-  const approveMutation = useMutation({
-    mutationFn: async (companyId: string) => {
-      const response = await apiRequest("POST", `/api/admin/companies/${companyId}/approve`);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/companies"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-      toast({
-        title: "Success",
-        description: "Company approved successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to approve company",
-        variant: "destructive",
-      });
-    },
+  // Filter companies by search query (client-side)
+  const filteredCompanies = companies.filter((company) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      company.legalName?.toLowerCase().includes(query) ||
+      company.tradeName?.toLowerCase().includes(query) ||
+      company.user?.email?.toLowerCase().includes(query) ||
+      company.user?.username?.toLowerCase().includes(query)
+    );
   });
 
-  const rejectMutation = useMutation({
-    mutationFn: async ({ companyId, reason }: { companyId: string; reason: string }) => {
-      const response = await apiRequest("POST", `/api/admin/companies/${companyId}/reject`, { reason });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/companies"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-      toast({
-        title: "Success",
-        description: "Company rejected",
-      });
-      setIsRejectDialogOpen(false);
-      setRejectionReason("");
-      setSelectedCompany(null);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reject company",
-        variant: "destructive",
-      });
-    },
-  });
+  // Get unique industries for filter dropdown
+  const uniqueIndustries = Array.from(
+    new Set(companies.map((c) => c.industry).filter(Boolean))
+  ).sort();
 
-  const handleReject = (company: any) => {
-    setSelectedCompany(company);
-    setIsRejectDialogOpen(true);
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, { variant: any; className?: string }> = {
+      pending: { variant: "secondary" },
+      approved: { variant: "default", className: "bg-green-600 hover:bg-green-700" },
+      rejected: { variant: "destructive" },
+      suspended: { variant: "outline", className: "border-orange-500 text-orange-700 dark:text-orange-400" },
+    };
+    return variants[status] || { variant: "secondary" };
   };
+
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setIndustryFilter("");
+    setSearchQuery("");
+  };
+
+  const hasActiveFilters = statusFilter !== "all" || industryFilter || searchQuery;
 
   if (isLoading) {
     return (
@@ -101,153 +120,191 @@ export default function AdminCompanies() {
   return (
     <div className="space-y-8">
       <TopNavBar />
+
       <div>
-        <h1 className="text-3xl font-bold">Company Approvals</h1>
+        <h1 className="text-3xl font-bold">Company Management</h1>
         <p className="text-muted-foreground mt-1">
-          Review and approve companies to join the platform
+          Manage all companies on the platform
         </p>
       </div>
 
+      {/* Filters Section */}
+      <Card className="border-card-border">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-semibold">Filters</h3>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="ml-auto text-xs"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* Search */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Search</label>
+              <Input
+                placeholder="Search by name, email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Industry Filter */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Industry</label>
+              <Select value={industryFilter} onValueChange={setIndustryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All industries" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Industries</SelectItem>
+                  {uniqueIndustries.map((industry) => (
+                    <SelectItem key={industry} value={industry!}>
+                      {industry}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Results Summary */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Showing {filteredCompanies.length} of {companies.length} companies
+        </p>
+      </div>
+
+      {/* Companies Table */}
       {loadingCompanies ? (
-        <CardGridSkeleton count={6} />
-      ) : companies.length === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="animate-pulse text-lg">Loading companies...</div>
+          </CardContent>
+        </Card>
+      ) : filteredCompanies.length === 0 ? (
         <Card className="border-card-border">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <CheckCircle2 className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">All caught up!</h3>
+            <Building2 className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No companies found</h3>
             <p className="text-sm text-muted-foreground text-center max-w-md">
-              No pending companies to review at this time
+              {hasActiveFilters
+                ? "Try adjusting your filters to see more results"
+                : "No companies have registered yet"}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {companies.map((company: any) => (
-            <Card key={company.id} className="border-card-border" data-testid={`card-company-${company.id}`}>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 shrink-0">
-                      <Building2 className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg line-clamp-1">{company.legalName}</CardTitle>
-                      <Badge 
-                        variant={company.status === 'approved' ? 'default' : 'secondary'}
-                        className="mt-2"
-                        data-testid={`badge-status-${company.id}`}
+        <Card className="border-card-border">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Industry</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCompanies.map((company) => (
+                  <TableRow key={company.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 shrink-0">
+                          <Building2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <div className="font-medium">{company.legalName}</div>
+                          {company.tradeName && company.tradeName !== company.legalName && (
+                            <div className="text-xs text-muted-foreground">
+                              {company.tradeName}
+                            </div>
+                          )}
+                          {company.websiteUrl && (
+                            <a
+                              href={company.websiteUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Website
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">{company.industry || "—"}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{company.user?.email || "—"}</div>
+                        <div className="text-xs text-muted-foreground">
+                          @{company.user?.username}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        {...getStatusBadge(company.status)}
                       >
                         {company.status}
                       </Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {company.websiteUrl && (
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Website</div>
-                    <a 
-                      href={company.websiteUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline break-all"
-                      data-testid={`link-website-${company.id}`}
-                    >
-                      {company.websiteUrl}
-                    </a>
-                  </div>
-                )}
-                
-                {company.description && (
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Description</div>
-                    <p className="text-sm line-clamp-3">{company.description}</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-2 pt-3 border-t">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => approveMutation.mutate(company.id)}
-                    disabled={approveMutation.isPending || company.status === 'approved'}
-                    data-testid={`button-approve-${company.id}`}
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Approve
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => handleReject(company)}
-                    disabled={rejectMutation.isPending || company.status === 'rejected'}
-                    data-testid={`button-reject-${company.id}`}
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Reject
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Rejection Dialog */}
-      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-        <DialogContent data-testid="dialog-reject-company">
-          <DialogHeader>
-            <DialogTitle>Reject Company</DialogTitle>
-            <DialogDescription>
-              Provide a reason for rejecting this company registration
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="reason">Rejection Reason</Label>
-              <Textarea
-                id="reason"
-                placeholder="Enter reason for rejection..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                className="min-h-[100px]"
-                data-testid="textarea-rejection-reason"
-              />
-            </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {new Date(company.createdAt).toLocaleDateString()}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/admin/companies/${company.id}`)}
+                      >
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsRejectDialogOpen(false);
-                setRejectionReason("");
-                setSelectedCompany(null);
-              }}
-              data-testid="button-cancel-reject"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (selectedCompany && rejectionReason.trim()) {
-                  rejectMutation.mutate({ 
-                    companyId: selectedCompany.id, 
-                    reason: rejectionReason 
-                  });
-                }
-              }}
-              disabled={!rejectionReason.trim() || rejectMutation.isPending}
-              data-testid="button-confirm-reject"
-            >
-              {rejectMutation.isPending ? "Rejecting..." : "Reject Company"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </Card>
+      )}
     </div>
   );
 }

@@ -157,7 +157,7 @@ export function AppSidebar() {
       icon: Home,
     },
     {
-      title: "Company Approvals",
+      title: "Company Management",
       url: "/admin/companies",
       icon: Building2,
     },

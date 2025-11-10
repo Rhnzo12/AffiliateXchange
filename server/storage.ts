@@ -1,6 +1,6 @@
 // path: src/server/storage.ts
 import { randomUUID } from "crypto";
-import { eq, and, desc, sql, count, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, count, inArray, gte, lte } from "drizzle-orm";
 import { db, pool } from "./db";
 import geoip from "geoip-lite";
 import {
@@ -947,6 +947,143 @@ export class DatabaseStorage implements IStorage {
       .where(eq(companyProfiles.id, companyId))
       .returning();
     return result[0];
+  }
+
+  async suspendCompany(companyId: string): Promise<CompanyProfile | undefined> {
+    const result = await db
+      .update(companyProfiles)
+      .set({ status: "suspended", updatedAt: new Date() })
+      .where(eq(companyProfiles.id, companyId))
+      .returning();
+    return result[0];
+  }
+
+  async unsuspendCompany(companyId: string): Promise<CompanyProfile | undefined> {
+    const result = await db
+      .update(companyProfiles)
+      .set({ status: "approved", updatedAt: new Date() })
+      .where(eq(companyProfiles.id, companyId))
+      .returning();
+    return result[0];
+  }
+
+  async getAllCompanies(filters?: {
+    status?: string;
+    industry?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<any[]> {
+    let query = db
+      .select({
+        company: companyProfiles,
+        user: users,
+      })
+      .from(companyProfiles)
+      .leftJoin(users, eq(companyProfiles.userId, users.id));
+
+    const conditions: any[] = [];
+
+    if (filters?.status) {
+      conditions.push(eq(companyProfiles.status, filters.status as any));
+    }
+
+    if (filters?.industry) {
+      conditions.push(eq(companyProfiles.industry, filters.industry));
+    }
+
+    if (filters?.startDate) {
+      conditions.push(gte(companyProfiles.createdAt, filters.startDate));
+    }
+
+    if (filters?.endDate) {
+      conditions.push(lte(companyProfiles.createdAt, filters.endDate));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+
+    query = query.orderBy(desc(companyProfiles.createdAt)) as any;
+
+    const results = await query;
+
+    return results.map((row: any) => ({
+      ...row.company,
+      user: row.user,
+    }));
+  }
+
+  async getCompanyById(companyId: string): Promise<any | undefined> {
+    const result = await db
+      .select({
+        company: companyProfiles,
+        user: users,
+      })
+      .from(companyProfiles)
+      .leftJoin(users, eq(companyProfiles.userId, users.id))
+      .where(eq(companyProfiles.id, companyId))
+      .limit(1);
+
+    if (result.length === 0) return undefined;
+
+    return {
+      ...result[0].company,
+      user: result[0].user,
+    };
+  }
+
+  async getCompanyOffers(companyId: string): Promise<Offer[]> {
+    return await db
+      .select()
+      .from(offers)
+      .where(eq(offers.companyId, companyId))
+      .orderBy(desc(offers.createdAt));
+  }
+
+  async getCompanyPayments(companyId: string): Promise<any[]> {
+    const result = await db
+      .select({
+        payment: payments,
+        application: applications,
+        offer: offers,
+        creator: users,
+      })
+      .from(payments)
+      .leftJoin(applications, eq(payments.applicationId, applications.id))
+      .leftJoin(offers, eq(applications.offerId, offers.id))
+      .leftJoin(users, eq(applications.creatorId, users.id))
+      .where(eq(offers.companyId, companyId))
+      .orderBy(desc(payments.createdAt));
+
+    return result.map((row: any) => ({
+      ...row.payment,
+      application: row.application,
+      offer: row.offer,
+      creator: row.creator,
+    }));
+  }
+
+  async getCompanyCreatorRelationships(companyId: string): Promise<any[]> {
+    const result = await db
+      .select({
+        application: applications,
+        offer: offers,
+        creator: users,
+        creatorProfile: creatorProfiles,
+      })
+      .from(applications)
+      .leftJoin(offers, eq(applications.offerId, offers.id))
+      .leftJoin(users, eq(applications.creatorId, users.id))
+      .leftJoin(creatorProfiles, eq(users.id, creatorProfiles.userId))
+      .where(eq(offers.companyId, companyId))
+      .orderBy(desc(applications.createdAt));
+
+    return result.map((row: any) => ({
+      ...row.application,
+      offer: row.offer,
+      creator: row.creator,
+      creatorProfile: row.creatorProfile,
+    }));
   }
 
   // Offers
