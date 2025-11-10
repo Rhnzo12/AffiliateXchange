@@ -38,6 +38,7 @@ import AdminReviews from "./pages/admin-reviews";
 import AdminCompanies from "./pages/admin-companies";
 import AdminCompanyDetail from "./pages/admin-company-detail";
 import AdminOffers from "./pages/admin-offers";
+import AdminOfferDetail from "./pages/admin-offer-detail";
 import AdminCreators from "./pages/admin-creators";
 import AdminAuditLogs from "./pages/admin-audit-logs";
 import AdminPlatformSettings from "./pages/admin-platform-settings";
@@ -145,6 +146,7 @@ function ProtectedRouter() {
                     <Route path="/admin/companies" component={AdminCompanies} />
                     <Route path="/admin/companies/:id" component={AdminCompanyDetail} />
                     <Route path="/admin/offers" component={AdminOffers} />
+                    <Route path="/admin-offer-detail/:id" component={AdminOfferDetail} />
                     <Route path="/admin/creators" component={AdminCreators} />
                     <Route path="/admin/reviews" component={AdminReviews} />
                     <Route path="/admin/audit-logs" component={AdminAuditLogs} />

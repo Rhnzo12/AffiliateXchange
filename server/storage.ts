@@ -1252,6 +1252,158 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getAllOffersForAdmin(filters?: {
+    status?: string;
+    niche?: string;
+    commissionType?: string;
+  }): Promise<Offer[]> {
+    let query = db.select().from(offers);
+    const conditions = [];
+
+    if (filters?.status) {
+      conditions.push(eq(offers.status, filters.status as any));
+    }
+    if (filters?.niche) {
+      conditions.push(eq(offers.primaryNiche, filters.niche));
+    }
+    if (filters?.commissionType) {
+      conditions.push(eq(offers.commissionType, filters.commissionType as any));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+
+    return await query.orderBy(desc(offers.createdAt));
+  }
+
+  async rejectOffer(offerId: string, reason: string): Promise<Offer | undefined> {
+    const result = await db
+      .update(offers)
+      .set({
+        status: "archived",
+        rejectedAt: new Date(),
+        rejectionReason: reason,
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, offerId))
+      .returning();
+    return result[0];
+  }
+
+  async requestOfferEdits(offerId: string, notes: string, adminId: string): Promise<Offer | undefined> {
+    const offer = await this.getOfferById(offerId);
+    if (!offer) return undefined;
+
+    const editRequests = Array.isArray(offer.editRequests) ? offer.editRequests : [];
+    const newEditRequest = {
+      adminId,
+      notes,
+      requestedAt: new Date().toISOString(),
+    };
+
+    const result = await db
+      .update(offers)
+      .set({
+        editRequests: [...editRequests, newEditRequest] as any,
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, offerId))
+      .returning();
+    return result[0];
+  }
+
+  async featureOfferOnHomepage(offerId: string, featured: boolean): Promise<Offer | undefined> {
+    const result = await db
+      .update(offers)
+      .set({
+        featuredOnHomepage: featured,
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, offerId))
+      .returning();
+    return result[0];
+  }
+
+  async removeOfferFromPlatform(offerId: string): Promise<Offer | undefined> {
+    const result = await db
+      .update(offers)
+      .set({
+        status: "archived",
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, offerId))
+      .returning();
+    return result[0];
+  }
+
+  async adjustOfferListingFee(offerId: string, fee: string): Promise<Offer | undefined> {
+    const result = await db
+      .update(offers)
+      .set({
+        listingFee: fee,
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, offerId))
+      .returning();
+    return result[0];
+  }
+
+  async getOfferWithStats(offerId: string): Promise<{
+    offer: Offer | undefined;
+    applicationStats: {
+      total: number;
+      pending: number;
+      approved: number;
+      rejected: number;
+    };
+    activeCreators: number;
+    performanceMetrics: {
+      totalViews: number;
+      totalApplications: number;
+      approvalRate: number;
+    };
+  }> {
+    const offer = await this.getOfferById(offerId);
+    if (!offer) {
+      return {
+        offer: undefined,
+        applicationStats: { total: 0, pending: 0, approved: 0, rejected: 0 },
+        activeCreators: 0,
+        performanceMetrics: { totalViews: 0, totalApplications: 0, approvalRate: 0 },
+      };
+    }
+
+    const allApplications = await db
+      .select()
+      .from(applications)
+      .where(eq(applications.offerId, offerId));
+
+    const applicationStats = {
+      total: allApplications.length,
+      pending: allApplications.filter(a => a.status === 'pending').length,
+      approved: allApplications.filter(a => a.status === 'approved' || a.status === 'active').length,
+      rejected: allApplications.filter(a => a.status === 'rejected').length,
+    };
+
+    const activeCreators = allApplications.filter(a => a.status === 'active').length;
+
+    const approvalRate = applicationStats.total > 0
+      ? (applicationStats.approved / applicationStats.total) * 100
+      : 0;
+
+    return {
+      offer,
+      applicationStats,
+      activeCreators,
+      performanceMetrics: {
+        totalViews: offer.viewCount || 0,
+        totalApplications: offer.applicationCount || 0,
+        approvalRate: Math.round(approvalRate * 100) / 100,
+      },
+    };
+  }
+
   // Offer Videos
   async getOfferVideos(offerId: string): Promise<OfferVideo[]> {
     return await db

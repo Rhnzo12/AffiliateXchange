@@ -178,6 +178,11 @@ export const offers = pgTable("offers", {
   viewCount: integer("view_count").default(0),
   applicationCount: integer("application_count").default(0),
   approvedAt: timestamp("approved_at"),
+  rejectedAt: timestamp("rejected_at"),
+  rejectionReason: text("rejection_reason"),
+  featuredOnHomepage: boolean("featured_on_homepage").default(false),
+  listingFee: decimal("listing_fee", { precision: 10, scale: 2 }).default('0'),
+  editRequests: jsonb("edit_requests").default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
