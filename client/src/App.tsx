@@ -44,6 +44,7 @@ import AdminCreators from "./pages/admin-creators";
 import AdminAuditLogs from "./pages/admin-audit-logs";
 import AdminPlatformSettings from "./pages/admin-platform-settings";
 import Onboarding from "./pages/onboarding";
+import CreatorOnboarding from "./pages/creator-onboarding";
 import CompanyOnboarding from "./pages/company-onboarding";
 import CompanyProfile from "./pages/company-profile";
 import Login from "./pages/login";
@@ -197,7 +198,11 @@ function Router() {
     );
   }
 
-  // Special handling for company onboarding (no sidebar)
+  // Special handling for onboarding pages (no sidebar)
+  if (isAuthenticated && location === '/creator-onboarding' && user?.role === 'creator') {
+    return <CreatorOnboarding />;
+  }
+
   if (isAuthenticated && location === '/company-onboarding' && user?.role === 'company') {
     return <CompanyOnboarding />;
   }

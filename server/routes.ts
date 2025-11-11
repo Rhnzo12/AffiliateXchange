@@ -102,15 +102,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("[Profile Update] User role:", user.role);
       console.log("[Profile Update] Request body:", req.body);
 
+      // Extract profileImageUrl if provided (for user table update)
+      const { profileImageUrl, ...profileData } = req.body;
+
+      // Update user's profile image if provided
+      if (profileImageUrl !== undefined) {
+        await storage.updateUser(userId, { profileImageUrl });
+      }
+
       if (user.role === 'creator') {
-        const validated = insertCreatorProfileSchema.partial().parse(req.body);
+        const validated = insertCreatorProfileSchema.partial().parse(profileData);
         console.log("[Profile Update] Validated data:", validated);
 
         const profile = await storage.updateCreatorProfile(userId, validated);
         console.log("[Profile Update] Updated profile:", profile);
         return res.json(profile);
       } else if (user.role === 'company') {
-        const validated = insertCompanyProfileSchema.partial().parse(req.body);
+        const validated = insertCompanyProfileSchema.partial().parse(profileData);
         const profile = await storage.updateCompanyProfile(userId, validated);
         return res.json(profile);
       }
