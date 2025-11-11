@@ -536,37 +536,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Don't normalize featured image URLs - keep the full Cloudinary URL for proper display
       const featuredImagePath = validated.featuredImageUrl;
 
-      // Use the status from the request (draft or pending_review)
-      // But validate that pending_review offers will have videos added
-      const offerStatus = validated.status || 'draft';
-
+      // Always create offers as "draft" first
+      // Offers are submitted for review via POST /api/offers/:id/submit-for-review
       const offer = await storage.createOffer({
         ...validated,
         featuredImageUrl: featuredImagePath,
         companyId: companyProfile.id,
-        status: offerStatus,
+        status: 'draft',
       });
 
-      // Only notify admins if status is pending_review
-      if (offerStatus === 'pending_review') {
-        const companyUser = await storage.getUserById(userId);
-        const adminUsers = await storage.getUsersByRole('admin');
-        for (const admin of adminUsers) {
-          await notificationService.sendNotification(
-            admin.id,
-            'new_application',
-            'New Offer Pending Review',
-            `${companyProfile.legalName || companyProfile.tradeName} has submitted a new offer "${offer.title}" for review.`,
-            {
-              userName: admin.firstName || admin.username,
-              companyName: companyProfile.legalName || companyProfile.tradeName || '',
-              offerTitle: offer.title,
-              offerId: offer.id,
-            }
-          );
-        }
-        console.log(`[Notification] Notified admins about new offer ${offer.id} pending review`);
-      }
+      // Note: Admin notification happens when offer is submitted for review
+      // via POST /api/offers/:id/submit-for-review endpoint
 
       res.json(offer);
     } catch (error: any) {
