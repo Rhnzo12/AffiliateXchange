@@ -351,6 +351,12 @@ export default function Applications() {
 
                         {/* Quick Actions */}
                         <div className="flex flex-wrap gap-2 pt-2">
+                          <Link href={`/applications/${application.id}`}>
+                            <Button size="sm" variant="default" data-testid={`button-view-details-${application.id}`} className="gap-2">
+                              <FileText className="h-4 w-4" />
+                              View Details
+                            </Button>
+                          </Link>
                           {application.trackingLink && (
                             <Link href={`/analytics/${application.id}`}>
                               <Button size="sm" variant="outline" data-testid={`button-analytics-${application.id}`} className="gap-2">
