@@ -637,6 +637,16 @@ useEffect(() => {
                           </div>
                           {conversation.lastMessage && (
                             <div className="flex items-center gap-1.5 mt-1">
+                              {conversation.lastMessageSenderId !== user?.id &&
+                               ((user?.role === 'company' && conversation.companyUnreadCount > 0) ||
+                                (user?.role !== 'company' && conversation.creatorUnreadCount > 0)) && (
+                                <Badge
+                                  variant="destructive"
+                                  className="shrink-0 h-4 px-1.5 text-[9px] font-semibold"
+                                >
+                                  Received new messages
+                                </Badge>
+                              )}
                               {conversation.lastMessageSenderId === user?.id && (
                                 <Badge
                                   variant="secondary"
