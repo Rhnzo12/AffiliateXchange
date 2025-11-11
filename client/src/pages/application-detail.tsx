@@ -25,6 +25,8 @@ import {
   Building2,
   AlertCircle,
   XCircle,
+  QrCode,
+  Download,
 } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
@@ -201,6 +203,47 @@ export default function ApplicationDetail() {
       title: "Copied!",
       description: "Tracking link copied to clipboard",
     });
+  };
+
+  const downloadQRCode = async () => {
+    if (!applicationId) return;
+
+    try {
+      const response = await fetch(`/api/applications/${applicationId}/qrcode`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to generate QR code",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const data = await response.json();
+
+      // Create a download link for the QR code
+      const link = document.createElement('a');
+      link.href = data.qrCodeDataUrl;
+      link.download = `tracking-link-qr-${applicationId}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Success!",
+        description: "QR code downloaded successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to download QR code",
+        variant: "destructive",
+      });
+    }
   };
 
   const getExistingReview = () => {
@@ -431,22 +474,30 @@ export default function ApplicationDetail() {
                 )}
 
                 {/* Quick Action Buttons */}
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => window.open(application.trackingLink, '_blank')}
-                    className="flex-1"
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Test Link
                   </Button>
-                  <Link href={`/analytics/${application.id}`} className="flex-1">
+                  <Link href={`/analytics/${application.id}`}>
                     <Button size="sm" variant="default" className="w-full">
                       <TrendingUp className="h-4 w-4 mr-2" />
-                      View Analytics
+                      Analytics
                     </Button>
                   </Link>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={downloadQRCode}
+                    className="col-span-2"
+                  >
+                    <QrCode className="h-4 w-4 mr-2" />
+                    Download QR Code
+                  </Button>
                 </div>
 
                 <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/30 p-3 rounded-lg">

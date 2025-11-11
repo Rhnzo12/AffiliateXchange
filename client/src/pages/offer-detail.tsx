@@ -214,6 +214,12 @@ export default function OfferDetail() {
     enabled: !!offerId && isAuthenticated,
   });
 
+  // Fetch company response time
+  const { data: responseTimeData } = useQuery<any>({
+    queryKey: [`/api/companies/${offer?.companyId}/response-time`],
+    enabled: !!offer?.companyId,
+  });
+
   // Check if favorited
   const { data: isFavorite } = useQuery<boolean>({
     queryKey: [`/api/favorites/${offerId}`],
@@ -557,7 +563,7 @@ export default function OfferDetail() {
                       </div>
                       
                       {/* Additional Commission Details - IMPROVED: Pill style */}
-                      {(offer.cookieDuration || offer.averageOrderValue) && (
+                      {(offer.cookieDuration || offer.averageOrderValue || responseTimeData?.responseTimeHours) && (
                         <div className="flex items-center gap-4 flex-wrap text-sm text-gray-600">
                           {offer.cookieDuration && (
                             <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
@@ -569,6 +575,18 @@ export default function OfferDetail() {
                             <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
                               <TrendingUp className="h-4 w-4 text-gray-600" />
                               <span className="font-medium">Avg: ${offer.averageOrderValue}</span>
+                            </div>
+                          )}
+                          {responseTimeData?.responseTimeHours !== null && responseTimeData?.responseTimeHours !== undefined && (
+                            <div className="flex items-center gap-2 bg-blue-100 px-3 py-1.5 rounded-lg">
+                              <Clock className="h-4 w-4 text-blue-600" />
+                              <span className="font-medium text-blue-700">
+                                {responseTimeData.responseTimeHours < 1
+                                  ? "Responds < 1hr"
+                                  : responseTimeData.responseTimeHours < 24
+                                    ? `Responds in ${responseTimeData.responseTimeHours}hrs`
+                                    : `Responds in ${Math.round(responseTimeData.responseTimeHours / 24)}d`}
+                              </span>
                             </div>
                           )}
                         </div>

@@ -293,6 +293,7 @@ export const messages = pgTable("messages", {
   conversationId: varchar("conversation_id").notNull().references(() => conversations.id, { onDelete: 'cascade' }),
   senderId: varchar("sender_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   content: text("content").notNull(),
+  attachments: text("attachments").array().default(sql`ARRAY[]::text[]`),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
