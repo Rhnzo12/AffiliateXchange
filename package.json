@@ -9,6 +9,7 @@
     "dev": "cross-env NODE_ENV=development NODE_NO_WARNINGS=1 tsx watch --clear-screen=false server/index.ts",
     "migrate:aliases": "node scripts/convert-aliases.cjs",
     "migrate:notifications": "node --import tsx server/migrations/add-notification-enums-simple.ts",
+    "migrate:attachments": "node --import tsx server/migrations/add-message-attachments.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
