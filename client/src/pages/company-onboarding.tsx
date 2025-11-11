@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useLocation } from "wouter";
+import { queryClient } from "../lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -59,7 +60,7 @@ const INDUSTRIES = [
 
 export default function CompanyOnboarding() {
   const [, setLocation] = useLocation();
-  const { user, refetchUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -427,7 +428,7 @@ export default function CompanyOnboarding() {
       });
 
       // Refresh user data and redirect
-      await refetchUser();
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setTimeout(() => {
         setLocation("/company/dashboard");
       }, 1500);
