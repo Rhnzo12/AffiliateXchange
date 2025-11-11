@@ -20,7 +20,8 @@ import {
   Loader2,
   Bell,
   BellOff,
-  ArrowLeft
+  ArrowLeft,
+  X
 } from "lucide-react";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
@@ -32,6 +33,7 @@ interface EnhancedMessage {
   id: string;
   senderId: string;
   content: string;
+  attachments?: string[];
   createdAt: string;
   isRead: boolean;
   status?: MessageStatus;
@@ -56,10 +58,14 @@ export default function Messages() {
     const saved = localStorage.getItem('messageSoundEnabled');
     return saved === null ? true : saved === 'true';
   });
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [attachmentPreviews, setAttachmentPreviews] = useState<string[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const messageInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const lastMessageCountRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -318,8 +324,142 @@ useEffect(() => {
     }, 3000);
   }, [selectedConversation]);
 
+  // Handle file selection
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+
+    // Validate file types (images only)
+    const validFiles = fileArray.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not an image file`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds 5MB limit`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Limit to 3 attachments total
+    const remainingSlots = 3 - selectedFiles.length;
+    if (validFiles.length > remainingSlots) {
+      toast({
+        title: "Too many files",
+        description: `You can only attach up to 3 images per message`,
+        variant: "destructive",
+      });
+      validFiles.splice(remainingSlots);
+    }
+
+    setSelectedFiles(prev => [...prev, ...validFiles]);
+
+    // Create preview URLs
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setAttachmentPreviews(prev => [...prev, e.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Remove selected file
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setAttachmentPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Upload files to Cloudinary
+  const uploadFiles = async (filesToUpload?: File[]): Promise<string[]> => {
+    const files = filesToUpload || selectedFiles;
+    if (files.length === 0) return [];
+
+    setUploadingFiles(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (const file of files) {
+        // Get upload URL from backend
+        const uploadResponse = await fetch("/api/objects/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            folder: "creatorlink/attachments",
+            resourceType: "image"
+          }),
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error("Failed to get upload URL");
+        }
+
+        const uploadData = await uploadResponse.json();
+
+        // Upload file to Cloudinary
+        const formData = new FormData();
+        formData.append('file', file);
+
+        if (uploadData.uploadPreset) {
+          formData.append('upload_preset', uploadData.uploadPreset);
+        } else if (uploadData.signature) {
+          formData.append('signature', uploadData.signature);
+          formData.append('timestamp', uploadData.timestamp.toString());
+          formData.append('api_key', uploadData.apiKey);
+        }
+
+        if (uploadData.folder) {
+          formData.append('folder', uploadData.folder);
+        }
+
+        const uploadResult = await fetch(uploadData.uploadUrl, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadResult.ok) {
+          throw new Error("Failed to upload file");
+        }
+
+        const cloudinaryResponse = await uploadResult.json();
+        uploadedUrls.push(cloudinaryResponse.secure_url);
+      }
+
+      return uploadedUrls;
+    } catch (error) {
+      console.error("File upload error:", error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload attachments. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
+
   const sendMessage = async () => {
-    if (!selectedConversation || !messageText.trim() || !user?.id) return;
+    if (!selectedConversation || (!messageText.trim() && selectedFiles.length === 0) || !user?.id) return;
 
     // Clear typing indicator
     if (typingTimeoutRef.current) {
@@ -333,32 +473,56 @@ useEffect(() => {
     }
 
     const messageContent = messageText;
-    setMessageText(""); // Clear input immediately for better UX
+    const filesToUpload = [...selectedFiles];
+    const previewsToRestore = [...attachmentPreviews];
 
-    // Send via WebSocket if connected
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'chat_message',
-        conversationId: selectedConversation,
-        senderId: user.id,
-        content: messageContent,
-      }));
+    // Clear input immediately for better UX
+    setMessageText("");
+    setSelectedFiles([]);
+    setAttachmentPreviews([]);
 
-      // Immediately refetch messages after sending
-      queryClient.invalidateQueries({
-        queryKey: ["/api/messages", selectedConversation]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["/api/conversations"]
-      });
-    } else {
-      // Restore message if not connected
+    try {
+      // Upload files first if any
+      let uploadedUrls: string[] = [];
+      if (filesToUpload.length > 0) {
+        uploadedUrls = await uploadFiles(filesToUpload);
+      }
+
+      // Send via WebSocket if connected
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'chat_message',
+          conversationId: selectedConversation,
+          senderId: user.id,
+          content: messageContent || '', // Use empty string if no content
+          attachments: uploadedUrls,
+        }));
+
+        // Immediately refetch messages after sending
+        queryClient.invalidateQueries({
+          queryKey: ["/api/messages", selectedConversation]
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/conversations"]
+        });
+      } else {
+        // Restore message if not connected
+        setMessageText(messageContent);
+        setSelectedFiles(filesToUpload);
+        setAttachmentPreviews(previewsToRestore);
+        toast({
+          title: "Connection Error",
+          description: "Real-time messaging is not connected. Trying to reconnect...",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      // Restore message on error
       setMessageText(messageContent);
-      toast({
-        title: "Connection Error",
-        description: "Real-time messaging is not connected. Trying to reconnect...",
-        variant: "destructive",
-      });
+      setSelectedFiles(filesToUpload);
+      setAttachmentPreviews(previewsToRestore);
+    } finally {
+      setUploadingFiles(false);
     }
   };
 
@@ -589,7 +753,32 @@ useEffect(() => {
                                 : 'bg-muted rounded-bl-md'
                             }`}
                           >
-                            <p className="text-sm sm:text-base whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
+                            {/* Attachments */}
+                            {message.attachments && message.attachments.length > 0 && (
+                              <div className="mb-2 space-y-2">
+                                {message.attachments.map((url, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block"
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`Attachment ${idx + 1}`}
+                                      className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                                      style={{ maxHeight: '300px' }}
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+
+                            {message.content && (
+                              <p className="text-sm sm:text-base whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
+                            )}
+
                             <div className="flex items-center justify-end gap-1 mt-1">
                               <p className="text-xs opacity-70">
                                 {format(new Date(message.createdAt), 'h:mm a')}
@@ -629,7 +818,39 @@ useEffect(() => {
 
               {/* Input - Better mobile touch targets */}
               <div className="p-3 sm:p-4 border-t bg-background">
+                {/* Attachment Previews */}
+                {attachmentPreviews.length > 0 && (
+                  <div className="mb-3 flex gap-2 flex-wrap">
+                    {attachmentPreviews.map((preview, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${idx + 1}`}
+                          className="h-20 w-20 object-cover rounded-lg border"
+                        />
+                        <button
+                          onClick={() => removeFile(idx)}
+                          className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          disabled={uploadingFiles}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex gap-2">
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+
                   {/* Message Templates - Company Only */}
                   {isCompany && (
                     <MessageTemplates
@@ -639,15 +860,22 @@ useEffect(() => {
                     />
                   )}
 
+                  {/* Image Attachment Button - Creator Only */}
                   {!isCompany && (
                     <Button
                       variant="outline"
                       size="icon"
                       data-testid="button-attach-image"
-                      disabled
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingFiles || selectedFiles.length >= 3}
                       className="h-11 w-11 shrink-0"
+                      title={selectedFiles.length >= 3 ? "Maximum 3 attachments" : "Attach images"}
                     >
-                      <ImageIcon className="h-5 w-5" />
+                      {uploadingFiles ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <ImageIcon className="h-5 w-5" />
+                      )}
                     </Button>
                   )}
 
@@ -671,12 +899,18 @@ useEffect(() => {
                   />
                   <Button
                     onClick={() => sendMessage()}
-                    disabled={!messageText.trim() || !isConnected}
+                    disabled={(!messageText.trim() && selectedFiles.length === 0) || !isConnected || uploadingFiles}
                     data-testid="button-send-message"
                     className="h-11 w-11 sm:w-auto sm:px-4 shrink-0"
                   >
-                    <Send className="h-5 w-5" />
-                    <span className="hidden sm:inline ml-2">Send</span>
+                    {uploadingFiles ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
+                    <span className="hidden sm:inline ml-2">
+                      {uploadingFiles ? "Uploading..." : "Send"}
+                    </span>
                   </Button>
                 </div>
                 {!isConnected && (
