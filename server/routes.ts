@@ -8,12 +8,13 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { db } from "./db";
-import { offerVideos, applications, analytics, offers, companyProfiles, payments } from "../shared/schema";
+import { offerVideos, applications, analytics, offers, companyProfiles, payments, conversations, messages } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
 import { NotificationService } from "./notifications/notificationService";
 import { PriorityListingScheduler } from "./priorityListingScheduler";
+import QRCode from "qrcode";
 import {
   insertCreatorProfileSchema,
   insertCompanyProfileSchema,
@@ -104,6 +105,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role === 'creator') {
         const validated = insertCreatorProfileSchema.partial().parse(req.body);
         console.log("[Profile Update] Validated data:", validated);
+
+        // ACCOUNT TYPE RESTRICTION: Exclude bloggers/text-only creators
+        // Require at least one video platform (YouTube, TikTok, or Instagram) with URL
+        const hasVideoPlatform = validated.youtubeUrl || validated.tiktokUrl || validated.instagramUrl;
+        if (!hasVideoPlatform) {
+          // Get existing profile to check if they already have a platform
+          const existingProfile = await storage.getCreatorProfile(userId);
+          const existingHasPlatform = existingProfile && (
+            existingProfile.youtubeUrl ||
+            existingProfile.tiktokUrl ||
+            existingProfile.instagramUrl
+          );
+
+          if (!existingHasPlatform) {
+            return res.status(400).json({
+              error: "Video platform required",
+              message: "Creators must have at least one video platform (YouTube, TikTok, or Instagram) to use AffiliateXchange. Text-only content creators are not supported."
+            });
+          }
+        }
+
         const profile = await storage.updateCreatorProfile(userId, validated);
         console.log("[Profile Update] Updated profile:", profile);
         return res.json(profile);
@@ -917,6 +939,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // QR Code generation endpoint for tracking links
+  app.get("/api/applications/:id/qrcode", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const applicationId = req.params.id;
+
+      // Get the application
+      const application = await storage.getApplication(applicationId);
+
+      if (!application) {
+        return res.status(404).send("Application not found");
+      }
+
+      // Verify the user owns this application
+      if (application.creatorId !== userId) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Check if application is approved and has a tracking link
+      if (application.status !== 'approved' && application.status !== 'active') {
+        return res.status(400).json({
+          error: "Application not approved",
+          message: "QR codes are only available for approved applications"
+        });
+      }
+
+      if (!application.trackingLink) {
+        return res.status(400).json({
+          error: "No tracking link",
+          message: "This application doesn't have a tracking link yet"
+        });
+      }
+
+      // Generate QR code as data URL
+      const qrCodeDataUrl = await QRCode.toDataURL(application.trackingLink, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+
+      res.json({
+        success: true,
+        qrCodeDataUrl: qrCodeDataUrl,
+        trackingLink: application.trackingLink
+      });
+    } catch (error: any) {
+      console.error('[GET /api/applications/:id/qrcode] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   app.post("/api/applications", requireAuth, requireRole('creator'), async (req, res) => {
     try {
       const userId = (req.user as any).id;
@@ -1648,6 +1724,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(message);
     } catch (error: any) {
       console.error('[POST /api/messages] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get company average response time
+  app.get("/api/companies/:companyId/response-time", async (req, res) => {
+    try {
+      const companyId = req.params.companyId;
+
+      // Get company profile to find userId
+      const companyProfile = await storage.getCompanyProfileById(companyId);
+      if (!companyProfile) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      // Get all conversations for this company
+      const conversations = await db.query.conversations.findMany({
+        where: eq(conversations.companyId, companyId),
+        with: {
+          messages: {
+            orderBy: (messages, { asc }) => [asc(messages.createdAt)],
+          },
+        },
+      });
+
+      if (conversations.length === 0) {
+        return res.json({
+          averageResponseTime: null,
+          responseTimeHours: null,
+          conversationCount: 0,
+        });
+      }
+
+      // Calculate response times for each conversation
+      const responseTimes: number[] = [];
+
+      for (const conversation of conversations) {
+        const msgs = conversation.messages;
+        if (msgs.length < 2) continue;
+
+        // Find first creator message and first company response
+        let firstCreatorMessageTime: Date | null = null;
+        let firstCompanyResponseTime: Date | null = null;
+
+        for (const msg of msgs) {
+          if (msg.senderId === conversation.creatorId && !firstCreatorMessageTime) {
+            firstCreatorMessageTime = new Date(msg.createdAt);
+          } else if (msg.senderId === companyProfile.userId && firstCreatorMessageTime && !firstCompanyResponseTime) {
+            firstCompanyResponseTime = new Date(msg.createdAt);
+            break;
+          }
+        }
+
+        // If we found both, calculate the response time
+        if (firstCreatorMessageTime && firstCompanyResponseTime) {
+          const responseTimeMs = firstCompanyResponseTime.getTime() - firstCreatorMessageTime.getTime();
+          responseTimes.push(responseTimeMs);
+        }
+      }
+
+      if (responseTimes.length === 0) {
+        return res.json({
+          averageResponseTime: null,
+          responseTimeHours: null,
+          conversationCount: conversations.length,
+        });
+      }
+
+      // Calculate average
+      const averageMs = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+      const averageHours = averageMs / (1000 * 60 * 60);
+
+      res.json({
+        averageResponseTime: Math.round(averageMs / 1000), // in seconds
+        responseTimeHours: Math.round(averageHours * 10) / 10, // rounded to 1 decimal
+        conversationCount: conversations.length,
+        responseCount: responseTimes.length,
+      });
+    } catch (error: any) {
+      console.error('[GET /api/companies/:companyId/response-time] Error:', error);
       res.status(500).send(error.message);
     }
   });
