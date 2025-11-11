@@ -4395,6 +4395,7 @@ res.json(approved);
             conversationId: message.conversationId,
             senderId: message.senderId,
             content: message.content,
+            attachments: message.attachments || [],
           });
 
           // Find all participants in the conversation
