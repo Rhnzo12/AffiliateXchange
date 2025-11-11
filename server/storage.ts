@@ -1889,6 +1889,115 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  async getAllConversationsForAdmin(options: {
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<any[]> {
+    const { search, limit = 50, offset = 0 } = options;
+
+    // Build the base query
+    let query = db
+      .select({
+        id: conversations.id,
+        applicationId: conversations.applicationId,
+        creatorId: conversations.creatorId,
+        companyId: conversations.companyId,
+        offerId: conversations.offerId,
+        lastMessageAt: conversations.lastMessageAt,
+        creatorUnreadCount: conversations.creatorUnreadCount,
+        companyUnreadCount: conversations.companyUnreadCount,
+        createdAt: conversations.createdAt,
+        updatedAt: conversations.updatedAt,
+        offerTitle: offers.title,
+        creatorFirstName: users.firstName,
+        creatorLastName: users.lastName,
+        creatorEmail: users.email,
+        creatorProfileImageUrl: users.profileImageUrl,
+        companyLegalName: companyProfiles.legalName,
+        companyTradeName: companyProfiles.tradeName,
+        companyLogoUrl: companyProfiles.logoUrl,
+        companyUserId: companyProfiles.userId,
+      })
+      .from(conversations)
+      .innerJoin(offers, eq(conversations.offerId, offers.id))
+      .innerJoin(users, eq(conversations.creatorId, users.id))
+      .innerJoin(companyProfiles, eq(conversations.companyId, companyProfiles.id))
+      .orderBy(desc(conversations.lastMessageAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Apply search filter if provided
+    if (search) {
+      query = query.where(
+        or(
+          sql`${users.firstName} ILIKE ${`%${search}%`}`,
+          sql`${users.lastName} ILIKE ${`%${search}%`}`,
+          sql`${users.email} ILIKE ${`%${search}%`}`,
+          sql`${companyProfiles.legalName} ILIKE ${`%${search}%`}`,
+          sql`${companyProfiles.tradeName} ILIKE ${`%${search}%`}`,
+          sql`${offers.title} ILIKE ${`%${search}%`}`
+        )
+      ) as typeof query;
+    }
+
+    const result = await query;
+
+    // Fetch last message for each conversation
+    const conversationsWithMessages = await Promise.all(
+      result.map(async (conv) => {
+        const lastMessages = await db
+          .select({
+            content: messages.content,
+            senderId: messages.senderId,
+            createdAt: messages.createdAt,
+          })
+          .from(messages)
+          .where(eq(messages.conversationId, conv.id))
+          .orderBy(desc(messages.createdAt))
+          .limit(1);
+
+        return {
+          ...conv,
+          lastMessage: lastMessages[0]?.content || null,
+          lastMessageSenderId: lastMessages[0]?.senderId || null,
+        };
+      })
+    );
+
+    return conversationsWithMessages.map((conv) => ({
+      id: conv.id,
+      applicationId: conv.applicationId,
+      creatorId: conv.creatorId,
+      companyId: conv.companyId,
+      offerId: conv.offerId,
+      offerTitle: conv.offerTitle,
+      lastMessageAt: conv.lastMessageAt,
+      lastMessage: conv.lastMessage,
+      lastMessageSenderId: conv.lastMessageSenderId,
+      creatorUnreadCount: conv.creatorUnreadCount,
+      companyUnreadCount: conv.companyUnreadCount,
+      createdAt: conv.createdAt,
+      updatedAt: conv.updatedAt,
+      creator: {
+        id: conv.creatorId,
+        name: `${conv.creatorFirstName || ""} ${conv.creatorLastName || ""}`.trim() ||
+          conv.creatorEmail,
+        firstName: conv.creatorFirstName,
+        lastName: conv.creatorLastName,
+        email: conv.creatorEmail,
+        profileImageUrl: conv.creatorProfileImageUrl,
+      },
+      company: {
+        id: conv.companyUserId,
+        name: conv.companyTradeName || conv.companyLegalName,
+        legalName: conv.companyLegalName,
+        tradeName: conv.companyTradeName,
+        logoUrl: conv.companyLogoUrl,
+      },
+    }));
+  }
+
   async createConversation(data: any): Promise<any> {
     const result = await db
       .insert(conversations)
@@ -3057,6 +3166,107 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  async getDisputedPayments(options: {
+    limit?: number;
+    offset?: number;
+  }): Promise<any[]> {
+    const { limit = 50, offset = 0 } = options;
+
+    // Get disputed affiliate payments (status='failed' and description contains 'Disputed:')
+    const affiliatePayments = await db
+      .select({
+        payment: payments,
+        creator: users,
+        company: companyProfiles,
+        offer: offers,
+      })
+      .from(payments)
+      .innerJoin(users, eq(payments.creatorId, users.id))
+      .innerJoin(companyProfiles, eq(payments.companyId, companyProfiles.id))
+      .leftJoin(offers, eq(payments.offerId, offers.id))
+      .where(
+        and(
+          eq(payments.status, 'failed'),
+          sql`${payments.description} ILIKE ${'%Disputed:%'}`
+        )
+      )
+      .orderBy(desc(payments.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Get disputed retainer payments
+    const retainerPaymentsList = await db
+      .select({
+        payment: retainerPayments,
+        creator: users,
+        company: companyProfiles,
+        contract: retainerContracts,
+      })
+      .from(retainerPayments)
+      .innerJoin(users, eq(retainerPayments.creatorId, users.id))
+      .innerJoin(companyProfiles, eq(retainerPayments.companyId, companyProfiles.id))
+      .leftJoin(retainerContracts, eq(retainerPayments.contractId, retainerContracts.id))
+      .where(
+        and(
+          eq(retainerPayments.status, 'failed'),
+          sql`${retainerPayments.description} ILIKE ${'%Disputed:%'}`
+        )
+      )
+      .orderBy(desc(retainerPayments.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Combine and format results
+    const combinedPayments = [
+      ...affiliatePayments.map(({ payment, creator, company, offer }) => ({
+        ...payment,
+        paymentType: 'affiliate' as const,
+        creator: {
+          id: creator.id,
+          firstName: creator.firstName,
+          lastName: creator.lastName,
+          email: creator.email,
+          profileImageUrl: creator.profileImageUrl,
+        },
+        company: {
+          id: company.id,
+          userId: company.userId,
+          legalName: company.legalName,
+          tradeName: company.tradeName,
+          logoUrl: company.logoUrl,
+        },
+        title: offer?.title || 'Affiliate Offer',
+      })),
+      ...retainerPaymentsList.map(({ payment, creator, company, contract }) => ({
+        ...payment,
+        paymentType: 'retainer' as const,
+        netAmount: payment.amount,
+        creator: {
+          id: creator.id,
+          firstName: creator.firstName,
+          lastName: creator.lastName,
+          email: creator.email,
+          profileImageUrl: creator.profileImageUrl,
+        },
+        company: {
+          id: company.id,
+          userId: company.userId,
+          legalName: company.legalName,
+          tradeName: company.tradeName,
+          logoUrl: company.logoUrl,
+        },
+        title: contract?.title || 'Retainer Contract',
+      })),
+    ];
+
+    // Sort by date descending
+    return combinedPayments.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.initiatedAt || 0).getTime();
+      const dateB = new Date(b.createdAt || b.initiatedAt || 0).getTime();
+      return dateB - dateA;
+    });
+  }
+
   async updatePaymentStatus(
     id: string,
     status: string,
@@ -4026,6 +4236,71 @@ export class DatabaseStorage implements IStorage {
   async createPlatformSetting(setting: InsertPlatformSetting): Promise<PlatformSetting> {
     const result = await db.insert(platformSettings).values(setting).returning();
     return result[0];
+  }
+
+  // Niche Categories Management
+  async getNiches(): Promise<any[]> {
+    const setting = await this.getPlatformSetting('niches');
+    if (!setting || !setting.value) {
+      // Return default niches if none exist
+      return [
+        { id: '1', name: 'Tech & Gadgets', description: 'Technology products and gadgets', isActive: true },
+        { id: '2', name: 'Beauty & Skincare', description: 'Beauty and skincare products', isActive: true },
+        { id: '3', name: 'Fashion & Apparel', description: 'Clothing and fashion accessories', isActive: true },
+        { id: '4', name: 'Home & Living', description: 'Home decor and lifestyle products', isActive: true },
+        { id: '5', name: 'Fitness & Health', description: 'Fitness equipment and health supplements', isActive: true },
+        { id: '6', name: 'Gaming', description: 'Video games and gaming equipment', isActive: true },
+        { id: '7', name: 'Food & Beverage', description: 'Food products and beverages', isActive: true },
+        { id: '8', name: 'Travel', description: 'Travel services and products', isActive: true },
+        { id: '9', name: 'Finance & Insurance', description: 'Financial services and insurance', isActive: true },
+        { id: '10', name: 'Education', description: 'Educational courses and materials', isActive: true },
+        { id: '11', name: 'Other', description: 'Other categories', isActive: true },
+      ];
+    }
+    return JSON.parse(setting.value);
+  }
+
+  async getActiveNiches(): Promise<any[]> {
+    const allNiches = await this.getNiches();
+    return allNiches.filter(niche => niche.isActive !== false);
+  }
+
+  async addNiche(name: string, description?: string, isActive: boolean = true): Promise<any[]> {
+    const niches = await this.getNiches();
+    const newNiche = {
+      id: String(Date.now()),
+      name,
+      description: description || '',
+      isActive,
+    };
+    niches.push(newNiche);
+
+    await this.updatePlatformSetting('niches', JSON.stringify(niches), 'system');
+    return niches;
+  }
+
+  async updateNiche(id: string, updates: { name?: string; description?: string; isActive?: boolean }): Promise<any[]> {
+    const niches = await this.getNiches();
+    const index = niches.findIndex(n => n.id === id);
+    if (index === -1) {
+      throw new Error('Niche not found');
+    }
+
+    niches[index] = { ...niches[index], ...updates };
+    await this.updatePlatformSetting('niches', JSON.stringify(niches), 'system');
+    return niches;
+  }
+
+  async deleteNiche(id: string): Promise<any[]> {
+    const niches = await this.getNiches();
+    const filtered = niches.filter(n => n.id !== id);
+
+    if (filtered.length === niches.length) {
+      throw new Error('Niche not found');
+    }
+
+    await this.updatePlatformSetting('niches', JSON.stringify(filtered), 'system');
+    return filtered;
   }
 
   // Platform Funding Accounts
