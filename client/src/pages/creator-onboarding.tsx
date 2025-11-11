@@ -112,7 +112,7 @@ export default function CreatorOnboarding() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "profile-images", resourceType: "image" }),
+        body: JSON.stringify({ folder: "creatorprofile", resourceType: "image" }),
       });
 
       if (!uploadResponse.ok) {
