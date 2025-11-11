@@ -654,7 +654,7 @@ export async function setupAuth(app: Express) {
         }));
 
         // Get payment settings (sanitized)
-        const paymentSettings = await storage.getPaymentSettingsByUser(userId);
+        const paymentSettings = await storage.getPaymentSettings(userId);
         exportData.paymentSettings = paymentSettings.map(setting => ({
           id: setting.id,
           payoutMethod: setting.payoutMethod,
@@ -836,7 +836,7 @@ export async function setupAuth(app: Express) {
       });
 
       // 4. Delete payment settings (cascade will handle)
-      const paymentSettings = await storage.getPaymentSettingsByUser(userId);
+      const paymentSettings = await storage.getPaymentSettings(userId);
       for (const setting of paymentSettings) {
         await storage.deletePaymentSetting(setting.id);
       }
