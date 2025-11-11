@@ -3578,6 +3578,282 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin messaging monitoring routes
+  app.get("/api/admin/conversations", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const search = req.query.search as string | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+
+      const conversations = await storage.getAllConversationsForAdmin({ search, limit, offset });
+      res.json(conversations);
+    } catch (error: any) {
+      console.error('[Admin Conversations] Error fetching conversations:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.get("/api/admin/messages/:conversationId", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const messages = await storage.getMessages(req.params.conversationId);
+      res.json(messages);
+    } catch (error: any) {
+      console.error('[Admin Messages] Error fetching messages:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Admin payment disputes routes
+  app.get("/api/admin/payments/disputed", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+
+      const payments = await storage.getDisputedPayments({ limit, offset });
+      res.json(payments);
+    } catch (error: any) {
+      console.error('[Admin Disputed Payments] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/admin/payments/:id/resolve-dispute", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { resolution, notes } = req.body;
+
+      if (!resolution || !['refund', 'complete', 'cancel'].includes(resolution)) {
+        return res.status(400).send("Valid resolution required: refund, complete, or cancel");
+      }
+
+      const payment = await storage.getPaymentOrRetainerPayment(req.params.id);
+      if (!payment) {
+        return res.status(404).send("Payment not found");
+      }
+
+      let newStatus: 'refunded' | 'completed' | 'failed';
+      let description = payment.description || '';
+
+      switch (resolution) {
+        case 'refund':
+          newStatus = 'refunded';
+          description += ` | Admin resolved: Refunded to company. ${notes || ''}`;
+          break;
+        case 'complete':
+          newStatus = 'completed';
+          description += ` | Admin resolved: Payment approved. ${notes || ''}`;
+          break;
+        case 'cancel':
+          newStatus = 'failed';
+          description += ` | Admin resolved: Dispute cancelled. ${notes || ''}`;
+          break;
+        default:
+          return res.status(400).send("Invalid resolution type");
+      }
+
+      const updatedPayment = await storage.updatePaymentOrRetainerPaymentStatus(req.params.id, newStatus, {
+        description: description.trim(),
+      });
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.RESOLVE_PAYMENT_DISPUTE,
+        entityType: EntityTypes.PAYMENT,
+        entityId: req.params.id,
+        changes: { resolution, notes, newStatus },
+        reason: `Resolved dispute: ${resolution}`,
+      }, req);
+
+      // Send notifications
+      const creator = await storage.getUserById(payment.creatorId);
+      const company = await storage.getCompanyProfileById(payment.companyId);
+
+      if (creator) {
+        await notificationService.sendNotification(
+          payment.creatorId,
+          'payment_dispute_resolved',
+          'Payment Dispute Resolved',
+          `The dispute on your payment has been resolved. Resolution: ${resolution}. ${notes || ''}`,
+          { paymentId: payment.id }
+        );
+      }
+
+      if (company && company.userId) {
+        await notificationService.sendNotification(
+          company.userId,
+          'payment_dispute_resolved',
+          'Payment Dispute Resolved',
+          `The payment dispute has been resolved. Resolution: ${resolution}. ${notes || ''}`,
+          { paymentId: payment.id }
+        );
+      }
+
+      res.json(updatedPayment);
+    } catch (error: any) {
+      console.error('[Admin Resolve Dispute] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/admin/payments/:id/refund", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { reason } = req.body;
+
+      const payment = await storage.getPaymentOrRetainerPayment(req.params.id);
+      if (!payment) {
+        return res.status(404).send("Payment not found");
+      }
+
+      if (payment.status !== 'completed') {
+        return res.status(400).send("Can only refund completed payments");
+      }
+
+      const updatedPayment = await storage.updatePaymentOrRetainerPaymentStatus(req.params.id, 'refunded', {
+        description: `${payment.description || ''} | Admin refunded: ${reason || 'No reason provided'}`,
+        refundedAt: new Date(),
+      });
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.REFUND_PAYMENT,
+        entityType: EntityTypes.PAYMENT,
+        entityId: req.params.id,
+        changes: { status: 'refunded', reason },
+        reason: `Admin refund: ${reason || 'No reason provided'}`,
+      }, req);
+
+      // Send notifications
+      const creator = await storage.getUserById(payment.creatorId);
+      const company = await storage.getCompanyProfileById(payment.companyId);
+
+      if (creator) {
+        await notificationService.sendNotification(
+          payment.creatorId,
+          'payment_refunded',
+          'Payment Refunded',
+          `Your payment has been refunded. Reason: ${reason || 'Not specified'}`,
+          { paymentId: payment.id }
+        );
+      }
+
+      if (company && company.userId) {
+        await notificationService.sendNotification(
+          company.userId,
+          'payment_refunded',
+          'Payment Refunded',
+          `A payment has been refunded. Reason: ${reason || 'Not specified'}`,
+          { paymentId: payment.id }
+        );
+      }
+
+      res.json(updatedPayment);
+    } catch (error: any) {
+      console.error('[Admin Refund Payment] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Admin niche categories management
+  app.get("/api/admin/niches", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const niches = await storage.getNiches();
+      res.json(niches);
+    } catch (error: any) {
+      console.error('[Admin Niches] Error fetching niches:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/admin/niches", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { name, description, isActive } = req.body;
+
+      if (!name) {
+        return res.status(400).send("Niche name is required");
+      }
+
+      const niches = await storage.addNiche(name, description, isActive !== false);
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.CREATE_NICHE,
+        entityType: EntityTypes.PLATFORM_SETTINGS,
+        entityId: 'niches',
+        changes: { name, description, isActive },
+        reason: 'Added new niche category',
+      }, req);
+
+      res.json(niches);
+    } catch (error: any) {
+      console.error('[Admin Niches] Error adding niche:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.put("/api/admin/niches/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const nicheId = req.params.id;
+      const { name, description, isActive } = req.body;
+
+      const niches = await storage.updateNiche(nicheId, { name, description, isActive });
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.UPDATE_NICHE,
+        entityType: EntityTypes.PLATFORM_SETTINGS,
+        entityId: nicheId,
+        changes: { name, description, isActive },
+        reason: 'Updated niche category',
+      }, req);
+
+      res.json(niches);
+    } catch (error: any) {
+      console.error('[Admin Niches] Error updating niche:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.delete("/api/admin/niches/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const nicheId = req.params.id;
+
+      const niches = await storage.deleteNiche(nicheId);
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.DELETE_NICHE,
+        entityType: EntityTypes.PLATFORM_SETTINGS,
+        entityId: nicheId,
+        reason: 'Deleted niche category',
+      }, req);
+
+      res.json(niches);
+    } catch (error: any) {
+      console.error('[Admin Niches] Error deleting niche:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Public endpoint to get active niches
+  app.get("/api/niches", async (req, res) => {
+    try {
+      const niches = await storage.getActiveNiches();
+      res.json(niches);
+    } catch (error: any) {
+      console.error('[Niches] Error fetching niches:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Platform Funding Accounts routes
   app.get("/api/admin/funding-accounts", requireAuth, requireRole('admin'), async (req, res) => {
     try {

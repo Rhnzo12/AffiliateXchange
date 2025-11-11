@@ -43,6 +43,9 @@ import AdminOfferDetail from "./pages/admin-offer-detail";
 import AdminCreators from "./pages/admin-creators";
 import AdminAuditLogs from "./pages/admin-audit-logs";
 import AdminPlatformSettings from "./pages/admin-platform-settings";
+import AdminMessages from "./pages/admin-messages";
+import AdminPaymentDisputes from "./pages/admin-payment-disputes";
+import AdminNiches from "./pages/admin-niches";
 import Onboarding from "./pages/onboarding";
 import CreatorOnboarding from "./pages/creator-onboarding";
 import CompanyOnboarding from "./pages/company-onboarding";
@@ -154,6 +157,9 @@ function ProtectedRouter() {
                     <Route path="/admin-offer-detail/:id" component={AdminOfferDetail} />
                     <Route path="/admin/creators" component={AdminCreators} />
                     <Route path="/admin/reviews" component={AdminReviews} />
+                    <Route path="/admin/messages" component={AdminMessages} />
+                    <Route path="/admin/payment-disputes" component={AdminPaymentDisputes} />
+                    <Route path="/admin/niches" component={AdminNiches} />
                     <Route path="/admin/audit-logs" component={AdminAuditLogs} />
                     <Route path="/admin/platform-settings" component={AdminPlatformSettings} />
                     <Route path="/admin/users" component={AdminDashboard} />

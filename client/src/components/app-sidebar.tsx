@@ -42,6 +42,8 @@ import {
   CalendarClock,
   ScrollText,
   Sliders,
+  AlertCircle,
+  Tags,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -195,9 +197,24 @@ export function AppSidebar() {
       icon: Star,
     },
     {
+      title: "Message Monitoring",
+      url: "/admin/messages",
+      icon: MessageSquare,
+    },
+    {
       title: "Payment Management",
       url: "/admin/payment-settings",
       icon: DollarSign,
+    },
+    {
+      title: "Payment Disputes",
+      url: "/admin/payment-disputes",
+      icon: AlertCircle,
+    },
+    {
+      title: "Niche Categories",
+      url: "/admin/niches",
+      icon: Tags,
     },
     {
       title: "Audit Trail",
