@@ -1882,9 +1882,24 @@ export class DatabaseStorage implements IStorage {
     try {
       const result = await db.insert(messages).values(message).returning();
 
+      // Get the conversation to determine who should receive the unread notification
+      const conversation = await this.getConversation(message.conversationId);
+
+      // Increment unread count for the recipient
+      // If the sender is the creator, increment company unread count
+      // If the sender is the company, increment creator unread count
+      const isCreatorSender = message.senderId === conversation.creatorId;
+
       await db
         .update(conversations)
-        .set({ lastMessageAt: new Date(), updatedAt: new Date() })
+        .set({
+          lastMessageAt: new Date(),
+          updatedAt: new Date(),
+          ...(isCreatorSender
+            ? { companyUnreadCount: sql`${conversations.companyUnreadCount} + 1` }
+            : { creatorUnreadCount: sql`${conversations.creatorUnreadCount} + 1` }
+          )
+        })
         .where(eq(conversations.id, message.conversationId));
 
       return result[0];
@@ -1908,11 +1923,29 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async markMessagesAsRead(conversationId: string, _userId: string): Promise<void> {
+  async markMessagesAsRead(conversationId: string, userId: string): Promise<void> {
+    // Mark messages as read
     await db
       .update(messages)
       .set({ isRead: true })
       .where(and(eq(messages.conversationId, conversationId), eq(messages.isRead, false)));
+
+    // Get the conversation to determine who is reading the messages
+    const conversation = await this.getConversation(conversationId);
+
+    // Reset unread count for the reader
+    // If the reader is the creator, reset creator unread count
+    // If the reader is the company, reset company unread count
+    const isCreatorReading = userId === conversation.creatorId;
+
+    await db
+      .update(conversations)
+      .set(
+        isCreatorReading
+          ? { creatorUnreadCount: 0 }
+          : { companyUnreadCount: 0 }
+      )
+      .where(eq(conversations.id, conversationId));
   }
 
   // Reviews
