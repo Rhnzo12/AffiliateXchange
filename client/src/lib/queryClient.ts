@@ -5,19 +5,25 @@ async function throwIfResNotOk(res: Response) {
     const text = (await res.text()) || res.statusText;
 
     // Try to parse as JSON to extract error message
+    let errorMessage: string | null = null;
     try {
       const errorData = JSON.parse(text);
       // Prioritize the detailed 'message' field over the short 'error' field
       if (errorData.message) {
-        throw new Error(errorData.message);
+        errorMessage = errorData.message;
       } else if (errorData.error) {
-        throw new Error(errorData.error);
+        errorMessage = errorData.error;
       }
     } catch (parseError) {
-      // Not JSON or no error/message field, use the text as-is
+      // Not JSON, will use the text as-is
     }
 
-    throw new Error(`${res.status}: ${text}`);
+    // Throw with the extracted message or the full text
+    if (errorMessage) {
+      throw new Error(errorMessage);
+    } else {
+      throw new Error(`${res.status}: ${text}`);
+    }
   }
 }
 
