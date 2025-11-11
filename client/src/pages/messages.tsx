@@ -404,7 +404,7 @@ useEffect(() => {
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            folder: "affiliatexchange/message-attachments",
+            folder: "creatorlink/attachments",
             resourceType: "image"
           }),
         });
