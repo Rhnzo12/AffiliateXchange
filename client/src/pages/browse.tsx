@@ -86,6 +86,16 @@ const getCommissionValue = (offer: any): number => {
   return 0;
 };
 
+// Helper function to check if offer is priority (featured and not expired)
+const isPriorityOffer = (offer: any): boolean => {
+  if (!offer.featuredOnHomepage || !offer.priorityExpiresAt) {
+    return false;
+  }
+  const now = new Date();
+  const expiresAt = new Date(offer.priorityExpiresAt);
+  return expiresAt > now;
+};
+
 // Helper function to get offer category badge
 const getOfferCategory = (offer: any): { label: string; color: string } | null => {
   const commissionValue = getCommissionValue(offer);
@@ -93,8 +103,8 @@ const getOfferCategory = (offer: any): { label: string; color: string } | null =
   const daysSinceCreated = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
 
   // Priority order for badges
-  if (offer.isPriority) {
-    return { label: "TRENDING", color: "bg-gradient-to-r from-orange-500 to-pink-500" };
+  if (isPriorityOffer(offer)) {
+    return { label: "PRIORITY", color: "bg-gradient-to-r from-yellow-500 to-orange-500" };
   }
 
   if (commissionValue >= 100) {
@@ -285,24 +295,34 @@ export default function Browse() {
     }
 
     // Trending toggle filter
-    if (showTrending && !offer.isPriority && getCommissionValue(offer) <= 15) {
+    if (showTrending && !isPriorityOffer(offer) && getCommissionValue(offer) <= 15) {
       return false;
     }
 
     // Priority listings filter
-    if (showPriority && !offer.isPriority) {
+    if (showPriority && !isPriorityOffer(offer)) {
       return false;
     }
 
     return true;
   }) || [];
 
+  // Sort offers to show priority listings first
+  const sortedOffers = [...(filteredOffers || [])].sort((a, b) => {
+    const aIsPriority = isPriorityOffer(a);
+    const bIsPriority = isPriorityOffer(b);
+
+    if (aIsPriority && !bIsPriority) return -1;
+    if (!aIsPriority && bIsPriority) return 1;
+    return 0;
+  });
+
   // Get trending offers for the trending section (only on "all" tab)
-  const trendingOffers = activeTab === "all" ? filteredOffers
-    ?.filter(offer => offer.isPriority || getCommissionValue(offer) > 15)
+  const trendingOffers = activeTab === "all" ? sortedOffers
+    ?.filter(offer => isPriorityOffer(offer) || getCommissionValue(offer) > 15)
     ?.slice(0, 4) || [] : [];
 
-  const regularOffers = activeTab === "all" ? filteredOffers || [] : filteredOffers;
+  const regularOffers = activeTab === "all" ? sortedOffers || [] : sortedOffers;
 
   const toggleNiche = (niche: string) => {
     setSelectedNiches(prev =>

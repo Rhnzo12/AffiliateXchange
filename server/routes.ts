@@ -13,6 +13,7 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
 import { NotificationService } from "./notifications/notificationService";
+import { PriorityListingScheduler } from "./priorityListingScheduler";
 import {
   insertCreatorProfileSchema,
   insertCompanyProfileSchema,
@@ -50,6 +51,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize notification service
   const notificationService = new NotificationService(storage);
+
+  // Initialize priority listing scheduler
+  const priorityListingScheduler = new PriorityListingScheduler(notificationService);
+
+  // Run priority listing checks daily at 2 AM
+  // In production, use a proper cron scheduler like node-cron
+  setInterval(async () => {
+    const now = new Date();
+    if (now.getHours() === 2 && now.getMinutes() === 0) {
+      try {
+        await priorityListingScheduler.runScheduledTasks();
+      } catch (error) {
+        console.error('[Priority Listing Scheduler] Error running scheduled tasks:', error);
+      }
+    }
+  }, 60000); // Check every minute
 
   // Profile routes
   app.get("/api/profile", requireAuth, async (req, res) => {
@@ -519,31 +536,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Don't normalize featured image URLs - keep the full Cloudinary URL for proper display
       const featuredImagePath = validated.featuredImageUrl;
 
+      // Use the status from the request (draft or pending_review)
+      // But validate that pending_review offers will have videos added
+      const offerStatus = validated.status || 'draft';
+
       const offer = await storage.createOffer({
         ...validated,
         featuredImageUrl: featuredImagePath,
         companyId: companyProfile.id,
-        status: 'pending_review',
+        status: offerStatus,
       });
 
-      // Notify admins about new offer pending review
-      const companyUser = await storage.getUserById(userId);
-      const adminUsers = await storage.getUsersByRole('admin');
-      for (const admin of adminUsers) {
-        await notificationService.sendNotification(
-          admin.id,
-          'new_application',
-          'New Offer Pending Review',
-          `${companyProfile.legalName || companyProfile.tradeName} has submitted a new offer "${offer.title}" for review.`,
-          {
-            userName: admin.firstName || admin.username,
-            companyName: companyProfile.legalName || companyProfile.tradeName || '',
-            offerTitle: offer.title,
-            offerId: offer.id,
-          }
-        );
+      // Only notify admins if status is pending_review
+      if (offerStatus === 'pending_review') {
+        const companyUser = await storage.getUserById(userId);
+        const adminUsers = await storage.getUsersByRole('admin');
+        for (const admin of adminUsers) {
+          await notificationService.sendNotification(
+            admin.id,
+            'new_application',
+            'New Offer Pending Review',
+            `${companyProfile.legalName || companyProfile.tradeName} has submitted a new offer "${offer.title}" for review.`,
+            {
+              userName: admin.firstName || admin.username,
+              companyName: companyProfile.legalName || companyProfile.tradeName || '',
+              offerTitle: offer.title,
+              offerId: offer.id,
+            }
+          );
+        }
+        console.log(`[Notification] Notified admins about new offer ${offer.id} pending review`);
       }
-      console.log(`[Notification] Notified admins about new offer ${offer.id} pending review`);
 
       res.json(offer);
     } catch (error: any) {
@@ -619,6 +642,244 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Offer deleted successfully" });
     } catch (error: any) {
       console.error('[DELETE /api/offers/:id] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Submit offer for review - validates 6-12 video requirement
+  app.post("/api/offers/:id/submit-for-review", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const offerId = req.params.id;
+
+      // Verify ownership
+      const offer = await storage.getOffer(offerId);
+      if (!offer) {
+        return res.status(404).send("Offer not found");
+      }
+
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile || offer.companyId !== companyProfile.id) {
+        return res.status(403).send("Unauthorized: You don't own this offer");
+      }
+
+      // Check if offer is in draft status
+      if (offer.status !== 'draft') {
+        return res.status(400).json({
+          error: "Invalid status",
+          message: "Only draft offers can be submitted for review"
+        });
+      }
+
+      // CRITICAL: Validate 6-12 video requirement
+      const videos = await storage.getOfferVideos(offerId);
+      if (videos.length < 6) {
+        return res.status(400).json({
+          error: "Insufficient videos",
+          message: `Offers must have at least 6 example videos. Currently: ${videos.length}/6`
+        });
+      }
+
+      if (videos.length > 12) {
+        return res.status(400).json({
+          error: "Too many videos",
+          message: `Offers can have maximum 12 example videos. Currently: ${videos.length}/12`
+        });
+      }
+
+      // Update offer status to pending_review
+      const updatedOffer = await storage.updateOffer(offerId, {
+        status: 'pending_review'
+      });
+
+      // Notify admins about new offer pending review
+      const adminUsers = await storage.getUsersByRole('admin');
+      for (const admin of adminUsers) {
+        await notificationService.sendNotification(
+          admin.id,
+          'new_application',
+          'New Offer Pending Review',
+          `${companyProfile.legalName || companyProfile.tradeName} has submitted offer "${offer.title}" for review.`,
+          {
+            userName: admin.firstName || admin.username,
+            companyName: companyProfile.legalName || companyProfile.tradeName || '',
+            offerTitle: offer.title,
+            offerId: offer.id,
+          }
+        );
+      }
+      console.log(`[Submit for Review] Notified admins about offer ${offer.id} (${videos.length} videos)`);
+
+      res.json({
+        success: true,
+        message: "Offer submitted for review successfully",
+        offer: updatedOffer,
+        videoCount: videos.length
+      });
+    } catch (error: any) {
+      console.error('[POST /api/offers/:id/submit-for-review] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Priority Listing Purchase endpoint
+  app.post("/api/offers/:id/purchase-priority", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const offerId = req.params.id;
+
+      // Verify ownership
+      const offer = await storage.getOffer(offerId);
+      if (!offer) {
+        return res.status(404).send("Offer not found");
+      }
+
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile || offer.companyId !== companyProfile.id) {
+        return res.status(403).send("Unauthorized: You don't own this offer");
+      }
+
+      // Check if offer is approved
+      if (offer.status !== 'approved') {
+        return res.status(400).json({
+          error: "Invalid status",
+          message: "Only approved offers can be made priority listings"
+        });
+      }
+
+      // Check if already has active priority listing
+      if (offer.featuredOnHomepage && offer.priorityExpiresAt) {
+        const now = new Date();
+        if (new Date(offer.priorityExpiresAt) > now) {
+          return res.status(400).json({
+            error: "Already featured",
+            message: "This offer already has an active priority listing"
+          });
+        }
+      }
+
+      // Get priority listing settings from platform_settings
+      const feeSettings = await storage.getPlatformSetting('priority_listing_fee');
+      const durationSettings = await storage.getPlatformSetting('priority_listing_duration_days');
+
+      const priorityFee = feeSettings ? parseFloat(feeSettings.value) : 199;
+      const priorityDuration = durationSettings ? parseInt(durationSettings.value) : 30;
+
+      // In a real implementation, you would:
+      // 1. Create Stripe Payment Intent
+      // 2. Process payment via Stripe
+      // 3. Only update offer if payment succeeds
+
+      // For now, simulate successful payment processing
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + priorityDuration * 24 * 60 * 60 * 1000);
+
+      // Update offer with priority listing
+      const updatedOffer = await storage.updateOffer(offerId, {
+        featuredOnHomepage: true,
+        priorityExpiresAt: expiresAt,
+        priorityPurchasedAt: now,
+      });
+
+      // Send confirmation notification
+      await notificationService.sendNotification(
+        userId,
+        'system_announcement',
+        'Priority Listing Activated!',
+        `Your offer "${offer.title}" is now a priority listing until ${expiresAt.toLocaleDateString()}.`,
+        {
+          linkUrl: `/company/offers/${offer.id}`,
+          offerId: offer.id,
+          offerTitle: offer.title,
+        }
+      );
+
+      res.json({
+        success: true,
+        message: "Priority listing purchased successfully",
+        offer: updatedOffer,
+        expiresAt: expiresAt,
+        fee: priorityFee,
+      });
+    } catch (error: any) {
+      console.error('[POST /api/offers/:id/purchase-priority] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Priority Listing Renewal endpoint
+  app.post("/api/offers/:id/renew-priority", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const offerId = req.params.id;
+
+      // Verify ownership
+      const offer = await storage.getOffer(offerId);
+      if (!offer) {
+        return res.status(404).send("Offer not found");
+      }
+
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile || offer.companyId !== companyProfile.id) {
+        return res.status(403).send("Unauthorized: You don't own this offer");
+      }
+
+      // Check if offer is approved
+      if (offer.status !== 'approved') {
+        return res.status(400).json({
+          error: "Invalid status",
+          message: "Only approved offers can have priority listings"
+        });
+      }
+
+      // Get priority listing settings
+      const feeSettings = await storage.getPlatformSetting('priority_listing_fee');
+      const durationSettings = await storage.getPlatformSetting('priority_listing_duration_days');
+
+      const priorityFee = feeSettings ? parseFloat(feeSettings.value) : 199;
+      const priorityDuration = durationSettings ? parseInt(durationSettings.value) : 30;
+
+      // Calculate new expiration date
+      const now = new Date();
+      let newExpiresAt: Date;
+
+      if (offer.priorityExpiresAt && new Date(offer.priorityExpiresAt) > now) {
+        // Extend from current expiration date
+        newExpiresAt = new Date(new Date(offer.priorityExpiresAt).getTime() + priorityDuration * 24 * 60 * 60 * 1000);
+      } else {
+        // Start from now
+        newExpiresAt = new Date(now.getTime() + priorityDuration * 24 * 60 * 60 * 1000);
+      }
+
+      // Update offer with renewed priority listing
+      const updatedOffer = await storage.updateOffer(offerId, {
+        featuredOnHomepage: true,
+        priorityExpiresAt: newExpiresAt,
+        priorityPurchasedAt: now,
+      });
+
+      // Send confirmation notification
+      await notificationService.sendNotification(
+        userId,
+        'system_announcement',
+        'Priority Listing Renewed!',
+        `Your priority listing for "${offer.title}" has been extended until ${newExpiresAt.toLocaleDateString()}.`,
+        {
+          linkUrl: `/company/offers/${offer.id}`,
+          offerId: offer.id,
+          offerTitle: offer.title,
+        }
+      );
+
+      res.json({
+        success: true,
+        message: "Priority listing renewed successfully",
+        offer: updatedOffer,
+        expiresAt: newExpiresAt,
+        fee: priorityFee,
+      });
+    } catch (error: any) {
+      console.error('[POST /api/offers/:id/renew-priority] Error:', error);
       res.status(500).send(error.message);
     }
   });
@@ -937,7 +1198,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.log(`[Notification] Notified admins about new affiliate payment ${payment.id}`);
 
-      res.json({ application: completed, payment });
+      // Check if this is the first completed campaign between this company and creator
+      // to show review prompt
+      const allApplications = await storage.getApplicationsByCreator(application.creatorId);
+      const completedApplicationsWithThisCompany = allApplications.filter(app => {
+        // Get all completed applications with offers from this company
+        return app.status === 'completed' && app.completedAt;
+      });
+
+      // Get the offers for these applications to check if they're from the same company
+      let completedWithThisCompanyCount = 0;
+      for (const app of completedApplicationsWithThisCompany) {
+        const appOffer = await storage.getOffer(app.offerId);
+        if (appOffer && appOffer.companyId === offer.companyId) {
+          completedWithThisCompanyCount++;
+        }
+      }
+
+      // Check if creator has already reviewed this company
+      const existingReviews = await storage.getReviewsByCreatorAndCompany(
+        application.creatorId,
+        offer.companyId
+      );
+
+      const shouldPromptReview = completedWithThisCompanyCount === 1 && existingReviews.length === 0;
+
+      res.json({
+        application: completed,
+        payment,
+        promptReview: shouldPromptReview,
+        companyId: offer.companyId,
+        companyName: companyProfile.legalName || companyProfile.tradeName,
+      });
     } catch (error: any) {
       console.error('[Complete Application] Error:', error);
       res.status(500).send(error.message);
@@ -2234,6 +2526,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/company/payment-method-status", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const paymentSettings = await storage.getPaymentSettings(userId);
+
+      res.json({
+        hasPaymentMethod: paymentSettings && paymentSettings.length > 0,
+        paymentMethodCount: paymentSettings ? paymentSettings.length : 0,
+        configured: paymentSettings && paymentSettings.length > 0,
+      });
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
   // Notification routes
   app.get("/api/notifications", requireAuth, async (req, res) => {
     try {
@@ -2675,24 +2982,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/offers/:id/approve", requireAuth, requireRole('admin'), async (req, res) => {
     try {
-      const offer = await storage.approveOffer(req.params.id);
+      const offer = await storage.getOffer(req.params.id);
       if (!offer) {
         return res.status(404).json({ error: "Offer not found" });
       }
 
-      // Send notification to company
+      // Check if company has payment method configured
       const company = await storage.getCompanyProfileById(offer.companyId);
-      if (company) {
-        await storage.createNotification({
-          userId: company.userId,
-          type: 'offer_approved',
-          title: 'Offer Approved',
-          message: `Your offer "${offer.title}" has been approved and is now live!`,
-          metadata: { offerId: offer.id },
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      const paymentSettings = await storage.getPaymentSettings(company.userId);
+      if (!paymentSettings || paymentSettings.length === 0) {
+        return res.status(400).json({
+          error: "No payment method on file",
+          warning: `Company "${company.legalName || company.tradeName}" does not have a payment method configured. Please ask them to add payment settings before approving this offer.`
         });
       }
 
-      res.json(offer);
+      // Approve the offer
+      const approvedOffer = await storage.approveOffer(req.params.id);
+      if (!approvedOffer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      // Send notification to company
+      await storage.createNotification({
+        userId: company.userId,
+        type: 'offer_approved',
+        title: 'Offer Approved',
+        message: `Your offer "${approvedOffer.title}" has been approved and is now live!`,
+        metadata: { offerId: approvedOffer.id },
+      });
+
+      res.json(approvedOffer);
     } catch (error: any) {
       res.status(500).send(error.message);
     }

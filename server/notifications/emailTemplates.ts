@@ -15,6 +15,8 @@ interface EmailTemplateData {
   messagePreview?: string;
   daysUntilExpiration?: number;
   linkUrl?: string;
+  verificationUrl?: string;
+  resetUrl?: string;
 }
 
 const baseStyles = `
@@ -733,6 +735,82 @@ export function paymentPendingEmail(data: EmailTemplateData): { subject: string;
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
           <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function emailVerificationEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Verify your email address`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Welcome to Affiliate Marketplace!</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>Thank you for registering with Affiliate Marketplace. To complete your registration and start using your account, please verify your email address by clicking the button below.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${data.verificationUrl}" class="button">Verify Email Address</a>
+          </div>
+          <p style="color: #6B7280; font-size: 14px;">This verification link will expire in 24 hours.</p>
+          <p style="color: #6B7280; font-size: 14px;">If you didn't create an account with Affiliate Marketplace, you can safely ignore this email.</p>
+          <div style="background-color: #F3F4F6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px; color: #374151;">If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; font-family: monospace; font-size: 12px; color: #4F46E5; margin: 10px 0 0 0;">${data.verificationUrl}</p>
+          </div>
+        </div>
+        <div class="footer">
+          <p>This is an automated email from Affiliate Marketplace.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function passwordResetEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Reset your password`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Password Reset Request</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>We received a request to reset your password for your Affiliate Marketplace account. Click the button below to create a new password.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${data.resetUrl}" class="button">Reset Password</a>
+          </div>
+          <p style="color: #6B7280; font-size: 14px;">This password reset link will expire in 1 hour.</p>
+          <p style="color: #6B7280; font-size: 14px;">If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.</p>
+          <div style="background-color: #F3F4F6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px; color: #374151;">If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; font-family: monospace; font-size: 12px; color: #4F46E5; margin: 10px 0 0 0;">${data.resetUrl}</p>
+          </div>
+        </div>
+        <div class="footer">
+          <p>This is an automated email from Affiliate Marketplace.</p>
         </div>
       </div>
     </body>

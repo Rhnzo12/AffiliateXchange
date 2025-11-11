@@ -15,6 +15,7 @@ import { apiRequest, queryClient } from "../lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
+import { ReviewPromptDialog } from "../components/ReviewPromptDialog";
 
 export default function CompanyApplications() {
   const { toast } = useToast();
@@ -23,6 +24,8 @@ export default function CompanyApplications() {
   const [conversionDialogOpen, setConversionDialogOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [saleAmount, setSaleAmount] = useState("");
+  const [reviewPromptOpen, setReviewPromptOpen] = useState(false);
+  const [reviewPromptData, setReviewPromptData] = useState<any>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -47,12 +50,22 @@ export default function CompanyApplications() {
       const response = await apiRequest('POST', `/api/applications/${applicationId}/complete`);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/company/applications"] });
       toast({
         title: "Work Approved",
         description: "Creator work has been marked as complete.",
       });
+
+      // Show review prompt if this is the first completed campaign
+      if (data.promptReview && data.companyId && data.companyName) {
+        setReviewPromptData({
+          companyId: data.companyId,
+          companyName: data.companyName,
+          applicationId: data.application?.id,
+        });
+        setReviewPromptOpen(true);
+      }
     },
     onError: (error: any) => {
       toast({
@@ -508,6 +521,17 @@ export default function CompanyApplications() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Review Prompt Dialog */}
+      {reviewPromptData && (
+        <ReviewPromptDialog
+          open={reviewPromptOpen}
+          onOpenChange={setReviewPromptOpen}
+          companyId={reviewPromptData.companyId}
+          companyName={reviewPromptData.companyName}
+          applicationId={reviewPromptData.applicationId}
+        />
+      )}
     </div>
   );
 }

@@ -73,6 +73,11 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   role: userRoleEnum("role").notNull().default('creator'),
   accountStatus: userAccountStatusEnum("account_status").notNull().default('active'),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  emailVerificationToken: varchar("email_verification_token"),
+  emailVerificationTokenExpiry: timestamp("email_verification_token_expiry"),
+  passwordResetToken: varchar("password_reset_token"),
+  passwordResetTokenExpiry: timestamp("password_reset_token_expiry"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -185,6 +190,8 @@ export const offers = pgTable("offers", {
   featuredOnHomepage: boolean("featured_on_homepage").default(false),
   listingFee: decimal("listing_fee", { precision: 10, scale: 2 }).default('0'),
   editRequests: jsonb("edit_requests").default(sql`'[]'::jsonb`),
+  priorityExpiresAt: timestamp("priority_expires_at"),
+  priorityPurchasedAt: timestamp("priority_purchased_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

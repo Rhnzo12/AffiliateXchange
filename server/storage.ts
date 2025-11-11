@@ -575,6 +575,8 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserByEmailVerificationToken(token: string): Promise<User | undefined>;
+  getUserByPasswordResetToken(token: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
@@ -639,6 +641,7 @@ export interface IStorage {
   // Reviews
   getReview(id: string): Promise<Review | undefined>;
   getReviewsByCompany(companyId: string): Promise<Review[]>;
+  getReviewsByCreatorAndCompany(creatorId: string, companyId: string): Promise<Review[]>;
   createReview(review: InsertReview): Promise<Review>;
   updateReview(id: string, updates: Partial<Review>): Promise<Review | undefined>;
 
@@ -809,6 +812,16 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByGoogleId(googleId: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.googleId, googleId)).limit(1);
+    return result[0];
+  }
+
+  async getUserByEmailVerificationToken(token: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.emailVerificationToken, token)).limit(1);
+    return result[0];
+  }
+
+  async getUserByPasswordResetToken(token: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.passwordResetToken, token)).limit(1);
     return result[0];
   }
 
@@ -1946,6 +1959,31 @@ export class DatabaseStorage implements IStorage {
       if (isMissingRelationError(error, "reviews")) {
         console.warn(
           "[Storage] reviews relation missing while fetching creator reviews - returning empty array.",
+        );
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getReviewsByCreatorAndCompany(creatorId: string, companyId: string): Promise<Review[]> {
+    try {
+      return await db
+        .select()
+        .from(reviews)
+        .where(and(eq(reviews.creatorId, creatorId), eq(reviews.companyId, companyId)))
+        .orderBy(desc(reviews.createdAt));
+    } catch (error) {
+      if (isLegacyReviewColumnError(error)) {
+        console.warn(
+          "[Storage] reviews column mismatch while fetching creator and company reviews - attempting legacy fallback.",
+        );
+        const all = await legacyFetchReviews();
+        return all.filter((review) => review.creatorId === creatorId && review.companyId === companyId);
+      }
+      if (isMissingRelationError(error, "reviews")) {
+        console.warn(
+          "[Storage] reviews relation missing while fetching creator and company reviews - returning empty array.",
         );
         return [];
       }

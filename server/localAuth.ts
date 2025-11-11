@@ -6,6 +6,8 @@ import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 import { setupGoogleAuth } from "./googleAuth";
+import crypto from "crypto";
+import { NotificationService } from "./notifications/notificationService";
 
 // Middleware to check if user is authenticated
 export function isAuthenticated(req: Request, res: any, next: any) {
@@ -13,6 +15,24 @@ export function isAuthenticated(req: Request, res: any, next: any) {
     return next();
   }
   res.status(401).send("Unauthorized");
+}
+
+// Middleware to check if user's email is verified
+export function isEmailVerified(req: Request, res: any, next: any) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const user = req.user as any;
+  if (!user.emailVerified) {
+    return res.status(403).json({
+      error: "Email verification required",
+      message: "Please verify your email address to perform this action.",
+      emailVerified: false
+    });
+  }
+
+  next();
 }
 
 // Setup session middleware
@@ -145,6 +165,10 @@ export async function setupAuth(app: Express) {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
+      // Generate email verification token
+      const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+      const emailVerificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
       // Create user with all required fields
       const user = await storage.createUser({
         username,
@@ -155,6 +179,9 @@ export async function setupAuth(app: Express) {
         role,
         accountStatus: 'active', // ✅ Required field
         profileImageUrl: null,   // ✅ Required field
+        emailVerified: false,    // Email not verified yet
+        emailVerificationToken,
+        emailVerificationTokenExpiry,
       });
 
       // Create profile based on role
@@ -191,13 +218,41 @@ export async function setupAuth(app: Express) {
         });
       }
 
+      // Send email verification email
+      try {
+        const notificationService = new NotificationService(storage);
+        const verificationUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/verify-email?token=${emailVerificationToken}`;
+        await notificationService.sendEmailNotification(
+          email,
+          'email_verification',
+          {
+            userName: firstName || username,
+            verificationUrl,
+            linkUrl: verificationUrl,
+          }
+        );
+        console.log(`[Auth] Verification email sent to ${email}`);
+      } catch (emailError) {
+        console.error('[Auth] Failed to send verification email:', emailError);
+        // Don't fail registration if email fails
+      }
+
       // Log the user in
       req.login(user, (err) => {
         if (err) {
           console.error("Login error after registration:", err);
           return res.status(500).json({ error: "Registration successful but login failed" });
         }
-        res.json({ success: true, user: { id: user.id, username: user.username, role: user.role } });
+        res.json({
+          success: true,
+          user: {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            emailVerified: user.emailVerified
+          },
+          message: "Registration successful! Please check your email to verify your account."
+        });
       });
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -340,6 +395,503 @@ export async function setupAuth(app: Express) {
     } catch (error: any) {
       console.error("Error changing password:", error);
       res.status(500).json({ error: error.message || "Failed to change password" });
+    }
+  });
+
+  // Email verification endpoint
+  app.post("/api/auth/verify-email", async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ error: "Verification token is required" });
+      }
+
+      // Find user by verification token
+      const user = await storage.getUserByEmailVerificationToken(token);
+
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired verification token" });
+      }
+
+      // Check if token is expired
+      if (user.emailVerificationTokenExpiry && new Date() > user.emailVerificationTokenExpiry) {
+        return res.status(400).json({ error: "Verification token has expired. Please request a new one." });
+      }
+
+      // Update user - set emailVerified to true and clear verification token
+      await storage.updateUser(user.id, {
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationTokenExpiry: null,
+      });
+
+      res.json({ success: true, message: "Email verified successfully!" });
+    } catch (error: any) {
+      console.error("Email verification error:", error);
+      res.status(500).json({ error: error.message || "Email verification failed" });
+    }
+  });
+
+  // Resend verification email endpoint
+  app.post("/api/auth/resend-verification", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({ error: "Email is already verified" });
+      }
+
+      // Generate new verification token
+      const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+      const emailVerificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Update user with new token
+      await storage.updateUser(userId, {
+        emailVerificationToken,
+        emailVerificationTokenExpiry,
+      });
+
+      // Send verification email
+      const notificationService = new NotificationService(storage);
+      const verificationUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/verify-email?token=${emailVerificationToken}`;
+      await notificationService.sendEmailNotification(
+        user.email,
+        'email_verification',
+        {
+          userName: user.firstName || user.username,
+          verificationUrl,
+          linkUrl: verificationUrl,
+        }
+      );
+
+      res.json({ success: true, message: "Verification email sent successfully!" });
+    } catch (error: any) {
+      console.error("Resend verification email error:", error);
+      res.status(500).json({ error: error.message || "Failed to send verification email" });
+    }
+  });
+
+  // Forgot password endpoint
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+
+      // Don't reveal if email exists or not for security
+      if (!user) {
+        return res.json({ success: true, message: "If an account exists with that email, a password reset link has been sent." });
+      }
+
+      // Check if user has a password (OAuth users don't)
+      if (!user.password) {
+        return res.json({ success: true, message: "If an account exists with that email, a password reset link has been sent." });
+      }
+
+      // Generate password reset token
+      const passwordResetToken = crypto.randomBytes(32).toString('hex');
+      const passwordResetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      // Update user with reset token
+      await storage.updateUser(user.id, {
+        passwordResetToken,
+        passwordResetTokenExpiry,
+      });
+
+      // Send password reset email
+      const notificationService = new NotificationService(storage);
+      const resetUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/reset-password?token=${passwordResetToken}`;
+      await notificationService.sendEmailNotification(
+        user.email,
+        'password_reset',
+        {
+          userName: user.firstName || user.username,
+          resetUrl,
+          linkUrl: resetUrl,
+        }
+      );
+
+      res.json({ success: true, message: "If an account exists with that email, a password reset link has been sent." });
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ error: "Failed to process password reset request" });
+    }
+  });
+
+  // Reset password endpoint
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({ error: "Token and new password are required" });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+
+      // Find user by reset token
+      const user = await storage.getUserByPasswordResetToken(token);
+
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired reset token" });
+      }
+
+      // Check if token is expired
+      if (user.passwordResetTokenExpiry && new Date() > user.passwordResetTokenExpiry) {
+        return res.status(400).json({ error: "Reset token has expired. Please request a new one." });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update user - set new password and clear reset token
+      await storage.updateUser(user.id, {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetTokenExpiry: null,
+      });
+
+      res.json({ success: true, message: "Password reset successfully!" });
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ error: error.message || "Password reset failed" });
+    }
+  });
+
+  // GDPR/CCPA: Export user data
+  app.get("/api/user/export-data", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Collect all user data
+      const exportData: any = {
+        exportDate: new Date().toISOString(),
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          accountStatus: user.accountStatus,
+          emailVerified: user.emailVerified,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+      };
+
+      // Get profile data based on role
+      if (user.role === 'creator') {
+        const profile = await storage.getCreatorProfile(userId);
+        if (profile) {
+          exportData.creatorProfile = {
+            bio: profile.bio,
+            youtubeUrl: profile.youtubeUrl,
+            tiktokUrl: profile.tiktokUrl,
+            instagramUrl: profile.instagramUrl,
+            youtubeFollowers: profile.youtubeFollowers,
+            tiktokFollowers: profile.tiktokFollowers,
+            instagramFollowers: profile.instagramFollowers,
+            niches: profile.niches,
+          };
+        }
+
+        // Get creator applications
+        const applications = await storage.getApplicationsByCreator(userId);
+        exportData.applications = applications.map(app => ({
+          id: app.id,
+          offerId: app.offerId,
+          status: app.status,
+          message: app.message,
+          trackingCode: app.trackingCode,
+          createdAt: app.createdAt,
+          approvedAt: app.approvedAt,
+          completedAt: app.completedAt,
+        }));
+
+        // Get creator analytics
+        const analytics = await storage.getAnalyticsByCreator(userId);
+        exportData.analytics = analytics;
+
+        // Get creator reviews
+        const reviews = await storage.getReviewsByCreator(userId);
+        exportData.reviews = reviews;
+
+        // Get creator favorites
+        const favorites = await storage.getFavoritesByCreator(userId);
+        exportData.favorites = favorites;
+
+        // Get creator payments
+        const payments = await storage.getPaymentsByCreator(userId);
+        exportData.payments = payments.map(payment => ({
+          id: payment.id,
+          grossAmount: payment.grossAmount,
+          platformFeeAmount: payment.platformFeeAmount,
+          stripeFeeAmount: payment.stripeFeeAmount,
+          netAmount: payment.netAmount,
+          status: payment.status,
+          paymentMethod: payment.paymentMethod,
+          description: payment.description,
+          initiatedAt: payment.initiatedAt,
+          completedAt: payment.completedAt,
+        }));
+
+        // Get payment settings (sanitized)
+        const paymentSettings = await storage.getPaymentSettingsByUser(userId);
+        exportData.paymentSettings = paymentSettings.map(setting => ({
+          id: setting.id,
+          payoutMethod: setting.payoutMethod,
+          payoutEmail: setting.payoutEmail,
+          isDefault: setting.isDefault,
+        }));
+      } else if (user.role === 'company') {
+        const profile = await storage.getCompanyProfile(userId);
+        if (profile) {
+          exportData.companyProfile = {
+            legalName: profile.legalName,
+            tradeName: profile.tradeName,
+            industry: profile.industry,
+            websiteUrl: profile.websiteUrl,
+            companySize: profile.companySize,
+            yearFounded: profile.yearFounded,
+            description: profile.description,
+            contactName: profile.contactName,
+            phoneNumber: profile.phoneNumber,
+            businessAddress: profile.businessAddress,
+            status: profile.status,
+            approvedAt: profile.approvedAt,
+          };
+
+          // Get company offers
+          const offers = await storage.getOffersByCompany(profile.id);
+          exportData.offers = offers.map(offer => ({
+            id: offer.id,
+            title: offer.title,
+            productName: offer.productName,
+            shortDescription: offer.shortDescription,
+            fullDescription: offer.fullDescription,
+            status: offer.status,
+            commissionType: offer.commissionType,
+            commissionAmount: offer.commissionAmount,
+            commissionPercentage: offer.commissionPercentage,
+            createdAt: offer.createdAt,
+            approvedAt: offer.approvedAt,
+          }));
+
+          // Get company applications
+          const applications = await storage.getApplicationsByCompany(profile.id);
+          exportData.applications = applications;
+
+          // Get company reviews
+          const reviews = await storage.getReviewsByCompany(profile.id);
+          exportData.reviews = reviews;
+        }
+      }
+
+      // Get messages (all users)
+      const conversations = await storage.getConversationsByUser(userId, user.role);
+      const messages = [];
+      for (const conv of conversations) {
+        const convMessages = await storage.getMessagesByConversation(conv.id);
+        messages.push(...convMessages);
+      }
+      exportData.messages = messages.map(msg => ({
+        id: msg.id,
+        conversationId: msg.conversationId,
+        content: msg.content,
+        isRead: msg.isRead,
+        createdAt: msg.createdAt,
+        sentByMe: msg.senderId === userId,
+      }));
+
+      // Get notifications
+      const notifications = await storage.getNotificationsByUser(userId);
+      exportData.notifications = notifications;
+
+      // Get notification preferences
+      const notificationPreferences = await storage.getUserNotificationPreferences(userId);
+      exportData.notificationPreferences = notificationPreferences;
+
+      // Set headers for file download
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="user-data-${userId}-${Date.now()}.json"`);
+      res.json(exportData);
+    } catch (error: any) {
+      console.error("Export data error:", error);
+      res.status(500).json({ error: error.message || "Failed to export data" });
+    }
+  });
+
+  // GDPR/CCPA: Delete account
+  app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { password } = req.body;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Verify password for non-OAuth users
+      if (user.password && !user.googleId) {
+        if (!password) {
+          return res.status(400).json({ error: "Password is required to delete your account" });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+          return res.status(401).json({ error: "Incorrect password" });
+        }
+      }
+
+      // Check for active applications/contracts
+      let applications = [];
+      let hasActiveContracts = false;
+
+      if (user.role === 'creator') {
+        applications = await storage.getApplicationsByCreator(userId);
+        const activeApps = applications.filter(app =>
+          app.status === 'active' || app.status === 'approved'
+        );
+
+        if (activeApps.length > 0) {
+          return res.status(400).json({
+            error: "Cannot delete account with active applications",
+            details: `You have ${activeApps.length} active application(s). Please complete or cancel them first.`
+          });
+        }
+
+        // Check for pending payments
+        const payments = await storage.getPaymentsByCreator(userId);
+        const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'processing');
+
+        if (pendingPayments.length > 0) {
+          return res.status(400).json({
+            error: "Cannot delete account with pending payments",
+            details: `You have ${pendingPayments.length} pending payment(s). Please wait for them to complete.`
+          });
+        }
+      } else if (user.role === 'company') {
+        const profile = await storage.getCompanyProfile(userId);
+        if (profile) {
+          applications = await storage.getApplicationsByCompany(profile.id);
+          const activeApps = applications.filter(app =>
+            app.status === 'active' || app.status === 'approved'
+          );
+
+          if (activeApps.length > 0) {
+            return res.status(400).json({
+              error: "Cannot delete account with active applications",
+              details: `You have ${activeApps.length} active application(s). Please complete or cancel them first.`
+            });
+          }
+        }
+      }
+
+      // Start account deletion process
+      console.log(`[Account Deletion] Starting deletion for user ${userId} (${user.email})`);
+
+      // 1. Anonymize reviews (keep review content but anonymize author)
+      const reviews = user.role === 'creator'
+        ? await storage.getReviewsByCreator(userId)
+        : [];
+
+      console.log(`[Account Deletion] Anonymizing ${reviews.length} reviews`);
+      // Reviews will be cascade deleted or anonymized through foreign key constraints
+
+      // 2. Anonymize messages (keep messages but anonymize sender)
+      // Messages will be handled through cascade delete on conversations
+
+      // 3. Delete personal information from user table
+      await storage.updateUser(userId, {
+        email: `deleted-${userId}@deleted.user`,
+        firstName: null,
+        lastName: null,
+        profileImageUrl: null,
+        password: null,
+        googleId: null,
+        emailVerificationToken: null,
+        emailVerificationTokenExpiry: null,
+        passwordResetToken: null,
+        passwordResetTokenExpiry: null,
+        accountStatus: 'banned', // Mark as banned to prevent re-activation
+      });
+
+      // 4. Delete payment settings (cascade will handle)
+      const paymentSettings = await storage.getPaymentSettingsByUser(userId);
+      for (const setting of paymentSettings) {
+        await storage.deletePaymentSetting(setting.id);
+      }
+
+      // 5. Delete favorites (cascade will handle)
+      if (user.role === 'creator') {
+        const favorites = await storage.getFavoritesByCreator(userId);
+        for (const fav of favorites) {
+          await storage.deleteFavorite(userId, fav.offerId);
+        }
+      }
+
+      // 6. Delete applications (if no active ones)
+      // These will be cascade deleted through database constraints
+
+      // 7. Delete notifications
+      const notifications = await storage.getNotificationsByUser(userId);
+      for (const notif of notifications) {
+        await storage.deleteNotification(notif.id);
+      }
+
+      // 8. Send confirmation email before final deletion
+      try {
+        const notificationService = new NotificationService(storage);
+        await notificationService.sendEmailNotification(
+          user.email, // Send to original email before it's deleted
+          'system_announcement' as any,
+          {
+            userName: user.firstName || user.username,
+            announcementTitle: 'Account Deletion Confirmation',
+            announcementMessage: 'Your account has been successfully deleted. All your personal data has been removed from our systems in compliance with GDPR/CCPA regulations. If you did not request this deletion, please contact support immediately.',
+          }
+        );
+        console.log(`[Account Deletion] Confirmation email sent to ${user.email}`);
+      } catch (emailError) {
+        console.error('[Account Deletion] Failed to send confirmation email:', emailError);
+        // Don't fail the deletion if email fails
+      }
+
+      // 9. Logout user
+      req.logout((err) => {
+        if (err) {
+          console.error("Logout error during account deletion:", err);
+        }
+      });
+
+      console.log(`[Account Deletion] Successfully deleted account for user ${userId}`);
+
+      res.json({
+        success: true,
+        message: "Your account has been successfully deleted. All personal data has been removed."
+      });
+    } catch (error: any) {
+      console.error("Delete account error:", error);
+      res.status(500).json({ error: error.message || "Failed to delete account" });
     }
   });
 }

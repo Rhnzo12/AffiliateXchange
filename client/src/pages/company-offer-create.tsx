@@ -154,7 +154,7 @@ export default function CompanyOfferCreate() {
 
   const createOfferMutation = useMutation({
     mutationFn: async (data: typeof formData & { videos: VideoData[] }) => {
-      // Step 1: Create the offer WITHOUT videos first
+      // Step 1: Create the offer as DRAFT first (not pending_review yet)
       const offerPayload = {
         title: data.title,
         productName: data.productName,
@@ -163,19 +163,19 @@ export default function CompanyOfferCreate() {
         primaryNiche: data.primaryNiche,
         productUrl: data.productUrl,
         commissionType: data.commissionType,
-        commissionPercentage: data.commissionType === "per_sale" && data.commissionRate 
+        commissionPercentage: data.commissionType === "per_sale" && data.commissionRate
           ? data.commissionRate
           : null,
-        commissionAmount: data.commissionType !== "per_sale" && data.commissionAmount 
+        commissionAmount: data.commissionType !== "per_sale" && data.commissionAmount
           ? data.commissionAmount
           : null,
-        status: data.status,
+        status: 'draft', // Always create as draft first
         featuredImageUrl: data.featuredImageUrl || null,
         creatorRequirements: data.creatorRequirements || null, // NEW FIELD
       };
-      
+
       console.log("Creating offer with payload:", offerPayload);
-      
+
       // Create the offer using direct fetch instead of apiRequest
       const offerResponse = await fetch("/api/offers", {
         method: "POST",
@@ -193,10 +193,10 @@ export default function CompanyOfferCreate() {
 
       const offerData = await offerResponse.json();
       console.log("Full offer response:", offerData);
-      
+
       const offerId = offerData?.id;
       console.log("Extracted offer ID:", offerId);
-      
+
       if (!offerId) {
         console.error("No offer ID found in response:", offerData);
         throw new Error("Failed to get offer ID from response");
@@ -205,11 +205,11 @@ export default function CompanyOfferCreate() {
       // Step 2: Upload each video to the offer
       if (data.videos && data.videos.length > 0) {
         console.log(`Uploading ${data.videos.length} videos to offer ${offerId}`);
-        
+
         for (let i = 0; i < data.videos.length; i++) {
           const video = data.videos[i];
           console.log(`Uploading video ${i + 1}/${data.videos.length}:`, video.title);
-          
+
           try {
             const videoPayload = {
               videoUrl: video.videoUrl,
@@ -219,9 +219,9 @@ export default function CompanyOfferCreate() {
               creatorCredit: video.creatorCredit || "",
               originalPlatform: video.originalPlatform || "",
             };
-            
+
             console.log(`Video ${i + 1} payload:`, videoPayload);
-            
+
             const videoResponse = await fetch(`/api/offers/${offerId}/videos`, {
               method: "POST",
               headers: {
@@ -243,17 +243,35 @@ export default function CompanyOfferCreate() {
             throw new Error(`Failed to upload video: ${video.title} - ${videoError.message || 'Unknown error'}`);
           }
         }
-        
+
         console.log("All videos uploaded successfully");
       }
 
-      return offerData;
+      // Step 3: Submit offer for review (validates 6-12 video requirement on server)
+      console.log(`Submitting offer ${offerId} for review...`);
+      const submitResponse = await fetch(`/api/offers/${offerId}/submit-for-review`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (!submitResponse.ok) {
+        const errorData = await submitResponse.json();
+        throw new Error(errorData.message || "Failed to submit offer for review");
+      }
+
+      const submitData = await submitResponse.json();
+      console.log("Offer submitted for review:", submitData);
+
+      return submitData;
     },
     onSuccess: (data) => {
       console.log("Offer creation complete:", data);
       toast({
-        title: "Offer Created",
-        description: `Your offer has been created successfully with ${videos.length} video(s)`,
+        title: "Offer Submitted for Review",
+        description: `Your offer has been submitted for admin review with ${data.videoCount || videos.length} video(s)`,
       });
       setLocation("/company/offers");
     },

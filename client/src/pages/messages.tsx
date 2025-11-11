@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
+import { MessageTemplates } from "../components/MessageTemplates";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -398,8 +399,14 @@ useEffect(() => {
     return timeDiff < 60000; // Group if within 1 minute
   };
 
-  const otherUser = conversations?.find((c: any) => c.id === selectedConversation)?.otherUser;
+  const currentConversation = conversations?.find((c: any) => c.id === selectedConversation);
+  const otherUser = currentConversation?.otherUser;
   const isOtherUserTyping = typingUsers.size > 0;
+  const isCompany = user?.role === 'company';
+
+  // Get tracking link and creator name for templates (company only)
+  const trackingLink = currentConversation?.application?.trackingLink;
+  const creatorName = otherUser?.firstName || otherUser?.name || otherUser?.username || 'there';
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
@@ -623,15 +630,27 @@ useEffect(() => {
               {/* Input - Better mobile touch targets */}
               <div className="p-3 sm:p-4 border-t bg-background">
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    data-testid="button-attach-image"
-                    disabled
-                    className="h-11 w-11 shrink-0"
-                  >
-                    <ImageIcon className="h-5 w-5" />
-                  </Button>
+                  {/* Message Templates - Company Only */}
+                  {isCompany && (
+                    <MessageTemplates
+                      onSelectTemplate={(content) => setMessageText(content)}
+                      trackingLink={trackingLink}
+                      creatorName={creatorName}
+                    />
+                  )}
+
+                  {!isCompany && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      data-testid="button-attach-image"
+                      disabled
+                      className="h-11 w-11 shrink-0"
+                    >
+                      <ImageIcon className="h-5 w-5" />
+                    </Button>
+                  )}
+
                   <Input
                     ref={messageInputRef}
                     placeholder="Type a message..."
