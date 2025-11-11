@@ -722,7 +722,7 @@ export async function setupAuth(app: Express) {
       }));
 
       // Get notifications
-      const notifications = await storage.getNotificationsByUser(userId);
+      const notifications = await storage.getNotifications(userId);
       exportData.notifications = notifications;
 
       // Get notification preferences
@@ -853,7 +853,7 @@ export async function setupAuth(app: Express) {
       // These will be cascade deleted through database constraints
 
       // 7. Delete notifications
-      const notifications = await storage.getNotificationsByUser(userId);
+      const notifications = await storage.getNotifications(userId);
       for (const notif of notifications) {
         await storage.deleteNotification(notif.id);
       }
