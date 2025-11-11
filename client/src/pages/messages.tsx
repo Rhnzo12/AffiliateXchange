@@ -633,17 +633,30 @@ useEffect(() => {
                             </div>
                           </div>
                           <div className="text-sm text-muted-foreground truncate font-medium">
-                            {conversation.offer?.title}
+                            {conversation.offerTitle}
                           </div>
                           {conversation.lastMessage && (
-                            <div className="text-sm text-muted-foreground truncate mt-1">
-                              {conversation.lastMessage}
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {conversation.lastMessageSenderId === user?.id && (
+                                <Badge
+                                  variant="secondary"
+                                  className="shrink-0 h-4 px-1 text-[9px] font-semibold"
+                                >
+                                  You
+                                </Badge>
+                              )}
+                              <div className="text-sm text-muted-foreground truncate">
+                                {conversation.lastMessage}
+                              </div>
                             </div>
                           )}
                         </div>
-                        {conversation.unreadCount > 0 && (
+                        {((user?.role === 'company' && conversation.companyUnreadCount > 0) ||
+                          (user?.role !== 'company' && conversation.creatorUnreadCount > 0)) && (
                           <Badge variant="default" className="h-5 min-w-5 px-1.5">
-                            {conversation.unreadCount}
+                            {user?.role === 'company'
+                              ? conversation.companyUnreadCount
+                              : conversation.creatorUnreadCount}
                           </Badge>
                         )}
                       </div>

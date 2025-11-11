@@ -1832,7 +1832,29 @@ export class DatabaseStorage implements IStorage {
       .where(whereClause)
       .orderBy(desc(conversations.lastMessageAt));
 
-    return result.map((conv) => ({
+    // Fetch last message for each conversation
+    const conversationsWithMessages = await Promise.all(
+      result.map(async (conv) => {
+        const lastMessages = await db
+          .select({
+            content: messages.content,
+            senderId: messages.senderId,
+            createdAt: messages.createdAt,
+          })
+          .from(messages)
+          .where(eq(messages.conversationId, conv.id))
+          .orderBy(desc(messages.createdAt))
+          .limit(1);
+
+        return {
+          ...conv,
+          lastMessage: lastMessages[0]?.content || null,
+          lastMessageSenderId: lastMessages[0]?.senderId || null,
+        };
+      })
+    );
+
+    return conversationsWithMessages.map((conv) => ({
       id: conv.id,
       applicationId: conv.applicationId,
       creatorId: conv.creatorId,
@@ -1840,6 +1862,8 @@ export class DatabaseStorage implements IStorage {
       offerId: conv.offerId,
       offerTitle: conv.offerTitle,
       lastMessageAt: conv.lastMessageAt,
+      lastMessage: conv.lastMessage,
+      lastMessageSenderId: conv.lastMessageSenderId,
       creatorUnreadCount: conv.creatorUnreadCount,
       companyUnreadCount: conv.companyUnreadCount,
       createdAt: conv.createdAt,
