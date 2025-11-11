@@ -10,7 +10,8 @@ import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -815,6 +816,27 @@ export default function Settings() {
                   Your niches help us recommend relevant offers. Select all that apply to your content.
                 </p>
               </div>
+
+              {/* Video Platform Requirement Alert */}
+              <Alert className={`${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'}`}>
+                <Video className={`h-5 w-5 ${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-600' : 'text-blue-600'}`} />
+                <AlertTitle className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-900 dark:text-red-300' : 'text-blue-900 dark:text-blue-300'}>
+                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? '⚠️ Video Platform Required' : '✓ Video Platform Requirements'}
+                </AlertTitle>
+                <AlertDescription className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-800 dark:text-red-200' : 'text-blue-800 dark:text-blue-200'}>
+                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? (
+                    <>
+                      <strong>You must add at least one video platform to use AffiliateXchange.</strong>
+                      <br />
+                      We only accept video content creators (YouTube, TikTok, or Instagram). Text-only bloggers and podcasters without video are not supported at this time.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Great!</strong> You have at least one video platform set up. Make sure to keep your platform URLs updated for the best experience.
+                    </>
+                  )}
+                </AlertDescription>
+              </Alert>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
