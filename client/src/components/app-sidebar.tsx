@@ -242,16 +242,22 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={location === item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}>
                     <Link href={item.url} onClick={handleNavClick}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                      {item.title === "Messages" && unreadCount > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="ml-auto h-5 min-w-5 px-1 flex items-center justify-center text-xs"
-                        >
-                          {unreadCount > 99 ? '99+' : unreadCount}
-                        </Badge>
+                      {item.title === "Messages" ? (
+                        <div className="relative">
+                          <item.icon className="h-4 w-4" />
+                          {unreadCount > 0 && (
+                            <Badge
+                              variant="destructive"
+                              className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-0.5 flex items-center justify-center text-[10px] font-semibold p-0"
+                            >
+                              {unreadCount > 99 ? '99+' : unreadCount}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <item.icon className="h-4 w-4" />
                       )}
+                      <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
