@@ -49,7 +49,10 @@ export async function addPriorityListingFields() {
 }
 
 // Run migration if executed directly
-if (require.main === module) {
+// ES module syntax: check if this file is being run directly
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
+
+if (isMainModule) {
   addPriorityListingFields()
     .then(() => {
       console.log("Migration completed successfully");
