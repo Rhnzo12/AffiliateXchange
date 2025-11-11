@@ -22,6 +22,15 @@ import {
   DialogFooter,
 } from "../components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -48,7 +57,8 @@ import {
   Shield,
   Verified,
   Hash,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle
 } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
@@ -102,6 +112,7 @@ export default function OfferDetail() {
   const offerId = params?.id;
 
   const [showApplyDialog, setShowApplyDialog] = useState(false);
+  const [showVideoPlatformDialog, setShowVideoPlatformDialog] = useState(false);
   const [applicationMessage, setApplicationMessage] = useState("");
   const [preferredCommission, setPreferredCommission] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -382,6 +393,14 @@ export default function OfferDetail() {
         }, 500);
         return;
       }
+
+      // Check if this is a video platform requirement error
+      if (error.message && error.message.includes("video platform")) {
+        setShowApplyDialog(false);
+        setShowVideoPlatformDialog(true);
+        return;
+      }
+
       toast({
         title: "Error",
         description: error.message || "Failed to submit application",
@@ -1539,6 +1558,47 @@ export default function OfferDetail() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Video Platform Requirement Dialog */}
+      <AlertDialog open={showVideoPlatformDialog} onOpenChange={setShowVideoPlatformDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="h-6 w-6" />
+              Video Platform Required
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 pt-2">
+              <p className="text-base font-semibold text-foreground">
+                You must add at least one video platform to your profile before applying to offers.
+              </p>
+              <p className="text-sm">
+                We only accept <strong>video content creators</strong> with an active presence on:
+              </p>
+              <ul className="list-disc list-inside space-y-1.5 ml-2 text-sm">
+                <li><strong>YouTube</strong> - Video channels</li>
+                <li><strong>TikTok</strong> - Short-form video content</li>
+                <li><strong>Instagram</strong> - Reels and video content</li>
+              </ul>
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mt-4">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  <strong>💡 Next Step:</strong> Add your video platform URL in your profile settings, then come back to apply!
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogAction
+              onClick={() => {
+                setShowVideoPlatformDialog(false);
+                setLocation("/settings");
+              }}
+              className="w-full sm:w-auto"
+            >
+              Go to Settings
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Hide scrollbar for tab navigation */}
       <style>{`
