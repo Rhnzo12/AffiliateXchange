@@ -5,9 +5,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { TrendingUp, Plus, DollarSign, Users, Eye, MoreVertical, Trash2, Edit, ImageIcon, Play, Star, MousePointer } from "lucide-react";
+import { TrendingUp, Plus, DollarSign, Users, Eye, MoreVertical, Trash2, Edit, ImageIcon, Play, Star, MousePointer, Crown } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
+import { PriorityListingPurchase } from "../components/PriorityListingPurchase";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,6 +78,16 @@ const getCommissionValue = (offer: any): number => {
   return 0;
 };
 
+// Helper function to check if offer is priority (featured and not expired)
+const isPriorityOffer = (offer: any): boolean => {
+  if (!offer.featuredOnHomepage || !offer.priorityExpiresAt) {
+    return false;
+  }
+  const now = new Date();
+  const expiresAt = new Date(offer.priorityExpiresAt);
+  return expiresAt > now;
+};
+
 // Helper function to get offer category badge
 const getOfferCategory = (offer: any): { label: string; color: string } | null => {
   const commissionValue = getCommissionValue(offer);
@@ -84,8 +95,8 @@ const getOfferCategory = (offer: any): { label: string; color: string } | null =
   const daysSinceCreated = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
 
   // Priority order for badges
-  if (offer.isPriority) {
-    return { label: "TRENDING", color: "bg-gradient-to-r from-orange-500 to-pink-500" };
+  if (isPriorityOffer(offer)) {
+    return { label: "PRIORITY", color: "bg-gradient-to-r from-yellow-500 to-orange-500" };
   }
 
   if (commissionValue >= 100) {
@@ -107,6 +118,11 @@ export default function CompanyOffers() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [offerToDelete, setOfferToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [priorityListingDialog, setPriorityListingDialog] = useState<{
+    offerId: string;
+    offerTitle: string;
+    isRenewal: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -283,6 +299,25 @@ export default function CompanyOffers() {
                                 Edit Offer
                               </Link>
                             </DropdownMenuItem>
+                            {offer.status === 'approved' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-yellow-600 focus:text-yellow-700"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setPriorityListingDialog({
+                                      offerId: offer.id,
+                                      offerTitle: offer.title,
+                                      isRenewal: isPriorityOffer(offer),
+                                    });
+                                  }}
+                                >
+                                  <Crown className="mr-2 h-4 w-4" />
+                                  {isPriorityOffer(offer) ? 'Renew Priority Listing' : 'Make Priority Listing'}
+                                </DropdownMenuItem>
+                              </>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
@@ -431,6 +466,17 @@ export default function CompanyOffers() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Priority Listing Purchase Dialog */}
+        {priorityListingDialog && (
+          <PriorityListingPurchase
+            offerId={priorityListingDialog.offerId}
+            offerTitle={priorityListingDialog.offerTitle}
+            isOpen={true}
+            onClose={() => setPriorityListingDialog(null)}
+            isRenewal={priorityListingDialog.isRenewal}
+          />
+        )}
       </div>
     </div>
   );

@@ -45,7 +45,9 @@ export type NotificationType =
   | 'work_completion_approval'
   | 'priority_listing_expiring'
   | 'deliverable_rejected'
-  | 'revision_requested';
+  | 'revision_requested'
+  | 'email_verification'
+  | 'password_reset';
 
 interface NotificationData {
   userName?: string;
@@ -78,6 +80,8 @@ interface NotificationData {
   contractTitle?: string;
   reason?: string;
   revisionInstructions?: string;
+  verificationUrl?: string;
+  resetUrl?: string;
 }
 
 export class NotificationService {
@@ -279,7 +283,7 @@ export class NotificationService {
     }
   }
 
-  private async sendEmailNotification(
+  async sendEmailNotification(
     email: string,
     type: NotificationType,
     data: NotificationData
@@ -344,6 +348,12 @@ export class NotificationService {
           break;
         case 'payment_pending':
           emailContent = emailTemplates.paymentPendingEmail(data);
+          break;
+        case 'email_verification':
+          emailContent = emailTemplates.emailVerificationEmail(data);
+          break;
+        case 'password_reset':
+          emailContent = emailTemplates.passwordResetEmail(data);
           break;
         default:
           console.warn(`[Notifications] Unknown email type: ${type}`);

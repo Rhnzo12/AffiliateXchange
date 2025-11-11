@@ -5,6 +5,7 @@ import { Toaster } from "./components/ui/toaster";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "./components/ui/sidebar";
 import { AppSidebar } from "./components/app-sidebar";
+import { CookieConsent } from "./components/CookieConsent";
 import { useAuth } from "./hooks/useAuth";
 import NotFound from "./pages/not-found";
 import Landing from "./pages/landing";
@@ -220,6 +221,7 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Router />
+        <CookieConsent />
       </TooltipProvider>
     </QueryClientProvider>
   );

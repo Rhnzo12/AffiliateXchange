@@ -3,14 +3,24 @@ import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "../lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Upload, Building2, X, ChevronsUpDown } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -74,6 +84,12 @@ export default function Settings() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Privacy & Data states
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [isExportingData, setIsExportingData] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const { data: profile } = useQuery<any>({
     queryKey: ["/api/profile"],
@@ -216,7 +232,7 @@ export default function Settings() {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      
+
       const response = await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
@@ -236,6 +252,108 @@ export default function Settings() {
         variant: "destructive",
       });
       setIsLoggingOut(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    try {
+      setIsExportingData(true);
+
+      const response = await fetch("/api/user/export-data", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to export data");
+      }
+
+      // Get the JSON data
+      const data = await response.json();
+
+      // Create a blob and download it
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `user-data-${user?.id}-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: "Your data has been exported successfully.",
+      });
+    } catch (error: any) {
+      console.error("Export data error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to export data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExportingData(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeletingAccount(true);
+
+      const payload: any = {};
+
+      // Only require password for non-OAuth users
+      if (!user?.googleId && user?.password) {
+        if (!deletePassword) {
+          toast({
+            title: "Error",
+            description: "Password is required to delete your account.",
+            variant: "destructive",
+          });
+          return;
+        }
+        payload.password = deletePassword;
+      }
+
+      const response = await fetch("/api/user/delete-account", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || result.details || "Failed to delete account");
+      }
+
+      toast({
+        title: "Account Deleted",
+        description: result.message || "Your account has been successfully deleted.",
+      });
+
+      // Clear everything and redirect to home
+      queryClient.clear();
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2000);
+    } catch (error: any) {
+      console.error("Delete account error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingAccount(false);
+      setShowDeleteDialog(false);
+      setDeletePassword("");
     }
   };
 
@@ -894,6 +1012,67 @@ export default function Settings() {
 
       <Card className="border-card-border">
         <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Privacy & Data
+          </CardTitle>
+          <CardDescription>
+            Manage your data and privacy settings in compliance with GDPR/CCPA regulations.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="font-medium">Export Your Data</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Download a copy of all your personal data including profile information,
+                  applications, messages, payments, and analytics in JSON format.
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleExportData}
+                disabled={isExportingData}
+                className="flex-shrink-0"
+              >
+                {isExportingData ? (
+                  <>Exporting...</>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Data
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <Separator />
+
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="font-medium text-destructive">Delete Account</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Permanently delete your account and all associated data. This action cannot
+                  be undone.
+                </div>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={isDeletingAccount}
+                className="flex-shrink-0"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Account
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-card-border">
+        <CardHeader>
           <CardTitle>Account</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -913,6 +1092,67 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Account Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Account - Are you absolutely sure?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                This action <strong>cannot be undone</strong>. This will permanently delete
+                your account and remove all your data from our servers.
+              </p>
+              <div className="bg-muted p-3 rounded-md text-sm">
+                <p className="font-semibold mb-2">The following data will be deleted:</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>Personal information (email, name, profile)</li>
+                  <li>Payment information and settings</li>
+                  <li>Profile images and uploaded content</li>
+                  <li>Applications and favorites</li>
+                  <li>Notifications and preferences</li>
+                </ul>
+              </div>
+              <div className="bg-muted p-3 rounded-md text-sm">
+                <p className="font-semibold mb-2">The following will be kept (anonymized):</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>Reviews (content kept, author anonymized)</li>
+                  <li>Messages (content kept, sender anonymized)</li>
+                </ul>
+              </div>
+              {!user?.googleId && (
+                <div className="space-y-2 pt-2">
+                  <Label htmlFor="delete-password">
+                    Enter your password to confirm deletion:
+                  </Label>
+                  <Input
+                    id="delete-password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                  />
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletePassword("")}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={isDeletingAccount}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingAccount ? "Deleting..." : "Yes, delete my account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
