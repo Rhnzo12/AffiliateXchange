@@ -152,7 +152,7 @@ export class PriorityListingScheduler {
                 linkUrl: `/company/offers/${offer.id}`,
                 offerId: offer.id,
                 offerTitle: offer.title,
-                daysUntilExpiration: daysUntilExpiration.toString(),
+                daysUntilExpiration: daysUntilExpiration,
               }
             );
 
