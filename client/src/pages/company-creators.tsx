@@ -1,18 +1,38 @@
 import { useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Users, MessageSquare, TrendingUp, ExternalLink } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
+import { apiRequest } from "../lib/queryClient";
 
 export default function CompanyCreators() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  const startConversationMutation = useMutation({
+    mutationFn: async (applicationId: string) => {
+      const response = await apiRequest('POST', '/api/conversations/start', { applicationId });
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      // Redirect to company messages with conversation selected
+      setLocation(`/company/messages?conversation=${data.conversationId}`);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start conversation",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -156,19 +176,19 @@ export default function CompanyCreators() {
                 )}
 
                 <div className="flex gap-2 pt-2">
-                  <Link href="/company/messages" className="flex-1">
-                    <Button 
-                      variant="outline" 
-                      className="w-full gap-2"
-                      data-testid={`button-message-${creator.id}`}
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      Message
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2"
+                    data-testid={`button-message-${creator.id}`}
+                    onClick={() => startConversationMutation.mutate(creator.applications[0].id)}
+                    disabled={startConversationMutation.isPending}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Message
+                  </Button>
                   <Link href="/company/analytics" className="flex-1">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full gap-2"
                       data-testid={`button-analytics-${creator.id}`}
                     >
