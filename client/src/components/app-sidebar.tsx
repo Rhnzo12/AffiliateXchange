@@ -1,5 +1,6 @@
 import { useAuth } from "../hooks/useAuth";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +22,7 @@ import {
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Badge } from "./ui/badge";
 import {
   Home,
   TrendingUp,
@@ -46,6 +48,22 @@ export function AppSidebar() {
   const { user } = useAuth();
   const [location] = useLocation();
   const { isMobile, setOpenMobile } = useSidebar();
+
+  // Fetch conversations to get unread count
+  const { data: conversations } = useQuery<any[]>({
+    queryKey: ["/api/conversations"],
+    enabled: !!user,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Calculate total unread messages
+  const unreadCount = conversations?.reduce((total, conv) => {
+    if (user?.role === 'company') {
+      return total + (conv.companyUnreadCount || 0);
+    } else {
+      return total + (conv.creatorUnreadCount || 0);
+    }
+  }, 0) || 0;
 
   // Close sidebar on mobile when navigation link is clicked
   const handleNavClick = () => {
@@ -226,6 +244,14 @@ export function AppSidebar() {
                     <Link href={item.url} onClick={handleNavClick}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
+                      {item.title === "Messages" && unreadCount > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className="ml-auto h-5 min-w-5 px-1 flex items-center justify-center text-xs"
+                        >
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </Badge>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
