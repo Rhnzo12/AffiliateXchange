@@ -1740,7 +1740,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get all conversations for this company
-      const conversations = await db.query.conversations.findMany({
+      const companyConversations = await db.query.conversations.findMany({
         where: eq(conversations.companyId, companyId),
         with: {
           messages: {
@@ -1749,7 +1749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
-      if (conversations.length === 0) {
+      if (companyConversations.length === 0) {
         return res.json({
           averageResponseTime: null,
           responseTimeHours: null,
@@ -1760,7 +1760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate response times for each conversation
       const responseTimes: number[] = [];
 
-      for (const conversation of conversations) {
+      for (const conversation of companyConversations) {
         const msgs = conversation.messages;
         if (msgs.length < 2) continue;
 
@@ -1788,7 +1788,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({
           averageResponseTime: null,
           responseTimeHours: null,
-          conversationCount: conversations.length,
+          conversationCount: companyConversations.length,
         });
       }
 
@@ -1799,7 +1799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         averageResponseTime: Math.round(averageMs / 1000), // in seconds
         responseTimeHours: Math.round(averageHours * 10) / 10, // rounded to 1 decimal
-        conversationCount: conversations.length,
+        conversationCount: companyConversations.length,
         responseCount: responseTimes.length,
       });
     } catch (error: any) {
