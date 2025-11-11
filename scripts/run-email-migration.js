@@ -1,7 +1,7 @@
 // Simple JavaScript migration script for email verification
 // Run with: node scripts/run-email-migration.js
 
-const { neon } = require('@neondatabase/serverless');
+import { neon } from '@neondatabase/serverless';
 
 async function runMigration() {
   // Get DATABASE_URL from environment

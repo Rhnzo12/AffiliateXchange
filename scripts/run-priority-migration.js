@@ -1,7 +1,7 @@
 // Simple JavaScript migration script (works with Node.js directly)
 // Run with: node scripts/run-priority-migration.js
 
-const { neon } = require('@neondatabase/serverless');
+import { neon } from '@neondatabase/serverless';
 
 async function runMigration() {
   // Get DATABASE_URL from environment
