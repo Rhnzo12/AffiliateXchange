@@ -14,7 +14,9 @@
     "db:studio": "drizzle-kit studio",
     "payment:seed": "tsx --env-file=.env scripts/seed-payment-data.ts",
     "payment:test": "tsx --env-file=.env scripts/test-payment-system.ts",
-    "fix:tracking": "tsx --env-file=.env scripts/fix-tracking-codes.ts"
+    "fix:tracking": "tsx --env-file=.env scripts/fix-tracking-codes.ts",
+    "test:env": "tsx --env-file=.env scripts/test-environment-check.ts",
+    "test:scheduler": "tsx --env-file=.env scripts/test-scheduler.ts"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.17.2",
