@@ -106,26 +106,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const validated = insertCreatorProfileSchema.partial().parse(req.body);
         console.log("[Profile Update] Validated data:", validated);
 
-        // ACCOUNT TYPE RESTRICTION: Exclude bloggers/text-only creators
-        // Require at least one video platform (YouTube, TikTok, or Instagram) with URL
-        const hasVideoPlatform = validated.youtubeUrl || validated.tiktokUrl || validated.instagramUrl;
-        if (!hasVideoPlatform) {
-          // Get existing profile to check if they already have a platform
-          const existingProfile = await storage.getCreatorProfile(userId);
-          const existingHasPlatform = existingProfile && (
-            existingProfile.youtubeUrl ||
-            existingProfile.tiktokUrl ||
-            existingProfile.instagramUrl
-          );
-
-          if (!existingHasPlatform) {
-            return res.status(400).json({
-              error: "Video platform required",
-              message: "Creators must have at least one video platform (YouTube, TikTok, or Instagram) to use AffiliateXchange. Text-only content creators are not supported."
-            });
-          }
-        }
-
         const profile = await storage.updateCreatorProfile(userId, validated);
         console.log("[Profile Update] Updated profile:", profile);
         return res.json(profile);
@@ -996,6 +976,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/applications", requireAuth, requireRole('creator'), async (req, res) => {
     try {
       const userId = (req.user as any).id;
+
+      // ACCOUNT TYPE RESTRICTION: Check if creator has at least one video platform
+      const creatorProfile = await storage.getCreatorProfile(userId);
+      const hasVideoPlatform = creatorProfile && (
+        creatorProfile.youtubeUrl ||
+        creatorProfile.tiktokUrl ||
+        creatorProfile.instagramUrl
+      );
+
+      if (!hasVideoPlatform) {
+        return res.status(400).json({
+          error: "Video platform required",
+          message: "You must add at least one video platform (YouTube, TikTok, or Instagram) to your profile before applying to offers. Please complete your profile setup first."
+        });
+      }
+
       const validated = insertApplicationSchema.parse({
         ...req.body,
         creatorId: userId,
@@ -3983,6 +3979,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/creator/retainer-contracts/:id/apply", requireAuth, requireRole('creator'), async (req, res) => {
     try {
       const userId = (req.user as any).id;
+
+      // ACCOUNT TYPE RESTRICTION: Check if creator has at least one video platform
+      const creatorProfile = await storage.getCreatorProfile(userId);
+      const hasVideoPlatform = creatorProfile && (
+        creatorProfile.youtubeUrl ||
+        creatorProfile.tiktokUrl ||
+        creatorProfile.instagramUrl
+      );
+
+      if (!hasVideoPlatform) {
+        return res.status(400).json({
+          error: "Video platform required",
+          message: "You must add at least one video platform (YouTube, TikTok, or Instagram) to your profile before applying to retainer contracts. Please complete your profile setup first."
+        });
+      }
+
       const body = {
         ...req.body,
         proposedStartDate: req.body.proposedStartDate ? new Date(req.body.proposedStartDate) : undefined,

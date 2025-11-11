@@ -77,9 +77,6 @@ export default function Settings() {
   // Account info states
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
-
-  // Dialog state for video platform warning
-  const [showVideoPlatformDialog, setShowVideoPlatformDialog] = useState(false);
   const [lastName, setLastName] = useState("");
 
   // Password change states
@@ -99,6 +96,36 @@ export default function Settings() {
     queryKey: ["/api/profile"],
     enabled: isAuthenticated,
   });
+
+  // Load saved form data from localStorage on mount
+  useEffect(() => {
+    const savedFormData = localStorage.getItem('settings-form-data');
+    if (savedFormData) {
+      try {
+        const data = JSON.parse(savedFormData);
+        // Restore creator profile fields
+        if (data.bio !== undefined) setBio(data.bio);
+        if (data.selectedNiches !== undefined) setSelectedNiches(data.selectedNiches);
+        if (data.youtubeUrl !== undefined) setYoutubeUrl(data.youtubeUrl);
+        if (data.tiktokUrl !== undefined) setTiktokUrl(data.tiktokUrl);
+        if (data.instagramUrl !== undefined) setInstagramUrl(data.instagramUrl);
+        if (data.youtubeFollowers !== undefined) setYoutubeFollowers(data.youtubeFollowers);
+        if (data.tiktokFollowers !== undefined) setTiktokFollowers(data.tiktokFollowers);
+        if (data.instagramFollowers !== undefined) setInstagramFollowers(data.instagramFollowers);
+        // Restore company profile fields
+        if (data.tradeName !== undefined) setTradeName(data.tradeName);
+        if (data.legalName !== undefined) setLegalName(data.legalName);
+        if (data.logoUrl !== undefined) setLogoUrl(data.logoUrl);
+        if (data.industry !== undefined) setIndustry(data.industry);
+        if (data.websiteUrl !== undefined) setWebsiteUrl(data.websiteUrl);
+        if (data.companyDescription !== undefined) setCompanyDescription(data.companyDescription);
+        if (data.contactName !== undefined) setContactName(data.contactName);
+        if (data.phoneNumber !== undefined) setPhoneNumber(data.phoneNumber);
+      } catch (error) {
+        console.error('[Settings] Error loading saved form data:', error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -138,6 +165,39 @@ export default function Settings() {
       }
     }
   }, [profile, user?.role]);
+
+  // Save form state to localStorage whenever fields change
+  useEffect(() => {
+    // Only save if user is authenticated and we have at least some data
+    if (!isAuthenticated) return;
+
+    const formData = {
+      // Creator profile fields
+      bio,
+      selectedNiches,
+      youtubeUrl,
+      tiktokUrl,
+      instagramUrl,
+      youtubeFollowers,
+      tiktokFollowers,
+      instagramFollowers,
+      // Company profile fields
+      tradeName,
+      legalName,
+      logoUrl,
+      industry,
+      websiteUrl,
+      companyDescription,
+      contactName,
+      phoneNumber,
+    };
+
+    localStorage.setItem('settings-form-data', JSON.stringify(formData));
+  }, [
+    isAuthenticated, bio, selectedNiches, youtubeUrl, tiktokUrl, instagramUrl,
+    youtubeFollowers, tiktokFollowers, instagramFollowers, tradeName, legalName,
+    logoUrl, industry, websiteUrl, companyDescription, contactName, phoneNumber
+  ]);
 
   // Handle logo upload
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -492,6 +552,8 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      // Clear saved form data from localStorage since changes are now persisted
+      localStorage.removeItem('settings-form-data');
       toast({
         title: "Success",
         description: "Profile updated successfully",
@@ -507,21 +569,6 @@ export default function Settings() {
       });
     },
   });
-
-  // Handler for save profile button - checks video platform requirement first
-  const handleSaveProfile = () => {
-    // Only check for creators
-    if (user?.role === 'creator') {
-      const hasVideoPlatform = youtubeUrl || tiktokUrl || instagramUrl;
-      if (!hasVideoPlatform) {
-        setShowVideoPlatformDialog(true);
-        return;
-      }
-    }
-
-    // Proceed with save
-    updateProfileMutation.mutate();
-  };
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -746,7 +793,7 @@ export default function Settings() {
               )}
 
               <Button
-                onClick={handleSaveProfile}
+                onClick={() => updateProfileMutation.mutate()}
                 disabled={updateProfileMutation.isPending}
                 data-testid="button-save-profile"
               >
@@ -835,27 +882,6 @@ export default function Settings() {
                 </p>
               </div>
 
-              {/* Video Platform Requirement Alert */}
-              <Alert className={`${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'}`}>
-                <Video className={`h-5 w-5 ${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-600' : 'text-blue-600'}`} />
-                <AlertTitle className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-900 dark:text-red-300' : 'text-blue-900 dark:text-blue-300'}>
-                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? '⚠️ Video Platform Required' : '✓ Video Platform Requirements'}
-                </AlertTitle>
-                <AlertDescription className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-800 dark:text-red-200' : 'text-blue-800 dark:text-blue-200'}>
-                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? (
-                    <>
-                      <strong>You must add at least one video platform to use AffiliateXchange.</strong>
-                      <br />
-                      We only accept video content creators (YouTube, TikTok, or Instagram). Text-only bloggers and podcasters without video are not supported at this time.
-                    </>
-                  ) : (
-                    <>
-                      <strong>Great!</strong> You have at least one video platform set up. Make sure to keep your platform URLs updated for the best experience.
-                    </>
-                  )}
-                </AlertDescription>
-              </Alert>
-
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="youtube">YouTube Channel URL</Label>
@@ -932,7 +958,7 @@ export default function Settings() {
               </div>
 
               <Button
-                onClick={handleSaveProfile}
+                onClick={() => updateProfileMutation.mutate()}
                 disabled={updateProfileMutation.isPending}
                 data-testid="button-save-profile"
               >
@@ -1191,44 +1217,6 @@ export default function Settings() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeletingAccount ? "Deleting..." : "Yes, delete my account"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Video Platform Requirement Dialog */}
-      <AlertDialog open={showVideoPlatformDialog} onOpenChange={setShowVideoPlatformDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-6 w-6" />
-              ⚠️ Video Platform Required
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4 text-base">
-              <p className="font-semibold text-foreground">
-                You must add at least one video platform to use AffiliateXchange.
-              </p>
-              <p>
-                We only accept <strong>video content creators</strong> with presence on:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-2">
-                <li><strong>YouTube</strong> - Video channels</li>
-                <li><strong>TikTok</strong> - Short-form video content</li>
-                <li><strong>Instagram</strong> - Reels and video content</li>
-              </ul>
-              <p className="text-muted-foreground">
-                Text-only bloggers and podcasters without video are not supported at this time.
-              </p>
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>💡 Tip:</strong> Add your YouTube, TikTok, or Instagram URL in the fields above, then click Save Changes again.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowVideoPlatformDialog(false)}>
-              I Understand
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
