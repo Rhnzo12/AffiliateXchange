@@ -494,6 +494,8 @@ export default function Settings() {
       });
     },
     onError: (error: Error) => {
+      console.log("[Settings] Error caught:", error);
+      console.log("[Settings] Error message:", error.message);
       toast({
         title: "Error",
         description: error.message || "Failed to update profile",
