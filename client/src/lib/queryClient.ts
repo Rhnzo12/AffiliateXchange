@@ -7,10 +7,11 @@ async function throwIfResNotOk(res: Response) {
     // Try to parse as JSON to extract error message
     try {
       const errorData = JSON.parse(text);
-      if (errorData.error) {
-        throw new Error(errorData.error);
-      } else if (errorData.message) {
+      // Prioritize the detailed 'message' field over the short 'error' field
+      if (errorData.message) {
         throw new Error(errorData.message);
+      } else if (errorData.error) {
+        throw new Error(errorData.error);
       }
     } catch (parseError) {
       // Not JSON or no error/message field, use the text as-is
