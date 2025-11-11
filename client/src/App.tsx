@@ -44,6 +44,8 @@ import AdminCreators from "./pages/admin-creators";
 import AdminAuditLogs from "./pages/admin-audit-logs";
 import AdminPlatformSettings from "./pages/admin-platform-settings";
 import Onboarding from "./pages/onboarding";
+import CompanyOnboarding from "./pages/company-onboarding";
+import CompanyProfile from "./pages/company-profile";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import SelectRole from "./pages/select-role";
@@ -165,6 +167,7 @@ function ProtectedRouter() {
                 <Route path="/notifications/:id" component={NotificationDetail} />
                 <Route path="/payment-settings" component={PaymentSettings} />
                 <Route path="/payments/:id" component={PaymentDetail} />
+                <Route path="/company-profile/:id" component={CompanyProfile} />
 
                 {/* Fallback */}
                 <Route component={NotFound} />
@@ -179,7 +182,7 @@ function ProtectedRouter() {
 
 function Router() {
   const [location] = useLocation();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   // Define public routes
   const publicRoutes = ['/login', '/register', '/select-role'];
@@ -192,6 +195,11 @@ function Router() {
         <div className="animate-pulse text-lg">Loading...</div>
       </div>
     );
+  }
+
+  // Special handling for company onboarding (no sidebar)
+  if (isAuthenticated && location === '/company-onboarding' && user?.role === 'company') {
+    return <CompanyOnboarding />;
   }
 
   // ✅ FIX: Check authentication first before routing

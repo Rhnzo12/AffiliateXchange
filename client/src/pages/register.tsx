@@ -72,7 +72,7 @@ export default function Register() {
 
       // Redirect based on role
       setTimeout(() => {
-        window.location.href = data.role === "creator" ? "/browse" : "/company/dashboard";
+        window.location.href = data.role === "creator" ? "/browse" : "/company-onboarding";
       }, 1000);
     } catch (error: any) {
       toast({

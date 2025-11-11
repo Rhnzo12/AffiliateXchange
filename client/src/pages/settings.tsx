@@ -11,7 +11,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,8 +71,18 @@ export default function Settings() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [companyDescription, setCompanyDescription] = useState("");
   const [contactName, setContactName] = useState("");
+  const [contactJobTitle, setContactJobTitle] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
+  const [companySize, setCompanySize] = useState("");
+  const [yearFounded, setYearFounded] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [twitterUrl, setTwitterUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [verificationDocumentUrl, setVerificationDocumentUrl] = useState("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
 
   // Account info states
   const [username, setUsername] = useState("");
@@ -123,7 +133,16 @@ export default function Settings() {
         if (data.websiteUrl !== undefined) setWebsiteUrl(data.websiteUrl);
         if (data.companyDescription !== undefined) setCompanyDescription(data.companyDescription);
         if (data.contactName !== undefined) setContactName(data.contactName);
+        if (data.contactJobTitle !== undefined) setContactJobTitle(data.contactJobTitle);
         if (data.phoneNumber !== undefined) setPhoneNumber(data.phoneNumber);
+        if (data.businessAddress !== undefined) setBusinessAddress(data.businessAddress);
+        if (data.companySize !== undefined) setCompanySize(data.companySize);
+        if (data.yearFounded !== undefined) setYearFounded(data.yearFounded);
+        if (data.linkedinUrl !== undefined) setLinkedinUrl(data.linkedinUrl);
+        if (data.twitterUrl !== undefined) setTwitterUrl(data.twitterUrl);
+        if (data.facebookUrl !== undefined) setFacebookUrl(data.facebookUrl);
+        if (data.instagramUrl !== undefined) setInstagramUrl(data.instagramUrl);
+        if (data.verificationDocumentUrl !== undefined) setVerificationDocumentUrl(data.verificationDocumentUrl);
       } catch (error) {
         console.error('[Settings] Error loading saved form data:', error);
       }
@@ -164,7 +183,16 @@ export default function Settings() {
         setWebsiteUrl(profile.websiteUrl || "");
         setCompanyDescription(profile.description || "");
         setContactName(profile.contactName || "");
+        setContactJobTitle(profile.contactJobTitle || "");
         setPhoneNumber(profile.phoneNumber || "");
+        setBusinessAddress(profile.businessAddress || "");
+        setCompanySize(profile.companySize || "");
+        setYearFounded(profile.yearFounded?.toString() || "");
+        setLinkedinUrl(profile.linkedinUrl || "");
+        setTwitterUrl(profile.twitterUrl || "");
+        setFacebookUrl(profile.facebookUrl || "");
+        setInstagramUrl(profile.instagramUrl || "");
+        setVerificationDocumentUrl(profile.verificationDocumentUrl || "");
       }
     }
   }, [profile, user?.role]);
@@ -192,14 +220,25 @@ export default function Settings() {
       websiteUrl,
       companyDescription,
       contactName,
+      contactJobTitle,
       phoneNumber,
+      businessAddress,
+      companySize,
+      yearFounded,
+      linkedinUrl,
+      twitterUrl,
+      facebookUrl,
+      instagramUrl,
+      verificationDocumentUrl,
     };
 
     localStorage.setItem('settings-form-data', JSON.stringify(formData));
   }, [
     isAuthenticated, bio, selectedNiches, youtubeUrl, tiktokUrl, instagramUrl,
     youtubeFollowers, tiktokFollowers, instagramFollowers, tradeName, legalName,
-    logoUrl, industry, websiteUrl, companyDescription, contactName, phoneNumber
+    logoUrl, industry, websiteUrl, companyDescription, contactName, contactJobTitle,
+    phoneNumber, businessAddress, companySize, yearFounded, linkedinUrl, twitterUrl,
+    facebookUrl, instagramUrl, verificationDocumentUrl
   ]);
 
   // Handle logo upload
@@ -293,6 +332,95 @@ export default function Settings() {
       });
     } finally {
       setIsUploadingLogo(false);
+    }
+  };
+
+  const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png'];
+    const isValid = allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+    if (!isValid) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload a PDF or image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 10485760) { // 10MB
+      toast({
+        title: "File Too Large",
+        description: "Document must be less than 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingDocument(true);
+
+    try {
+      const uploadResponse = await fetch("/api/objects/upload", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          folder: "verification-documents",
+          resourceType: file.type === 'application/pdf' ? 'raw' : 'image'
+        }),
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const uploadData = await uploadResponse.json();
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      if (uploadData.uploadPreset) {
+        formData.append('upload_preset', uploadData.uploadPreset);
+      } else if (uploadData.signature) {
+        formData.append('signature', uploadData.signature);
+        formData.append('timestamp', uploadData.timestamp.toString());
+        formData.append('api_key', uploadData.apiKey);
+      }
+
+      if (uploadData.folder) {
+        formData.append('folder', uploadData.folder);
+      }
+
+      const uploadResult = await fetch(uploadData.uploadUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      const cloudinaryResponse = await uploadResult.json();
+      setVerificationDocumentUrl(cloudinaryResponse.secure_url);
+
+      toast({
+        title: "Success!",
+        description: "Verification document uploaded successfully. Don't forget to save your changes.",
+      });
+    } catch (error) {
+      console.error("Document upload error:", error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload document. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingDocument(false);
     }
   };
 
@@ -543,7 +671,16 @@ export default function Settings() {
           websiteUrl,
           description: companyDescription,
           contactName,
+          contactJobTitle,
           phoneNumber,
+          businessAddress,
+          companySize,
+          yearFounded: yearFounded ? parseInt(yearFounded) : null,
+          linkedinUrl,
+          twitterUrl,
+          facebookUrl,
+          instagramUrl,
+          verificationDocumentUrl,
         };
       }
 
@@ -788,6 +925,20 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="contactJobTitle">Contact Job Title</Label>
+                  <Input
+                    id="contactJobTitle"
+                    type="text"
+                    placeholder="Marketing Director, CEO, etc."
+                    value={contactJobTitle}
+                    onChange={(e) => setContactJobTitle(e.target.value)}
+                    data-testid="input-contact-job-title"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
                   <Label htmlFor="phoneNumber">Phone Number</Label>
                   <Input
                     id="phoneNumber"
@@ -797,6 +948,180 @@ export default function Settings() {
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     data-testid="input-phone-number"
                   />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="businessAddress">Business Address</Label>
+                <Textarea
+                  id="businessAddress"
+                  placeholder="Full business address including street, city, state, ZIP, and country"
+                  value={businessAddress}
+                  onChange={(e) => setBusinessAddress(e.target.value)}
+                  className="min-h-20"
+                  data-testid="textarea-business-address"
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="companySize">Company Size</Label>
+                  <Select value={companySize} onValueChange={setCompanySize}>
+                    <SelectTrigger id="companySize" data-testid="select-company-size">
+                      <SelectValue placeholder="Select company size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1-10">1-10 employees</SelectItem>
+                      <SelectItem value="11-50">11-50 employees</SelectItem>
+                      <SelectItem value="51-200">51-200 employees</SelectItem>
+                      <SelectItem value="201-1000">201-1000 employees</SelectItem>
+                      <SelectItem value="1000+">1000+ employees</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="yearFounded">Year Founded</Label>
+                  <Input
+                    id="yearFounded"
+                    type="number"
+                    min="1800"
+                    max={new Date().getFullYear()}
+                    placeholder={new Date().getFullYear().toString()}
+                    value={yearFounded}
+                    onChange={(e) => setYearFounded(e.target.value)}
+                    data-testid="input-year-founded"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-base font-semibold">Verification Document</Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Upload business registration certificate, EIN/Tax ID, or incorporation certificate
+                </p>
+
+                {verificationDocumentUrl ? (
+                  <div className="flex items-center gap-3 p-4 border rounded-lg bg-green-50 dark:bg-green-950/20 border-green-200">
+                    <FileText className="h-8 w-8 text-green-600" />
+                    <div className="flex-1">
+                      <p className="font-medium text-green-900 dark:text-green-100">Document Uploaded</p>
+                      <p className="text-sm text-green-700 dark:text-green-300">Verification document on file</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setVerificationDocumentUrl("")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleDocumentUpload}
+                      disabled={isUploadingDocument}
+                      className="hidden"
+                      id="document-upload"
+                    />
+                    <label
+                      htmlFor="document-upload"
+                      className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer block ${
+                        isUploadingDocument ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        {isUploadingDocument ? (
+                          <>
+                            <Upload className="h-6 w-6 text-blue-600 animate-pulse" />
+                            <div className="text-sm font-medium text-blue-600">
+                              Uploading Document...
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-6 w-6 text-primary" />
+                            <div className="text-sm font-medium">
+                              Click to upload verification document
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              PDF, JPG, PNG (max 10MB)
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-base font-semibold">Social Media Profiles</Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Optional: Add your social media profiles to build trust with creators
+                </p>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="linkedinUrl">LinkedIn Company Page</Label>
+                    <Input
+                      id="linkedinUrl"
+                      type="url"
+                      placeholder="https://linkedin.com/company/yourcompany"
+                      value={linkedinUrl}
+                      onChange={(e) => setLinkedinUrl(e.target.value)}
+                      data-testid="input-linkedin-url"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="twitterUrl">Twitter/X Profile</Label>
+                    <Input
+                      id="twitterUrl"
+                      type="url"
+                      placeholder="https://twitter.com/yourcompany"
+                      value={twitterUrl}
+                      onChange={(e) => setTwitterUrl(e.target.value)}
+                      data-testid="input-twitter-url"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="facebookUrl">Facebook Page</Label>
+                    <Input
+                      id="facebookUrl"
+                      type="url"
+                      placeholder="https://facebook.com/yourcompany"
+                      value={facebookUrl}
+                      onChange={(e) => setFacebookUrl(e.target.value)}
+                      data-testid="input-facebook-url"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="companyInstagramUrl">Instagram Profile</Label>
+                    <Input
+                      id="companyInstagramUrl"
+                      type="url"
+                      placeholder="https://instagram.com/yourcompany"
+                      value={instagramUrl}
+                      onChange={(e) => setInstagramUrl(e.target.value)}
+                      data-testid="input-company-instagram-url"
+                    />
+                  </div>
                 </div>
               </div>
 
