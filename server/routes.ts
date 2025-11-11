@@ -121,6 +121,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Company onboarding
+  app.post("/api/company/onboarding", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const {
+        legalName,
+        tradeName,
+        industry,
+        websiteUrl,
+        companySize,
+        yearFounded,
+        logoUrl,
+        description,
+        contactName,
+        contactJobTitle,
+        phoneNumber,
+        businessAddress,
+        verificationDocumentUrl,
+        linkedinUrl,
+        twitterUrl,
+        facebookUrl,
+        instagramUrl,
+      } = req.body;
+
+      // Validate required fields
+      if (!legalName || !websiteUrl || !logoUrl || !description) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (!contactName || !phoneNumber || !businessAddress) {
+        return res.status(400).json({ error: "Missing required contact information" });
+      }
+
+      if (!verificationDocumentUrl) {
+        return res.status(400).json({ error: "Verification document is required" });
+      }
+
+      // Update company profile with all onboarding data
+      const profile = await storage.updateCompanyProfile(userId, {
+        legalName,
+        tradeName,
+        industry,
+        websiteUrl,
+        companySize,
+        yearFounded,
+        logoUrl,
+        description,
+        contactName,
+        contactJobTitle,
+        phoneNumber,
+        businessAddress,
+        verificationDocumentUrl,
+        linkedinUrl,
+        twitterUrl,
+        facebookUrl,
+        instagramUrl,
+        status: 'pending', // Keep as pending for admin approval
+      });
+
+      return res.json({ success: true, profile });
+    } catch (error: any) {
+      console.error("Company onboarding error:", error);
+      res.status(500).json({ error: error.message || "Failed to complete onboarding" });
+    }
+  });
+
+  // Get company profile by ID (public/authenticated)
+  app.get("/api/companies/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const company = await storage.getCompanyProfile(id);
+
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      // Get associated user info
+      const user = await storage.getUserById(company.userId);
+
+      // Return company profile with limited user info
+      return res.json({
+        ...company,
+        user: user ? {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+        } : null,
+      });
+    } catch (error: any) {
+      console.error("Get company profile error:", error);
+      res.status(500).json({ error: error.message || "Failed to get company profile" });
+    }
+  });
+
   // Creator stats
   app.get("/api/creator/stats", requireAuth, requireRole('creator'), async (req, res) => {
     try {
