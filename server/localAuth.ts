@@ -709,13 +709,14 @@ export async function setupAuth(app: Express) {
       const conversations = await storage.getConversationsByUser(userId, user.role);
       const messages = [];
       for (const conv of conversations) {
-        const convMessages = await storage.getMessagesByConversation(conv.id);
+        const convMessages = await storage.getMessages(conv.id);
         messages.push(...convMessages);
       }
       exportData.messages = messages.map(msg => ({
         id: msg.id,
         conversationId: msg.conversationId,
         content: msg.content,
+        attachments: msg.attachments || [],
         isRead: msg.isRead,
         createdAt: msg.createdAt,
         sentByMe: msg.senderId === userId,
