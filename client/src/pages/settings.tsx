@@ -79,7 +79,7 @@ export default function Settings() {
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [twitterUrl, setTwitterUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
-  const [instagramUrl, setInstagramUrl] = useState("");
+  const [companyInstagramUrl, setCompanyInstagramUrl] = useState("");
   const [verificationDocumentUrl, setVerificationDocumentUrl] = useState("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
@@ -141,7 +141,7 @@ export default function Settings() {
         if (data.linkedinUrl !== undefined) setLinkedinUrl(data.linkedinUrl);
         if (data.twitterUrl !== undefined) setTwitterUrl(data.twitterUrl);
         if (data.facebookUrl !== undefined) setFacebookUrl(data.facebookUrl);
-        if (data.instagramUrl !== undefined) setInstagramUrl(data.instagramUrl);
+        if (data.companyInstagramUrl !== undefined) setCompanyInstagramUrl(data.companyInstagramUrl);
         if (data.verificationDocumentUrl !== undefined) setVerificationDocumentUrl(data.verificationDocumentUrl);
       } catch (error) {
         console.error('[Settings] Error loading saved form data:', error);
@@ -191,7 +191,7 @@ export default function Settings() {
         setLinkedinUrl(profile.linkedinUrl || "");
         setTwitterUrl(profile.twitterUrl || "");
         setFacebookUrl(profile.facebookUrl || "");
-        setInstagramUrl(profile.instagramUrl || "");
+        setCompanyInstagramUrl(profile.instagramUrl || "");
         setVerificationDocumentUrl(profile.verificationDocumentUrl || "");
       }
     }
@@ -228,7 +228,7 @@ export default function Settings() {
       linkedinUrl,
       twitterUrl,
       facebookUrl,
-      instagramUrl,
+      companyInstagramUrl,
       verificationDocumentUrl,
     };
 
@@ -238,7 +238,7 @@ export default function Settings() {
     youtubeFollowers, tiktokFollowers, instagramFollowers, tradeName, legalName,
     logoUrl, industry, websiteUrl, companyDescription, contactName, contactJobTitle,
     phoneNumber, businessAddress, companySize, yearFounded, linkedinUrl, twitterUrl,
-    facebookUrl, instagramUrl, verificationDocumentUrl
+    facebookUrl, companyInstagramUrl, verificationDocumentUrl
   ]);
 
   // Handle logo upload
@@ -679,7 +679,7 @@ export default function Settings() {
           linkedinUrl,
           twitterUrl,
           facebookUrl,
-          instagramUrl,
+          instagramUrl: companyInstagramUrl,
           verificationDocumentUrl,
         };
       }
@@ -1117,8 +1117,8 @@ export default function Settings() {
                       id="companyInstagramUrl"
                       type="url"
                       placeholder="https://instagram.com/yourcompany"
-                      value={instagramUrl}
-                      onChange={(e) => setInstagramUrl(e.target.value)}
+                      value={companyInstagramUrl}
+                      onChange={(e) => setCompanyInstagramUrl(e.target.value)}
                       data-testid="input-company-instagram-url"
                     />
                   </div>
