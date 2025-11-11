@@ -739,10 +739,20 @@ useEffect(() => {
                           </div>
                         )}
                         <div
-                          className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} ${
+                          className={`flex gap-2 ${isOwnMessage ? 'justify-end' : 'justify-start'} ${
                             groupWithPrevious ? 'mt-1' : 'mt-4'
                           }`}
                         >
+                          {/* Avatar for other user's messages */}
+                          {!isOwnMessage && (
+                            <Avatar className={`h-8 w-8 shrink-0 ${groupWithPrevious ? 'invisible' : ''}`}>
+                              <AvatarImage src={otherUser?.profileImageUrl || otherUser?.logoUrl} />
+                              <AvatarFallback className="text-xs">
+                                {getAvatarFallback(otherUser)}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+
                           <div
                             className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 ${
                               isOwnMessage
@@ -798,7 +808,13 @@ useEffect(() => {
                   
                   {/* Typing Indicator */}
                   {isOtherUserTyping && (
-                    <div className="flex justify-start">
+                    <div className="flex gap-2 justify-start mt-4">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarImage src={otherUser?.profileImageUrl || otherUser?.logoUrl} />
+                        <AvatarFallback className="text-xs">
+                          {getAvatarFallback(otherUser)}
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="bg-muted rounded-lg p-3 max-w-[70%]">
                         <div className="flex gap-1">
                           <div className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
