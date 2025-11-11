@@ -10,6 +10,7 @@
     "migrate:aliases": "node scripts/convert-aliases.cjs",
     "migrate:notifications": "node --import tsx server/migrations/add-notification-enums-simple.ts",
     "migrate:attachments": "node --import tsx server/migrations/add-message-attachments.ts",
+    "migrate:new-fields": "node --import tsx server/migrations/add-conversation-offer-company-fields.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
