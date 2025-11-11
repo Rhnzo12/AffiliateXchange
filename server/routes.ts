@@ -14,7 +14,7 @@ import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
 import { NotificationService } from "./notifications/notificationService";
 import { PriorityListingScheduler } from "./priorityListingScheduler";
-import QRCode from "qrcode";
+import * as QRCode from "qrcode";
 import {
   insertCreatorProfileSchema,
   insertCompanyProfileSchema,
