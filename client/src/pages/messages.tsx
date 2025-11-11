@@ -86,19 +86,16 @@ export default function Messages() {
   // Helper function to get display name for user or company
   const getDisplayName = (user: any) => {
     if (!user) return 'User';
-    
-    // Debug logging to see what fields are available
-    console.log('User object in getDisplayName:', user);
-    
-    // Try company-specific fields first
-    const companyName = user.companyName || user.company_name || user.businessName;
+
+    // Try company-specific fields first (tradeName, legalName from backend)
+    const companyName = user.tradeName || user.legalName || user.companyName || user.company_name || user.businessName;
     if (companyName) return companyName;
-    
+
     // If it's explicitly a company role
     if (user.role === 'company') {
       return user.name || user.username || user.email || 'Company';
     }
-    
+
     // For creators/other users, show first name or username
     const displayName = user.firstName || user.first_name || user.name || user.username || user.email;
     return displayName || 'User';
@@ -107,11 +104,11 @@ export default function Messages() {
   // Helper function to get avatar fallback
   const getAvatarFallback = (user: any) => {
     if (!user) return 'U';
-    
-    // Try company-specific fields first
-    const companyName = user.companyName || user.company_name || user.businessName;
+
+    // Try company-specific fields first (tradeName, legalName from backend)
+    const companyName = user.tradeName || user.legalName || user.companyName || user.company_name || user.businessName;
     if (companyName) return companyName[0].toUpperCase();
-    
+
     // Try general name fields
     const name = user.firstName || user.first_name || user.name || user.username || user.email;
     return name ? name[0].toUpperCase() : 'U';
@@ -620,7 +617,7 @@ useEffect(() => {
                     >
                       <div className="flex gap-3 items-start">
                         <Avatar className="h-12 w-12 sm:h-10 sm:w-10 shrink-0">
-                          <AvatarImage src={conversation.otherUser?.profileImageUrl} />
+                          <AvatarImage src={conversation.otherUser?.profileImageUrl || conversation.otherUser?.logoUrl} />
                           <AvatarFallback>
                             {getAvatarFallback(conversation.otherUser)}
                           </AvatarFallback>
@@ -686,7 +683,7 @@ useEffect(() => {
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <Avatar className="h-10 w-10 shrink-0">
-                      <AvatarImage src={otherUser?.profileImageUrl} />
+                      <AvatarImage src={otherUser?.profileImageUrl || otherUser?.logoUrl} />
                       <AvatarFallback>
                         {getAvatarFallback(otherUser)}
                       </AvatarFallback>
