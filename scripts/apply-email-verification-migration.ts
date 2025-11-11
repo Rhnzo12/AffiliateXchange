@@ -1,4 +1,4 @@
-import { db } from "../server/db";
+import { db } from "../server/db.js";
 import { sql } from "drizzle-orm";
 
 async function applyMigration() {
@@ -56,4 +56,9 @@ async function applyMigration() {
   }
 }
 
-applyMigration();
+// Run migration if executed directly
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
+
+if (isMainModule) {
+  applyMigration();
+}
