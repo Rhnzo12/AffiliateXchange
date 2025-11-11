@@ -1769,9 +1769,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let firstCompanyResponseTime: Date | null = null;
 
         for (const msg of msgs) {
-          if (msg.senderId === conversation.creatorId && !firstCreatorMessageTime) {
+          if (msg.senderId === conversation.creatorId && !firstCreatorMessageTime && msg.createdAt) {
             firstCreatorMessageTime = new Date(msg.createdAt);
-          } else if (msg.senderId === companyProfile.userId && firstCreatorMessageTime && !firstCompanyResponseTime) {
+          } else if (msg.senderId === companyProfile.userId && firstCreatorMessageTime && !firstCompanyResponseTime && msg.createdAt) {
             firstCompanyResponseTime = new Date(msg.createdAt);
             break;
           }
