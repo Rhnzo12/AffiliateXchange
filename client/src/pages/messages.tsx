@@ -581,9 +581,9 @@ useEffect(() => {
       <div className="h-[calc(100vh-12rem)]">
         <div className="grid md:grid-cols-[320px_1fr] gap-4 h-full">
           {/* Conversations List - Hidden on mobile when conversation is selected */}
-          <Card className={`border-card-border ${selectedConversation ? 'hidden md:block' : 'block'}`}>
-          <CardContent className="p-0">
-            <div className="p-4 border-b flex items-center justify-between">
+          <Card className={`border-card-border flex flex-col overflow-hidden ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
+          <CardContent className="p-0 flex flex-col h-full">
+            <div className="p-4 border-b flex items-center justify-between shrink-0">
               <h2 className="font-semibold text-lg">Messages</h2>
               <Button
                 variant="ghost"
@@ -595,7 +595,7 @@ useEffect(() => {
                 {soundEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
               </Button>
             </div>
-            <ScrollArea className="h-[calc(100vh-12rem)]">
+            <ScrollArea className="flex-1">
               {!conversations || conversations.length === 0 ? (
                 <div className="p-12 text-center">
                   <MessageSquare className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
@@ -673,7 +673,7 @@ useEffect(() => {
         </Card>
 
         {/* Messages View - Show on mobile when conversation selected */}
-        <Card className={`border-card-border flex flex-col ${!selectedConversation ? 'hidden md:flex' : 'flex'}`}>
+        <Card className={`border-card-border flex flex-col overflow-hidden ${!selectedConversation ? 'hidden md:flex' : 'flex'}`}>
           {!selectedConversation ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center px-4">
@@ -687,7 +687,7 @@ useEffect(() => {
           ) : (
             <>
               {/* Header with back button on mobile */}
-              <div className="p-4 border-b">
+              <div className="p-4 border-b shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {/* Back button for mobile */}
@@ -847,7 +847,7 @@ useEffect(() => {
               </ScrollArea>
 
               {/* Input - Better mobile touch targets */}
-              <div className="p-3 sm:p-4 border-t bg-background">
+              <div className="p-3 sm:p-4 border-t bg-background shrink-0">
                 {/* Attachment Previews */}
                 {attachmentPreviews.length > 0 && (
                   <div className="mb-3 flex gap-2 flex-wrap">
