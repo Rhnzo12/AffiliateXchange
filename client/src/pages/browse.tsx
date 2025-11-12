@@ -439,7 +439,7 @@ export default function Browse() {
         {/* Category Pills - Horizontal Scroll */}
         <div className="relative">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {["All", ...NICHES].map((category) => (
+            {["All", ...niches.map(n => n.name)].map((category) => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
