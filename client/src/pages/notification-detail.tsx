@@ -429,6 +429,112 @@ export default function NotificationDetail() {
         );
       }
 
+      case "new_application": {
+        const companyName = meta.companyName;
+        const companyUserId = meta.companyUserId;
+        const offerId = meta.offerId;
+        const offerTitle = meta.offerTitle;
+
+        // Check if this is a company registration or offer submission
+        const isCompanyRegistration = companyName && companyUserId;
+        const isOfferSubmission = offerId || offerTitle;
+
+        if (isCompanyRegistration) {
+          // New Company Registration
+          return (
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                  🏢 New Company Registration
+                </h3>
+                <p className="text-blue-800 dark:text-blue-200">{n.message}</p>
+                {companyName && (
+                  <div className="mt-3 text-lg font-bold text-blue-900 dark:text-blue-100">
+                    Company: {companyName}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+                  Action Required
+                </h4>
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  This company registration is pending approval. Please review the company details,
+                  verify their information, and approve or reject their registration.
+                </p>
+              </div>
+
+              {companyUserId && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                  Company User ID: {companyUserId}
+                </div>
+              )}
+
+              {n.linkUrl && (
+                <Link href={n.linkUrl}>
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                    Review Company Details
+                  </Button>
+                </Link>
+              )}
+            </div>
+          );
+        } else if (isOfferSubmission) {
+          // New Offer Submission
+          return (
+            <div className="space-y-4">
+              <div className="bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+                <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
+                  📋 New Offer Pending Review
+                </h3>
+                <p className="text-purple-800 dark:text-purple-200">{n.message}</p>
+                {offerTitle && (
+                  <div className="mt-3 text-lg font-bold text-purple-900 dark:text-purple-100">
+                    Offer: {offerTitle}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <h4 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+                  Action Required
+                </h4>
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  This offer is pending review. Please review the offer details and approve or reject it.
+                </p>
+              </div>
+
+              {offerId && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                  Offer ID: {offerId}
+                </div>
+              )}
+
+              {n.linkUrl && (
+                <Link href={n.linkUrl}>
+                  <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                    Review Offer
+                  </Button>
+                </Link>
+              )}
+            </div>
+          );
+        } else {
+          // Generic new application
+          return (
+            <div className="space-y-4">
+              <p>{n.message}</p>
+              {n.linkUrl && (
+                <Link href={n.linkUrl}>
+                  <Button className="w-full">View Details</Button>
+                </Link>
+              )}
+            </div>
+          );
+        }
+      }
+
       case "system_announcement":
       case "announcement":
       default:
