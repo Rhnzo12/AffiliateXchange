@@ -268,6 +268,11 @@ export default function Settings() {
     setIsUploadingLogo(true);
 
     try {
+      // Use user ID for organized folder structure
+      const folder = user?.id
+        ? `company-logos/${user.id}`
+        : "company-logos";
+
       // Get upload URL from backend
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
@@ -275,7 +280,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "company-logos", resourceType: "image" }),
+        body: JSON.stringify({ folder, resourceType: "image" }),
       });
       
       if (!uploadResponse.ok) {

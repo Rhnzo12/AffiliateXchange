@@ -104,6 +104,11 @@ export default function CreatorRetainerDetail() {
     setIsUploading(true);
 
     try {
+      // Use creator ID for organized folder structure
+      const folder = user?.id
+        ? `creatorlink/retainer/${user.id}`
+        : "creatorlink/retainer";
+
       // Get Cloudinary upload parameters
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
@@ -111,7 +116,7 @@ export default function CreatorRetainerDetail() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "creatorlink/retainer", resourceType: "video" }), // Save retainer videos in 'creatorlink/retainer' folder
+        body: JSON.stringify({ folder, resourceType: "video" }), // Save retainer videos in creator-specific folder
       });
       const uploadData = await uploadResponse.json();
 
@@ -220,6 +225,11 @@ export default function CreatorRetainerDetail() {
     setIsResubmitUploading(true);
 
     try {
+      // Use creator ID for organized folder structure
+      const folder = user?.id
+        ? `creatorlink/retainer/${user.id}`
+        : "creatorlink/retainer";
+
       // Get Cloudinary upload parameters
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
@@ -227,7 +237,7 @@ export default function CreatorRetainerDetail() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "retainer", resourceType: "video" }),
+        body: JSON.stringify({ folder, resourceType: "video" }),
       });
       const uploadData = await uploadResponse.json();
 
