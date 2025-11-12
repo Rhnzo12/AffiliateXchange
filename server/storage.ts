@@ -920,15 +920,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile> {
+    const newId = randomUUID();
+    console.log(`[Storage] Creating company profile with ID: ${newId} for user ${profile.userId}`);
     const result = await db
       .insert(companyProfiles)
       .values({
         ...profile,
-        id: randomUUID(),
+        id: newId,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
       .returning();
+    console.log(`[Storage] Company profile created: ${result[0].legalName} with ID: ${result[0].id}`);
     return result[0];
   }
 
@@ -1035,6 +1038,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCompanyById(companyId: string): Promise<any | undefined> {
+    console.log(`[Storage] getCompanyById called with ID: ${companyId}`);
     const result = await db
       .select({
         company: companyProfiles,
@@ -1045,12 +1049,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(companyProfiles.id, companyId))
       .limit(1);
 
+    console.log(`[Storage] Query result length: ${result.length}`);
     if (result.length === 0) return undefined;
 
-    return {
+    const company = {
       ...result[0].company,
       user: result[0].user,
     };
+    console.log(`[Storage] Found company: ${company.legalName} with ID: ${company.id}`);
+    return company;
   }
 
   async getCompanyOffers(companyId: string): Promise<Offer[]> {

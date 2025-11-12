@@ -3102,12 +3102,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get individual company details
   app.get("/api/admin/companies/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
-      const company = await storage.getCompanyById(req.params.id);
+      const companyId = req.params.id;
+      console.log(`[Admin] Fetching company with ID: ${companyId}`);
+      const company = await storage.getCompanyById(companyId);
       if (!company) {
+        console.log(`[Admin] Company not found with ID: ${companyId}`);
         return res.status(404).send("Company not found");
       }
+      console.log(`[Admin] Company found: ${company.legalName} (ID: ${company.id})`);
       res.json(company);
     } catch (error: any) {
+      console.error(`[Admin] Error fetching company ${req.params.id}:`, error);
       res.status(500).send(error.message);
     }
   });
