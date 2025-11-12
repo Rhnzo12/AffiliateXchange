@@ -3983,6 +3983,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Video proxy with range request support for proper video streaming
+  app.get("/proxy/video", async (req, res) => {
+    try {
+      const url = (req.query.url as string) || req.query.u as string;
+      if (!url) return res.status(400).send("url query param is required");
+
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch (e) {
+        return res.status(400).send("invalid url");
+      }
+
+      // Only allow known safe hosts to avoid open proxy / SSRF
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
+      const hostname = parsed.hostname || "";
+      const allowed = allowedHosts.some((h) => hostname.endsWith(h));
+      if (!allowed) return res.status(403).send("forbidden host");
+
+      if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
+
+      // Get the range header from the request (for video seeking)
+      const range = req.headers.range;
+
+      // Prepare headers for the upstream request
+      const headers: Record<string, string> = {};
+      if (range) {
+        headers['Range'] = range;
+      }
+
+      const fetchRes = await fetch(url, {
+        method: "GET",
+        headers
+      });
+
+      if (!fetchRes.ok && fetchRes.status !== 206) {
+        return res.status(fetchRes.status).send("failed to fetch video");
+      }
+
+      // Forward the status code (200 for full content, 206 for partial content)
+      res.status(fetchRes.status);
+
+      // Forward important headers
+      const contentType = fetchRes.headers.get("content-type");
+      if (contentType) res.setHeader("Content-Type", contentType);
+
+      const contentLength = fetchRes.headers.get("content-length");
+      if (contentLength) res.setHeader("Content-Length", contentLength);
+
+      const contentRange = fetchRes.headers.get("content-range");
+      if (contentRange) res.setHeader("Content-Range", contentRange);
+
+      const acceptRanges = fetchRes.headers.get("accept-ranges");
+      if (acceptRanges) res.setHeader("Accept-Ranges", acceptRanges);
+      else res.setHeader("Accept-Ranges", "bytes"); // Enable range requests
+
+      const cacheControl = fetchRes.headers.get("cache-control");
+      if (cacheControl) res.setHeader("Cache-Control", cacheControl);
+
+      // Allow browsers to fetch this proxied resource
+      res.setHeader("Access-Control-Allow-Origin", "*");
+
+      // Stream the video content (don't load into memory)
+      if (fetchRes.body) {
+        const reader = fetchRes.body.getReader();
+        const pump = async () => {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              res.write(Buffer.from(value));
+            }
+            res.end();
+          } catch (error) {
+            console.error('[Video Proxy] Error streaming video:', error);
+            res.end();
+          }
+        };
+        await pump();
+      } else {
+        // Fallback for when body is not available
+        const arrayBuffer = await fetchRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        res.send(buffer);
+      }
+    } catch (error: any) {
+      console.error('[Video Proxy] Error fetching video:', error);
+      res.status(500).send(error?.message || 'video proxy error');
+    }
+  });
+
   app.get("/objects/:objectPath(*)", requireAuth, async (req, res) => {
     console.log("🔍 Requested object path:", req.path);
     const userId = (req.user as any)?.id;

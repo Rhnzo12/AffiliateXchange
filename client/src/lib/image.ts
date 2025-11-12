@@ -8,6 +8,13 @@ export const isCloudinaryHost = (url?: string) => {
   }
 };
 
+export const isVideoUrl = (url?: string) => {
+  if (!url) return false;
+  const videoExtensions = ['.mp4', '.mov', '.avi', '.webm', '.mkv', '.m4v', '.flv'];
+  const lowerUrl = url.toLowerCase();
+  return videoExtensions.some(ext => lowerUrl.includes(ext)) || lowerUrl.includes('/video/');
+};
+
 export const proxiedSrc = (src?: string | null) => {
   if (!src) return src || undefined;
 
@@ -21,6 +28,11 @@ export const proxiedSrc = (src?: string | null) => {
 
   try {
     if (isCloudinaryHost(src)) {
+      // For videos, use the video proxy endpoint that supports range requests
+      if (isVideoUrl(src)) {
+        return `/proxy/video?url=${encodeURIComponent(src)}`;
+      }
+      // For images, use the image proxy
       return `/proxy/image?url=${encodeURIComponent(src)}`;
     }
   } catch (e) {
