@@ -9,6 +9,143 @@ import { setupGoogleAuth } from "./googleAuth";
 import crypto from "crypto";
 import { NotificationService } from "./notifications/notificationService";
 
+async function purgeCreatorRetainerData(creatorId: string) {
+  const { db } = await import("./db");
+  const {
+    retainerApplications,
+    retainerDeliverables,
+    retainerPayments,
+    payments,
+  } = await import("../shared/schema");
+  const { eq } = await import("drizzle-orm");
+
+  const [deletedDeliverables, deletedApplications, deletedRetainerPayments, deletedPayments] = await Promise.all([
+    db
+      .delete(retainerDeliverables)
+      .where(eq(retainerDeliverables.creatorId, creatorId))
+      .returning({ id: retainerDeliverables.id }),
+    db
+      .delete(retainerApplications)
+      .where(eq(retainerApplications.creatorId, creatorId))
+      .returning({ id: retainerApplications.id }),
+    db
+      .delete(retainerPayments)
+      .where(eq(retainerPayments.creatorId, creatorId))
+      .returning({ id: retainerPayments.id }),
+    db
+      .delete(payments)
+      .where(eq(payments.creatorId, creatorId))
+      .returning({ id: payments.id }),
+  ]);
+
+  console.log(
+    `[Account Deletion] Deleted ${deletedDeliverables.length} retainer deliverable(s) for creator ${creatorId}`,
+  );
+  console.log(
+    `[Account Deletion] Deleted ${deletedApplications.length} retainer application(s) for creator ${creatorId}`,
+  );
+  console.log(
+    `[Account Deletion] Deleted ${deletedRetainerPayments.length} retainer payment record(s) for creator ${creatorId}`,
+  );
+  console.log(
+    `[Account Deletion] Deleted ${deletedPayments.length} campaign payment record(s) for creator ${creatorId}`,
+  );
+}
+
+async function purgeCompanyOfferAndRetainerData(companyId: string) {
+  const { db } = await import("./db");
+  const {
+    offers,
+    offerVideos,
+    applications,
+    analytics,
+    favorites,
+    clickEvents,
+    payments,
+    retainerContracts,
+    retainerApplications,
+    retainerDeliverables,
+    retainerPayments,
+  } = await import("../shared/schema");
+  const { eq, inArray } = await import("drizzle-orm");
+
+  const offersForCompany = await db
+    .select({ id: offers.id })
+    .from(offers)
+    .where(eq(offers.companyId, companyId));
+
+  const offerIds = offersForCompany.map((offer) => offer.id);
+
+  if (offerIds.length > 0) {
+    const [videoRows, analyticsRows, favoriteRows, clickEventRows, paymentRows, applicationRows] = await Promise.all([
+      db
+        .delete(offerVideos)
+        .where(inArray(offerVideos.offerId, offerIds))
+        .returning({ id: offerVideos.id }),
+      db
+        .delete(analytics)
+        .where(inArray(analytics.offerId, offerIds))
+        .returning({ id: analytics.id }),
+      db
+        .delete(favorites)
+        .where(inArray(favorites.offerId, offerIds))
+        .returning({ id: favorites.id }),
+      db
+        .delete(clickEvents)
+        .where(inArray(clickEvents.offerId, offerIds))
+        .returning({ id: clickEvents.id }),
+      db
+        .delete(payments)
+        .where(inArray(payments.offerId, offerIds))
+        .returning({ id: payments.id }),
+      db
+        .delete(applications)
+        .where(inArray(applications.offerId, offerIds))
+        .returning({ id: applications.id }),
+    ]);
+
+    await db.delete(offers).where(eq(offers.companyId, companyId));
+
+    console.log(
+      `[Account Deletion] Deleted ${offerIds.length} offer(s) for company ${companyId} along with ${applicationRows.length} application(s), ${videoRows.length} video(s), ${favoriteRows.length} favorite(s), ${analyticsRows.length} analytics row(s), ${clickEventRows.length} click event(s), and ${paymentRows.length} payment record(s)`,
+    );
+  } else {
+    console.log(`[Account Deletion] Company ${companyId} has no offers to delete`);
+  }
+
+  const retainerContractsForCompany = await db
+    .select({ id: retainerContracts.id })
+    .from(retainerContracts)
+    .where(eq(retainerContracts.companyId, companyId));
+
+  const contractIds = retainerContractsForCompany.map((contract) => contract.id);
+
+  if (contractIds.length > 0) {
+    const [deliverableRows, retainerApplicationRows, retainerPaymentRows] = await Promise.all([
+      db
+        .delete(retainerDeliverables)
+        .where(inArray(retainerDeliverables.contractId, contractIds))
+        .returning({ id: retainerDeliverables.id }),
+      db
+        .delete(retainerApplications)
+        .where(inArray(retainerApplications.contractId, contractIds))
+        .returning({ id: retainerApplications.id }),
+      db
+        .delete(retainerPayments)
+        .where(inArray(retainerPayments.contractId, contractIds))
+        .returning({ id: retainerPayments.id }),
+    ]);
+
+    await db.delete(retainerContracts).where(eq(retainerContracts.companyId, companyId));
+
+    console.log(
+      `[Account Deletion] Deleted ${contractIds.length} retainer contract(s) for company ${companyId} along with ${retainerApplicationRows.length} application(s), ${deliverableRows.length} deliverable(s), and ${retainerPaymentRows.length} payment record(s)`,
+    );
+  } else {
+    console.log(`[Account Deletion] Company ${companyId} has no retainer contracts to delete`);
+  }
+}
+
 // Middleware to check if user is authenticated
 export function isAuthenticated(req: Request, res: any, next: any) {
   if (req.isAuthenticated()) {
@@ -233,7 +370,7 @@ export async function setupAuth(app: Express) {
               {
                 companyName: username,
                 companyUserId: user.id,
-                linkUrl: `/admin/companies/${companyProfile.id}`
+                linkUrl: `/admin/companies/${companyProfile.id}`,
               }
             );
           }
@@ -483,7 +620,25 @@ export async function setupAuth(app: Express) {
       // Send verification email to new address
       try {
         const notificationService = new NotificationService(storage);
-        await notificationService.sendEmailVerification(updatedUser);
+        const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+        const emailVerificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        await storage.updateUser(userId, {
+          emailVerificationToken,
+          emailVerificationTokenExpiry,
+          emailVerified: false,
+        });
+
+        const verificationUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/verify-email?token=${emailVerificationToken}`;
+        await notificationService.sendEmailNotification(
+          updatedUser.email,
+          'email_verification',
+          {
+            userName: updatedUser.firstName || updatedUser.username,
+            verificationUrl,
+            linkUrl: verificationUrl,
+          }
+        );
         console.log(`[Auth] Email verification sent to ${normalizedEmail}`);
       } catch (emailError) {
         console.error('[Auth] Failed to send verification email:', emailError);
@@ -883,6 +1038,8 @@ export async function setupAuth(app: Express) {
         pendingPayments: []
       };
 
+      let companyProfileForCleanup: { id: string } | undefined;
+
       if (user.role === 'creator') {
         // Check for active applications
         applications = await storage.getApplicationsByCreator(userId);
@@ -926,18 +1083,19 @@ export async function setupAuth(app: Express) {
             activeItems: activeItems
           });
         }
+
       } else if (user.role === 'company') {
-        const profile = await storage.getCompanyProfile(userId);
-        if (profile) {
+        companyProfileForCleanup = await storage.getCompanyProfile(userId) as { id: string } | undefined;
+        if (companyProfileForCleanup) {
           // Check for active applications
-          applications = await storage.getApplicationsByCompany(profile.id);
+          applications = await storage.getApplicationsByCompany(companyProfileForCleanup.id);
           const activeApps = applications.filter(app =>
             app.status === 'active' || app.status === 'approved'
           );
           activeItems.applications = activeApps;
 
           // Check for active offers with applications
-          const offers = await storage.getOffersByCompany(profile.id);
+          const offers = await storage.getOffersByCompany(companyProfileForCleanup.id);
           const offersWithApps = [];
           for (const offer of offers) {
             const offerApps = applications.filter(app => app.offerId === offer.id);
@@ -951,7 +1109,7 @@ export async function setupAuth(app: Express) {
           activeItems.offers = offersWithApps;
 
           // Check for active retainer contracts
-          const companyContracts = await storage.getRetainerContractsByCompany(profile.id);
+          const companyContracts = await storage.getRetainerContractsByCompany(companyProfileForCleanup.id);
           const activeContracts = companyContracts.filter(contract =>
             contract.status === 'in_progress' || contract.status === 'open'
           );
@@ -961,7 +1119,7 @@ export async function setupAuth(app: Express) {
           const { db } = await import('./db');
           const { retainerPayments } = await import('../shared/schema');
           const { eq } = await import('drizzle-orm');
-          const payments = await db.select().from(retainerPayments).where(eq(retainerPayments.companyId, profile.id));
+          const payments = await db.select().from(retainerPayments).where(eq(retainerPayments.companyId, companyProfileForCleanup.id));
           const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'processing');
           activeItems.pendingPayments = pendingPayments;
 
@@ -986,99 +1144,57 @@ export async function setupAuth(app: Express) {
 
       // Start account deletion process
       console.log(`[Account Deletion] Starting deletion for user ${userId} (${user.email})`);
-
-      // Import ObjectStorageService to delete Cloudinary files
-      const { ObjectStorageService } = await import('./objectStorage');
-      const objectStorage = new ObjectStorageService();
-
-      // 1. Delete ALL Cloudinary files/folders for this user
-      console.log(`[Account Deletion] Deleting all Cloudinary files for user ${userId}`);
-
-      try {
-        // Delete user profile folder (contains profile images)
-        await objectStorage.deleteFolder(`affiliatexchange/user-profiles/${userId}`);
-        console.log(`[Account Deletion] Deleted user profile folder`);
-      } catch (error: any) {
-        console.error(`[Account Deletion] Error deleting user profile folder:`, error.message);
-      }
+      // 1. Collect Cloudinary folders for cleanup after database deletion completes
+      const foldersToDelete = new Set<string>();
+      const conversationIdsForCleanup = new Set<string>();
+      foldersToDelete.add(`affiliatexchange/user-profiles/${userId}`);
+      foldersToDelete.add(`affiliatexchange/users/${userId}`);
+      foldersToDelete.add(`affiliatexchange/verification-documents/${userId}`);
 
       if (user.role === 'creator') {
-        try {
-          // Delete creator-specific folders
-          const creatorProfile = await storage.getCreatorProfile(userId);
-          if (creatorProfile) {
-            // Delete retainer deliverables folder
-            await objectStorage.deleteFolder(`affiliatexchange/retainer-deliverables/${userId}`);
-            console.log(`[Account Deletion] Deleted creator retainer deliverables folder`);
+        foldersToDelete.add(`affiliatexchange/retainer-deliverables/${userId}`);
+        foldersToDelete.add(`affiliatexchange/creator-content/${userId}`);
 
-            // Delete any creator-specific content
-            await objectStorage.deleteFolder(`affiliatexchange/creator-content/${userId}`);
-            console.log(`[Account Deletion] Deleted creator content folder`);
-          }
-        } catch (error: any) {
-          console.error(`[Account Deletion] Error deleting creator folders:`, error.message);
-        }
-
-        // Delete message attachments for creator conversations
         try {
           const { db } = await import('./db');
-          const { conversations, messages } = await import('../shared/schema');
+          const { conversations } = await import('../shared/schema');
           const { eq } = await import('drizzle-orm');
 
-          const creatorConversations = await db.select().from(conversations).where(eq(conversations.creatorId, userId));
+          const creatorConversations = await db
+            .select({ id: conversations.id })
+            .from(conversations)
+            .where(eq(conversations.creatorId, userId));
 
           for (const conversation of creatorConversations) {
-            await objectStorage.deleteFolder(`affiliatexchange/messages/${conversation.id}`);
+            conversationIdsForCleanup.add(conversation.id);
+            foldersToDelete.add(`affiliatexchange/messages/${conversation.id}`);
           }
-          console.log(`[Account Deletion] Deleted creator message attachments`);
         } catch (error: any) {
-          console.error(`[Account Deletion] Error deleting creator message folders:`, error.message);
+          console.error(`[Account Deletion] Error collecting creator conversation folders:`, error.message);
         }
+      } else if (user.role === 'company' && companyProfileForCleanup) {
+        foldersToDelete.add(`affiliatexchange/company-logos/${companyProfileForCleanup.id}`);
+        foldersToDelete.add(`affiliatexchange/offers/${companyProfileForCleanup.id}`);
+        foldersToDelete.add(`affiliatexchange/retainer-contracts/${companyProfileForCleanup.id}`);
+        foldersToDelete.add(`affiliatexchange/verification-documents/${userId}`);
 
-      } else if (user.role === 'company') {
-        const companyProfile = await storage.getCompanyProfile(userId);
-        if (companyProfile) {
-          try {
-            // Delete company-specific folders
-            await objectStorage.deleteFolder(`affiliatexchange/company-logos/${companyProfile.id}`);
-            console.log(`[Account Deletion] Deleted company logo folder`);
+        try {
+          const { db } = await import('./db');
+          const { conversations } = await import('../shared/schema');
+          const { eq } = await import('drizzle-orm');
 
-            await objectStorage.deleteFolder(`affiliatexchange/verification-documents/${userId}`);
-            console.log(`[Account Deletion] Deleted verification documents folder`);
+          const companyConversations = await db
+            .select({ id: conversations.id })
+            .from(conversations)
+            .where(eq(conversations.companyId, companyProfileForCleanup.id));
 
-            await objectStorage.deleteFolder(`affiliatexchange/offers/${companyProfile.id}`);
-            console.log(`[Account Deletion] Deleted company offers folder`);
-
-            await objectStorage.deleteFolder(`affiliatexchange/retainer-contracts/${companyProfile.id}`);
-            console.log(`[Account Deletion] Deleted retainer contracts folder`);
-          } catch (error: any) {
-            console.error(`[Account Deletion] Error deleting company folders:`, error.message);
+          for (const conversation of companyConversations) {
+            conversationIdsForCleanup.add(conversation.id);
+            foldersToDelete.add(`affiliatexchange/messages/${conversation.id}`);
           }
-
-          // Delete message attachments for company conversations
-          try {
-            const { db } = await import('./db');
-            const { conversations } = await import('../shared/schema');
-            const { eq } = await import('drizzle-orm');
-
-            const companyConversations = await db.select().from(conversations).where(eq(conversations.companyId, companyProfile.id));
-
-            for (const conversation of companyConversations) {
-              await objectStorage.deleteFolder(`affiliatexchange/messages/${conversation.id}`);
-            }
-            console.log(`[Account Deletion] Deleted company message attachments`);
-          } catch (error: any) {
-            console.error(`[Account Deletion] Error deleting company message folders:`, error.message);
-          }
+        } catch (error: any) {
+          console.error(`[Account Deletion] Error collecting company conversation folders:`, error.message);
         }
-      }
-
-      // Delete any other user-related folders
-      try {
-        await objectStorage.deleteFolder(`affiliatexchange/users/${userId}`);
-        console.log(`[Account Deletion] Deleted general user folder`);
-      } catch (error: any) {
-        console.error(`[Account Deletion] Error deleting general user folder:`, error.message);
       }
 
       // 2. Anonymize reviews (keep review content but anonymize author)
@@ -1092,28 +1208,61 @@ export async function setupAuth(app: Express) {
       // 3. Anonymize messages (keep messages but anonymize sender)
       // Messages will be handled through cascade delete on conversations
 
-      // 4. Delete personal information from user table
-      await storage.updateUser(userId, {
-        email: `deleted-${userId}@deleted.user`,
-        firstName: null,
-        lastName: null,
-        profileImageUrl: null,
-        password: null,
-        googleId: null,
-        emailVerificationToken: null,
-        emailVerificationTokenExpiry: null,
-        passwordResetToken: null,
-        passwordResetTokenExpiry: null,
-        accountStatus: 'banned', // Mark as banned to prevent re-activation
-      });
+      // 4. Delete any lingering conversations/messages for this user before removing the account
+      if (conversationIdsForCleanup.size > 0) {
+        try {
+          const { db } = await import('./db');
+          const { conversations } = await import('../shared/schema');
+          const { inArray } = await import('drizzle-orm');
 
-      // 5. Delete payment settings (cascade will handle)
+          const conversationIds = Array.from(conversationIdsForCleanup);
+
+          await db
+            .delete(conversations)
+            .where(inArray(conversations.id, conversationIds));
+
+          console.log(
+            `[Account Deletion] Deleted ${conversationIds.length} conversation(s) for user ${userId} before removing account`
+          );
+        } catch (error: any) {
+          console.error(
+            `[Account Deletion] Failed to delete conversations for user ${userId} before removing account:`,
+            error.message || error
+          );
+        }
+      }
+
+      // 5. Delete dependent offer, retainer, and payment data tied to this account
+      try {
+        if (user.role === 'creator') {
+          await purgeCreatorRetainerData(userId);
+        } else if (user.role === 'company' && companyProfileForCleanup) {
+          await purgeCompanyOfferAndRetainerData(companyProfileForCleanup.id);
+        }
+      } catch (dataCleanupError: any) {
+        console.error(
+          `[Account Deletion] Failed to delete dependent records for user ${userId}:`,
+          dataCleanupError?.message || dataCleanupError,
+        );
+        return res.status(500).json({ error: "Failed to delete all connected account data" });
+      }
+
+      // 6. Delete personal information from user table by removing user record
+      try {
+        await storage.deleteUser(userId);
+        console.log(`[Account Deletion] Removed user record and cascaded related data for user ${userId}`);
+      } catch (error: any) {
+        console.error(`[Account Deletion] Failed to delete user ${userId}:`, error);
+        return res.status(500).json({ error: "Failed to delete user account" });
+      }
+
+      // 7. Delete payment settings (if cascades didn't already remove them)
       const paymentSettings = await storage.getPaymentSettings(userId);
       for (const setting of paymentSettings) {
         await storage.deletePaymentSetting(setting.id);
       }
 
-      // 6. Delete favorites (cascade will handle)
+      // 8. Delete favorites (cascade will handle)
       if (user.role === 'creator') {
         const favorites = await storage.getFavoritesByCreator(userId);
         for (const fav of favorites) {
@@ -1121,16 +1270,16 @@ export async function setupAuth(app: Express) {
         }
       }
 
-      // 7. Delete applications (if no active ones)
+      // 9. Delete applications (if no active ones)
       // These will be cascade deleted through database constraints
 
-      // 8. Delete notifications
+      // 10. Delete notifications
       const notifications = await storage.getNotifications(userId);
       for (const notif of notifications) {
         await storage.deleteNotification(notif.id);
       }
 
-      // 9. Send confirmation email before final deletion
+      // 11. Send confirmation email before final deletion
       try {
         const notificationService = new NotificationService(storage);
         await notificationService.sendEmailNotification(
@@ -1148,14 +1297,42 @@ export async function setupAuth(app: Express) {
         // Don't fail the deletion if email fails
       }
 
-      // 10. Logout user
-      req.logout((err) => {
-        if (err) {
-          console.error("Logout error during account deletion:", err);
-        }
-      });
+      // 12. Logout user and destroy session
+      if (req.session && typeof req.logout === 'function') {
+        req.logout((err) => {
+          if (err) {
+            console.error("Logout error during account deletion:", err);
+          }
+        });
+      } else {
+        console.log("[Account Deletion] No session found during logout step; skipping req.logout");
+      }
+
+      if (req.session) {
+        req.session.destroy((sessionErr) => {
+          if (sessionErr) {
+            console.error("Session destruction error during account deletion:", sessionErr);
+          }
+        });
+      }
+
+      res.clearCookie('connect.sid');
 
       console.log(`[Account Deletion] Successfully deleted account for user ${userId}`);
+
+      // 13. Delete Cloudinary folders now that database cleanup succeeded
+      console.log(`[Account Deletion] Cleaning up Cloudinary folders for user ${userId}`);
+      const { ObjectStorageService } = await import('./objectStorage');
+      const objectStorage = new ObjectStorageService();
+
+      for (const folderPath of Array.from(foldersToDelete)) {
+        try {
+          await objectStorage.deleteFolder(folderPath);
+          console.log(`[Account Deletion] Deleted Cloudinary folder ${folderPath}`);
+        } catch (error: any) {
+          console.error(`[Account Deletion] Error deleting Cloudinary folder ${folderPath}:`, error.message);
+        }
+      }
 
       res.json({
         success: true,

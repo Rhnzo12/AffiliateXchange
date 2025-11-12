@@ -55,6 +55,7 @@ interface NotificationData {
   userName?: string;
   userEmail?: string;
   companyName?: string;
+  companyUserId?: string;
   offerTitle?: string;
   applicationId?: string;
   offerId?: string;
