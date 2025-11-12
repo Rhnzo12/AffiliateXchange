@@ -130,14 +130,8 @@ export function NotificationCenter() {
     if (!notification.isRead) {
       markAsReadMutation.mutate(notification.id);
     }
-    // Prefer opening the app's notification detail page so we show a structured
-    // view (payments, messages, etc.). Fall back to the notification.linkUrl
-    // only when there's no notification id or it's an absolute external URL.
-    if (notification.id) {
-      setLocation(`/notifications/${notification.id}`);
-      return;
-    }
 
+    // If notification has a linkUrl, navigate directly to it
     if (notification.linkUrl) {
       // If it's an absolute external URL, navigate the browser there.
       if (/^https?:\/\//.test(notification.linkUrl)) {
@@ -145,6 +139,12 @@ export function NotificationCenter() {
       } else {
         setLocation(notification.linkUrl);
       }
+      return;
+    }
+
+    // Fall back to notification detail page if no linkUrl is provided
+    if (notification.id) {
+      setLocation(`/notifications/${notification.id}`);
     }
   };
 
