@@ -39,24 +39,6 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   archived: { label: "Archived", variant: "destructive" },
 };
 
-const NICHES = [
-  "Fashion & Beauty",
-  "Health & Fitness",
-  "Technology",
-  "Home & Garden",
-  "Food & Beverage",
-  "Travel",
-  "Finance",
-  "Education",
-  "Entertainment",
-  "Sports",
-  "Parenting",
-  "Pets",
-  "Business",
-  "Automotive",
-  "Other"
-];
-
 const COMMISSION_TYPES = [
   { value: "per_sale", label: "Per Sale" },
   { value: "per_lead", label: "Per Lead" },
@@ -105,6 +87,11 @@ export default function AdminOffers() {
       return response.json();
     },
     enabled: isAuthenticated,
+  });
+
+  // Fetch niches from API
+  const { data: niches = [], isLoading: nichesLoading } = useQuery<Array<{ id: string; name: string; description: string | null; isActive: boolean }>>({
+    queryKey: ["/api/niches"],
   });
 
   const filteredOffers = offers.filter((offer) => {
@@ -209,11 +196,15 @@ export default function AdminOffers() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Niches</SelectItem>
-                  {NICHES.map((niche) => (
-                    <SelectItem key={niche} value={niche}>
-                      {niche}
-                    </SelectItem>
-                  ))}
+                  {nichesLoading ? (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  ) : (
+                    niches.map((niche) => (
+                      <SelectItem key={niche.id} value={niche.name}>
+                        {niche.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
 
