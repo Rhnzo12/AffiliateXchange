@@ -810,7 +810,213 @@ export async function setupAuth(app: Express) {
       // Start account deletion process
       console.log(`[Account Deletion] Starting deletion for user ${userId} (${user.email})`);
 
-      // 1. Anonymize reviews (keep review content but anonymize author)
+      // Import ObjectStorageService to delete Cloudinary files
+      const { ObjectStorageService } = await import('./objectStorage');
+      const objectStorage = new ObjectStorageService();
+
+      // Helper function to extract public ID and delete from Cloudinary
+      const deleteCloudinaryResource = async (url: string | null, resourceType: 'image' | 'video' | 'raw' = 'image') => {
+        if (!url) return;
+        try {
+          const publicId = objectStorage.extractPublicIdFromUrl(url);
+          if (publicId) {
+            await objectStorage.deleteResource(publicId, resourceType);
+            console.log(`[Account Deletion] Deleted ${resourceType}: ${publicId}`);
+          }
+        } catch (error: any) {
+          console.error(`[Account Deletion] Failed to delete ${resourceType} ${url}:`, error.message);
+        }
+      };
+
+      // 1. Delete Cloudinary files based on user role
+      if (user.role === 'creator') {
+        console.log(`[Account Deletion] Deleting creator Cloudinary files`);
+
+        // Delete profile image
+        if (user.profileImageUrl) {
+          await deleteCloudinaryResource(user.profileImageUrl, 'image');
+        }
+
+        // Delete retainer deliverables
+        const creatorProfile = await storage.getCreatorProfile(userId);
+        if (creatorProfile) {
+          // Get all retainer contracts where this creator is assigned
+          const { db } = await import('./db');
+          const { retainerContracts, retainerDeliverables } = await import('../shared/schema');
+          const { eq } = await import('drizzle-orm');
+
+          const contracts = await db.select().from(retainerContracts).where(eq(retainerContracts.assignedCreatorId, userId));
+
+          // Get all deliverables for this creator
+          const deliverables = await db.select().from(retainerDeliverables).where(eq(retainerDeliverables.creatorId, userId));
+
+          // Delete deliverable videos
+          for (const deliverable of deliverables) {
+            if (deliverable.videoUrl) {
+              await deleteCloudinaryResource(deliverable.videoUrl, 'video');
+            }
+          }
+
+          console.log(`[Account Deletion] Deleted ${deliverables.length} retainer deliverable videos`);
+        }
+
+        // Delete creatorprofile folder
+        try {
+          await objectStorage.deleteFolder(`creatorprofile/${userId}`);
+          console.log(`[Account Deletion] Deleted folder: creatorprofile/${userId}`);
+        } catch (error: any) {
+          console.error(`[Account Deletion] Failed to delete creatorprofile folder:`, error.message);
+        }
+
+        // Delete message attachments
+        const { db } = await import('./db');
+        const { conversations, messages } = await import('../shared/schema');
+        const { eq } = await import('drizzle-orm');
+
+        // Get all conversations for this creator
+        const creatorConversations = await db.select().from(conversations).where(eq(conversations.creatorId, userId));
+
+        for (const conversation of creatorConversations) {
+          const conversationMessages = await db.select().from(messages).where(eq(messages.conversationId, conversation.id));
+
+          for (const message of conversationMessages) {
+            if (message.attachments && message.attachments.length > 0) {
+              for (const attachment of message.attachments) {
+                await deleteCloudinaryResource(attachment, 'raw');
+              }
+            }
+          }
+        }
+
+        console.log(`[Account Deletion] Deleted creator message attachments`);
+
+        // Delete creatorlink/retainer folder
+        try {
+          await objectStorage.deleteFolder(`creatorlink/retainer/${userId}`);
+          await objectStorage.deleteFolder(`creatorlink/retainer`);
+          console.log(`[Account Deletion] Deleted folder: creatorlink/retainer`);
+        } catch (error: any) {
+          console.error(`[Account Deletion] Failed to delete retainer folder:`, error.message);
+        }
+
+        // Delete creatorlink/attachments folder for creator
+        try {
+          await objectStorage.deleteFolder(`creatorlink/attachments/${userId}`);
+          console.log(`[Account Deletion] Deleted folder: creatorlink/attachments/${userId}`);
+        } catch (error: any) {
+          console.error(`[Account Deletion] Failed to delete creator attachments folder:`, error.message);
+        }
+
+      } else if (user.role === 'company') {
+        console.log(`[Account Deletion] Deleting company Cloudinary files`);
+
+        // Delete profile image
+        if (user.profileImageUrl) {
+          await deleteCloudinaryResource(user.profileImageUrl, 'image');
+        }
+
+        const companyProfile = await storage.getCompanyProfile(userId);
+        if (companyProfile) {
+          // Delete company logo
+          if (companyProfile.logoUrl) {
+            await deleteCloudinaryResource(companyProfile.logoUrl, 'image');
+          }
+
+          // Delete verification document
+          if (companyProfile.verificationDocumentUrl) {
+            await deleteCloudinaryResource(companyProfile.verificationDocumentUrl, 'raw');
+          }
+
+          // Get all offers for this company
+          const offers = await storage.getOffersByCompany(companyProfile.id);
+
+          for (const offer of offers) {
+            // Delete offer featured image
+            if (offer.featuredImageUrl) {
+              await deleteCloudinaryResource(offer.featuredImageUrl, 'image');
+            }
+
+            // Get and delete offer videos
+            const { db: dbInstance } = await import('./db');
+            const { offerVideos } = await import('../shared/schema');
+            const { eq: eqOp } = await import('drizzle-orm');
+            const videos = await dbInstance.select().from(offerVideos).where(eqOp(offerVideos.offerId, offer.id));
+
+            for (const video of videos) {
+              if (video.videoUrl) {
+                await deleteCloudinaryResource(video.videoUrl, 'video');
+              }
+              if (video.thumbnailUrl) {
+                await deleteCloudinaryResource(video.thumbnailUrl, 'image');
+              }
+            }
+
+            console.log(`[Account Deletion] Deleted ${videos.length} offer videos for offer ${offer.id}`);
+          }
+
+          // Delete message attachments
+          const { db: dbConn } = await import('./db');
+          const { conversations: conversationTable, messages: messageTable } = await import('../shared/schema');
+          const { eq: eqFunc } = await import('drizzle-orm');
+
+          // Get all conversations for this company
+          const companyConversations = await dbConn.select().from(conversationTable).where(eqFunc(conversationTable.companyId, companyProfile.id));
+
+          for (const conversation of companyConversations) {
+            const conversationMessages = await dbConn.select().from(messageTable).where(eqFunc(messageTable.conversationId, conversation.id));
+
+            for (const message of conversationMessages) {
+              if (message.attachments && message.attachments.length > 0) {
+                for (const attachment of message.attachments) {
+                  await deleteCloudinaryResource(attachment, 'raw');
+                }
+              }
+            }
+          }
+
+          console.log(`[Account Deletion] Deleted message attachments`);
+
+          // Delete company-specific folders
+          try {
+            await objectStorage.deleteFolder(`company-logos/${userId}`);
+            console.log(`[Account Deletion] Deleted folder: company-logos/${userId}`);
+          } catch (error: any) {
+            console.error(`[Account Deletion] Failed to delete company-logos folder:`, error.message);
+          }
+
+          try {
+            await objectStorage.deleteFolder(`verification-documents/${userId}`);
+            console.log(`[Account Deletion] Deleted folder: verification-documents/${userId}`);
+          } catch (error: any) {
+            console.error(`[Account Deletion] Failed to delete verification-documents folder:`, error.message);
+          }
+
+          try {
+            await objectStorage.deleteFolder(`creatorlink/attachments/${companyProfile.id}`);
+            await objectStorage.deleteFolder(`creatorlink/attachments`);
+            console.log(`[Account Deletion] Deleted folder: creatorlink/attachments`);
+          } catch (error: any) {
+            console.error(`[Account Deletion] Failed to delete attachments folder:`, error.message);
+          }
+
+          try {
+            await objectStorage.deleteFolder(`creatorlink/videos/${companyProfile.id}`);
+            await objectStorage.deleteFolder(`creatorlink/videos`);
+            console.log(`[Account Deletion] Deleted folder: creatorlink/videos`);
+          } catch (error: any) {
+            console.error(`[Account Deletion] Failed to delete videos folder:`, error.message);
+          }
+
+          try {
+            await objectStorage.deleteFolder(`creatorlink/videos/thumbnails`);
+            console.log(`[Account Deletion] Deleted folder: creatorlink/videos/thumbnails`);
+          } catch (error: any) {
+            console.error(`[Account Deletion] Failed to delete thumbnails folder:`, error.message);
+          }
+        }
+      }
+
+      // 2. Anonymize reviews (keep review content but anonymize author)
       const reviews = user.role === 'creator'
         ? await storage.getReviewsByCreator(userId)
         : [];
@@ -818,10 +1024,10 @@ export async function setupAuth(app: Express) {
       console.log(`[Account Deletion] Anonymizing ${reviews.length} reviews`);
       // Reviews will be cascade deleted or anonymized through foreign key constraints
 
-      // 2. Anonymize messages (keep messages but anonymize sender)
+      // 3. Anonymize messages (keep messages but anonymize sender)
       // Messages will be handled through cascade delete on conversations
 
-      // 3. Delete personal information from user table
+      // 4. Delete personal information from user table
       await storage.updateUser(userId, {
         email: `deleted-${userId}@deleted.user`,
         firstName: null,
@@ -836,13 +1042,13 @@ export async function setupAuth(app: Express) {
         accountStatus: 'banned', // Mark as banned to prevent re-activation
       });
 
-      // 4. Delete payment settings (cascade will handle)
+      // 5. Delete payment settings (cascade will handle)
       const paymentSettings = await storage.getPaymentSettings(userId);
       for (const setting of paymentSettings) {
         await storage.deletePaymentSetting(setting.id);
       }
 
-      // 5. Delete favorites (cascade will handle)
+      // 6. Delete favorites (cascade will handle)
       if (user.role === 'creator') {
         const favorites = await storage.getFavoritesByCreator(userId);
         for (const fav of favorites) {
@@ -850,16 +1056,16 @@ export async function setupAuth(app: Express) {
         }
       }
 
-      // 6. Delete applications (if no active ones)
+      // 7. Delete applications (if no active ones)
       // These will be cascade deleted through database constraints
 
-      // 7. Delete notifications
+      // 8. Delete notifications
       const notifications = await storage.getNotifications(userId);
       for (const notif of notifications) {
         await storage.deleteNotification(notif.id);
       }
 
-      // 8. Send confirmation email before final deletion
+      // 9. Send confirmation email before final deletion
       try {
         const notificationService = new NotificationService(storage);
         await notificationService.sendEmailNotification(
@@ -877,7 +1083,7 @@ export async function setupAuth(app: Express) {
         // Don't fail the deletion if email fails
       }
 
-      // 9. Logout user
+      // 10. Logout user
       req.logout((err) => {
         if (err) {
           console.error("Logout error during account deletion:", err);
