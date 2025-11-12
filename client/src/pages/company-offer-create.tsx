@@ -131,6 +131,9 @@ export default function CompanyOfferCreate() {
   const [selectedVideoUrl, setSelectedVideoUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+
+  // Store thumbnail file for upload after offer creation
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [currentVideo, setCurrentVideo] = useState<{
     videoFile: File | null;
     videoUrl: string;
@@ -222,14 +225,67 @@ export default function CompanyOfferCreate() {
         throw new Error("Failed to get offer ID from response");
       }
 
+      const companyId = offerData.companyId;
+      if (!companyId) {
+        throw new Error("Company ID not found in offer data");
+      }
+
+      // Step 1.5: Upload thumbnail if provided
+      if (thumbnailFile) {
+        console.log("Uploading offer thumbnail...");
+        try {
+          const thumbnailFolder = `creatorlink/videos/thumbnails/${companyId}/${offerId}`;
+          const thumbUploadResponse = await fetch("/api/objects/upload", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ folder: thumbnailFolder, resourceType: "image" }),
+          });
+          const thumbUploadData = await thumbUploadResponse.json();
+
+          const thumbFormData = new FormData();
+          thumbFormData.append('file', thumbnailFile);
+
+          if (thumbUploadData.uploadPreset) {
+            thumbFormData.append('upload_preset', thumbUploadData.uploadPreset);
+          } else if (thumbUploadData.signature) {
+            thumbFormData.append('signature', thumbUploadData.signature);
+            thumbFormData.append('timestamp', thumbUploadData.timestamp.toString());
+            thumbFormData.append('api_key', thumbUploadData.apiKey);
+          }
+
+          if (thumbUploadData.folder) {
+            thumbFormData.append('folder', thumbUploadData.folder);
+          }
+
+          const thumbUploadResult = await fetch(thumbUploadData.uploadUrl, {
+            method: "POST",
+            body: thumbFormData,
+          });
+
+          if (thumbUploadResult.ok) {
+            const thumbCloudinaryResponse = await thumbUploadResult.json();
+            const uploadedThumbnailUrl = thumbCloudinaryResponse.secure_url;
+
+            // Update offer with thumbnail URL
+            await fetch(`/api/offers/${offerId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ featuredImageUrl: uploadedThumbnailUrl }),
+            });
+
+            console.log("Thumbnail uploaded and offer updated:", uploadedThumbnailUrl);
+          }
+        } catch (thumbnailError) {
+          console.error("Failed to upload thumbnail:", thumbnailError);
+          // Continue without thumbnail - don't fail the entire offer creation
+        }
+      }
+
       // Step 2: Upload each video to Cloudinary with company ID and offer ID folder structure
       if (data.videos && data.videos.length > 0) {
         console.log(`Uploading ${data.videos.length} videos to offer ${offerId}`);
-
-        const companyId = offerData.companyId;
-        if (!companyId) {
-          throw new Error("Company ID not found in offer data");
-        }
 
         for (let i = 0; i < data.videos.length; i++) {
           const video = data.videos[i];
@@ -391,14 +447,14 @@ export default function CompanyOfferCreate() {
     },
   });
 
-  // Handle offer thumbnail upload
+  // Handle offer thumbnail selection (store for upload after offer creation)
   const handleThumbnailSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
     const isImage = imageExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
-    
+
     if (!isImage) {
       toast({
         title: "Invalid File Type",
@@ -417,66 +473,17 @@ export default function CompanyOfferCreate() {
       return;
     }
 
-    setIsUploadingThumbnail(true);
+    // Store file for upload after offer creation
+    setThumbnailFile(file);
 
-    try {
-      // Use company ID for organized folder structure
-      const folder = companyProfile?.id
-        ? `creatorlink/videos/thumbnails/${companyProfile.id}`
-        : "creatorlink/videos/thumbnails";
+    // Create preview URL for display
+    const previewUrl = URL.createObjectURL(file);
+    setFormData(prev => ({ ...prev, featuredImageUrl: previewUrl }));
 
-      const uploadResponse = await fetch("/api/objects/upload", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ folder, resourceType: "image" }),
-      });
-      const uploadData = await uploadResponse.json();
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      if (uploadData.uploadPreset) {
-        formData.append('upload_preset', uploadData.uploadPreset);
-      } else if (uploadData.signature) {
-        formData.append('signature', uploadData.signature);
-        formData.append('timestamp', uploadData.timestamp.toString());
-        formData.append('api_key', uploadData.apiKey);
-      }
-
-      if (uploadData.folder) {
-        formData.append('folder', uploadData.folder);
-      }
-
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (uploadResult.ok) {
-        const cloudinaryResponse = await uploadResult.json();
-        const uploadedThumbnailUrl = cloudinaryResponse.secure_url;
-        
-        setFormData(prev => ({ ...prev, featuredImageUrl: uploadedThumbnailUrl }));
-        setIsUploadingThumbnail(false);
-        
-        toast({
-          title: "Success!",
-          description: "Offer thumbnail uploaded successfully.",
-        });
-      } else {
-        throw new Error("Upload failed");
-      }
-    } catch (error) {
-      setIsUploadingThumbnail(false);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload thumbnail. Please try again.",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Thumbnail Selected",
+      description: "Thumbnail will be uploaded when you create the offer.",
+    });
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
