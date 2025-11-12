@@ -35,6 +35,7 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'payment_approved',
   'payment_disputed',
   'payment_dispute_resolved',
+  'payment_refunded',
   'payment_failed_insufficient_funds',
   'offer_approved',
   'offer_rejected',
@@ -48,7 +49,9 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'work_completion_approval',
   'priority_listing_expiring',
   'deliverable_rejected',
-  'revision_requested'
+  'revision_requested',
+  'email_verification',
+  'password_reset'
 ]);
 
 // Session storage table (Required for Replit Auth)
