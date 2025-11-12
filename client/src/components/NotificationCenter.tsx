@@ -128,6 +128,13 @@ export function NotificationCenter() {
         !notification.metadata?.offerId; // Ensure it's not an offer submission
 
       if (isNewCompanyRegistration && notification.linkUrl) {
+        console.log('[NotificationCenter] New company registration detected:', {
+          notificationId: notification.id,
+          linkUrl: notification.linkUrl,
+          companyName: notification.metadata?.companyName,
+          companyUserId: notification.metadata?.companyUserId
+        });
+
         toast({
           title: (
             <div className="flex items-center gap-2">
@@ -140,6 +147,16 @@ export function NotificationCenter() {
             <ToastAction
               altText="Review Company"
               onClick={() => {
+                console.log('[NotificationCenter] Toast Review button clicked, navigating to:', notification.linkUrl);
+
+                // Mark notification as read
+                if (!notification.isRead) {
+                  markAsRead(notification.id).catch(err =>
+                    console.error('[NotificationCenter] Failed to mark notification as read:', err)
+                  );
+                }
+
+                // Navigate to company details
                 setLocation(notification.linkUrl!);
               }}
             >

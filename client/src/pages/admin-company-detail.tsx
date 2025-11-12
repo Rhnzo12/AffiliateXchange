@@ -69,6 +69,8 @@ export default function AdminCompanyDetail() {
   const [, params] = useRoute("/admin/companies/:id");
   const companyId = params?.id;
 
+  console.log('[AdminCompanyDetail] Component loaded with companyId:', companyId);
+
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [activeTab, setActiveTab] = useState("details");
@@ -87,10 +89,24 @@ export default function AdminCompanyDetail() {
   }, [isAuthenticated, isLoading, toast]);
 
   // Fetch company details
-  const { data: company, isLoading: loadingCompany } = useQuery<CompanyDetail>({
+  const { data: company, isLoading: loadingCompany, error } = useQuery<CompanyDetail>({
     queryKey: [`/api/admin/companies/${companyId}`],
     enabled: isAuthenticated && !!companyId,
   });
+
+  useEffect(() => {
+    if (company) {
+      console.log('[AdminCompanyDetail] Company data loaded:', {
+        id: company.id,
+        legalName: company.legalName,
+        status: company.status
+      });
+    } else if (error) {
+      console.error('[AdminCompanyDetail] Error loading company:', error);
+    } else if (!loadingCompany && !company) {
+      console.warn('[AdminCompanyDetail] No company found for ID:', companyId);
+    }
+  }, [company, error, loadingCompany, companyId]);
 
   // Fetch company offers
   const { data: offers = [], isLoading: loadingOffers } = useQuery<any[]>({
