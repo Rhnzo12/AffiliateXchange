@@ -1744,7 +1744,7 @@ export default function Settings() {
               disabled={
                 isDeletingAccount ||
                 deleteConfirmation !== "DELETE" ||
-                (!user?.googleId && user?.password && !deletePassword)
+                (!user?.googleId && !!user?.password && !deletePassword)
               }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
