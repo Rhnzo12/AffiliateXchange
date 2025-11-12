@@ -349,10 +349,24 @@ export default function CompanyOfferDetail() {
     try {
       // IMPORTANT: Use nested folder structure with company ID and offer ID
       // This matches the lookup logic in /objects/ endpoint
-      if (!offer?.companyId || !offerId) {
+
+      // Check if offer data is loaded
+      if (!offer) {
+        toast({
+          title: "Please Wait",
+          description: "Offer data is still loading. Please try again in a moment.",
+          variant: "destructive",
+        });
+        setIsUploading(false);
+        return;
+      }
+
+      // Check if we have required IDs
+      if (!offer.companyId || !offerId) {
+        console.error('[Video Upload] Missing IDs:', { companyId: offer.companyId, offerId });
         toast({
           title: "Error",
-          description: "Cannot upload video: Missing company or offer information",
+          description: "Cannot upload video: Missing company or offer information. Please refresh the page.",
           variant: "destructive",
         });
         setIsUploading(false);
@@ -361,6 +375,7 @@ export default function CompanyOfferDetail() {
 
       // Always use the nested folder structure: creatorlink/videos/{companyId}/{offerId}
       const folder = `creatorlink/videos/${offer.companyId}/${offerId}`;
+      console.log('[Video Upload] Using folder:', folder);
 
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
