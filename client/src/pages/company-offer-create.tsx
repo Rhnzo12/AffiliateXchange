@@ -1028,9 +1028,9 @@ export default function CompanyOfferCreate() {
                     {videos.map((video, index) => (
                       <Card key={index} className="overflow-hidden">
                         <CardContent className="p-4 space-y-2">
-                          <div 
+                          <div
                             className="aspect-video bg-muted rounded-md relative overflow-hidden cursor-pointer group"
-                            onClick={() => handlePlayVideo(video.videoUrl)}
+                            onClick={() => video.videoUrl && handlePlayVideo(video.videoUrl)}
                           >
                             {video.thumbnailUrl ? (
                               <>
@@ -1210,6 +1210,7 @@ export default function CompanyOfferCreate() {
               onClick={() => {
                 setShowVideoDialog(false);
                 setCurrentVideo({
+                  videoFile: null,
                   videoUrl: "",
                   thumbnailUrl: "",
                   title: "",

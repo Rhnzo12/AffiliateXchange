@@ -871,11 +871,14 @@ export default function Browse() {
                                 console.error(`Image failed to load: ${offer.title}`, offer.featuredImageUrl);
                                 (e.target as HTMLImageElement).style.display = 'none';
                                 const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                                if (fallback) fallback.classList.remove('hidden');
+                                if (fallback) {
+                                  fallback.classList.remove('hidden');
+                                  fallback.classList.add('flex');
+                                }
                               }}
                             />
                             {/* Fallback if image fails */}
-                            <div className="hidden absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
+                            <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
                               <Play className="h-12 w-12 text-muted-foreground/50" />
                             </div>
                           </>
