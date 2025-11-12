@@ -3776,7 +3776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Niche name is required");
       }
 
-      const niches = await storage.addNiche(name, description, isActive !== false);
+      const niches = await storage.addNiche(name, description, isActive !== false, userId);
 
       // Log the action
       const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
@@ -3801,7 +3801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const nicheId = req.params.id;
       const { name, description, isActive } = req.body;
 
-      const niches = await storage.updateNiche(nicheId, { name, description, isActive });
+      const niches = await storage.updateNiche(nicheId, { name, description, isActive }, userId);
 
       // Log the action
       const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
@@ -3825,7 +3825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const nicheId = req.params.id;
 
-      const niches = await storage.deleteNiche(nicheId);
+      const niches = await storage.deleteNiche(nicheId, userId);
 
       // Log the action
       const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
