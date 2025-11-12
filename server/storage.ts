@@ -1340,14 +1340,16 @@ export class DatabaseStorage implements IStorage {
       commission_details.amount = offer.commissionAmount;
     }
 
-    // ✅ FIX: Added featuredImageUrl to the VALUES list
+    // ✅ FIX: Added featuredImageUrl and creator requirements fields to the INSERT
     const result = await db.execute(sql`
       INSERT INTO offers (
         id, company_id, title, slug, short_description, full_description,
         product_name, primary_niche, product_url, commission_type,
         commission_details, commission_percentage, commission_amount,
         status, created_at, updated_at, niches, requirements, featured_image_url,
-        is_priority, view_count, application_count, active_creator_count
+        is_priority, view_count, application_count, active_creator_count,
+        minimum_followers, allowed_platforms, geographic_restrictions,
+        age_restriction, content_style_requirements, brand_safety_requirements
       ) VALUES (
         ${offerId},
         ${offer.companyId}::uuid,
@@ -1371,7 +1373,13 @@ export class DatabaseStorage implements IStorage {
         false,
         0,
         0,
-        0
+        0,
+        ${offer.minimumFollowers || null},
+        ${offer.allowedPlatforms || null},
+        ${offer.geographicRestrictions || null},
+        ${offer.ageRestriction || null},
+        ${offer.contentStyleRequirements || null},
+        ${offer.brandSafetyRequirements || null}
       )
       RETURNING *
     `);
