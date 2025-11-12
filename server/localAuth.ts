@@ -424,6 +424,82 @@ export async function setupAuth(app: Express) {
     }
   });
 
+  // Change email endpoint
+  app.put("/api/auth/email", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { newEmail, password } = req.body;
+
+      // Validate email format
+      if (!newEmail || !newEmail.trim()) {
+        return res.status(400).json({ error: "New email is required" });
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newEmail)) {
+        return res.status(400).json({ error: "Please enter a valid email address" });
+      }
+
+      const normalizedEmail = newEmail.trim().toLowerCase();
+
+      // Get user
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if new email is same as current
+      if (normalizedEmail === user.email.toLowerCase()) {
+        return res.status(400).json({ error: "New email must be different from current email" });
+      }
+
+      // Verify password for non-OAuth users
+      if (user.password && !user.googleId) {
+        if (!password) {
+          return res.status(400).json({ error: "Password is required to change email" });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+          return res.status(401).json({ error: "Incorrect password" });
+        }
+      }
+
+      // Check if email is already in use
+      const existingUser = await storage.getUserByEmail(normalizedEmail);
+      if (existingUser) {
+        return res.status(409).json({ error: "Email address is already in use" });
+      }
+
+      // Update user email
+      const updatedUser = await storage.updateUser(userId, {
+        email: normalizedEmail,
+      });
+
+      if (!updatedUser) {
+        return res.status(500).json({ error: "Failed to update email" });
+      }
+
+      // Send verification email to new address
+      try {
+        const notificationService = new NotificationService(storage);
+        await notificationService.sendEmailVerification(updatedUser);
+        console.log(`[Auth] Email verification sent to ${normalizedEmail}`);
+      } catch (emailError) {
+        console.error('[Auth] Failed to send verification email:', emailError);
+        // Don't fail the email change if verification email fails
+      }
+
+      res.json({
+        success: true,
+        message: "Email updated successfully. Please check your new email for verification.",
+      });
+    } catch (error: any) {
+      console.error("Error changing email:", error);
+      res.status(500).json({ error: error.message || "Failed to change email" });
+    }
+  });
+
   // Email verification endpoint
   app.post("/api/auth/verify-email", async (req, res) => {
     try {

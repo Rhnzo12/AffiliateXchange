@@ -11,7 +11,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Mail } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,6 +73,10 @@ export default function Settings() {
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [emailChangePassword, setEmailChangePassword] = useState("");
+  const [showEmailChangeDialog, setShowEmailChangeDialog] = useState(false);
 
   // Dialog state for video platform warning
   const [showVideoPlatformDialog, setShowVideoPlatformDialog] = useState(false);
@@ -153,6 +157,7 @@ export default function Settings() {
       setUsername(user.username || "");
       setFirstName(user.firstName || "");
       setLastName(user.lastName || "");
+      setEmail(user.email || "");
     }
   }, [user]);
 
@@ -654,6 +659,57 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const changeEmailMutation = useMutation({
+    mutationFn: async () => {
+      if (!newEmail || !newEmail.trim()) {
+        throw new Error("New email is required");
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newEmail)) {
+        throw new Error("Please enter a valid email address");
+      }
+
+      if (newEmail === email) {
+        throw new Error("New email must be different from current email");
+      }
+
+      if (!emailChangePassword && !user?.googleId) {
+        throw new Error("Password is required to change email");
+      }
+
+      const payload: any = {
+        newEmail: newEmail.trim().toLowerCase(),
+      };
+
+      // Only include password for non-OAuth users
+      if (!user?.googleId) {
+        payload.password = emailChangePassword;
+      }
+
+      const result = await apiRequest("PUT", "/api/auth/email", payload);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setNewEmail("");
+      setEmailChangePassword("");
+      setShowEmailChangeDialog(false);
+      toast({
+        title: "Email Updated",
+        description: "A verification email has been sent to your new email address. Please verify to complete the change.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change email",
         variant: "destructive",
       });
     },
@@ -1403,6 +1459,34 @@ export default function Settings() {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="email" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Email Address
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                disabled
+                className="flex-1"
+                data-testid="input-email-display"
+              />
+              <Button
+                variant="outline"
+                onClick={() => setShowEmailChangeDialog(true)}
+                data-testid="button-change-email"
+              >
+                Change Email
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Your email address is used for login and important notifications
+            </p>
+          </div>
+
           <Button
             onClick={() => updateAccountMutation.mutate()}
             disabled={updateAccountMutation.isPending}
@@ -1648,6 +1732,82 @@ export default function Settings() {
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setShowVideoPlatformDialog(false)}>
               I Understand
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Change Email Dialog */}
+      <AlertDialog open={showEmailChangeDialog} onOpenChange={setShowEmailChangeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Change Email Address
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p className="text-foreground">
+                Enter your new email address and {!user?.googleId ? 'your current password' : 'confirm'} to update your account email.
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="current-email-display">Current Email</Label>
+                <Input
+                  id="current-email-display"
+                  type="email"
+                  value={email}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-email">New Email Address *</Label>
+                <Input
+                  id="new-email"
+                  type="email"
+                  placeholder="newemail@example.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  data-testid="input-new-email"
+                />
+              </div>
+              {!user?.googleId && (
+                <div className="space-y-2">
+                  <Label htmlFor="email-change-password">Current Password *</Label>
+                  <Input
+                    id="email-change-password"
+                    type="password"
+                    placeholder="Enter your current password"
+                    value={emailChangePassword}
+                    onChange={(e) => setEmailChangePassword(e.target.value)}
+                    data-testid="input-email-change-password"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    For security, we need to verify your password
+                  </p>
+                </div>
+              )}
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  <strong>📧 Note:</strong> A verification email will be sent to your new email address. You'll need to verify it to complete the change.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setNewEmail("");
+                setEmailChangePassword("");
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => changeEmailMutation.mutate()}
+              disabled={changeEmailMutation.isPending}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {changeEmailMutation.isPending ? "Updating..." : "Update Email"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
