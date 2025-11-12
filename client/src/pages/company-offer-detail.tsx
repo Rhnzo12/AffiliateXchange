@@ -347,12 +347,20 @@ export default function CompanyOfferDetail() {
     setIsUploading(true);
 
     try {
-      // Use company ID and offer ID for organized folder structure
-      const folder = offer?.companyId && offerId
-        ? `creatorlink/videos/${offer.companyId}/${offerId}`
-        : offer?.companyId
-        ? `creatorlink/videos/${offer.companyId}`
-        : "creatorlink/videos";
+      // IMPORTANT: Use nested folder structure with company ID and offer ID
+      // This matches the lookup logic in /objects/ endpoint
+      if (!offer?.companyId || !offerId) {
+        toast({
+          title: "Error",
+          description: "Cannot upload video: Missing company or offer information",
+          variant: "destructive",
+        });
+        setIsUploading(false);
+        return;
+      }
+
+      // Always use the nested folder structure: creatorlink/videos/{companyId}/{offerId}
+      const folder = `creatorlink/videos/${offer.companyId}/${offerId}`;
 
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
@@ -394,12 +402,8 @@ export default function CompanyOfferDetail() {
         try {
           const thumbnailBlob = await generateThumbnail(uploadedVideoUrl);
 
-          // Use company ID and offer ID for organized folder structure
-          const thumbnailFolder = offer?.companyId && offerId
-            ? `creatorlink/videos/thumbnails/${offer.companyId}/${offerId}`
-            : offer?.companyId
-            ? `creatorlink/videos/thumbnails/${offer.companyId}`
-            : "creatorlink/videos/thumbnails";
+          // Use the same nested folder structure for thumbnails
+          const thumbnailFolder = `creatorlink/videos/thumbnails/${offer.companyId}/${offerId}`;
 
           const thumbUploadResponse = await fetch("/api/objects/upload", {
             method: "POST",
