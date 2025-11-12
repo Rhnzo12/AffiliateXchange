@@ -3081,6 +3081,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // DEBUG: Check if company ID exists in database
+  app.get("/api/admin/companies/debug/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      console.log(`[DEBUG] Checking if company ${companyId} exists in database`);
+
+      // Raw query to check company_profiles table
+      const { db } = await import('./db');
+      const { companyProfiles } = await import('../shared/schema');
+      const { eq } = await import('drizzle-orm');
+
+      const rawResult = await db.select().from(companyProfiles).where(eq(companyProfiles.id, companyId));
+      console.log(`[DEBUG] Raw query result:`, rawResult);
+
+      // Also check if any company exists with similar ID
+      const allCompanies = await db.select().from(companyProfiles);
+      console.log(`[DEBUG] Total companies in DB: ${allCompanies.length}`);
+      console.log(`[DEBUG] All company IDs: ${allCompanies.map(c => c.id).join(', ')}`);
+
+      res.json({
+        requestedId: companyId,
+        found: rawResult.length > 0,
+        result: rawResult[0] || null,
+        totalCompanies: allCompanies.length,
+        allIds: allCompanies.map(c => c.id)
+      });
+    } catch (error: any) {
+      console.error(`[DEBUG] Error:`, error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Get all companies with filters (new comprehensive endpoint)
   app.get("/api/admin/companies/all", requireAuth, requireRole('admin'), async (req, res) => {
     try {
@@ -3093,6 +3125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (endDate) filters.endDate = new Date(endDate as string);
 
       const companies = await storage.getAllCompanies(filters);
+      console.log(`[Admin] Found ${companies.length} companies. IDs: ${companies.map(c => c.id).join(', ')}`);
       res.json(companies);
     } catch (error: any) {
       res.status(500).send(error.message);
