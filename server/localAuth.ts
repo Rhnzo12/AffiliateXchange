@@ -222,6 +222,8 @@ export async function setupAuth(app: Express) {
           const notificationService = new NotificationService(storage);
           const adminUsers = await storage.getUsersByRole('admin');
 
+          console.log(`[Auth] Company profile created with ID: ${companyProfile.id} for user ${username} (User ID: ${user.id})`);
+
           for (const admin of adminUsers) {
             await notificationService.sendNotification(
               admin.id,
@@ -235,7 +237,7 @@ export async function setupAuth(app: Express) {
               }
             );
           }
-          console.log(`[Auth] Notified ${adminUsers.length} admin(s) about new company registration: ${username}`);
+          console.log(`[Auth] Notified ${adminUsers.length} admin(s) about new company registration: ${username} (Company Profile ID: ${companyProfile.id})`);
         } catch (notificationError) {
           console.error('[Auth] Failed to send admin notification for new company registration:', notificationError);
           // Don't fail registration if notification fails
