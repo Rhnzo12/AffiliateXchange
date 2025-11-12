@@ -4265,7 +4265,7 @@ export class DatabaseStorage implements IStorage {
     return allNiches.filter(niche => niche.isActive !== false);
   }
 
-  async addNiche(name: string, description?: string, isActive: boolean = true): Promise<any[]> {
+  async addNiche(name: string, description?: string, isActive: boolean = true, userId?: string): Promise<any[]> {
     const niches = await this.getNiches();
     const newNiche = {
       id: String(Date.now()),
@@ -4275,11 +4275,11 @@ export class DatabaseStorage implements IStorage {
     };
     niches.push(newNiche);
 
-    await this.updatePlatformSetting('niches', JSON.stringify(niches), 'system');
+    await this.updatePlatformSetting('niches', JSON.stringify(niches), userId || null);
     return niches;
   }
 
-  async updateNiche(id: string, updates: { name?: string; description?: string; isActive?: boolean }): Promise<any[]> {
+  async updateNiche(id: string, updates: { name?: string; description?: string; isActive?: boolean }, userId?: string): Promise<any[]> {
     const niches = await this.getNiches();
     const index = niches.findIndex(n => n.id === id);
     if (index === -1) {
@@ -4287,11 +4287,11 @@ export class DatabaseStorage implements IStorage {
     }
 
     niches[index] = { ...niches[index], ...updates };
-    await this.updatePlatformSetting('niches', JSON.stringify(niches), 'system');
+    await this.updatePlatformSetting('niches', JSON.stringify(niches), userId || null);
     return niches;
   }
 
-  async deleteNiche(id: string): Promise<any[]> {
+  async deleteNiche(id: string, userId?: string): Promise<any[]> {
     const niches = await this.getNiches();
     const filtered = niches.filter(n => n.id !== id);
 
@@ -4299,7 +4299,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Niche not found');
     }
 
-    await this.updatePlatformSetting('niches', JSON.stringify(filtered), 'system');
+    await this.updatePlatformSetting('niches', JSON.stringify(filtered), userId || null);
     return filtered;
   }
 
