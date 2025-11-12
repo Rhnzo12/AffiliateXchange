@@ -225,9 +225,9 @@ export default function CompanyOfferCreate() {
         throw new Error("Failed to get offer ID from response");
       }
 
-      const companyId = offerData.companyId;
+      const companyId = companyProfile?.id;
       if (!companyId) {
-        throw new Error("Company ID not found in offer data");
+        throw new Error("Company profile not loaded or ID not found");
       }
 
       // Step 1.5: Upload thumbnail if provided
