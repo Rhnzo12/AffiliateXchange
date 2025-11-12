@@ -198,7 +198,7 @@ export async function setupAuth(app: Express) {
           niches: [],
         });
       } else if (role === 'company') {
-        await storage.createCompanyProfile({
+        const companyProfile = await storage.createCompanyProfile({
           userId: user.id,
           legalName: username,
           tradeName: null,
@@ -231,7 +231,7 @@ export async function setupAuth(app: Express) {
               {
                 companyName: username,
                 companyUserId: user.id,
-                linkUrl: `/admin/companies/${user.id}`
+                linkUrl: `/admin/companies/${companyProfile.id}`
               }
             );
           }
