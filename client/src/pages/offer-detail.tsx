@@ -577,8 +577,14 @@ export default function OfferDetail() {
                           {formatCommission(offer)}
                         </div>
                       </div>
-                      <div className="text-lg sm:text-xl text-gray-700 font-medium capitalize mb-4">
-                        {getCommissionTypeLabel(offer)}
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="text-lg sm:text-xl text-gray-700 font-medium capitalize">
+                          {getCommissionTypeLabel(offer)}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-sm text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
+                          <Users className="h-4 w-4" />
+                          <span className="font-medium">{offer.activeCreatorsCount || 0} active</span>
+                        </div>
                       </div>
                       
                       {/* Additional Commission Details - IMPROVED: Pill style */}

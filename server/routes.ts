@@ -631,8 +631,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const companyProfile = await storage.getCompanyProfile(userId);
 
-      if (!companyProfile || companyProfile.status !== 'approved') {
-        return res.status(403).send("Company not approved");
+      if (!companyProfile) {
+        return res.status(403).json({ error: "Company profile not found" });
       }
 
       // DEBUG: Log what frontend is sending
@@ -3288,8 +3288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paymentSettings = await storage.getPaymentSettings(company.userId);
       if (!paymentSettings || paymentSettings.length === 0) {
         return res.status(400).json({
-          error: "No payment method on file",
-          warning: `Company "${company.legalName || company.tradeName}" does not have a payment method configured. Please ask them to add payment settings before approving this offer.`
+          error: `Company "${company.legalName || company.tradeName}" does not have a payment method configured. Please ask them to add payment settings before approving this offer.`
         });
       }
 

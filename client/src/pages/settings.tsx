@@ -11,7 +11,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Mail } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -93,6 +93,8 @@ export default function Settings() {
   const [deletePassword, setDeletePassword] = useState("");
   const [isExportingData, setIsExportingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [showActiveItemsDialog, setShowActiveItemsDialog] = useState(false);
+  const [activeItemsDetails, setActiveItemsDetails] = useState<any>(null);
 
   const { data: profile } = useQuery<any>({
     queryKey: ["/api/profile"],
@@ -538,6 +540,14 @@ export default function Settings() {
       const result = await response.json();
 
       if (!response.ok) {
+        // Check if there are active items preventing deletion
+        if (result.details && result.activeItems) {
+          setActiveItemsDetails(result);
+          setShowActiveItemsDialog(true);
+          setShowDeleteDialog(false);
+          setDeletePassword("");
+          return;
+        }
         throw new Error(result.error || result.details || "Failed to delete account");
       }
 
@@ -1798,6 +1808,97 @@ export default function Settings() {
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {changeEmailMutation.isPending ? "Updating..." : "Update Email"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Active Items Warning Dialog */}
+      <AlertDialog open={showActiveItemsDialog} onOpenChange={setShowActiveItemsDialog}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-6 w-6" />
+              Cannot Delete Account - Active Activities Found
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 text-base">
+              <p className="font-semibold text-foreground">
+                You have active activities that must be completed or cancelled before deleting your account.
+              </p>
+
+              {activeItemsDetails && (
+                <div className="space-y-3">
+                  {activeItemsDetails.details.applications > 0 && (
+                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                        {activeItemsDetails.details.applications} Active Application{activeItemsDetails.details.applications > 1 ? 's' : ''}
+                      </p>
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        {user?.role === 'creator'
+                          ? 'You have active offers you are working on. Please complete or cancel these applications first.'
+                          : 'You have active applications from creators. Please complete or cancel these applications first.'}
+                      </p>
+                    </div>
+                  )}
+
+                  {activeItemsDetails.details.retainerContracts > 0 && (
+                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                        {activeItemsDetails.details.retainerContracts} Active Retainer Contract{activeItemsDetails.details.retainerContracts > 1 ? 's' : ''}
+                      </p>
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        {user?.role === 'creator'
+                          ? 'You are currently assigned to active retainer contracts. Please complete or cancel these contracts first.'
+                          : 'You have active retainer contracts with creators. Please complete or cancel these contracts first.'}
+                      </p>
+                    </div>
+                  )}
+
+                  {activeItemsDetails.details.retainerApplications > 0 && (
+                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                        {activeItemsDetails.details.retainerApplications} Pending Retainer Application{activeItemsDetails.details.retainerApplications > 1 ? 's' : ''}
+                      </p>
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        You have pending retainer applications. Please wait for them to be processed or cancel them first.
+                      </p>
+                    </div>
+                  )}
+
+                  {activeItemsDetails.details.offersWithApplications > 0 && (
+                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                        {activeItemsDetails.details.offersWithApplications} Active Offer{activeItemsDetails.details.offersWithApplications > 1 ? 's' : ''} with Applications
+                      </p>
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        You have active offers with creator applications. Please complete or cancel these offers first.
+                      </p>
+                    </div>
+                  )}
+
+                  {activeItemsDetails.details.pendingPayments > 0 && (
+                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                        {activeItemsDetails.details.pendingPayments} Pending Payment{activeItemsDetails.details.pendingPayments > 1 ? 's' : ''}
+                      </p>
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        You have pending or processing payments. Please wait for them to complete before deleting your account.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  <strong>💡 What to do:</strong> Go to your {user?.role === 'creator' ? 'applications or retainer contracts' : 'offers or retainer contracts'} page and complete or cancel all active items. Then you can return here to delete your account.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowActiveItemsDialog(false)}>
+              I Understand
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
