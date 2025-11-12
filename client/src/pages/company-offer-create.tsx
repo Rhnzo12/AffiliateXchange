@@ -95,8 +95,9 @@ const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
 };
 
 interface VideoData {
-  videoUrl: string;
-  thumbnailUrl: string;
+  videoFile: File;
+  videoUrl?: string; // Temporary preview URL
+  thumbnailUrl?: string; // Will be uploaded after offer creation
   title: string;
   description: string;
   creatorCredit: string;
@@ -130,7 +131,16 @@ export default function CompanyOfferCreate() {
   const [selectedVideoUrl, setSelectedVideoUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
-  const [currentVideo, setCurrentVideo] = useState({
+  const [currentVideo, setCurrentVideo] = useState<{
+    videoFile: File | null;
+    videoUrl: string;
+    thumbnailUrl: string;
+    title: string;
+    description: string;
+    creatorCredit: string;
+    originalPlatform: string;
+  }>({
+    videoFile: null,
     videoUrl: "",
     thumbnailUrl: "",
     title: "",
@@ -212,18 +222,104 @@ export default function CompanyOfferCreate() {
         throw new Error("Failed to get offer ID from response");
       }
 
-      // Step 2: Upload each video to the offer
+      // Step 2: Upload each video to Cloudinary with company ID and offer ID folder structure
       if (data.videos && data.videos.length > 0) {
         console.log(`Uploading ${data.videos.length} videos to offer ${offerId}`);
+
+        const companyId = offerData.companyId;
+        if (!companyId) {
+          throw new Error("Company ID not found in offer data");
+        }
 
         for (let i = 0; i < data.videos.length; i++) {
           const video = data.videos[i];
           console.log(`Uploading video ${i + 1}/${data.videos.length}:`, video.title);
 
           try {
+            // Upload video to Cloudinary with company ID and offer ID in path
+            const videoFolder = `creatorlink/videos/${companyId}/${offerId}`;
+            const uploadResponse = await fetch("/api/objects/upload", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ folder: videoFolder, resourceType: "video" }),
+            });
+            const uploadData = await uploadResponse.json();
+
+            const formData = new FormData();
+            formData.append('file', video.videoFile);
+
+            if (uploadData.uploadPreset) {
+              formData.append('upload_preset', uploadData.uploadPreset);
+            } else if (uploadData.signature) {
+              formData.append('signature', uploadData.signature);
+              formData.append('timestamp', uploadData.timestamp.toString());
+              formData.append('api_key', uploadData.apiKey);
+            }
+
+            if (uploadData.folder) {
+              formData.append('folder', uploadData.folder);
+            }
+
+            const uploadResult = await fetch(uploadData.uploadUrl, {
+              method: "POST",
+              body: formData,
+            });
+
+            if (!uploadResult.ok) {
+              throw new Error("Video upload to Cloudinary failed");
+            }
+
+            const cloudinaryResponse = await uploadResult.json();
+            const uploadedVideoUrl = cloudinaryResponse.secure_url;
+
+            // Generate and upload thumbnail
+            let uploadedThumbnailUrl = null;
+            try {
+              const thumbnailBlob = await generateThumbnail(uploadedVideoUrl);
+              const thumbnailFolder = `creatorlink/videos/thumbnails/${companyId}/${offerId}`;
+
+              const thumbUploadResponse = await fetch("/api/objects/upload", {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ folder: thumbnailFolder, resourceType: "image" }),
+              });
+              const thumbUploadData = await thumbUploadResponse.json();
+
+              const thumbnailFormData = new FormData();
+              thumbnailFormData.append('file', thumbnailBlob, 'thumbnail.jpg');
+
+              if (thumbUploadData.uploadPreset) {
+                thumbnailFormData.append('upload_preset', thumbUploadData.uploadPreset);
+              } else if (thumbUploadData.signature) {
+                thumbnailFormData.append('signature', thumbUploadData.signature);
+                thumbnailFormData.append('timestamp', thumbUploadData.timestamp.toString());
+                thumbnailFormData.append('api_key', thumbUploadData.apiKey);
+              }
+
+              if (thumbUploadData.folder) {
+                thumbnailFormData.append('folder', thumbUploadData.folder);
+              }
+
+              const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
+                method: "POST",
+                body: thumbnailFormData,
+              });
+
+              if (thumbnailUploadResult.ok) {
+                const thumbnailResponse = await thumbnailUploadResult.json();
+                uploadedThumbnailUrl = thumbnailResponse.secure_url;
+              }
+            } catch (thumbnailError) {
+              console.error('Thumbnail generation error:', thumbnailError);
+              // Continue without thumbnail
+            }
+
+            // Create video record in database
             const videoPayload = {
-              videoUrl: video.videoUrl,
-              thumbnailUrl: video.thumbnailUrl || null,
+              videoUrl: uploadedVideoUrl,
+              thumbnailUrl: uploadedThumbnailUrl,
               title: video.title,
               description: video.description || "",
               creatorCredit: video.creatorCredit || "",
@@ -243,7 +339,7 @@ export default function CompanyOfferCreate() {
 
             if (!videoResponse.ok) {
               const errorData = await videoResponse.json();
-              throw new Error(errorData.message || "Failed to upload video");
+              throw new Error(errorData.message || "Failed to create video record");
             }
 
             const videoData = await videoResponse.json();
@@ -389,7 +485,7 @@ export default function CompanyOfferCreate() {
 
     const videoExtensions = ['.mp4', '.mov', '.avi', '.wmv', '.flv', '.webm', '.mkv', '.m4v'];
     const isVideo = videoExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
-    
+
     if (!isVideo) {
       toast({
         title: "Invalid File Type",
@@ -408,147 +504,29 @@ export default function CompanyOfferCreate() {
       return;
     }
 
-    setIsUploading(true);
+    // Store file for later upload with offer ID
+    // Create temporary preview URL
+    const previewUrl = URL.createObjectURL(file);
 
-    try {
-      // Use company ID for organized folder structure
-      const folder = companyProfile?.id
-        ? `creatorlink/videos/${companyProfile.id}`
-        : "creatorlink/videos";
+    setCurrentVideo(prev => ({
+      ...prev,
+      videoFile: file,
+      videoUrl: previewUrl,
+    }));
 
-      const uploadResponse = await fetch("/api/objects/upload", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ folder, resourceType: "video" }),
-      });
-      const uploadData = await uploadResponse.json();
+    setIsUploading(false);
 
-      const formData = new FormData();
-      formData.append('file', file);
-
-      if (uploadData.uploadPreset) {
-        formData.append('upload_preset', uploadData.uploadPreset);
-      } else if (uploadData.signature) {
-        formData.append('signature', uploadData.signature);
-        formData.append('timestamp', uploadData.timestamp.toString());
-        formData.append('api_key', uploadData.apiKey);
-      }
-
-      if (uploadData.folder) {
-        formData.append('folder', uploadData.folder);
-      }
-
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (uploadResult.ok) {
-        const cloudinaryResponse = await uploadResult.json();
-        const uploadedVideoUrl = cloudinaryResponse.secure_url;
-
-        toast({
-          title: "Video Uploaded",
-          description: "Generating thumbnail...",
-        });
-
-        try {
-          const thumbnailBlob = await generateThumbnail(uploadedVideoUrl);
-
-          // Use company ID for organized folder structure
-          const thumbnailFolder = companyProfile?.id
-            ? `creatorlink/videos/thumbnails/${companyProfile.id}`
-            : "creatorlink/videos/thumbnails";
-
-          const thumbUploadResponse = await fetch("/api/objects/upload", {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ folder: thumbnailFolder, resourceType: "image" }),
-          });
-          const thumbUploadData = await thumbUploadResponse.json();
-
-          const thumbnailFormData = new FormData();
-          thumbnailFormData.append('file', thumbnailBlob, 'thumbnail.jpg');
-
-          if (thumbUploadData.uploadPreset) {
-            thumbnailFormData.append('upload_preset', thumbUploadData.uploadPreset);
-          } else if (thumbUploadData.signature) {
-            thumbnailFormData.append('signature', thumbUploadData.signature);
-            thumbnailFormData.append('timestamp', thumbUploadData.timestamp.toString());
-            thumbnailFormData.append('api_key', thumbUploadData.apiKey);
-          }
-
-          if (thumbUploadData.folder) {
-            thumbnailFormData.append('folder', thumbUploadData.folder);
-          }
-
-          const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
-            method: "POST",
-            body: thumbnailFormData,
-          });
-
-          if (thumbnailUploadResult.ok) {
-            const thumbnailResponse = await thumbnailUploadResult.json();
-            const uploadedThumbnailUrl = thumbnailResponse.secure_url;
-            
-            setCurrentVideo(prev => ({
-              ...prev,
-              videoUrl: uploadedVideoUrl,
-              thumbnailUrl: uploadedThumbnailUrl,
-            }));
-            setIsUploading(false);
-            
-            toast({
-              title: "Success!",
-              description: "Video and thumbnail uploaded successfully.",
-            });
-          } else {
-            setCurrentVideo(prev => ({
-              ...prev,
-              videoUrl: uploadedVideoUrl,
-            }));
-            setIsUploading(false);
-            toast({
-              title: "Video Uploaded",
-              description: "Video uploaded but thumbnail generation failed.",
-            });
-          }
-        } catch (thumbnailError) {
-          console.error('Thumbnail generation error:', thumbnailError);
-          setCurrentVideo(prev => ({
-            ...prev,
-            videoUrl: uploadedVideoUrl,
-          }));
-          setIsUploading(false);
-          toast({
-            title: "Video Uploaded",
-            description: "Video uploaded but thumbnail generation failed.",
-          });
-        }
-      } else {
-        throw new Error("Upload failed");
-      }
-    } catch (error) {
-      setIsUploading(false);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload video. Please try again.",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Video Selected",
+      description: "Video will be uploaded when you create the offer.",
+    });
   };
 
   const handleAddVideo = () => {
-    if (!currentVideo.videoUrl) {
+    if (!currentVideo.videoFile) {
       toast({
         title: "Video Required",
-        description: "Please upload a video file",
+        description: "Please select a video file",
         variant: "destructive",
       });
       return;
@@ -563,9 +541,10 @@ export default function CompanyOfferCreate() {
       return;
     }
 
-    setVideos([...videos, currentVideo]);
+    setVideos([...videos, currentVideo as VideoData]);
     setShowVideoDialog(false);
     setCurrentVideo({
+      videoFile: null,
       videoUrl: "",
       thumbnailUrl: "",
       title: "",
@@ -573,7 +552,7 @@ export default function CompanyOfferCreate() {
       creatorCredit: "",
       originalPlatform: "",
     });
-    
+
     toast({
       title: "Video Added",
       description: `${videos.length + 1} video(s) ready to upload with offer`,
