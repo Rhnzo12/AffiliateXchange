@@ -87,6 +87,7 @@ export default function Settings() {
   // Privacy & Data states
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isExportingData, setIsExportingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showActiveItemsDialog, setShowActiveItemsDialog] = useState(false);
@@ -508,6 +509,17 @@ export default function Settings() {
     try {
       setIsDeletingAccount(true);
 
+      // Validate confirmation text
+      if (deleteConfirmation !== "DELETE") {
+        toast({
+          title: "Error",
+          description: "Please type DELETE to confirm account deletion.",
+          variant: "destructive",
+        });
+        setIsDeletingAccount(false);
+        return;
+      }
+
       const payload: any = {};
 
       // Only require password for non-OAuth users
@@ -518,6 +530,7 @@ export default function Settings() {
             description: "Password is required to delete your account.",
             variant: "destructive",
           });
+          setIsDeletingAccount(false);
           return;
         }
         payload.password = deletePassword;
@@ -541,6 +554,7 @@ export default function Settings() {
           setShowActiveItemsDialog(true);
           setShowDeleteDialog(false);
           setDeletePassword("");
+          setDeleteConfirmation("");
           return;
         }
         throw new Error(result.error || result.details || "Failed to delete account");
@@ -567,6 +581,7 @@ export default function Settings() {
       setIsDeletingAccount(false);
       setShowDeleteDialog(false);
       setDeletePassword("");
+      setDeleteConfirmation("");
     }
   };
 
@@ -1551,60 +1566,100 @@ export default function Settings() {
 
       {/* Delete Account Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
               Delete Account - Are you absolutely sure?
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <p>
-                This action <strong>cannot be undone</strong>. This will permanently delete
-                your account and remove all your data from our servers.
-              </p>
+            <AlertDialogDescription className="space-y-4">
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+                <p className="font-bold text-destructive text-base">
+                  ⚠️ WARNING: This action cannot be undone!
+                </p>
+                <p className="text-foreground mt-2">
+                  This will permanently delete your account and remove all your data from our servers.
+                </p>
+              </div>
+
               <div className="bg-muted p-3 rounded-md text-sm">
                 <p className="font-semibold mb-2">The following data will be deleted:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                   <li>Personal information (email, name, profile)</li>
                   <li>Payment information and settings</li>
-                  <li>Profile images and uploaded content</li>
-                  <li>Applications and favorites</li>
-                  <li>Notifications and preferences</li>
+                  <li>Profile images and uploaded content from Cloudinary</li>
+                  <li>All offers, applications, and retainer contracts</li>
+                  <li>Favorites, notifications, and preferences</li>
+                  <li>All conversation messages and attachments</li>
                 </ul>
               </div>
+
               <div className="bg-muted p-3 rounded-md text-sm">
                 <p className="font-semibold mb-2">The following will be kept (anonymized):</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                   <li>Reviews (content kept, author anonymized)</li>
-                  <li>Messages (content kept, sender anonymized)</li>
                 </ul>
               </div>
-              {!user?.googleId && (
-                <div className="space-y-2 pt-2">
-                  <Label htmlFor="delete-password">
-                    Enter your password to confirm deletion:
+
+              <div className="space-y-4 pt-2 border-t">
+                <p className="font-semibold text-foreground">
+                  To confirm deletion, please complete the following:
+                </p>
+
+                {!user?.googleId && user?.password && (
+                  <div className="space-y-2">
+                    <Label htmlFor="delete-password" className="text-foreground font-semibold">
+                      1. Enter your password <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="delete-password"
+                      type="password"
+                      placeholder="Enter your password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      className="border-destructive/30 focus:border-destructive"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="delete-confirmation" className="text-foreground font-semibold">
+                    {!user?.googleId && user?.password ? "2." : "1."} Type <span className="font-mono bg-muted px-2 py-1 rounded">DELETE</span> to confirm <span className="text-destructive">*</span>
                   </Label>
                   <Input
-                    id="delete-password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
+                    id="delete-confirmation"
+                    type="text"
+                    placeholder="Type DELETE in capital letters"
+                    value={deleteConfirmation}
+                    onChange={(e) => setDeleteConfirmation(e.target.value)}
+                    className="border-destructive/30 focus:border-destructive font-mono"
                   />
+                  {deleteConfirmation && deleteConfirmation !== "DELETE" && (
+                    <p className="text-sm text-destructive">
+                      Please type exactly: DELETE
+                    </p>
+                  )}
                 </div>
-              )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeletePassword("")}>
+            <AlertDialogCancel onClick={() => {
+              setDeletePassword("");
+              setDeleteConfirmation("");
+            }}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteAccount}
-              disabled={isDeletingAccount}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={
+                isDeletingAccount ||
+                deleteConfirmation !== "DELETE" ||
+                (!user?.googleId && user?.password && !deletePassword)
+              }
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isDeletingAccount ? "Deleting..." : "Yes, delete my account"}
+              {isDeletingAccount ? "Deleting..." : "Yes, permanently delete my account"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
