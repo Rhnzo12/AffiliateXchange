@@ -739,6 +739,16 @@ export const platformSettingsRelations = relations(platformSettings, ({ one }) =
   }),
 }));
 
+// Niches (for categorizing offers and creator profiles)
+export const niches = pgTable("niches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Platform Funding Accounts (for admin payment management)
 export const platformFundingAccounts = pgTable("platform_funding_accounts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -798,6 +808,7 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 export const insertUserNotificationPreferencesSchema = createInsertSchema(userNotificationPreferences).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, timestamp: true });
 export const insertPlatformSettingSchema = createInsertSchema(platformSettings).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertNicheSchema = createInsertSchema(niches).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPlatformFundingAccountSchema = createInsertSchema(platformFundingAccounts).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Type exports
@@ -842,5 +853,7 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type PlatformSetting = typeof platformSettings.$inferSelect;
 export type InsertPlatformSetting = z.infer<typeof insertPlatformSettingSchema>;
+export type Niche = typeof niches.$inferSelect;
+export type InsertNiche = z.infer<typeof insertNicheSchema>;
 export type PlatformFundingAccount = typeof platformFundingAccounts.$inferSelect;
 export type InsertPlatformFundingAccount = z.infer<typeof insertPlatformFundingAccountSchema>;
