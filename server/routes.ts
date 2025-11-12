@@ -4143,28 +4143,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "videoUrl and title are required" });
       }
 
-      // Set ACL for the video
-      const objectStorageService = new ObjectStorageService();
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        videoUrl,
-        {
-          owner: userId,
-          visibility: "public",
-        },
-      );
-
-      // Don't normalize thumbnail URLs - keep the full Cloudinary URL for proper display
-      let thumbnailPath = thumbnailUrl || null;
+      // Don't normalize video or thumbnail URLs - keep the full Cloudinary URLs for proper display
+      // This is especially important for videos in nested folders (e.g., creatorlink/videos/{companyId}/{offerId}/)
 
       // Create video record in database
       const video = await storage.createOfferVideo({
         offerId,
-        videoUrl: objectPath,
+        videoUrl: videoUrl, // Keep full Cloudinary URL instead of normalized path
         title,
         description: description || null,
         creatorCredit: creatorCredit || null,
         originalPlatform: originalPlatform || null,
-        thumbnailUrl: thumbnailPath,
+        thumbnailUrl: thumbnailUrl || null, // Keep full Cloudinary URL
         orderIndex: existingVideos.length, // Auto-increment order
       });
 
