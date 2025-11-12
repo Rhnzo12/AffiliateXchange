@@ -347,8 +347,10 @@ export default function CompanyOfferDetail() {
     setIsUploading(true);
 
     try {
-      // Use company ID for organized folder structure
-      const folder = offer?.companyId
+      // Use company ID and offer ID for organized folder structure
+      const folder = offer?.companyId && offerId
+        ? `creatorlink/videos/${offer.companyId}/${offerId}`
+        : offer?.companyId
         ? `creatorlink/videos/${offer.companyId}`
         : "creatorlink/videos";
 
@@ -392,8 +394,10 @@ export default function CompanyOfferDetail() {
         try {
           const thumbnailBlob = await generateThumbnail(uploadedVideoUrl);
 
-          // Use company ID for organized folder structure
-          const thumbnailFolder = offer?.companyId
+          // Use company ID and offer ID for organized folder structure
+          const thumbnailFolder = offer?.companyId && offerId
+            ? `creatorlink/videos/thumbnails/${offer.companyId}/${offerId}`
+            : offer?.companyId
             ? `creatorlink/videos/thumbnails/${offer.companyId}`
             : "creatorlink/videos/thumbnails";
 
