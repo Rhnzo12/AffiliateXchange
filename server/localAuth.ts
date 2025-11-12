@@ -216,6 +216,30 @@ export async function setupAuth(app: Express) {
           status: 'pending',
           rejectionReason: null,
         });
+
+        // Notify all admins about new company registration
+        try {
+          const notificationService = new NotificationService(storage);
+          const adminUsers = await storage.getUsersByRole('admin');
+
+          for (const admin of adminUsers) {
+            await notificationService.sendNotification(
+              admin.id,
+              'new_application',
+              'New Company Registration',
+              `${username} has registered as a new company and is awaiting approval.`,
+              {
+                companyName: username,
+                companyUserId: user.id,
+                linkUrl: `/admin/companies/${user.id}`
+              }
+            );
+          }
+          console.log(`[Auth] Notified ${adminUsers.length} admin(s) about new company registration: ${username}`);
+        } catch (notificationError) {
+          console.error('[Auth] Failed to send admin notification for new company registration:', notificationError);
+          // Don't fail registration if notification fails
+        }
       }
 
       // Send email verification email
