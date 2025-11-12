@@ -33,11 +33,6 @@ import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
 import { OfferCardSkeleton } from "../components/skeletons";
 
-const NICHES = [
-  "Technology", "Fashion", "Beauty", "Fitness", "Gaming", 
-  "Travel", "Food", "Lifestyle", "Business", "Education"
-];
-
 const COMMISSION_TYPES = [
   { value: "per_sale", label: "Per Sale" },
   { value: "per_lead", label: "Per Lead" },
@@ -165,6 +160,11 @@ export default function Browse() {
       window.location.href = "/login";
     }
   }, [isAuthenticated, isLoading]);
+
+  // Fetch niches from API
+  const { data: niches = [], isLoading: nichesLoading } = useQuery<Array<{ id: string; name: string; description: string | null; isActive: boolean }>>({
+    queryKey: ["/api/niches"],
+  });
 
   const { data: offers, isLoading: offersLoading } = useQuery<any[]>({
     queryKey: ["/api/offers", { search: searchTerm, niches: selectedNiches, commissionType, sortBy }],
@@ -492,22 +492,28 @@ export default function Browse() {
                 <div className="space-y-3">
                   <Label>Niche/Category</Label>
                   <div className="space-y-2">
-                    {NICHES.map((niche) => (
-                      <div key={niche} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`niche-${niche}`}
-                          checked={selectedNiches.includes(niche)}
-                          onCheckedChange={() => toggleNiche(niche)}
-                          data-testid={`checkbox-niche-${niche}`}
-                        />
-                        <Label
-                          htmlFor={`niche-${niche}`}
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          {niche}
-                        </Label>
-                      </div>
-                    ))}
+                    {nichesLoading ? (
+                      <div className="text-sm text-muted-foreground">Loading niches...</div>
+                    ) : niches.length === 0 ? (
+                      <div className="text-sm text-muted-foreground">No niches available</div>
+                    ) : (
+                      niches.map((niche) => (
+                        <div key={niche.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`niche-${niche.id}`}
+                            checked={selectedNiches.includes(niche.name)}
+                            onCheckedChange={() => toggleNiche(niche.name)}
+                            data-testid={`checkbox-niche-${niche.name}`}
+                          />
+                          <Label
+                            htmlFor={`niche-${niche.id}`}
+                            className="text-sm font-normal cursor-pointer"
+                          >
+                            {niche.name}
+                          </Label>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 

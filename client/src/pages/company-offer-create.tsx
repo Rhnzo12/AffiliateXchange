@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -151,6 +151,11 @@ export default function CompanyOfferCreate() {
       }, 500);
     }
   }, [isAuthenticated, isLoading, toast]);
+
+  // Fetch niches from API
+  const { data: niches = [], isLoading: nichesLoading } = useQuery<Array<{ id: string; name: string; description: string | null; isActive: boolean }>>({
+    queryKey: ["/api/niches"],
+  });
 
   const createOfferMutation = useMutation({
     mutationFn: async (data: typeof formData & { videos: VideoData[] }) => {
@@ -874,17 +879,17 @@ export default function CompanyOfferCreate() {
                   <SelectValue placeholder="Select a niche" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fitness">Fitness & Health</SelectItem>
-                  <SelectItem value="tech">Technology & Software</SelectItem>
-                  <SelectItem value="beauty">Beauty & Fashion</SelectItem>
-                  <SelectItem value="food">Food & Cooking</SelectItem>
-                  <SelectItem value="gaming">Gaming</SelectItem>
-                  <SelectItem value="finance">Finance & Investing</SelectItem>
-                  <SelectItem value="education">Education & Learning</SelectItem>
-                  <SelectItem value="travel">Travel & Lifestyle</SelectItem>
-                  <SelectItem value="home">Home & Garden</SelectItem>
-                  <SelectItem value="entertainment">Entertainment</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {nichesLoading ? (
+                    <SelectItem value="loading" disabled>Loading niches...</SelectItem>
+                  ) : niches.length === 0 ? (
+                    <SelectItem value="none" disabled>No niches available</SelectItem>
+                  ) : (
+                    niches.map((niche) => (
+                      <SelectItem key={niche.id} value={niche.name.toLowerCase().replace(/\s+/g, '_')}>
+                        {niche.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

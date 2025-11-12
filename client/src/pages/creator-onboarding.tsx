@@ -3,6 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useLocation } from "wouter";
 import { queryClient } from "../lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -28,20 +29,6 @@ const STEPS = [
   { id: 1, title: "Profile Image", description: "Upload your profile picture" },
   { id: 2, title: "Content Niches", description: "Select your content categories" },
   { id: 3, title: "Video Platforms", description: "Connect your social channels" },
-];
-
-const AVAILABLE_NICHES = [
-  { value: "gaming", label: "Gaming" },
-  { value: "tech", label: "Technology & Software" },
-  { value: "fitness", label: "Fitness & Health" },
-  { value: "beauty", label: "Beauty & Fashion" },
-  { value: "food", label: "Food & Cooking" },
-  { value: "finance", label: "Finance & Investing" },
-  { value: "education", label: "Education & Learning" },
-  { value: "travel", label: "Travel & Lifestyle" },
-  { value: "home", label: "Home & Garden" },
-  { value: "entertainment", label: "Entertainment" },
-  { value: "other", label: "Other" },
 ];
 
 export default function CreatorOnboarding() {
@@ -73,6 +60,17 @@ export default function CreatorOnboarding() {
       setLocation('/company/dashboard');
     }
   }, [user, setLocation]);
+
+  // Fetch niches from API
+  const { data: niches = [], isLoading: nichesLoading } = useQuery<Array<{ id: string; name: string; description: string | null; isActive: boolean }>>({
+    queryKey: ["/api/niches"],
+  });
+
+  // Convert niches to the format expected by the component
+  const AVAILABLE_NICHES = niches.map(niche => ({
+    value: niche.name.toLowerCase().replace(/\s+/g, '_'),
+    label: niche.name
+  }));
 
   const calculateProgress = () => {
     return ((currentStep - 1) / (STEPS.length - 1)) * 100;
@@ -373,21 +371,27 @@ export default function CreatorOnboarding() {
                 </PopoverTrigger>
                 <PopoverContent className="w-full p-0" align="start">
                   <div className="max-h-[300px] overflow-y-auto p-4 space-y-2">
-                    {AVAILABLE_NICHES.map((niche) => (
-                      <div key={niche.value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`niche-${niche.value}`}
-                          checked={selectedNiches.includes(niche.value)}
-                          onCheckedChange={() => toggleNiche(niche.value)}
-                        />
-                        <label
-                          htmlFor={`niche-${niche.value}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                        >
-                          {niche.label}
-                        </label>
-                      </div>
-                    ))}
+                    {nichesLoading ? (
+                      <div className="text-sm text-muted-foreground p-2">Loading niches...</div>
+                    ) : AVAILABLE_NICHES.length === 0 ? (
+                      <div className="text-sm text-muted-foreground p-2">No niches available</div>
+                    ) : (
+                      AVAILABLE_NICHES.map((niche) => (
+                        <div key={niche.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`niche-${niche.value}`}
+                            checked={selectedNiches.includes(niche.value)}
+                            onCheckedChange={() => toggleNiche(niche.value)}
+                          />
+                          <label
+                            htmlFor={`niche-${niche.value}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                          >
+                            {niche.label}
+                          </label>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>
