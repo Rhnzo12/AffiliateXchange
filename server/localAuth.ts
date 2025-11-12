@@ -233,7 +233,7 @@ export async function setupAuth(app: Express) {
               {
                 companyName: username,
                 companyUserId: user.id,
-                linkUrl: `/admin/companies/${companyProfile.id}`
+                linkUrl: `/admin/companies/${companyProfile.id}`,
               }
             );
           }
@@ -483,7 +483,25 @@ export async function setupAuth(app: Express) {
       // Send verification email to new address
       try {
         const notificationService = new NotificationService(storage);
-        await notificationService.sendEmailVerification(updatedUser);
+        const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+        const emailVerificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        await storage.updateUser(userId, {
+          emailVerificationToken,
+          emailVerificationTokenExpiry,
+          emailVerified: false,
+        });
+
+        const verificationUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/verify-email?token=${emailVerificationToken}`;
+        await notificationService.sendEmailNotification(
+          updatedUser.email,
+          'email_verification',
+          {
+            userName: updatedUser.firstName || updatedUser.username,
+            verificationUrl,
+            linkUrl: verificationUrl,
+          }
+        );
         console.log(`[Auth] Email verification sent to ${normalizedEmail}`);
       } catch (emailError) {
         console.error('[Auth] Failed to send verification email:', emailError);
