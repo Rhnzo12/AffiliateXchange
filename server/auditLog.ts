@@ -99,4 +99,5 @@ export const EntityTypes = {
   REVIEW: 'review',
   APPLICATION: 'application',
   PLATFORM_SETTINGS: 'platform_settings',
+  NICHE: 'niche',
 } as const;

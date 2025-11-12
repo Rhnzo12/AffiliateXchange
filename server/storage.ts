@@ -26,6 +26,7 @@ import {
   userNotificationPreferences,
   auditLogs,
   platformSettings,
+  niches,
   platformFundingAccounts,
   type User,
   type UpsertUser,
@@ -67,6 +68,8 @@ import {
   type InsertAuditLog,
   type PlatformSetting,
   type InsertPlatformSetting,
+  type Niche,
+  type InsertNiche,
   type PlatformFundingAccount,
   type InsertPlatformFundingAccount,
 } from "../shared/schema";
@@ -4239,68 +4242,61 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Niche Categories Management
-  async getNiches(): Promise<any[]> {
-    const setting = await this.getPlatformSetting('niches');
-    if (!setting || !setting.value) {
-      // Return default niches if none exist
-      return [
-        { id: '1', name: 'Tech & Gadgets', description: 'Technology products and gadgets', isActive: true },
-        { id: '2', name: 'Beauty & Skincare', description: 'Beauty and skincare products', isActive: true },
-        { id: '3', name: 'Fashion & Apparel', description: 'Clothing and fashion accessories', isActive: true },
-        { id: '4', name: 'Home & Living', description: 'Home decor and lifestyle products', isActive: true },
-        { id: '5', name: 'Fitness & Health', description: 'Fitness equipment and health supplements', isActive: true },
-        { id: '6', name: 'Gaming', description: 'Video games and gaming equipment', isActive: true },
-        { id: '7', name: 'Food & Beverage', description: 'Food products and beverages', isActive: true },
-        { id: '8', name: 'Travel', description: 'Travel services and products', isActive: true },
-        { id: '9', name: 'Finance & Insurance', description: 'Financial services and insurance', isActive: true },
-        { id: '10', name: 'Education', description: 'Educational courses and materials', isActive: true },
-        { id: '11', name: 'Other', description: 'Other categories', isActive: true },
-      ];
-    }
-    return JSON.parse(setting.value);
+  async getNiches(): Promise<Niche[]> {
+    return await db.select().from(niches).orderBy(niches.name);
   }
 
-  async getActiveNiches(): Promise<any[]> {
-    const allNiches = await this.getNiches();
-    return allNiches.filter(niche => niche.isActive !== false);
+  async getActiveNiches(): Promise<Niche[]> {
+    return await db
+      .select()
+      .from(niches)
+      .where(eq(niches.isActive, true))
+      .orderBy(niches.name);
   }
 
-  async addNiche(name: string, description?: string, isActive: boolean = true, userId?: string): Promise<any[]> {
-    const niches = await this.getNiches();
-    const newNiche = {
-      id: String(Date.now()),
+  async getNicheById(id: string): Promise<Niche | null> {
+    const result = await db
+      .select()
+      .from(niches)
+      .where(eq(niches.id, id))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async addNiche(name: string, description?: string, isActive: boolean = true, userId?: string): Promise<Niche> {
+    const nicheData: InsertNiche = {
       name,
-      description: description || '',
+      description: description || null,
       isActive,
     };
-    niches.push(newNiche);
 
-    await this.updatePlatformSetting('niches', JSON.stringify(niches), userId || null);
-    return niches;
+    const result = await db.insert(niches).values(nicheData).returning();
+    return result[0];
   }
 
-  async updateNiche(id: string, updates: { name?: string; description?: string; isActive?: boolean }, userId?: string): Promise<any[]> {
-    const niches = await this.getNiches();
-    const index = niches.findIndex(n => n.id === id);
-    if (index === -1) {
+  async updateNiche(id: string, updates: { name?: string; description?: string; isActive?: boolean }, userId?: string): Promise<Niche> {
+    const result = await db
+      .update(niches)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(niches.id, id))
+      .returning();
+
+    if (!result[0]) {
       throw new Error('Niche not found');
     }
 
-    niches[index] = { ...niches[index], ...updates };
-    await this.updatePlatformSetting('niches', JSON.stringify(niches), userId || null);
-    return niches;
+    return result[0];
   }
 
-  async deleteNiche(id: string, userId?: string): Promise<any[]> {
-    const niches = await this.getNiches();
-    const filtered = niches.filter(n => n.id !== id);
+  async deleteNiche(id: string, userId?: string): Promise<void> {
+    const result = await db
+      .delete(niches)
+      .where(eq(niches.id, id))
+      .returning();
 
-    if (filtered.length === niches.length) {
+    if (!result[0]) {
       throw new Error('Niche not found');
     }
-
-    await this.updatePlatformSetting('niches', JSON.stringify(filtered), userId || null);
-    return filtered;
   }
 
   // Platform Funding Accounts

@@ -3776,19 +3776,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Niche name is required");
       }
 
-      const niches = await storage.addNiche(name, description, isActive !== false, userId);
+      const niche = await storage.addNiche(name, description, isActive !== false, userId);
 
       // Log the action
       const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
       await logAuditAction(userId, {
         action: AuditActions.CREATE_NICHE,
-        entityType: EntityTypes.PLATFORM_SETTINGS,
-        entityId: 'niches',
+        entityType: EntityTypes.NICHE,
+        entityId: niche.id,
         changes: { name, description, isActive },
         reason: 'Added new niche category',
       }, req);
 
-      res.json(niches);
+      res.json(niche);
     } catch (error: any) {
       console.error('[Admin Niches] Error adding niche:', error);
       res.status(500).send(error.message);
@@ -3801,19 +3801,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const nicheId = req.params.id;
       const { name, description, isActive } = req.body;
 
-      const niches = await storage.updateNiche(nicheId, { name, description, isActive }, userId);
+      const niche = await storage.updateNiche(nicheId, { name, description, isActive }, userId);
 
       // Log the action
       const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
       await logAuditAction(userId, {
         action: AuditActions.UPDATE_NICHE,
-        entityType: EntityTypes.PLATFORM_SETTINGS,
+        entityType: EntityTypes.NICHE,
         entityId: nicheId,
         changes: { name, description, isActive },
         reason: 'Updated niche category',
       }, req);
 
-      res.json(niches);
+      res.json(niche);
     } catch (error: any) {
       console.error('[Admin Niches] Error updating niche:', error);
       res.status(500).send(error.message);
@@ -3825,18 +3825,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const nicheId = req.params.id;
 
-      const niches = await storage.deleteNiche(nicheId, userId);
+      await storage.deleteNiche(nicheId, userId);
 
       // Log the action
       const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
       await logAuditAction(userId, {
         action: AuditActions.DELETE_NICHE,
-        entityType: EntityTypes.PLATFORM_SETTINGS,
+        entityType: EntityTypes.NICHE,
         entityId: nicheId,
         reason: 'Deleted niche category',
       }, req);
 
-      res.json(niches);
+      res.json({ success: true, message: 'Niche deleted successfully' });
     } catch (error: any) {
       console.error('[Admin Niches] Error deleting niche:', error);
       res.status(500).send(error.message);
