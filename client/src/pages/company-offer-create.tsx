@@ -24,7 +24,8 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { ArrowLeft, Upload, Video, Play, Trash2, AlertCircle, Image as ImageIcon, X, FileText } from "lucide-react";
+import { Checkbox } from "../components/ui/checkbox";
+import { ArrowLeft, Upload, Video, Play, Trash2, AlertCircle, Image as ImageIcon, X, FileText, Users, Globe, Shield } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
@@ -121,7 +122,13 @@ export default function CompanyOfferCreate() {
     commissionAmount: "",
     status: "draft" as const,
     featuredImageUrl: "",
-    creatorRequirements: "", // NEW FIELD
+    // Creator Requirements
+    minimumFollowers: "",
+    allowedPlatforms: [] as string[],
+    geographicRestrictions: [] as string[],
+    ageRestriction: "no_restriction",
+    contentStyleRequirements: "",
+    brandSafetyRequirements: "",
   });
 
   // Video upload states
@@ -194,7 +201,13 @@ export default function CompanyOfferCreate() {
           : null,
         status: 'draft', // Always create as draft first
         featuredImageUrl: null, // Will be updated after thumbnail upload
-        creatorRequirements: data.creatorRequirements || null, // NEW FIELD
+        // Creator Requirements
+        minimumFollowers: data.minimumFollowers ? parseInt(data.minimumFollowers) : null,
+        allowedPlatforms: data.allowedPlatforms.length > 0 ? data.allowedPlatforms : null,
+        geographicRestrictions: data.geographicRestrictions.length > 0 ? data.geographicRestrictions : null,
+        ageRestriction: data.ageRestriction !== "no_restriction" ? data.ageRestriction : null,
+        contentStyleRequirements: data.contentStyleRequirements || null,
+        brandSafetyRequirements: data.brandSafetyRequirements || null,
       };
 
       console.log("Creating offer with payload:", offerPayload);
@@ -856,24 +869,171 @@ export default function CompanyOfferCreate() {
               />
             </div>
 
-            {/* NEW: Creator Requirements Field */}
-            <div className="space-y-2">
-              <Label htmlFor="creatorRequirements" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Creator Requirements
-              </Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Specify any requirements creators must meet to apply (e.g., minimum followers, content style, platform requirements)
-              </p>
-              <Textarea
-                id="creatorRequirements"
-                value={formData.creatorRequirements}
-                onChange={(e) => setFormData({ ...formData, creatorRequirements: e.target.value })}
-                placeholder="Example: Minimum 10k followers on Instagram or TikTok, must create authentic product review videos, family-friendly content only..."
-                rows={4}
-                data-testid="input-creator-requirements"
-              />
-            </div>
+            {/* Creator Requirements Section */}
+            <Card className="border-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Creator Requirements
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Define specific requirements for creators who want to promote this offer
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Minimum Followers */}
+                <div className="space-y-2">
+                  <Label htmlFor="minimumFollowers">Minimum Followers/Subscribers (Optional)</Label>
+                  <Input
+                    id="minimumFollowers"
+                    type="number"
+                    min="0"
+                    value={formData.minimumFollowers}
+                    onChange={(e) => setFormData({ ...formData, minimumFollowers: e.target.value })}
+                    placeholder="e.g., 10000"
+                    data-testid="input-minimum-followers"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Minimum follower count required across any platform
+                  </p>
+                </div>
+
+                {/* Allowed Platforms */}
+                <div className="space-y-3">
+                  <Label>Allowed Platforms</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Select which platforms creators can use to promote this offer
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { value: "YouTube", label: "YouTube" },
+                      { value: "TikTok", label: "TikTok" },
+                      { value: "Instagram", label: "Instagram" },
+                      { value: "Facebook", label: "Facebook" },
+                      { value: "Snapchat", label: "Snapchat" },
+                      { value: "X/Twitter", label: "X/Twitter" },
+                      { value: "LinkedIn", label: "LinkedIn" },
+                      { value: "Other", label: "Other" },
+                    ].map((platform) => (
+                      <div key={platform.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`platform-${platform.value}`}
+                          checked={formData.allowedPlatforms.includes(platform.value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setFormData({
+                                ...formData,
+                                allowedPlatforms: [...formData.allowedPlatforms, platform.value]
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                allowedPlatforms: formData.allowedPlatforms.filter(p => p !== platform.value)
+                              });
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={`platform-${platform.value}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {platform.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Geographic Restrictions */}
+                <div className="space-y-2">
+                  <Label htmlFor="geographicRestrictions" className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Geographic Restrictions
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Enter countries separated by commas, or type "Worldwide" for no restrictions
+                  </p>
+                  <Input
+                    id="geographicRestrictions"
+                    value={formData.geographicRestrictions.join(", ")}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const countries = value.split(",").map(c => c.trim()).filter(c => c);
+                      setFormData({ ...formData, geographicRestrictions: countries });
+                    }}
+                    placeholder="e.g., United States, Canada, United Kingdom or Worldwide"
+                    data-testid="input-geographic-restrictions"
+                  />
+                </div>
+
+                {/* Age Restrictions */}
+                <div className="space-y-2">
+                  <Label htmlFor="ageRestriction">Age Restrictions</Label>
+                  <Select
+                    value={formData.ageRestriction}
+                    onValueChange={(value) => setFormData({ ...formData, ageRestriction: value })}
+                  >
+                    <SelectTrigger id="ageRestriction" data-testid="select-age-restriction">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no_restriction">No Restriction</SelectItem>
+                      <SelectItem value="18+">18+ Only</SelectItem>
+                      <SelectItem value="21+">21+ Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Age restriction for creator audience
+                  </p>
+                </div>
+
+                {/* Content Style Requirements */}
+                <div className="space-y-2">
+                  <Label htmlFor="contentStyleRequirements" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Content Style Requirements (Optional)
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Describe the style and tone of content you're looking for (max 500 characters)
+                  </p>
+                  <Textarea
+                    id="contentStyleRequirements"
+                    value={formData.contentStyleRequirements}
+                    onChange={(e) => setFormData({ ...formData, contentStyleRequirements: e.target.value })}
+                    placeholder="e.g., Authentic product reviews, educational tutorials, lifestyle vlogs showcasing the product naturally..."
+                    rows={3}
+                    maxLength={500}
+                    data-testid="input-content-style-requirements"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {formData.contentStyleRequirements.length}/500 characters
+                  </p>
+                </div>
+
+                {/* Brand Safety Requirements */}
+                <div className="space-y-2">
+                  <Label htmlFor="brandSafetyRequirements" className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Brand Safety Requirements (Optional)
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Specify any brand safety guidelines or content restrictions (max 500 characters)
+                  </p>
+                  <Textarea
+                    id="brandSafetyRequirements"
+                    value={formData.brandSafetyRequirements}
+                    onChange={(e) => setFormData({ ...formData, brandSafetyRequirements: e.target.value })}
+                    placeholder="e.g., Family-friendly content only, no profanity, no controversial topics, must align with our brand values..."
+                    rows={3}
+                    maxLength={500}
+                    data-testid="input-brand-safety-requirements"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {formData.brandSafetyRequirements.length}/500 characters
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="space-y-2">
               <Label htmlFor="primaryNiche">Primary Niche *</Label>
