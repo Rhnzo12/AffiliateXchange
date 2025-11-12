@@ -1097,9 +1097,9 @@ export default function CompanyOfferDetail() {
           <DialogContent className="max-w-4xl">
             <DialogHeader>
               <DialogTitle>{selectedVideo.title || "Video"}</DialogTitle>
-              {selectedVideo.description && (
-                <DialogDescription>{selectedVideo.description}</DialogDescription>
-              )}
+              <DialogDescription>
+                {selectedVideo.description || "Preview this promotional video"}
+              </DialogDescription>
             </DialogHeader>
             {selectedVideo.videoUrl ? (
               <div className="w-full">

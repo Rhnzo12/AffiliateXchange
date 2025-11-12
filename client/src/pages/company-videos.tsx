@@ -213,9 +213,9 @@ export default function CompanyVideos() {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="line-clamp-2">{selectedVideo.title || "Video"}</DialogTitle>
-              {selectedVideo.description && (
-                <DialogDescription className="line-clamp-3">{selectedVideo.description}</DialogDescription>
-              )}
+              <DialogDescription className="line-clamp-3">
+                {selectedVideo.description || "Preview this promotional video"}
+              </DialogDescription>
             </DialogHeader>
             {selectedVideo.videoUrl ? (
               <div className="w-full">
