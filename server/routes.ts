@@ -4098,8 +4098,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(`[Objects Fallback] Trying Cloudinary URLs for ${publicId}`);
 
-        // Common folder paths used in the app
-        // Try more specific patterns first, then broader ones
+        // FIRST: Check if this is a video in the database - we can get the company/offer context
+        try {
+          const videoRecord = await db
+            .select({
+              video: offerVideos,
+              offer: offers
+            })
+            .from(offerVideos)
+            .leftJoin(offers, eq(offerVideos.offerId, offers.id))
+            .where(sql`${offerVideos.videoUrl} LIKE ${`%${publicId}%`}`)
+            .limit(1);
+
+          if (videoRecord && videoRecord.length > 0 && videoRecord[0].offer) {
+            const { offer } = videoRecord[0];
+            console.log(`[Objects Fallback] Found video in DB: company=${offer.companyId}, offer=${offer.id}`);
+
+            // Try the nested folder structure where videos are actually stored
+            const specificFolders = [
+              `creatorlink/videos/${offer.companyId}/${offer.id}`,
+              `creatorlink/videos/${offer.companyId}`,
+            ];
+
+            for (const folder of specificFolders) {
+              const path = `${folder}/${publicId}`;
+
+              for (const ext of ['mp4', 'mov', 'webm', 'avi']) {
+                const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${path}.${ext}`;
+                try {
+                  const headRes = await fetch(videoUrl, { method: 'HEAD' });
+                  if (headRes.ok) {
+                    console.log(`[Objects Fallback] ✓ Found video at: ${videoUrl}`);
+
+                    const range = req.headers.range;
+                    const headers: Record<string, string> = {};
+                    if (range) headers['Range'] = range;
+
+                    const videoRes = await fetch(videoUrl, { method: "GET", headers });
+                    if (!videoRes.ok && videoRes.status !== 206) continue;
+
+                    res.status(videoRes.status);
+
+                    const contentType = videoRes.headers.get("content-type");
+                    if (contentType) res.setHeader("Content-Type", contentType);
+
+                    const contentLength = videoRes.headers.get("content-length");
+                    if (contentLength) res.setHeader("Content-Length", contentLength);
+
+                    const contentRange = videoRes.headers.get("content-range");
+                    if (contentRange) res.setHeader("Content-Range", contentRange);
+
+                    const acceptRanges = videoRes.headers.get("accept-ranges");
+                    if (acceptRanges) res.setHeader("Accept-Ranges", acceptRanges);
+                    else res.setHeader("Accept-Ranges", "bytes");
+
+                    res.setHeader("Cache-Control", "public, max-age=31536000");
+                    res.setHeader("Access-Control-Allow-Origin", "*");
+
+                    if (videoRes.body) {
+                      const reader = videoRes.body.getReader();
+                      try {
+                        while (true) {
+                          const { done, value } = await reader.read();
+                          if (done) break;
+                          res.write(Buffer.from(value));
+                        }
+                        return res.end();
+                      } catch (streamError) {
+                        console.error('[Objects Fallback] Error streaming:', streamError);
+                        return res.end();
+                      }
+                    } else {
+                      const buffer = await videoRes.arrayBuffer();
+                      return res.send(Buffer.from(buffer));
+                    }
+                  }
+                } catch (e) {
+                  // Try next extension
+                }
+              }
+            }
+          }
+        } catch (dbError) {
+          console.error('[Objects Fallback] Database lookup error:', dbError);
+        }
+
+        // FALLBACK: Try common folder patterns if database lookup didn't find it
         const folderPatterns = [
           'creatorlink/videos/thumbnails',
           'creatorlink/videos',
@@ -4109,10 +4193,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'verification-documents',
           '' // Root folder (no prefix)
         ];
-
-        // For videos, also check company/offer-specific folders
-        // These follow the pattern: creatorlink/videos/{companyId}/{offerId}/
-        // We'll try the generic patterns first, then check if we can find company-specific folders
 
         // Try to fetch as image with different folder patterns
         // We'll try the most common extension (jpg) first
