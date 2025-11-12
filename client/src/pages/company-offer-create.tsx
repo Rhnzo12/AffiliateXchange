@@ -193,7 +193,7 @@ export default function CompanyOfferCreate() {
           ? data.commissionAmount
           : null,
         status: 'draft', // Always create as draft first
-        featuredImageUrl: data.featuredImageUrl || null,
+        featuredImageUrl: null, // Will be updated after thumbnail upload
         creatorRequirements: data.creatorRequirements || null, // NEW FIELD
       };
 
@@ -1236,6 +1236,9 @@ export default function CompanyOfferCreate() {
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Video Preview</DialogTitle>
+            <DialogDescription>
+              Preview your promotional video
+            </DialogDescription>
           </DialogHeader>
           {selectedVideoUrl && (
             <div className="w-full">
