@@ -70,6 +70,7 @@ export const AuditActions = {
   APPROVE_PAYMENT: 'approve_payment',
   REJECT_PAYMENT: 'reject_payment',
   REFUND_PAYMENT: 'refund_payment',
+  RESOLVE_PAYMENT_DISPUTE: 'resolve_payment_dispute',
 
   // Review actions
   APPROVE_REVIEW: 'approve_review',
@@ -80,6 +81,11 @@ export const AuditActions = {
   UPDATE_PLATFORM_SETTINGS: 'update_platform_settings',
   ENABLE_MAINTENANCE_MODE: 'enable_maintenance_mode',
   DISABLE_MAINTENANCE_MODE: 'disable_maintenance_mode',
+
+  // Niche actions
+  CREATE_NICHE: 'create_niche',
+  UPDATE_NICHE: 'update_niche',
+  DELETE_NICHE: 'delete_niche',
 } as const;
 
 /**

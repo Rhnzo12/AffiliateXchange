@@ -34,6 +34,8 @@ export type NotificationType =
   | 'payment_pending'
   | 'payment_approved'
   | 'payment_disputed'
+  | 'payment_dispute_resolved'
+  | 'payment_refunded'
   | 'payment_failed_insufficient_funds'
   | 'offer_approved'
   | 'offer_rejected'
@@ -140,6 +142,8 @@ export class NotificationService {
       case 'payment_pending':
       case 'payment_approved':
       case 'payment_disputed':
+      case 'payment_dispute_resolved':
+      case 'payment_refunded':
       case 'payment_failed_insufficient_funds':
       case 'work_completion_approval':
         // Admin: go to payment settings to process payments
@@ -428,6 +432,9 @@ export class NotificationService {
       case 'payment_received':
       case 'payment_approved':
       case 'payment_pending':
+      case 'payment_disputed':
+      case 'payment_dispute_resolved':
+      case 'payment_refunded':
       case 'payment_failed_insufficient_funds':
       case 'work_completion_approval':
         return preferences.emailPayment;
@@ -458,6 +465,9 @@ export class NotificationService {
       case 'payment_received':
       case 'payment_approved':
       case 'payment_pending':
+      case 'payment_disputed':
+      case 'payment_dispute_resolved':
+      case 'payment_refunded':
       case 'payment_failed_insufficient_funds':
       case 'work_completion_approval':
         return preferences.pushPayment;
