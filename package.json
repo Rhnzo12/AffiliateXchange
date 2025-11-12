@@ -14,6 +14,7 @@
     "migrate:creator-requirements": "tsx --env-file=.env scripts/run-migration-011.ts",
     "update:offer-requirements": "tsx --env-file=.env scripts/update-offer-requirements.ts",
     "check:offer-requirements": "tsx --env-file=.env scripts/check-offer-requirements.ts",
+    "test:api-offer": "tsx --env-file=.env scripts/test-api-offer.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
