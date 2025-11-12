@@ -119,7 +119,7 @@ export function NotificationCenter() {
     // Update the reference with current notification IDs
     previousNotificationIds.current = new Set(notifications.map((n) => n.id));
 
-    // Show toast only for new company registration notifications
+    // Show toast only for new company registration notifications that need review
     newNotifications.forEach((notification) => {
       const isNewCompanyRegistration =
         notification.type === "new_application" &&
@@ -127,12 +127,14 @@ export function NotificationCenter() {
         notification.metadata?.companyUserId &&
         !notification.metadata?.offerId; // Ensure it's not an offer submission
 
-      if (isNewCompanyRegistration && notification.linkUrl) {
-        console.log('[NotificationCenter] New company registration detected:', {
+      // Only show toast if notification is unread (needs review)
+      if (isNewCompanyRegistration && notification.linkUrl && !notification.isRead) {
+        console.log('[NotificationCenter] New company registration detected (needs review):', {
           notificationId: notification.id,
           linkUrl: notification.linkUrl,
           companyName: notification.metadata?.companyName,
-          companyUserId: notification.metadata?.companyUserId
+          companyUserId: notification.metadata?.companyUserId,
+          isRead: notification.isRead
         });
 
         toast({
@@ -150,11 +152,9 @@ export function NotificationCenter() {
                 console.log('[NotificationCenter] Toast Review button clicked, navigating to:', notification.linkUrl);
 
                 // Mark notification as read
-                if (!notification.isRead) {
-                  markAsRead(notification.id).catch(err =>
-                    console.error('[NotificationCenter] Failed to mark notification as read:', err)
-                  );
-                }
+                markAsRead(notification.id).catch(err =>
+                  console.error('[NotificationCenter] Failed to mark notification as read:', err)
+                );
 
                 // Navigate to company details
                 setLocation(notification.linkUrl!);
