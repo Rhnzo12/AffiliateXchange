@@ -34,6 +34,7 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'payment_pending',
   'payment_approved',
   'payment_disputed',
+  'payment_dispute_resolved',
   'payment_failed_insufficient_funds',
   'offer_approved',
   'offer_rejected',

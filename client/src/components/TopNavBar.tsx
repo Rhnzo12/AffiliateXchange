@@ -22,8 +22,8 @@ export function TopNavBar({ children }: TopNavBarProps) {
   // Get user initials for avatar
   const getUserInitials = () => {
     if (!user) return "U";
-    const firstName = user.firstName || user.name || user.email || "User";
-    return firstName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    const firstName = user.firstName || user.email || "User";
+    return firstName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const handleLogout = async () => {
@@ -69,7 +69,7 @@ export function TopNavBar({ children }: TopNavBarProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-3 py-2 border-b">
-                  <p className="text-sm font-medium">{user?.firstName || user?.name || user?.email || 'User'}</p>
+                  <p className="text-sm font-medium">{user?.firstName || user?.email || 'User'}</p>
                   <p className="text-xs text-muted-foreground capitalize">{user?.role || 'creator'}</p>
                 </div>
                 <DropdownMenuItem asChild>
