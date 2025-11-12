@@ -635,7 +635,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).send("Company not approved");
       }
 
+      // DEBUG: Log what frontend is sending
+      console.log('[CREATE OFFER] Received from frontend:', {
+        minimumFollowers: req.body.minimumFollowers,
+        allowedPlatforms: req.body.allowedPlatforms,
+        geographicRestrictions: req.body.geographicRestrictions,
+        ageRestriction: req.body.ageRestriction,
+        contentStyleRequirements: req.body.contentStyleRequirements?.substring(0, 50),
+        brandSafetyRequirements: req.body.brandSafetyRequirements?.substring(0, 50),
+      });
+
       const validated = createOfferSchema.parse(req.body);
+
+      // DEBUG: Log what Zod validated
+      console.log('[CREATE OFFER] After Zod validation:', {
+        minimumFollowers: validated.minimumFollowers,
+        allowedPlatforms: validated.allowedPlatforms,
+        geographicRestrictions: validated.geographicRestrictions,
+        ageRestriction: validated.ageRestriction,
+        contentStyleRequirements: validated.contentStyleRequirements?.substring(0, 50),
+        brandSafetyRequirements: validated.brandSafetyRequirements?.substring(0, 50),
+      });
 
       // Don't normalize featured image URLs - keep the full Cloudinary URL for proper display
       const featuredImagePath = validated.featuredImageUrl;

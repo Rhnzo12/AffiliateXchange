@@ -1320,6 +1320,16 @@ export class DatabaseStorage implements IStorage {
   async createOffer(offer: InsertOffer): Promise<Offer> {
     const offerId = randomUUID();
 
+    // DEBUG: Log creator requirements being saved
+    console.log('[STORAGE] createOffer received creator requirements:', {
+      minimumFollowers: offer.minimumFollowers,
+      allowedPlatforms: offer.allowedPlatforms,
+      geographicRestrictions: offer.geographicRestrictions,
+      ageRestriction: offer.ageRestriction,
+      contentStyleRequirements: offer.contentStyleRequirements?.substring(0, 50),
+      brandSafetyRequirements: offer.brandSafetyRequirements?.substring(0, 50),
+    });
+
     const slug = offer.title
       .toLowerCase()
       .trim()
