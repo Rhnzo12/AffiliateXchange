@@ -1,14 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  Bell, 
-  Check, 
-  Trash2, 
-  X, 
-  MessageSquare, 
-  DollarSign, 
-  Star, 
+import { useEffect, useRef } from "react";
+import {
+  Bell,
+  Check,
+  Trash2,
+  X,
+  MessageSquare,
+  DollarSign,
+  Star,
   FileText,
-  AlertTriangle 
+  AlertTriangle,
+  Building2
 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
@@ -22,6 +24,8 @@ import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { useLocation } from "wouter";
+import { useToast } from "../hooks/use-toast";
+import { ToastAction } from "./ui/toast";
 
 interface Notification {
   id: string;
@@ -31,6 +35,13 @@ interface Notification {
   linkUrl: string | null;
   isRead: boolean;
   createdAt: string;
+  metadata?: {
+    companyName?: string;
+    companyUserId?: string;
+    offerId?: string;
+    offerTitle?: string;
+    [key: string]: any;
+  };
 }
 
 async function fetchNotifications(): Promise<Notification[]> {
@@ -81,6 +92,8 @@ async function clearAllNotifications(): Promise<void> {
 export function NotificationCenter() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const previousNotificationIds = useRef<Set<string>>(new Set());
 
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
@@ -93,6 +106,50 @@ export function NotificationCenter() {
     queryFn: fetchUnreadCount,
     refetchInterval: 30000, // Poll every 30 seconds
   });
+
+  // Show toast for new company registration notifications
+  useEffect(() => {
+    if (isLoading || notifications.length === 0) return;
+
+    // Detect new notifications
+    const newNotifications = notifications.filter(
+      (notif) => !previousNotificationIds.current.has(notif.id)
+    );
+
+    // Update the reference with current notification IDs
+    previousNotificationIds.current = new Set(notifications.map((n) => n.id));
+
+    // Show toast only for new company registration notifications
+    newNotifications.forEach((notification) => {
+      const isNewCompanyRegistration =
+        notification.type === "new_application" &&
+        notification.metadata?.companyName &&
+        notification.metadata?.companyUserId &&
+        !notification.metadata?.offerId; // Ensure it's not an offer submission
+
+      if (isNewCompanyRegistration && notification.linkUrl) {
+        toast({
+          title: (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              <span>{notification.title}</span>
+            </div>
+          ),
+          description: notification.message,
+          action: (
+            <ToastAction
+              altText="Review Company"
+              onClick={() => {
+                setLocation(notification.linkUrl!);
+              }}
+            >
+              Review
+            </ToastAction>
+          ),
+        });
+      }
+    });
+  }, [notifications, isLoading, toast, setLocation]);
 
   const markAsReadMutation = useMutation({
     mutationFn: markAsRead,
@@ -148,8 +205,21 @@ export function NotificationCenter() {
     }
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (notification: Notification) => {
     const iconProps = { className: "h-5 w-5" };
+    const type = notification.type;
+
+    // Check if this is a company registration notification
+    const isCompanyRegistration =
+      type === "new_application" &&
+      notification.metadata?.companyName &&
+      notification.metadata?.companyUserId &&
+      !notification.metadata?.offerId;
+
+    if (isCompanyRegistration) {
+      return <Building2 {...iconProps} className="h-5 w-5 text-blue-600" />;
+    }
+
     switch (type) {
       case "new_message":
         return <MessageSquare {...iconProps} />;
@@ -258,7 +328,7 @@ export function NotificationCenter() {
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0">
-                        {getNotificationIcon(notification.type)}
+                        {getNotificationIcon(notification)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
