@@ -1121,7 +1121,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOffers(_filters?: any): Promise<Offer[]> {
-    // Support optional filters from the caller (status, companyId, limit)
+    // Support optional filters from the caller (status, companyId, limit, search, niches, commissionType, sortBy)
     // If a limit is provided, respect it. If not provided, return all matching offers.
     const filters = _filters || {};
 
@@ -1134,17 +1134,70 @@ export class DatabaseStorage implements IStorage {
       .from(offers)
       .leftJoin(companyProfiles, eq(offers.companyId, companyProfiles.id));
 
+    // Build where conditions
+    const conditions: any[] = [];
+
     if (filters.status) {
-      query = (query.where(eq(offers.status, filters.status)) as unknown) as typeof query;
+      conditions.push(eq(offers.status, filters.status));
     } else {
-      query = (query.where(eq(offers.status, "approved")) as unknown) as typeof query;
+      conditions.push(eq(offers.status, "approved"));
     }
 
     if (filters.companyId) {
-      query = (query.where(eq(offers.companyId, filters.companyId)) as unknown) as typeof query;
+      conditions.push(eq(offers.companyId, filters.companyId));
     }
 
-    query = (query.orderBy(desc(offers.createdAt)) as unknown) as typeof query;
+    // Search filter - search in title, shortDescription, and longDescription
+    if (filters.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      conditions.push(
+        or(
+          sql`LOWER(${offers.title}) LIKE ${searchTerm}`,
+          sql`LOWER(${offers.shortDescription}) LIKE ${searchTerm}`,
+          sql`LOWER(${offers.longDescription}) LIKE ${searchTerm}`
+        )
+      );
+    }
+
+    // Niche filter - filter by primaryNiche
+    if (filters.niches) {
+      const nichesList = typeof filters.niches === 'string'
+        ? filters.niches.split(',').map((n: string) => n.trim()).filter(Boolean)
+        : filters.niches;
+
+      if (nichesList.length > 0) {
+        conditions.push(inArray(offers.primaryNiche, nichesList));
+      }
+    }
+
+    // Commission type filter
+    if (filters.commissionType) {
+      conditions.push(eq(offers.commissionType, filters.commissionType));
+    }
+
+    // Apply all conditions
+    if (conditions.length > 0) {
+      query = (query.where(and(...conditions)) as unknown) as typeof query;
+    }
+
+    // Sort by
+    if (filters.sortBy === 'highest_commission') {
+      // Sort by commission amount/percentage/rate (descending)
+      query = (query.orderBy(
+        desc(sql`COALESCE(${offers.commissionAmount}, ${offers.commissionPercentage}, ${offers.commissionRate}, 0)`)
+      ) as unknown) as typeof query;
+    } else if (filters.sortBy === 'trending') {
+      // Sort by view count and application count
+      query = (query.orderBy(
+        desc(sql`COALESCE(${offers.viewCount}, 0) + COALESCE(${offers.applicationCount}, 0) * 2`)
+      ) as unknown) as typeof query;
+    } else if (filters.sortBy === 'most_popular') {
+      // Sort by application count
+      query = (query.orderBy(desc(offers.applicationCount)) as unknown) as typeof query;
+    } else {
+      // Default: newest first
+      query = (query.orderBy(desc(offers.createdAt)) as unknown) as typeof query;
+    }
 
     if (filters.limit) {
       const limit = parseInt(String(filters.limit), 10);

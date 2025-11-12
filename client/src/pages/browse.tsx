@@ -273,8 +273,32 @@ export default function Browse() {
 
   // Apply client-side filters
   const filteredOffers = getCurrentOffers()?.filter(offer => {
+    // Search filter (apply to all tabs)
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      const matchesSearch =
+        offer.title?.toLowerCase().includes(search) ||
+        offer.shortDescription?.toLowerCase().includes(search) ||
+        offer.longDescription?.toLowerCase().includes(search) ||
+        offer.company?.tradeName?.toLowerCase().includes(search);
+
+      if (!matchesSearch) {
+        return false;
+      }
+    }
+
     // Category filter (from category pills)
     if (selectedCategory !== "All" && offer.primaryNiche !== selectedCategory) {
+      return false;
+    }
+
+    // Niche filter (from filter sheet checkboxes)
+    if (selectedNiches.length > 0 && !selectedNiches.includes(offer.primaryNiche)) {
+      return false;
+    }
+
+    // Commission type filter (from filter sheet)
+    if (commissionType && offer.commissionType !== commissionType) {
       return false;
     }
 
