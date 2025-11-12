@@ -583,6 +583,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<void>;
 
   // Creator Profiles
   getCreatorProfile(userId: string): Promise<CreatorProfile | undefined>;
@@ -863,6 +864,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return result[0];
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 
   // Creator Profiles
