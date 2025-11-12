@@ -1503,26 +1503,31 @@ export default function Settings() {
               </Button>
             </div>
 
-            <Separator />
+            {/* Hide delete account option for admin users */}
+            {user?.role !== 'admin' && (
+              <>
+                <Separator />
 
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="font-medium text-destructive">Delete Account</div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  Permanently delete your account and all associated data. This action cannot
-                  be undone.
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="font-medium text-destructive">Delete Account</div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Permanently delete your account and all associated data. This action cannot
+                      be undone.
+                    </div>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowDeleteDialog(true)}
+                    disabled={isDeletingAccount}
+                    className="flex-shrink-0"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Account
+                  </Button>
                 </div>
-              </div>
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isDeletingAccount}
-                className="flex-shrink-0"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account
-              </Button>
-            </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

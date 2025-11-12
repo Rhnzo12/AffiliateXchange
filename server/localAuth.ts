@@ -777,6 +777,14 @@ export async function setupAuth(app: Express) {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Prevent admin users from deleting their accounts
+      if (user.role === 'admin') {
+        return res.status(403).json({
+          error: "Admin accounts cannot be deleted",
+          details: "For security reasons, administrator accounts cannot be deleted through the settings page. Please contact system support if you need to deactivate an admin account."
+        });
+      }
+
       // Verify password for non-OAuth users
       if (user.password && !user.googleId) {
         if (!password) {
