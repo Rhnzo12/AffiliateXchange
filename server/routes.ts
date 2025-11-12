@@ -632,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companyProfile = await storage.getCompanyProfile(userId);
 
       if (!companyProfile || companyProfile.status !== 'approved') {
-        return res.status(403).send("Company not approved");
+        return res.status(403).json({ error: "Company not approved" });
       }
 
       // DEBUG: Log what frontend is sending
