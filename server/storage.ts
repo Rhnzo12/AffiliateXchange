@@ -781,7 +781,7 @@ export interface IStorage {
   getPlatformSetting(key: string): Promise<PlatformSetting | null>;
   getAllPlatformSettings(): Promise<PlatformSetting[]>;
   getPlatformSettingsByCategory(category: string): Promise<PlatformSetting[]>;
-  updatePlatformSetting(key: string, value: string, updatedBy: string): Promise<PlatformSetting>;
+  updatePlatformSetting(key: string, value: string, updatedBy: string | null): Promise<PlatformSetting>;
   createPlatformSetting(setting: InsertPlatformSetting): Promise<PlatformSetting>;
 
   // Platform Funding Accounts
@@ -4212,7 +4212,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(platformSettings.key);
   }
 
-  async updatePlatformSetting(key: string, value: string, updatedBy: string): Promise<PlatformSetting> {
+  async updatePlatformSetting(key: string, value: string, updatedBy: string | null): Promise<PlatformSetting> {
     const existing = await this.getPlatformSetting(key);
     if (existing) {
       const result = await db
