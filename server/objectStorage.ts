@@ -206,6 +206,46 @@ export class ObjectStorageService {
     });
   }
 
+  async deleteImage(publicId: string): Promise<any> {
+    return await cloudinary.uploader.destroy(publicId, {
+      resource_type: 'image',
+    });
+  }
+
+  async deleteResource(publicId: string, resourceType: 'image' | 'video' | 'raw' = 'image'): Promise<any> {
+    return await cloudinary.uploader.destroy(publicId, {
+      resource_type: resourceType,
+    });
+  }
+
+  async deleteFolder(folderPath: string): Promise<any> {
+    try {
+      // Delete all resources in the folder
+      const result = await cloudinary.api.delete_resources_by_prefix(folderPath, {
+        resource_type: 'image',
+      });
+
+      // Also try to delete videos
+      await cloudinary.api.delete_resources_by_prefix(folderPath, {
+        resource_type: 'video',
+      });
+
+      // Also try to delete raw files
+      await cloudinary.api.delete_resources_by_prefix(folderPath, {
+        resource_type: 'raw',
+      });
+
+      // Finally delete the folder itself
+      await cloudinary.api.delete_folder(folderPath);
+
+      return result;
+    } catch (error: any) {
+      console.error(`[deleteFolder] Error deleting folder ${folderPath}:`, error);
+      // Don't throw error, just log it - folder might be empty or already deleted
+      return { deleted: {} };
+    }
+  }
+
   async getVideoInfo(publicId: string): Promise<any> {
     return await cloudinary.api.resource(publicId, {
       resource_type: 'video',
