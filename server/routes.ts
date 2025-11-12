@@ -4224,6 +4224,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to check video URLs in database
+  app.get("/api/debug/videos", requireAuth, async (req, res) => {
+    try {
+      const videos = await db.select().from(offerVideos);
+
+      const videoStats = {
+        total: videos.length,
+        withCloudinaryUrls: videos.filter(v => v.videoUrl?.includes('cloudinary.com')).length,
+        withObjectsUrls: videos.filter(v => v.videoUrl?.startsWith('/objects/')).length,
+        withOtherUrls: videos.filter(v => v.videoUrl && !v.videoUrl.includes('cloudinary.com') && !v.videoUrl.startsWith('/objects/')).length,
+        videos: videos.map(v => ({
+          id: v.id,
+          offerId: v.offerId,
+          title: v.title,
+          videoUrl: v.videoUrl,
+          thumbnailUrl: v.thumbnailUrl,
+          urlType: v.videoUrl?.includes('cloudinary.com') ? 'cloudinary' :
+                   v.videoUrl?.startsWith('/objects/') ? 'objects' : 'other'
+        }))
+      };
+
+      res.json(videoStats);
+    } catch (error: any) {
+      console.error('[Debug Videos] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
     const objectStorageService = new ObjectStorageService();
     const folder = req.body.folder || undefined; // Optional folder parameter
