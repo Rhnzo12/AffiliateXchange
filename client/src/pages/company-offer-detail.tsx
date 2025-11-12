@@ -350,23 +350,23 @@ export default function CompanyOfferDetail() {
       // IMPORTANT: Use nested folder structure with company ID and offer ID
       // This matches the lookup logic in /objects/ endpoint
 
-      // Check if offer data is loaded
-      if (!offer) {
-        toast({
-          title: "Please Wait",
-          description: "Offer data is still loading. Please try again in a moment.",
-          variant: "destructive",
-        });
-        setIsUploading(false);
-        return;
-      }
+      // Log current state for debugging
+      console.log('[Video Upload] Starting upload with:', {
+        hasOffer: !!offer,
+        offerId: offerId,
+        companyId: offer?.companyId,
+      });
 
-      // Check if we have required IDs
-      if (!offer.companyId || !offerId) {
-        console.error('[Video Upload] Missing IDs:', { companyId: offer.companyId, offerId });
+      // Validate we have the required IDs
+      if (!offer?.companyId || !offerId) {
+        console.error('[Video Upload] Missing required IDs:', {
+          offer: offer ? 'exists' : 'null',
+          companyId: offer?.companyId || 'missing',
+          offerId: offerId || 'missing',
+        });
         toast({
-          title: "Error",
-          description: "Cannot upload video: Missing company or offer information. Please refresh the page.",
+          title: "Upload Error",
+          description: "Unable to upload video. Please refresh the page and try again.",
           variant: "destructive",
         });
         setIsUploading(false);
@@ -375,7 +375,7 @@ export default function CompanyOfferDetail() {
 
       // Always use the nested folder structure: creatorlink/videos/{companyId}/{offerId}
       const folder = `creatorlink/videos/${offer.companyId}/${offerId}`;
-      console.log('[Video Upload] Using folder:', folder);
+      console.log('[Video Upload] Uploading to folder:', folder);
 
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
@@ -487,7 +487,7 @@ export default function CompanyOfferDetail() {
         variant: "destructive",
       });
     }
-  }, [toast]);
+  }, [toast, offer, offerId]); // Include offer and offerId so callback sees updated values
 
   const handleSubmitVideo = useCallback(() => {
     if (!videoUrl) {
