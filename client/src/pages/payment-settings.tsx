@@ -2042,10 +2042,41 @@ export default function PaymentSettings() {
                     </span>
                   )}
                 </button>
+                <button
+                  onClick={() => setActiveTab("settings")}
+                  className={`px-6 py-4 text-sm font-medium transition-colors ${
+                    activeTab === "settings"
+                      ? "border-b-2 border-blue-600 text-blue-600"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Payment Methods
+                </button>
               </div>
             </div>
             {activeTab === "overview" && <CompanyOverview payouts={companyPayments} />}
             {activeTab === "approvals" && <CompanyPayoutApproval payouts={companyPayments} />}
+            {activeTab === "settings" && (
+              <CreatorPaymentSettings
+                paymentMethods={paymentMethods}
+                payoutMethod={payoutMethod}
+                setPayoutMethod={setPayoutMethod}
+                payoutEmail={payoutEmail}
+                setPayoutEmail={setPayoutEmail}
+                bankRoutingNumber={bankRoutingNumber}
+                setBankRoutingNumber={setBankRoutingNumber}
+                bankAccountNumber={bankAccountNumber}
+                setBankAccountNumber={setBankAccountNumber}
+                paypalEmail={paypalEmail}
+                setPaypalEmail={setPaypalEmail}
+                cryptoWalletAddress={cryptoWalletAddress}
+                setCryptoWalletAddress={setCryptoWalletAddress}
+                cryptoNetwork={cryptoNetwork}
+                setCryptoNetwork={setCryptoNetwork}
+                onAddPaymentMethod={() => addPaymentMethodMutation.mutate()}
+                isSubmitting={addPaymentMethodMutation.isPending}
+              />
+            )}
           </>
         )}
 
