@@ -268,8 +268,10 @@ export default function Settings() {
     setIsUploadingLogo(true);
 
     try {
-      // Use user ID for organized folder structure
-      const folder = user?.id
+      // Use company profile ID for organized folder structure
+      const folder = profile?.id
+        ? `company-logos/${profile.id}`
+        : user?.id
         ? `company-logos/${user.id}`
         : "company-logos";
 
@@ -364,6 +366,11 @@ export default function Settings() {
     setIsUploadingDocument(true);
 
     try {
+      // Use user ID for organized folder structure
+      const folder = user?.id
+        ? `verification-documents/${user.id}`
+        : "verification-documents";
+
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
         credentials: "include",
@@ -371,7 +378,7 @@ export default function Settings() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          folder: "verification-documents",
+          folder,
           resourceType: file.type === 'application/pdf' ? 'raw' : 'image'
         }),
       });

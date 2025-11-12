@@ -235,7 +235,7 @@ export default function CompanyOnboarding() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          folder: "verification-documents",
+          folder: user?.id ? `verification-documents/${user.id}` : "verification-documents",
           resourceType: file.type === 'application/pdf' ? 'raw' : 'image'
         }),
       });
