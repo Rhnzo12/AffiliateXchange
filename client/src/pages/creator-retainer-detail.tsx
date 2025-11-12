@@ -104,8 +104,10 @@ export default function CreatorRetainerDetail() {
     setIsUploading(true);
 
     try {
-      // Use creator ID for organized folder structure
-      const folder = user?.id
+      // Use contract ID and creator ID for organized folder structure
+      const folder = contractId && user?.id
+        ? `creatorlink/retainer/${contractId}/${user.id}`
+        : user?.id
         ? `creatorlink/retainer/${user.id}`
         : "creatorlink/retainer";
 
@@ -116,7 +118,7 @@ export default function CreatorRetainerDetail() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder, resourceType: "video" }), // Save retainer videos in creator-specific folder
+        body: JSON.stringify({ folder, resourceType: "video" }), // Save retainer videos in contract-specific folder
       });
       const uploadData = await uploadResponse.json();
 
@@ -225,8 +227,10 @@ export default function CreatorRetainerDetail() {
     setIsResubmitUploading(true);
 
     try {
-      // Use creator ID for organized folder structure
-      const folder = user?.id
+      // Use contract ID and creator ID for organized folder structure
+      const folder = contractId && user?.id
+        ? `creatorlink/retainer/${contractId}/${user.id}`
+        : user?.id
         ? `creatorlink/retainer/${user.id}`
         : "creatorlink/retainer";
 
