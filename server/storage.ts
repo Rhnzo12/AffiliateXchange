@@ -1351,6 +1351,15 @@ export class DatabaseStorage implements IStorage {
     }
 
     // ✅ FIX: Added featuredImageUrl and creator requirements fields to the INSERT
+    // Format arrays properly for PostgreSQL
+    const allowedPlatformsArray = offer.allowedPlatforms && offer.allowedPlatforms.length > 0
+      ? `ARRAY[${offer.allowedPlatforms.map(p => `'${p.replace(/'/g, "''")}'`).join(',')}]::text[]`
+      : 'ARRAY[]::text[]';
+
+    const geographicRestrictionsArray = offer.geographicRestrictions && offer.geographicRestrictions.length > 0
+      ? `ARRAY[${offer.geographicRestrictions.map(g => `'${g.replace(/'/g, "''")}'`).join(',')}]::text[]`
+      : 'ARRAY[]::text[]';
+
     const result = await db.execute(sql`
       INSERT INTO offers (
         id, company_id, title, slug, short_description, full_description,
@@ -1385,8 +1394,8 @@ export class DatabaseStorage implements IStorage {
         0,
         0,
         ${offer.minimumFollowers || null},
-        ${offer.allowedPlatforms || null},
-        ${offer.geographicRestrictions || null},
+        ${sql.raw(allowedPlatformsArray)},
+        ${sql.raw(geographicRestrictionsArray)},
         ${offer.ageRestriction || null},
         ${offer.contentStyleRequirements || null},
         ${offer.brandSafetyRequirements || null}
