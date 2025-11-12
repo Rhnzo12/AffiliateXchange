@@ -12,6 +12,7 @@
     "migrate:attachments": "node --import tsx server/migrations/add-message-attachments.ts",
     "migrate:new-fields": "node --import tsx server/migrations/add-conversation-offer-company-fields.ts",
     "migrate:creator-requirements": "tsx --env-file=.env scripts/run-migration-011.ts",
+    "update:offer-requirements": "tsx --env-file=.env scripts/update-offer-requirements.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
