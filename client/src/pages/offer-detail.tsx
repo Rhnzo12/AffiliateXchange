@@ -799,7 +799,7 @@ export default function OfferDetail() {
                   : "text-gray-500 hover:text-gray-900"
               }`}
             >
-              Requirements
+              Creator Requirements
               {activeSection === "requirements" && (
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
               )}
@@ -812,7 +812,7 @@ export default function OfferDetail() {
                   : "text-gray-500 hover:text-gray-900"
               }`}
             >
-              Reviews
+              Creator Reviews
               {activeSection === "reviews" && (
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
               )}
