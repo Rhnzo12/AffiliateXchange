@@ -224,7 +224,7 @@ export default function CompanyOfferCreate() {
 
       if (!offerResponse.ok) {
         const errorData = await offerResponse.json();
-        throw new Error(errorData.message || "Failed to create offer");
+        throw new Error(errorData.error || errorData.message || "Failed to create offer");
       }
 
       const offerData = await offerResponse.json();
