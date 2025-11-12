@@ -4099,13 +4099,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[Objects Fallback] Trying Cloudinary URLs for ${publicId}`);
 
         // Common folder paths used in the app
+        // Try more specific patterns first, then broader ones
         const folderPatterns = [
           'creatorlink/videos/thumbnails',
           'creatorlink/videos',
           'creatorlink/retainer',
           'company-logos',
+          'profile-images',
+          'verification-documents',
           '' // Root folder (no prefix)
         ];
+
+        // For videos, also check company/offer-specific folders
+        // These follow the pattern: creatorlink/videos/{companyId}/{offerId}/
+        // We'll try the generic patterns first, then check if we can find company-specific folders
 
         // Try to fetch as image with different folder patterns
         // We'll try the most common extension (jpg) first
@@ -4132,23 +4139,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Try to fetch as video with different folder patterns
+        // Try to fetch as video with different folder patterns (with range request support)
         for (const folder of folderPatterns) {
           const path = folder ? `${folder}/${publicId}` : publicId;
 
           // Try common video extensions
-          for (const ext of ['mp4', 'mov']) {
+          for (const ext of ['mp4', 'mov', 'webm', 'avi']) {
             const videoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${path}.${ext}`;
             try {
-              const videoRes = await fetch(videoUrl);
-              if (videoRes.ok) {
+              // Check if the video exists first with a HEAD request
+              const headRes = await fetch(videoUrl, { method: 'HEAD' });
+              if (headRes.ok) {
                 console.log(`[Objects Fallback] ✓ Found as video: ${videoUrl}`);
+
+                // Get the range header from the request (for video seeking)
+                const range = req.headers.range;
+                const headers: Record<string, string> = {};
+                if (range) {
+                  headers['Range'] = range;
+                }
+
+                // Fetch the video with range support
+                const videoRes = await fetch(videoUrl, {
+                  method: "GET",
+                  headers
+                });
+
+                if (!videoRes.ok && videoRes.status !== 206) {
+                  continue; // Try next extension
+                }
+
+                // Forward the status code (200 for full content, 206 for partial content)
+                res.status(videoRes.status);
+
+                // Forward important headers
                 const contentType = videoRes.headers.get("content-type");
                 if (contentType) res.setHeader("Content-Type", contentType);
+
+                const contentLength = videoRes.headers.get("content-length");
+                if (contentLength) res.setHeader("Content-Length", contentLength);
+
+                const contentRange = videoRes.headers.get("content-range");
+                if (contentRange) res.setHeader("Content-Range", contentRange);
+
+                const acceptRanges = videoRes.headers.get("accept-ranges");
+                if (acceptRanges) res.setHeader("Accept-Ranges", acceptRanges);
+                else res.setHeader("Accept-Ranges", "bytes");
+
                 res.setHeader("Cache-Control", "public, max-age=31536000");
                 res.setHeader("Access-Control-Allow-Origin", "*");
-                const buffer = await videoRes.arrayBuffer();
-                return res.send(Buffer.from(buffer));
+
+                // Stream the video content instead of loading into memory
+                if (videoRes.body) {
+                  const reader = videoRes.body.getReader();
+                  try {
+                    while (true) {
+                      const { done, value } = await reader.read();
+                      if (done) break;
+                      res.write(Buffer.from(value));
+                    }
+                    return res.end();
+                  } catch (streamError) {
+                    console.error('[Objects Fallback] Error streaming video:', streamError);
+                    return res.end();
+                  }
+                } else {
+                  // Fallback if streaming not available
+                  const buffer = await videoRes.arrayBuffer();
+                  return res.send(Buffer.from(buffer));
+                }
               }
             } catch (e) {
               // Try next extension
@@ -4162,6 +4221,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log unexpected errors only
       console.error("Error checking object access:", error);
       return res.sendStatus(500);
+    }
+  });
+
+  // Debug endpoint to check video URLs in database
+  app.get("/api/debug/videos", requireAuth, async (req, res) => {
+    try {
+      const videos = await db.select().from(offerVideos);
+
+      const videoStats = {
+        total: videos.length,
+        withCloudinaryUrls: videos.filter(v => v.videoUrl?.includes('cloudinary.com')).length,
+        withObjectsUrls: videos.filter(v => v.videoUrl?.startsWith('/objects/')).length,
+        withOtherUrls: videos.filter(v => v.videoUrl && !v.videoUrl.includes('cloudinary.com') && !v.videoUrl.startsWith('/objects/')).length,
+        videos: videos.map(v => ({
+          id: v.id,
+          offerId: v.offerId,
+          title: v.title,
+          videoUrl: v.videoUrl,
+          thumbnailUrl: v.thumbnailUrl,
+          urlType: v.videoUrl?.includes('cloudinary.com') ? 'cloudinary' :
+                   v.videoUrl?.startsWith('/objects/') ? 'objects' : 'other'
+        }))
+      };
+
+      res.json(videoStats);
+    } catch (error: any) {
+      console.error('[Debug Videos] Error:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 
