@@ -631,8 +631,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const companyProfile = await storage.getCompanyProfile(userId);
 
-      if (!companyProfile || companyProfile.status !== 'approved') {
-        return res.status(403).json({ error: "Company not approved" });
+      if (!companyProfile) {
+        return res.status(403).json({ error: "Company profile not found" });
       }
 
       // DEBUG: Log what frontend is sending
