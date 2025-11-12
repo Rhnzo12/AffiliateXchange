@@ -860,14 +860,6 @@ export async function setupAuth(app: Express) {
           console.log(`[Account Deletion] Deleted ${deliverables.length} retainer deliverable videos`);
         }
 
-        // Delete creatorprofile folder
-        try {
-          await objectStorage.deleteFolder(`creatorprofile/${userId}`);
-          console.log(`[Account Deletion] Deleted folder: creatorprofile/${userId}`);
-        } catch (error: any) {
-          console.error(`[Account Deletion] Failed to delete creatorprofile folder:`, error.message);
-        }
-
         // Delete message attachments
         const { db } = await import('./db');
         const { conversations, messages } = await import('../shared/schema');
@@ -889,23 +881,6 @@ export async function setupAuth(app: Express) {
         }
 
         console.log(`[Account Deletion] Deleted creator message attachments`);
-
-        // Delete creatorlink/retainer folder
-        try {
-          await objectStorage.deleteFolder(`creatorlink/retainer/${userId}`);
-          await objectStorage.deleteFolder(`creatorlink/retainer`);
-          console.log(`[Account Deletion] Deleted folder: creatorlink/retainer`);
-        } catch (error: any) {
-          console.error(`[Account Deletion] Failed to delete retainer folder:`, error.message);
-        }
-
-        // Delete creatorlink/attachments folder for creator
-        try {
-          await objectStorage.deleteFolder(`creatorlink/attachments/${userId}`);
-          console.log(`[Account Deletion] Deleted folder: creatorlink/attachments/${userId}`);
-        } catch (error: any) {
-          console.error(`[Account Deletion] Failed to delete creator attachments folder:`, error.message);
-        }
 
       } else if (user.role === 'company') {
         console.log(`[Account Deletion] Deleting company Cloudinary files`);
@@ -975,44 +950,6 @@ export async function setupAuth(app: Express) {
           }
 
           console.log(`[Account Deletion] Deleted message attachments`);
-
-          // Delete company-specific folders
-          try {
-            await objectStorage.deleteFolder(`company-logos/${userId}`);
-            console.log(`[Account Deletion] Deleted folder: company-logos/${userId}`);
-          } catch (error: any) {
-            console.error(`[Account Deletion] Failed to delete company-logos folder:`, error.message);
-          }
-
-          try {
-            await objectStorage.deleteFolder(`verification-documents/${userId}`);
-            console.log(`[Account Deletion] Deleted folder: verification-documents/${userId}`);
-          } catch (error: any) {
-            console.error(`[Account Deletion] Failed to delete verification-documents folder:`, error.message);
-          }
-
-          try {
-            await objectStorage.deleteFolder(`creatorlink/attachments/${companyProfile.id}`);
-            await objectStorage.deleteFolder(`creatorlink/attachments`);
-            console.log(`[Account Deletion] Deleted folder: creatorlink/attachments`);
-          } catch (error: any) {
-            console.error(`[Account Deletion] Failed to delete attachments folder:`, error.message);
-          }
-
-          try {
-            await objectStorage.deleteFolder(`creatorlink/videos/${companyProfile.id}`);
-            await objectStorage.deleteFolder(`creatorlink/videos`);
-            console.log(`[Account Deletion] Deleted folder: creatorlink/videos`);
-          } catch (error: any) {
-            console.error(`[Account Deletion] Failed to delete videos folder:`, error.message);
-          }
-
-          try {
-            await objectStorage.deleteFolder(`creatorlink/videos/thumbnails`);
-            console.log(`[Account Deletion] Deleted folder: creatorlink/videos/thumbnails`);
-          } catch (error: any) {
-            console.error(`[Account Deletion] Failed to delete thumbnails folder:`, error.message);
-          }
         }
       }
 

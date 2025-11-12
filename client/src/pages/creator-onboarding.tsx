@@ -104,13 +104,18 @@ export default function CreatorOnboarding() {
     setIsUploadingImage(true);
 
     try {
+      // Use user ID for organized folder structure
+      const folder = user?.id
+        ? `creatorprofile/${user.id}`
+        : "creatorprofile";
+
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "creatorprofile", resourceType: "image" }),
+        body: JSON.stringify({ folder, resourceType: "image" }),
       });
 
       if (!uploadResponse.ok) {

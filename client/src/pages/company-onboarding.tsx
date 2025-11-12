@@ -137,13 +137,18 @@ export default function CompanyOnboarding() {
     setIsUploadingLogo(true);
 
     try {
+      // Use user ID for organized folder structure
+      const folder = user?.id
+        ? `company-logos/${user.id}`
+        : "company-logos";
+
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "company-logos", resourceType: "image" }),
+        body: JSON.stringify({ folder, resourceType: "image" }),
       });
 
       if (!uploadResponse.ok) {

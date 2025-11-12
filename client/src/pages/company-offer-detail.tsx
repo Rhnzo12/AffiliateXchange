@@ -347,11 +347,16 @@ export default function CompanyOfferDetail() {
     setIsUploading(true);
 
     try {
+      // Use company ID for organized folder structure
+      const folder = offer?.companyId
+        ? `creatorlink/videos/${offer.companyId}`
+        : "creatorlink/videos";
+
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder: "creatorlink/videos", resourceType: "video" }),
+        body: JSON.stringify({ folder, resourceType: "video" }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -387,11 +392,16 @@ export default function CompanyOfferDetail() {
         try {
           const thumbnailBlob = await generateThumbnail(uploadedVideoUrl);
 
+          // Use company ID for organized folder structure
+          const thumbnailFolder = offer?.companyId
+            ? `creatorlink/videos/thumbnails/${offer.companyId}`
+            : "creatorlink/videos/thumbnails";
+
           const thumbUploadResponse = await fetch("/api/objects/upload", {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ folder: "creatorlink/videos/thumbnails", resourceType: "image" }),
+            body: JSON.stringify({ folder: thumbnailFolder, resourceType: "image" }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 

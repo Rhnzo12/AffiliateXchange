@@ -152,6 +152,11 @@ export default function CompanyOfferCreate() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
+  // Fetch company profile to get company ID for folder organization
+  const { data: companyProfile } = useQuery<{ id: string }>({
+    queryKey: ["/api/profile"],
+  });
+
   // Fetch niches from API
   const { data: niches = [], isLoading: nichesLoading } = useQuery<Array<{ id: string; name: string; description: string | null; isActive: boolean }>>({
     queryKey: ["/api/niches"],
@@ -319,13 +324,18 @@ export default function CompanyOfferCreate() {
     setIsUploadingThumbnail(true);
 
     try {
+      // Use company ID for organized folder structure
+      const folder = companyProfile?.id
+        ? `creatorlink/videos/thumbnails/${companyProfile.id}`
+        : "creatorlink/videos/thumbnails";
+
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "creatorlink/videos/thumbnails", resourceType: "image" }),
+        body: JSON.stringify({ folder, resourceType: "image" }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -401,13 +411,18 @@ export default function CompanyOfferCreate() {
     setIsUploading(true);
 
     try {
+      // Use company ID for organized folder structure
+      const folder = companyProfile?.id
+        ? `creatorlink/videos/${companyProfile.id}`
+        : "creatorlink/videos";
+
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder: "creatorlink/videos", resourceType: "video" }),
+        body: JSON.stringify({ folder, resourceType: "video" }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -442,14 +457,19 @@ export default function CompanyOfferCreate() {
 
         try {
           const thumbnailBlob = await generateThumbnail(uploadedVideoUrl);
-          
+
+          // Use company ID for organized folder structure
+          const thumbnailFolder = companyProfile?.id
+            ? `creatorlink/videos/thumbnails/${companyProfile.id}`
+            : "creatorlink/videos/thumbnails";
+
           const thumbUploadResponse = await fetch("/api/objects/upload", {
             method: "POST",
             credentials: "include",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ folder: "creatorlink/videos/thumbnails", resourceType: "image" }),
+            body: JSON.stringify({ folder: thumbnailFolder, resourceType: "image" }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
