@@ -19,6 +19,7 @@ export function VideoPlayer({ videoUrl, thumbnail, className, autoPlay = false }
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -29,6 +30,7 @@ export function VideoPlayer({ videoUrl, thumbnail, className, autoPlay = false }
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
       setIsLoading(false);
+      setHasError(false);
     };
 
     const handleTimeUpdate = () => {
@@ -39,16 +41,38 @@ export function VideoPlayer({ videoUrl, thumbnail, className, autoPlay = false }
       setIsPlaying(false);
     };
 
+    const handleError = (e: Event) => {
+      console.error('[VideoPlayer] Error loading video:', e);
+      setIsLoading(false);
+      setHasError(true);
+    };
+
+    const handleLoadStart = () => {
+      setIsLoading(true);
+      setHasError(false);
+    };
+
+    const handleCanPlay = () => {
+      setIsLoading(false);
+      setHasError(false);
+    };
+
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
     video.addEventListener("timeupdate", handleTimeUpdate);
     video.addEventListener("ended", handleEnded);
+    video.addEventListener("error", handleError);
+    video.addEventListener("loadstart", handleLoadStart);
+    video.addEventListener("canplay", handleCanPlay);
 
     return () => {
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       video.removeEventListener("timeupdate", handleTimeUpdate);
       video.removeEventListener("ended", handleEnded);
+      video.removeEventListener("error", handleError);
+      video.removeEventListener("loadstart", handleLoadStart);
+      video.removeEventListener("canplay", handleCanPlay);
     };
-  }, []);
+  }, [videoUrl]);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -119,14 +143,35 @@ export function VideoPlayer({ videoUrl, thumbnail, className, autoPlay = false }
       />
 
       {/* Loading Spinner */}
-      {isLoading && (
+      {isLoading && !hasError && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <Loader2 className="h-12 w-12 text-white animate-spin" />
         </div>
       )}
 
+      {/* Error State */}
+      {hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+          <div className="text-center text-white p-4">
+            <p className="text-sm mb-2">Unable to load video</p>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setHasError(false);
+                if (videoRef.current) {
+                  videoRef.current.load();
+                }
+              }}
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Play/Pause Overlay */}
-      {!isPlaying && !isLoading && (
+      {!isPlaying && !isLoading && !hasError && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/30">
           <Button
             size="lg"
