@@ -1081,7 +1081,7 @@ export default function OfferDetail() {
                 </div>
                 <div className="flex-1">
                   <div className="font-semibold text-base sm:text-lg mb-1">
-                    Location: {offer.geographicRestrictions && offer.geographicRestrictions.length > 0 
+                    Location: {offer.geographicRestrictions && offer.geographicRestrictions.length > 0
                       ? offer.geographicRestrictions.join(", ")
                       : "Worldwide"}
                   </div>
@@ -1092,6 +1092,23 @@ export default function OfferDetail() {
                   </div>
                 </div>
               </div>
+
+              {/* Age Restrictions */}
+              {offer.ageRestriction && (
+                <div className="flex items-start gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <AlertTriangle className="h-6 w-6 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-base sm:text-lg mb-1">
+                      Age Restriction: {offer.ageRestriction}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Your audience must primarily be {offer.ageRestriction} to promote this offer
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Content Style */}
               {offer.contentStyleRequirements && (
@@ -1138,9 +1155,10 @@ export default function OfferDetail() {
               )}
 
               {/* No requirements message */}
-              {!offer.minimumFollowers && 
-               !offer.allowedPlatforms?.length && 
-               !offer.contentStyleRequirements && 
+              {!offer.minimumFollowers &&
+               !offer.allowedPlatforms?.length &&
+               !offer.ageRestriction &&
+               !offer.contentStyleRequirements &&
                !offer.brandSafetyRequirements &&
                !offer.creatorRequirements &&
                !offer.requirements && (
