@@ -24,16 +24,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
-import { Play, Trash2, ExternalLink, Video } from "lucide-react";
+import { Play, Trash2, ExternalLink, Video, Search, SlidersHorizontal } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { TopNavBar } from "../components/TopNavBar";
 import { VideoPlayer } from "../components/VideoPlayer";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 export default function CompanyVideos() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [offerFilter, setOfferFilter] = useState("all");
+  const [platformFilter, setPlatformFilter] = useState("all");
 
   // Fetch all offers for the company
   const { data: offers, isLoading } = useQuery<any[]>({
@@ -62,13 +74,62 @@ export default function CompanyVideos() {
   });
 
   // Collect all videos from all offers
-  const allVideos = offers?.flatMap((offer: any) => 
+  const allVideos = offers?.flatMap((offer: any) =>
     (offer.videos || []).map((video: any) => ({
       ...video,
       offerTitle: offer.title,
       offerId: offer.id,
     }))
   ) || [];
+
+  const offerOptions = useMemo(() => {
+    const uniqueOffers = new Map<string, string>();
+    for (const video of allVideos) {
+      if (video.offerId && !uniqueOffers.has(video.offerId)) {
+        uniqueOffers.set(video.offerId, video.offerTitle || "Untitled Offer");
+      }
+    }
+    return Array.from(uniqueOffers.entries());
+  }, [allVideos]);
+
+  const platformOptions = useMemo(() => {
+    const uniquePlatforms = new Set<string>();
+    for (const video of allVideos) {
+      if (video.originalPlatform) {
+        uniquePlatforms.add(video.originalPlatform);
+      }
+    }
+    return Array.from(uniquePlatforms.values());
+  }, [allVideos]);
+
+  const filteredVideos = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return allVideos.filter((video: any) => {
+      const matchesOffer = offerFilter === "all" || video.offerId === offerFilter;
+      const matchesPlatform =
+        platformFilter === "all" || video.originalPlatform === platformFilter;
+
+      if (normalizedSearch.length === 0) {
+        return matchesOffer && matchesPlatform;
+      }
+
+      const searchableContent = [
+        video.title,
+        video.description,
+        video.offerTitle,
+        video.creatorCredit,
+        video.originalPlatform,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = searchableContent.includes(normalizedSearch);
+
+      return matchesOffer && matchesPlatform && matchesSearch;
+    });
+  }, [allVideos, offerFilter, platformFilter, searchTerm]);
 
   if (isLoading) {
     return (
@@ -89,7 +150,77 @@ export default function CompanyVideos() {
         <p className="text-muted-foreground">
           All promotional videos across your offers ({allVideos.length} total)
         </p>
+        {allVideos.length > 0 && filteredVideos.length !== allVideos.length && (
+          <p className="text-sm text-muted-foreground mt-1">
+            Showing {filteredVideos.length} video{filteredVideos.length === 1 ? "" : "s"} that match your
+            filters
+          </p>
+        )}
       </div>
+
+      {allVideos.length > 0 && (
+        <div className="border border-card-border rounded-lg p-4 bg-muted/30">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="w-full md:max-w-sm">
+              <Label htmlFor="video-search" className="flex items-center gap-2 text-sm font-medium">
+                <Search className="h-4 w-4" />
+                Search videos
+              </Label>
+              <div className="relative mt-2">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="video-search"
+                  placeholder="Search by title, offer, or creator"
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  data-testid="input-video-search"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+              <div className="flex-1 min-w-[200px]">
+                <Label htmlFor="offer-filter" className="flex items-center gap-2 text-sm font-medium">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filter by offer
+                </Label>
+                <Select value={offerFilter} onValueChange={setOfferFilter}>
+                  <SelectTrigger id="offer-filter" data-testid="select-offer-filter">
+                    <SelectValue placeholder="All offers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All offers</SelectItem>
+                    {offerOptions.map(([id, title]) => (
+                      <SelectItem key={id} value={id}>
+                        {title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <Label htmlFor="platform-filter" className="flex items-center gap-2 text-sm font-medium">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filter by platform
+                </Label>
+                <Select value={platformFilter} onValueChange={setPlatformFilter}>
+                  <SelectTrigger id="platform-filter" data-testid="select-platform-filter">
+                    <SelectValue placeholder="All platforms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All platforms</SelectItem>
+                    {platformOptions.map((platform) => (
+                      <SelectItem key={platform} value={platform}>
+                        {platform}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {allVideos.length === 0 ? (
         <Card className="border-card-border">
@@ -101,9 +232,28 @@ export default function CompanyVideos() {
             </p>
           </CardContent>
         </Card>
+      ) : filteredVideos.length === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="p-12 text-center space-y-2">
+            <SlidersHorizontal className="h-12 w-12 text-muted-foreground/50 mx-auto" />
+            <p className="text-muted-foreground font-medium">No videos match your filters</p>
+            <p className="text-sm text-muted-foreground">
+              Try adjusting your search or clearing the filters to see all videos
+            </p>
+            <div className="flex justify-center pt-2">
+              <Button variant="outline" onClick={() => {
+                setSearchTerm("");
+                setOfferFilter("all");
+                setPlatformFilter("all");
+              }} data-testid="button-clear-video-filters">
+                Clear filters
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {allVideos.map((video: any) => (
+          {filteredVideos.map((video: any) => (
             <Card
               key={video.id}
               className="hover-elevate border-card-border overflow-hidden"
