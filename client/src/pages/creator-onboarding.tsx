@@ -25,6 +25,17 @@ import {
   Video
 } from "lucide-react";
 
+type CreatorProfileResponse = {
+  profileImageUrl: string | null;
+  niches: string[] | null;
+  youtubeUrl: string | null;
+  youtubeFollowers: number | null;
+  tiktokUrl: string | null;
+  tiktokFollowers: number | null;
+  instagramUrl: string | null;
+  instagramFollowers: number | null;
+};
+
 const STEPS = [
   { id: 1, title: "Profile Image", description: "Upload your profile picture" },
   { id: 2, title: "Content Niches", description: "Select your content categories" },
@@ -65,6 +76,26 @@ export default function CreatorOnboarding() {
   const { data: niches = [], isLoading: nichesLoading } = useQuery<Array<{ id: string; name: string; description: string | null; isActive: boolean }>>({
     queryKey: ["/api/niches"],
   });
+
+  const { data: existingProfile } = useQuery<CreatorProfileResponse>({
+    queryKey: ["/api/profile"],
+    enabled: !!user && user.role === "creator",
+  });
+
+  useEffect(() => {
+    if (!existingProfile) {
+      return;
+    }
+
+    setProfileImageUrl(existingProfile.profileImageUrl ?? "");
+    setSelectedNiches(existingProfile.niches ?? []);
+    setYoutubeUrl(existingProfile.youtubeUrl ?? "");
+    setYoutubeFollowers(existingProfile.youtubeFollowers ? existingProfile.youtubeFollowers.toString() : "");
+    setTiktokUrl(existingProfile.tiktokUrl ?? "");
+    setTiktokFollowers(existingProfile.tiktokFollowers ? existingProfile.tiktokFollowers.toString() : "");
+    setInstagramUrl(existingProfile.instagramUrl ?? "");
+    setInstagramFollowers(existingProfile.instagramFollowers ? existingProfile.instagramFollowers.toString() : "");
+  }, [existingProfile]);
 
   // Convert niches to the format expected by the component
   const AVAILABLE_NICHES = niches.map(niche => ({
@@ -249,6 +280,7 @@ export default function CreatorOnboarding() {
 
       // Refresh user data and redirect
       await queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setTimeout(() => {
         setLocation("/browse");
       }, 1000);
