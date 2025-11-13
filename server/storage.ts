@@ -577,15 +577,12 @@ export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
   getUserByEmailVerificationToken(token: string): Promise<User | undefined>;
   getUserByPasswordResetToken(token: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
-  deleteUser(id: string): Promise<void>;
-  getUsersByRole(role: 'creator' | 'company' | 'admin'): Promise<User[]>;
 
   // Creator Profiles
   getCreatorProfile(userId: string): Promise<CreatorProfile | undefined>;
@@ -647,7 +644,6 @@ export interface IStorage {
   // Reviews
   getReview(id: string): Promise<Review | undefined>;
   getReviewsByCompany(companyId: string): Promise<Review[]>;
-  getReviewsByCreator(creatorId: string): Promise<Review[]>;
   getReviewsByCreatorAndCompany(creatorId: string, companyId: string): Promise<Review[]>;
   createReview(review: InsertReview): Promise<Review>;
   updateReview(id: string, updates: Partial<Review>): Promise<Review | undefined>;
@@ -803,60 +799,8 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Users
   async getUser(id: string): Promise<User | undefined> {
-    try {
-      const result = await db
-        .select({
-          user: users,
-          companyLogoUrl: companyProfiles.logoUrl,
-        })
-        .from(users)
-        .leftJoin(companyProfiles, eq(users.id, companyProfiles.userId))
-        .where(eq(users.id, id))
-        .limit(1);
-
-      const row = result[0];
-      if (!row) {
-        return undefined;
-      }
-
-      const { user, companyLogoUrl } = row;
-
-      let resolvedProfileImage = user.profileImageUrl ?? null;
-      const normalizedCompanyLogo = companyLogoUrl && companyLogoUrl.trim() !== ""
-        ? companyLogoUrl
-        : null;
-
-      if ((!resolvedProfileImage || resolvedProfileImage.trim() === "") && !user.googleId) {
-        if (user.role === "company" && normalizedCompanyLogo) {
-          resolvedProfileImage = normalizedCompanyLogo;
-        }
-      }
-
-      return {
-        ...user,
-        profileImageUrl: resolvedProfileImage,
-      };
-    } catch (error) {
-      if (
-        isMissingRelationError(error, "company_profiles") ||
-        isMissingColumnError(error, "company_profiles", ["logo_url"])
-      ) {
-        console.warn(
-          "[Storage] Falling back to basic user lookup because company profile data is unavailable",
-        );
-      } else {
-        throw error;
-      }
-    }
-
-    // Fallback: fetch user without company profile join
-    const fallbackResult = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1);
-
-    return fallbackResult[0];
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
@@ -919,10 +863,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return result[0];
-  }
-
-  async deleteUser(id: string): Promise<void> {
-    await db.delete(users).where(eq(users.id, id));
   }
 
   // Creator Profiles
@@ -1207,14 +1147,14 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(offers.companyId, filters.companyId));
     }
 
-    // Search filter - search in title, shortDescription, and fullDescription
+    // Search filter - search in title, shortDescription, and longDescription
     if (filters.search) {
       const searchTerm = `%${filters.search.toLowerCase()}%`;
       conditions.push(
         or(
           sql`LOWER(${offers.title}) LIKE ${searchTerm}`,
           sql`LOWER(${offers.shortDescription}) LIKE ${searchTerm}`,
-          sql`LOWER(${offers.fullDescription}) LIKE ${searchTerm}`
+          sql`LOWER(${offers.longDescription}) LIKE ${searchTerm}`
         )
       );
     }
@@ -1244,7 +1184,7 @@ export class DatabaseStorage implements IStorage {
     if (filters.sortBy === 'highest_commission') {
       // Sort by commission amount/percentage/rate (descending)
       query = (query.orderBy(
-        desc(sql`COALESCE(${offers.commissionAmount}, ${offers.commissionPercentage}, 0)`)
+        desc(sql`COALESCE(${offers.commissionAmount}, ${offers.commissionPercentage}, ${offers.commissionRate}, 0)`)
       ) as unknown) as typeof query;
     } else if (filters.sortBy === 'trending') {
       // Sort by view count and application count
@@ -4495,4 +4435,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage: IStorage = new DatabaseStorage();
+export const storage = new DatabaseStorage();

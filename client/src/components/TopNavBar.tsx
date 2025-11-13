@@ -1,9 +1,9 @@
-import { Settings, ChevronDown, LogOut, User } from "lucide-react";
+import { Settings, ChevronDown, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { useAuth } from "../hooks/useAuth";
 import { Link } from "wouter";
 import { NotificationCenter } from "./NotificationCenter";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,16 +18,12 @@ interface TopNavBarProps {
 
 export function TopNavBar({ children }: TopNavBarProps) {
   const { user } = useAuth();
-  const displayName = user?.firstName || user?.email || "Account";
-  
-  // Get initials for fallback avatar
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user) return "U";
+    const firstName = user.firstName || user.email || "User";
+    return firstName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const handleLogout = async () => {
@@ -58,39 +54,23 @@ export function TopNavBar({ children }: TopNavBarProps) {
             {/* Profile Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-10 px-3 gap-2 hover:bg-accent"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage 
-                      src={user?.profileImageUrl || undefined} 
-                      alt={displayName}
+                <button className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
+                  <Avatar className="h-9 w-9 border-2 border-primary/20">
+                    <AvatarImage
+                      src={user?.profileImageUrl || ''}
+                      alt={user?.firstName || 'User'}
+                      referrerPolicy="no-referrer"
                     />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                      {user?.firstName ? getInitials(user.firstName) : <User className="h-4 w-4" />}
+                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
+                      {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="font-semibold text-sm hidden sm:inline-block">{displayName}</span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <div className="flex items-center gap-3 px-3 py-2 border-b">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage 
-                      src={user?.profileImageUrl || undefined} 
-                      alt={displayName}
-                    />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
-                      {user?.firstName ? getInitials(user.firstName) : <User className="h-4 w-4" />}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{displayName}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{user?.role || 'creator'}</p>
-                  </div>
+                <div className="px-3 py-2 border-b">
+                  <p className="text-sm font-medium">{user?.firstName || user?.email || 'User'}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{user?.role || 'creator'}</p>
                 </div>
                 <DropdownMenuItem asChild>
                   <Link href="/settings">
@@ -99,10 +79,7 @@ export function TopNavBar({ children }: TopNavBarProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={handleLogout}
-                  className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/50"
-                >
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log Out</span>
                 </DropdownMenuItem>

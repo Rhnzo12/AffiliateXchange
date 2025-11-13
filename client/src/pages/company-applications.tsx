@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -10,23 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
-import {
-  FileText,
-  CheckCircle,
-  Clock,
-  XCircle,
-  MessageCircle,
-  DollarSign,
-  Search,
-  SlidersHorizontal,
-} from "lucide-react";
+import { FileText, CheckCircle, Clock, XCircle, MessageCircle, DollarSign } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
@@ -42,9 +26,6 @@ export default function CompanyApplications() {
   const [saleAmount, setSaleAmount] = useState("");
   const [reviewPromptOpen, setReviewPromptOpen] = useState(false);
   const [reviewPromptData, setReviewPromptData] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [offerFilter, setOfferFilter] = useState("all");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -258,77 +239,6 @@ export default function CompanyApplications() {
     }
   };
 
-  const statusOptions = useMemo(() => {
-    const statuses = new Set<string>();
-    for (const application of applications) {
-      if (application.status) {
-        statuses.add(application.status);
-      }
-    }
-    return Array.from(statuses.values());
-  }, [applications]);
-
-  const offerOptions = useMemo(() => {
-    const offers = new Map<string, string>();
-    for (const application of applications) {
-      if (application.offerId) {
-        const key = String(application.offerId);
-        const label = application.offer?.title || `Offer ${key}`;
-        if (!offers.has(key)) {
-          offers.set(key, label);
-        }
-      }
-    }
-    return Array.from(offers.entries()).map(([value, label]) => ({ value, label }));
-  }, [applications]);
-
-  const filteredApplications = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    return applications.filter((application: any) => {
-      const matchesStatus = statusFilter === "all" || application.status === statusFilter;
-      const matchesOffer =
-        offerFilter === "all" || (application.offerId && String(application.offerId) === offerFilter);
-
-      if (!matchesStatus || !matchesOffer) {
-        return false;
-      }
-
-      if (!normalizedSearch) {
-        return true;
-      }
-
-      const searchableContent = [
-        application.creator?.firstName,
-        application.creator?.lastName,
-        [application.creator?.firstName, application.creator?.lastName].filter(Boolean).join(" "),
-        application.offer?.title,
-        application.offer?.description,
-        Array.isArray(application.offer?.niches)
-          ? application.offer?.niches.join(" ")
-          : application.offer?.niches,
-        application.offer?.platform,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return searchableContent.includes(normalizedSearch);
-    });
-  }, [applications, offerFilter, searchTerm, statusFilter]);
-
-  const hasActiveFilters =
-    searchTerm.trim().length > 0 || statusFilter !== "all" || offerFilter !== "all";
-
-  const clearFilters = () => {
-    setSearchTerm("");
-    setStatusFilter("all");
-    setOfferFilter("all");
-  };
-
-  const totalApplications = applications.length;
-  const filteredCount = filteredApplications.length;
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -349,280 +259,167 @@ export default function CompanyApplications() {
 
       {loadingApplications ? (
         <ListSkeleton count={5} />
+      ) : applications.length === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No applications yet</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Creators will appear here when they apply to your offers
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
-          {totalApplications > 0 && (
-            <Card className="border border-card-border bg-muted/30">
-              <CardContent className="p-4">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                  <div className="w-full xl:max-w-sm">
-                    <Label htmlFor="applications-search" className="flex items-center gap-2 text-sm font-medium">
-                      <Search className="h-4 w-4" />
-                      Search applications
-                    </Label>
-                    <div className="relative mt-2">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        id="applications-search"
-                        placeholder="Search by creator or offer"
-                        className="pl-9"
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        data-testid="input-applications-search"
-                      />
+          {applications.map((app: any) => (
+            <Card key={app.id} className="border-card-border" data-testid={`card-application-${app.id}`}>
+              <CardHeader className="pb-3 sm:pb-6">
+                <div className="flex items-start justify-between gap-2 sm:gap-4">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
+                      <AvatarImage src={app.creator?.profileImageUrl} />
+                      <AvatarFallback>
+                        {app.creator?.firstName?.[0] || 'C'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-base sm:text-lg truncate">
+                        {app.creator?.firstName || 'Creator'}
+                      </CardTitle>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                        {app.offer?.title || 'Offer'}
+                      </p>
                     </div>
                   </div>
-
-                  <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
-                    <div className="flex-1 min-w-[200px]">
-                      <Label htmlFor="applications-status-filter" className="flex items-center gap-2 text-sm font-medium">
-                        <SlidersHorizontal className="h-4 w-4" />
-                        Filter by status
-                      </Label>
-                      <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger
-                          id="applications-status-filter"
-                          data-testid="select-applications-status-filter"
-                        >
-                          <SelectValue placeholder="All statuses" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All statuses</SelectItem>
-                          {statusOptions.map((status) => (
-                            <SelectItem key={status} value={status} className="capitalize">
-                              {status.replace("_", " ")}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex-1 min-w-[200px]">
-                      <Label htmlFor="applications-offer-filter" className="flex items-center gap-2 text-sm font-medium">
-                        <SlidersHorizontal className="h-4 w-4" />
-                        Filter by offer
-                      </Label>
-                      <Select value={offerFilter} onValueChange={setOfferFilter}>
-                        <SelectTrigger
-                          id="applications-offer-filter"
-                          data-testid="select-applications-offer-filter"
-                        >
-                          <SelectValue placeholder="All offers" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All offers</SelectItem>
-                          {offerOptions.map((offer) => (
-                            <SelectItem key={offer.value} value={offer.value}>
-                              {offer.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 xl:items-end">
-                    <div className="text-sm text-muted-foreground">
-                      Showing {filteredCount} of {totalApplications} applications
-                    </div>
-                    {hasActiveFilters && (
-                      <Button
-                        variant="ghost"
-                        onClick={clearFilters}
-                        className="self-start sm:self-auto"
-                        data-testid="button-clear-application-filters"
-                      >
-                        Clear filters
-                      </Button>
-                    )}
+                  <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                    <span className="hidden sm:inline">{getStatusIcon(app.status)}</span>
+                    <Badge
+                      variant={
+                        app.status === 'approved' ? 'default' :
+                        app.status === 'pending' ? 'secondary' :
+                        'destructive'
+                      }
+                      className="text-xs"
+                      data-testid={`badge-status-${app.id}`}
+                    >
+                      {app.status}
+                    </Badge>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {totalApplications === 0 ? (
-            <Card className="border-card-border">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No applications yet</h3>
-                <p className="text-sm text-muted-foreground text-center max-w-md">
-                  Creators will appear here when they apply to your offers
-                </p>
-              </CardContent>
-            </Card>
-          ) : filteredCount === 0 ? (
-            <Card className="border-card-border">
-              <CardContent className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
-                <FileText className="h-12 w-12 text-muted-foreground/50" />
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">No applications match your filters</h3>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    Try adjusting your search or filters to find the applications you are looking for.
-                  </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-sm">
+                  <div>
+                    <div className="text-muted-foreground text-xs sm:text-sm mb-1">Applied</div>
+                    <div className="font-medium text-xs sm:text-sm">
+                      {formatDistanceToNow(new Date(app.createdAt), { addSuffix: true })}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground text-xs sm:text-sm mb-1">Clicks</div>
+                    <div className="font-medium text-xs sm:text-sm">{app.clickCount || 0}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground text-xs sm:text-sm mb-1">Conversions</div>
+                    <div className="font-medium text-xs sm:text-sm">{app.conversionCount || 0}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground text-xs sm:text-sm mb-1">Earnings</div>
+                    <div className="font-medium text-xs sm:text-sm">${app.totalEarnings || '0.00'}</div>
+                  </div>
                 </div>
-                {hasActiveFilters && (
-                  <Button
-                    variant="outline"
-                    onClick={clearFilters}
-                    data-testid="button-reset-application-filters"
-                  >
-                    Clear filters
-                  </Button>
+
+                {app.trackingLink && (
+                  <div className="p-2 sm:p-3 bg-muted/50 rounded-md">
+                    <div className="text-xs text-muted-foreground mb-1">Tracking Link</div>
+                    <code className="text-[10px] sm:text-xs break-all leading-relaxed">{app.trackingLink}</code>
+                  </div>
                 )}
-              </CardContent>
-            </Card>
-          ) : (
-            filteredApplications.map((app: any) => (
-              <Card key={app.id} className="border-card-border" data-testid={`card-application-${app.id}`}>
-                <CardHeader className="pb-3 sm:pb-6">
-                  <div className="flex items-start justify-between gap-2 sm:gap-4">
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                      <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
-                        <AvatarImage src={app.creator?.profileImageUrl} />
-                        <AvatarFallback>
-                          {app.creator?.firstName?.[0] || 'C'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <CardTitle className="text-base sm:text-lg truncate">
-                          {app.creator?.firstName || 'Creator'}
-                        </CardTitle>
-                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                          {app.offer?.title || 'Offer'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                      <span className="hidden sm:inline">{getStatusIcon(app.status)}</span>
-                      <Badge
-                        variant={
-                          app.status === 'approved' ? 'default' :
-                          app.status === 'pending' ? 'secondary' :
-                          'destructive'
-                        }
-                        className="text-xs"
-                        data-testid={`badge-status-${app.id}`}
-                      >
-                        {app.status}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-sm">
-                    <div>
-                      <div className="text-muted-foreground text-xs sm:text-sm mb-1">Applied</div>
-                      <div className="font-medium text-xs sm:text-sm">
-                        {formatDistanceToNow(new Date(app.createdAt), { addSuffix: true })}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground text-xs sm:text-sm mb-1">Clicks</div>
-                      <div className="font-medium text-xs sm:text-sm">{app.clickCount || 0}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground text-xs sm:text-sm mb-1">Conversions</div>
-                      <div className="font-medium text-xs sm:text-sm">{app.conversionCount || 0}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground text-xs sm:text-sm mb-1">Earnings</div>
-                      <div className="font-medium text-xs sm:text-sm">${app.totalEarnings || '0.00'}</div>
-                    </div>
-                  </div>
 
-                  {app.trackingLink && (
-                    <div className="p-2 sm:p-3 bg-muted/50 rounded-md">
-                      <div className="text-xs text-muted-foreground mb-1">Tracking Link</div>
-                      <code className="text-[10px] sm:text-xs break-all leading-relaxed">{app.trackingLink}</code>
-                    </div>
-                  )}
+                {/* Approve/Reject buttons for pending applications */}
+                {app.status === 'pending' && (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      onClick={() => handleApprove(app.id)}
+                      variant="default"
+                      className="flex-1 w-full sm:w-auto"
+                      disabled={approveApplicationMutation.isPending}
+                      data-testid={`button-approve-${app.id}`}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      {approveApplicationMutation.isPending ? 'Approving...' : 'Approve'}
+                    </Button>
+                    <Button
+                      onClick={() => handleReject(app.id)}
+                      variant="destructive"
+                      className="flex-1 w-full sm:w-auto"
+                      disabled={rejectApplicationMutation.isPending}
+                      data-testid={`button-reject-${app.id}`}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      {rejectApplicationMutation.isPending ? 'Rejecting...' : 'Reject'}
+                    </Button>
+                  </div>
+                )}
 
-                  {/* Approve/Reject buttons for pending applications */}
-                  {app.status === 'pending' && (
+                {/* Message, Record Conversion, and Complete buttons for approved applications */}
+                {(app.status === 'approved' || app.status === 'rejected') && (
+                  <div className="flex flex-col gap-2">
                     <div className="flex flex-col sm:flex-row gap-2">
                       <Button
-                        onClick={() => handleApprove(app.id)}
-                        variant="default"
+                        onClick={() => handleMessageCreator(app.id)}
+                        variant="outline"
                         className="flex-1 w-full sm:w-auto"
-                        disabled={approveApplicationMutation.isPending}
-                        data-testid={`button-approve-${app.id}`}
+                        disabled={startConversationMutation.isPending}
+                        data-testid={`button-message-creator-${app.id}`}
                       >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        {approveApplicationMutation.isPending ? 'Approving...' : 'Approve'}
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">{startConversationMutation.isPending ? 'Opening...' : 'Message Creator'}</span>
+                        <span className="sm:hidden">{startConversationMutation.isPending ? 'Opening...' : 'Message'}</span>
                       </Button>
-                      <Button
-                        onClick={() => handleReject(app.id)}
-                        variant="destructive"
-                        className="flex-1 w-full sm:w-auto"
-                        disabled={rejectApplicationMutation.isPending}
-                        data-testid={`button-reject-${app.id}`}
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        {rejectApplicationMutation.isPending ? 'Rejecting...' : 'Reject'}
-                      </Button>
-                    </div>
-                  )}
 
-                  {/* Message, Record Conversion, and Complete buttons for approved applications */}
-                  {(app.status === 'approved' || app.status === 'rejected') && (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Button
-                          onClick={() => handleMessageCreator(app.id)}
-                          variant="outline"
-                          className="flex-1 w-full sm:w-auto"
-                          disabled={startConversationMutation.isPending}
-                          data-testid={`button-message-creator-${app.id}`}
-                        >
-                          <MessageCircle className="h-4 w-4 mr-2" />
-                          <span className="hidden sm:inline">{startConversationMutation.isPending ? 'Opening...' : 'Message Creator'}</span>
-                          <span className="sm:hidden">{startConversationMutation.isPending ? 'Opening...' : 'Message'}</span>
-                        </Button>
-
-                        {app.status === 'approved' && !app.completedAt && (
-                          <Button
-                            onClick={() => handleMarkComplete(app.id, app.creator?.firstName || 'this creator')}
-                            variant="default"
-                            className="flex-1 w-full sm:w-auto"
-                            disabled={completeApplicationMutation.isPending}
-                            data-testid={`button-mark-complete-${app.id}`}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            <span className="hidden sm:inline">{completeApplicationMutation.isPending ? 'Processing...' : 'Mark Work Complete'}</span>
-                            <span className="sm:hidden">{completeApplicationMutation.isPending ? 'Processing...' : 'Complete'}</span>
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Record Conversion button for approved applications */}
                       {app.status === 'approved' && !app.completedAt && (
                         <Button
-                          onClick={() => handleRecordConversion(app)}
-                          variant="secondary"
-                          className="w-full"
-                          disabled={recordConversionMutation.isPending}
-                          data-testid={`button-record-conversion-${app.id}`}
+                          onClick={() => handleMarkComplete(app.id, app.creator?.firstName || 'this creator')}
+                          variant="default"
+                          className="flex-1 w-full sm:w-auto"
+                          disabled={completeApplicationMutation.isPending}
+                          data-testid={`button-mark-complete-${app.id}`}
                         >
-                          <DollarSign className="h-4 w-4 mr-2" />
-                          Record Conversion
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          <span className="hidden sm:inline">{completeApplicationMutation.isPending ? 'Processing...' : 'Mark Work Complete'}</span>
+                          <span className="sm:hidden">{completeApplicationMutation.isPending ? 'Processing...' : 'Complete'}</span>
                         </Button>
                       )}
                     </div>
-                  )}
 
-                  {app.completedAt && (
-                    <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                      <CheckCircle className="h-4 w-4" />
-                      <span>
-                        Work completed {formatDistanceToNow(new Date(app.completedAt), { addSuffix: true })}
-                      </span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
-          )}
+                    {/* Record Conversion button for approved applications */}
+                    {app.status === 'approved' && !app.completedAt && (
+                      <Button
+                        onClick={() => handleRecordConversion(app)}
+                        variant="secondary"
+                        className="w-full"
+                        disabled={recordConversionMutation.isPending}
+                        data-testid={`button-record-conversion-${app.id}`}
+                      >
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Record Conversion
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {app.completedAt && (
+                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>
+                      Work completed {formatDistanceToNow(new Date(app.completedAt), { addSuffix: true })}
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
