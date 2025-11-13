@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
@@ -8,7 +8,25 @@ import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
-import { Star, Eye, EyeOff, Trash2, FileText, CheckCircle2, AlertCircle } from "lucide-react";
+import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import {
+  Star,
+  Eye,
+  EyeOff,
+  Trash2,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
@@ -21,6 +39,10 @@ export default function AdminReviews() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [adminNote, setAdminNote] = useState("");
   const [editedReview, setEditedReview] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("all");
+  const [visibilityFilter, setVisibilityFilter] = useState("all");
+  const [approvalFilter, setApprovalFilter] = useState("all");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -185,6 +207,54 @@ export default function AdminReviews() {
     );
   };
 
+  const filteredReviews = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return reviews.filter((review: any) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        [
+          review.creatorId,
+          review.companyId,
+          review.reviewText,
+          review.companyResponse,
+          review.adminNote,
+        ]
+          .map((value) => (value ? String(value).toLowerCase() : ""))
+          .some((value) => value.includes(normalizedSearch));
+
+      const matchesRating =
+        ratingFilter === "all" ||
+        (typeof review.overallRating === "number" && review.overallRating === Number(ratingFilter));
+
+      const matchesVisibility =
+        visibilityFilter === "all" ||
+        (visibilityFilter === "hidden" ? review.isHidden : !review.isHidden);
+
+      const matchesApproval =
+        approvalFilter === "all" ||
+        (approvalFilter === "approved" ? review.isApproved : !review.isApproved);
+
+      return matchesSearch && matchesRating && matchesVisibility && matchesApproval;
+    });
+  }, [approvalFilter, ratingFilter, reviews, searchTerm, visibilityFilter]);
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      searchTerm.trim().length > 0 ||
+      ratingFilter !== "all" ||
+      visibilityFilter !== "all" ||
+      approvalFilter !== "all"
+    );
+  }, [approvalFilter, ratingFilter, searchTerm, visibilityFilter]);
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setRatingFilter("all");
+    setVisibilityFilter("all");
+    setApprovalFilter("all");
+  };
+
   return (
     <div className="space-y-8">
       <TopNavBar />
@@ -247,12 +317,121 @@ export default function AdminReviews() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {reviews.map((review: any) => (
-            <Card 
-              key={review.id} 
-              className={`border-card-border ${review.isHidden ? 'opacity-50' : ''}`}
-              data-testid={`card-review-${review.id}`}
-            >
+          <Card className="border border-card-border bg-muted/30" data-testid="card-review-filters">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                <div className="w-full xl:max-w-md">
+                  <Label htmlFor="admin-review-search" className="flex items-center gap-2 text-sm font-medium">
+                    <Search className="h-4 w-4" />
+                    Search reviews
+                  </Label>
+                  <div className="relative mt-2">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="admin-review-search"
+                      className="pl-9"
+                      placeholder="Search by creator, company, or review text"
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      data-testid="input-admin-review-search"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 xl:flex xl:flex-row xl:items-end xl:gap-4">
+                  <div className="min-w-[200px]">
+                    <Label htmlFor="admin-review-rating-filter" className="flex items-center gap-2 text-sm font-medium">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filter by rating
+                    </Label>
+                    <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                      <SelectTrigger id="admin-review-rating-filter" data-testid="select-admin-review-rating-filter">
+                        <SelectValue placeholder="All ratings" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All ratings</SelectItem>
+                        <SelectItem value="5">5 stars</SelectItem>
+                        <SelectItem value="4">4 stars</SelectItem>
+                        <SelectItem value="3">3 stars</SelectItem>
+                        <SelectItem value="2">2 stars</SelectItem>
+                        <SelectItem value="1">1 star</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="min-w-[200px]">
+                    <Label htmlFor="admin-review-visibility-filter" className="flex items-center gap-2 text-sm font-medium">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filter by visibility
+                    </Label>
+                    <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
+                      <SelectTrigger id="admin-review-visibility-filter" data-testid="select-admin-review-visibility-filter">
+                        <SelectValue placeholder="All visibility" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All reviews</SelectItem>
+                        <SelectItem value="hidden">Hidden reviews</SelectItem>
+                        <SelectItem value="visible">Visible reviews</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="min-w-[200px]">
+                    <Label htmlFor="admin-review-approval-filter" className="flex items-center gap-2 text-sm font-medium">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filter by approval
+                    </Label>
+                    <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+                      <SelectTrigger id="admin-review-approval-filter" data-testid="select-admin-review-approval-filter">
+                        <SelectValue placeholder="All approval" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All reviews</SelectItem>
+                        <SelectItem value="approved">Approved reviews</SelectItem>
+                        <SelectItem value="pending">Pending approval</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {hasActiveFilters && (
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearFilters}
+                    data-testid="button-clear-admin-review-filters"
+                  >
+                    Clear filters
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {filteredReviews.length === 0 ? (
+            <Card className="border-card-border" data-testid="card-no-admin-reviews">
+              <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+                <Search className="h-10 w-10 text-muted-foreground/60" />
+                <div>
+                  <h3 className="text-lg font-semibold">No reviews match these filters</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Try adjusting your search or filters to see more reviews.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                  Clear filters
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredReviews.map((review: any) => (
+              <Card
+                key={review.id}
+                className={`border-card-border ${review.isHidden ? 'opacity-50' : ''}`}
+                data-testid={`card-review-${review.id}`}
+              >
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
@@ -371,7 +550,8 @@ export default function AdminReviews() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            ))
+          )}
         </div>
       )}
 
