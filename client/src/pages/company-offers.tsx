@@ -1,11 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { TrendingUp, Plus, DollarSign, Users, Eye, MoreVertical, Trash2, Edit, ImageIcon, Play, Star, MousePointer, Crown } from "lucide-react";
+import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import {
+  TrendingUp,
+  Plus,
+  DollarSign,
+  Users,
+  Eye,
+  MoreVertical,
+  Trash2,
+  Edit,
+  ImageIcon,
+  Play,
+  Star,
+  MousePointer,
+  Crown,
+  Filter,
+  X,
+} from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { PriorityListingPurchase } from "../components/PriorityListingPurchase";
@@ -123,6 +147,10 @@ export default function CompanyOffers() {
     offerTitle: string;
     isRenewal: boolean;
   } | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [commissionFilter, setCommissionFilter] = useState("all");
+  const [nicheFilter, setNicheFilter] = useState("all");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -141,6 +169,53 @@ export default function CompanyOffers() {
     queryKey: ["/api/company/offers"],
     enabled: isAuthenticated,
   });
+
+  const uniqueStatuses = useMemo(
+    () => Array.from(new Set(offers.map((offer: any) => offer.status).filter(Boolean))),
+    [offers]
+  );
+
+  const uniqueCommissionTypes = useMemo(
+    () => Array.from(new Set(offers.map((offer: any) => offer.commissionType).filter(Boolean))),
+    [offers]
+  );
+
+  const uniqueNiches = useMemo(() => {
+    const niches = new Set<string>();
+    offers.forEach((offer: any) => {
+      if (offer.primaryNiche) niches.add(offer.primaryNiche);
+      if (offer.secondaryNiche) niches.add(offer.secondaryNiche);
+    });
+    return Array.from(niches);
+  }, [offers]);
+
+  const filteredOffers = useMemo(() => {
+    return offers.filter((offer: any) => {
+      const matchesSearch = searchTerm
+        ? [offer.title, offer.company?.tradeName, offer.company?.legalName, offer.primaryNiche, offer.secondaryNiche]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
+      const matchesStatus = statusFilter === "all" || offer.status === statusFilter;
+      const matchesCommission = commissionFilter === "all" || offer.commissionType === commissionFilter;
+      const matchesNiche =
+        nicheFilter === "all"
+          ? true
+          : offer.primaryNiche === nicheFilter || offer.secondaryNiche === nicheFilter;
+
+      return matchesSearch && matchesStatus && matchesCommission && matchesNiche;
+    });
+  }, [commissionFilter, nicheFilter, offers, searchTerm, statusFilter]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || statusFilter !== "all" || commissionFilter !== "all" || nicheFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setCommissionFilter("all");
+    setNicheFilter("all");
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (offerId: string) => {
@@ -204,6 +279,86 @@ export default function CompanyOffers() {
           </Link>
         </div>
 
+        <Card className="border-card-border">
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Filter className="h-4 w-4" />
+                <span className="text-sm font-semibold uppercase tracking-wider">Search & Filter</span>
+              </div>
+              <div className="sm:ml-auto text-sm text-muted-foreground">
+                Showing <span className="font-semibold text-foreground">{filteredOffers.length}</span> of {offers.length} offer
+                {offers.length === 1 ? "" : "s"}
+              </div>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" className="text-xs sm:ml-4" onClick={clearFilters}>
+                  <X className="h-3 w-3 mr-1" />
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Search</label>
+                <Input
+                  placeholder="Search offers, companies, or niches"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {uniqueStatuses.map((status) => (
+                      <SelectItem key={status} value={status} className="capitalize">
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Commission Type</label>
+                <Select value={commissionFilter} onValueChange={setCommissionFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All commission types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    {uniqueCommissionTypes.map((type) => (
+                      <SelectItem key={type} value={type} className="capitalize">
+                        {type.replace("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Niche</label>
+                <Select value={nicheFilter} onValueChange={setNicheFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All niches" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Niches</SelectItem>
+                    {uniqueNiches.map((niche) => (
+                      <SelectItem key={niche} value={niche}>
+                        {niche}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Offers Grid */}
         {loadingOffers ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -229,9 +384,19 @@ export default function CompanyOffers() {
               </Link>
             </CardContent>
           </Card>
+        ) : filteredOffers.length === 0 ? (
+          <Card className="border-card-border">
+            <CardContent className="p-12 text-center space-y-2">
+              <TrendingUp className="h-10 w-10 mx-auto text-muted-foreground/40" />
+              <h3 className="text-lg font-semibold">No offers match your filters</h3>
+              <p className="text-sm text-muted-foreground">
+                Try adjusting your search query or resetting the selected filters.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {offers.map((offer: any) => {
+            {filteredOffers.map((offer: any) => {
               const category = getOfferCategory(offer);
               const isRetainer = offer.commissionType === 'monthly_retainer';
 
