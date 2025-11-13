@@ -42,7 +42,6 @@ import {
   XCircle,
   Search,
 } from "lucide-react";
-
 import type { User } from "../../../shared/schema";
 import { TopNavBar } from "../components/TopNavBar";
 
@@ -122,6 +121,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | "all">("all");
   const [methodFilter, setMethodFilter] = useState<string>("all");
+
   const { totalEarnings, pendingEarnings, completedEarnings, processingEarnings } = useMemo(() => {
     const totals = payments.reduce(
       (acc, payment) => {
@@ -140,17 +140,14 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
       },
       { totalEarnings: 0, pendingEarnings: 0, completedEarnings: 0, processingEarnings: 0 }
     );
-
     return totals;
   }, [payments]);
 
   const methodOptions = useMemo(() => {
     const methodMap = new Map<string, string>();
     let includeUnspecified = false;
-
     payments.forEach((payment) => {
       const method = payment.paymentMethod?.trim();
-
       if (method && method.length > 0) {
         const key = method.toLowerCase();
         if (!methodMap.has(key)) {
@@ -160,7 +157,6 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
         includeUnspecified = true;
       }
     });
-
     return {
       options: Array.from(methodMap.entries()).sort((a, b) => a[1].localeCompare(b[1])),
       includeUnspecified,
@@ -169,12 +165,10 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
 
   const filteredPayments = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-
     return payments.filter((payment) => {
       if (statusFilter !== "all" && payment.status !== statusFilter) {
         return false;
       }
-
       if (methodFilter !== "all") {
         const normalizedMethod = payment.paymentMethod?.trim().toLowerCase() ?? "";
         if (methodFilter === "__unspecified__") {
@@ -185,11 +179,9 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
           return false;
         }
       }
-
       if (normalizedSearch.length === 0) {
         return true;
       }
-
       const searchableContent = [
         payment.description,
         payment.id,
@@ -204,13 +196,13 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-
       return searchableContent.includes(normalizedSearch);
     });
   }, [methodFilter, payments, searchTerm, statusFilter]);
 
   const hasActiveFilters =
     searchTerm.trim().length > 0 || statusFilter !== "all" || methodFilter !== "all";
+
   const handleClearFilters = () => {
     setSearchTerm("");
     setStatusFilter("all");
@@ -250,7 +242,6 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
     ]
       .map((row) => row.join(","))
       .join("\n");
-
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -258,7 +249,6 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
     a.download = `payments-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-
     toast({
       title: "Success",
       description: "Payment history exported successfully",
@@ -276,7 +266,6 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
           <div className="text-3xl font-bold">${totalEarnings.toFixed(2)}</div>
           <div className="mt-1 text-xs text-green-100">All-time</div>
         </div>
-
         <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-6">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm text-yellow-700">Pending Admin Approval</span>
@@ -285,7 +274,6 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
           <div className="text-3xl font-bold text-yellow-900">${pendingEarnings.toFixed(2)}</div>
           <div className="mt-1 text-xs text-yellow-700">Company approved, awaiting admin</div>
         </div>
-
         <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm text-blue-700">Processing Payment</span>
@@ -294,7 +282,6 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
           <div className="text-3xl font-bold text-blue-900">${processingEarnings.toFixed(2)}</div>
           <div className="mt-1 text-xs text-blue-700">Payment in progress</div>
         </div>
-
         <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm text-gray-600">Paid Out</span>
@@ -351,7 +338,6 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
                   />
                 </div>
               </div>
-
               <div className="flex flex-col gap-2 lg:w-56">
                 <Label htmlFor="creator-payments-status" className="text-sm font-medium text-gray-700">
                   Status
@@ -373,7 +359,6 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
                   </SelectContent>
                 </Select>
               </div>
-
               {showMethodFilter && (
                 <div className="flex flex-col gap-2 lg:w-56">
                   <Label htmlFor="creator-payments-method" className="text-sm font-medium text-gray-700">
@@ -400,6 +385,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
             </div>
           )}
         </div>
+
         <div className="overflow-x-auto">
           {totalPayments === 0 ? (
             <div className="py-12 text-center">
@@ -715,25 +701,22 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
   const [disputeReason, setDisputeReason] = useState("");
 
   const pendingPayouts = useMemo(
-    () => payouts.filter((payout) => payout.status === "pending" || payout.status === "processing"),
+    () => payouts.filter((payout) => payout.status === "pending"),
     [payouts]
   );
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "processing">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending">("all");
 
   const filteredPendingPayouts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-
     return pendingPayouts.filter((payout) => {
       if (statusFilter !== "all" && payout.status !== statusFilter) {
         return false;
       }
-
       if (normalizedSearch.length === 0) {
         return true;
       }
-
       const searchableContent = [
         payout.description,
         payout.id,
@@ -745,7 +728,6 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-
       return searchableContent.includes(normalizedSearch);
     });
   }, [pendingPayouts, searchTerm, statusFilter]);
@@ -772,11 +754,23 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
       const res = await apiRequest("POST", `/api/company/payments/${paymentId}/approve`, {});
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, paymentId) => {
+      // Optimistically update the cache
+      queryClient.setQueryData<CreatorPayment[]>(["/api/payments/company"], (old) => {
+        if (!old) return old;
+        return old.map(payment => 
+          payment.id === paymentId 
+            ? { ...payment, status: "processing" as PaymentStatus }
+            : payment
+        );
+      });
+      
+      // Then invalidate to refetch from server
       queryClient.invalidateQueries({ queryKey: ["/api/payments/company"] });
+      
       toast({
         title: "Success",
-        description: "Payment approved successfully",
+        description: "Payment approved and moved to processing",
       });
     },
     onError: (error: Error) => {
@@ -793,10 +787,23 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
       const res = await apiRequest("POST", `/api/company/payments/${paymentId}/dispute`, { reason });
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Optimistically update the cache
+      queryClient.setQueryData<CreatorPayment[]>(["/api/payments/company"], (old) => {
+        if (!old) return old;
+        return old.map(payment => 
+          payment.id === variables.paymentId 
+            ? { ...payment, status: "failed" as PaymentStatus }
+            : payment
+        );
+      });
+      
+      // Then invalidate to refetch from server
       queryClient.invalidateQueries({ queryKey: ["/api/payments/company"] });
+      
       setDisputePayoutId(null);
       setDisputeReason("");
+      
       toast({
         title: "Success",
         description: "Payment disputed successfully",
@@ -853,6 +860,7 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
               </Button>
             )}
           </div>
+
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-700 md:col-span-2">
               <Filter className="h-4 w-4 text-gray-400" />
@@ -867,19 +875,18 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                 className="pl-9"
               />
             </div>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | "pending" | "processing")}
-            >
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | "pending")}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="processing">Processing</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
+
         <div className="divide-y divide-gray-200">
           {pendingPayouts.length === 0 ? (
             <div className="py-12 text-center">
@@ -895,76 +902,81 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
               )}
             </div>
           ) : (
-            filteredPendingPayouts.map((payout) => (
-              <div key={payout.id} className="p-6 transition hover:bg-gray-50">
-                <div className="mb-4 flex items-start justify-between">
-                  <div>
-                    <div className="mb-2 flex items-center gap-3">
-                      <h4 className="font-bold text-gray-900">
-                        {payout.description || `Payment ${payout.id.slice(0, 8)}`}
-                      </h4>
-                      <StatusBadge status={payout.status} />
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      Created: {new Date(payout.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900">
-                      ${parseFloat(payout.grossAmount).toFixed(2)}
-                    </div>
-                    <div className="text-xs text-gray-500">Creator payment</div>
-                  </div>
-                </div>
-
-                <div className="mb-4 rounded-lg bg-gray-50 p-4">
-                  <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-3">
+            filteredPendingPayouts.map((payout) => {
+              const isApproving = approvePaymentMutation.isPending && approvePaymentMutation.variables === payout.id;
+              const isDisputing = disputePaymentMutation.isPending && disputePaymentMutation.variables?.paymentId === payout.id;
+              
+              return (
+                <div key={payout.id} className="p-6 transition hover:bg-gray-50">
+                  <div className="mb-4 flex items-start justify-between">
                     <div>
-                      <div className="mb-1 text-gray-600">Creator Payment</div>
-                      <div className="font-medium text-gray-900">
+                      <div className="mb-2 flex items-center gap-3">
+                        <h4 className="font-bold text-gray-900">
+                          {payout.description || `Payment ${payout.id.slice(0, 8)}`}
+                        </h4>
+                        <StatusBadge status={payout.status} />
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Created: {new Date(payout.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900">
                         ${parseFloat(payout.grossAmount).toFixed(2)}
                       </div>
+                      <div className="text-xs text-gray-500">Creator payment</div>
                     </div>
-                    <div>
-                      <div className="mb-1 text-gray-600">Platform Fee (4%)</div>
-                      <div className="font-medium text-gray-900">
-                        ${parseFloat(payout.platformFeeAmount).toFixed(2)}
+                  </div>
+
+                  <div className="mb-4 rounded-lg bg-gray-50 p-4">
+                    <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-3">
+                      <div>
+                        <div className="mb-1 text-gray-600">Creator Payment</div>
+                        <div className="font-medium text-gray-900">
+                          ${parseFloat(payout.grossAmount).toFixed(2)}
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <div className="mb-1 text-gray-600">Processing (3%)</div>
-                      <div className="font-medium text-gray-900">
-                        ${parseFloat(payout.stripeFeeAmount).toFixed(2)}
+                      <div>
+                        <div className="mb-1 text-gray-600">Platform Fee (4%)</div>
+                        <div className="font-medium text-gray-900">
+                          ${parseFloat(payout.platformFeeAmount).toFixed(2)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="mb-1 text-gray-600">Processing (3%)</div>
+                        <div className="font-medium text-gray-900">
+                          ${parseFloat(payout.stripeFeeAmount).toFixed(2)}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex gap-3">
-                  <Button
-                    className="flex-1 gap-2 bg-green-600 text-white hover:bg-green-700"
-                    onClick={() => approvePaymentMutation.mutate(payout.id)}
-                    disabled={approvePaymentMutation.isPending}
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    {approvePaymentMutation.isPending ? "Approving..." : "Approve Payment"}
-                  </Button>
-                  <Button
-                    className="flex-1 gap-2 bg-red-600 text-white hover:bg-red-700"
-                    onClick={() => {
-                      const reason = prompt("Enter reason for dispute:");
-                      if (reason) {
-                        disputePaymentMutation.mutate({ paymentId: payout.id, reason });
-                      }
-                    }}
-                    disabled={disputePaymentMutation.isPending}
-                  >
-                    <XCircle className="h-4 w-4" />
-                    {disputePaymentMutation.isPending ? "Disputing..." : "Dispute"}
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      className="flex-1 gap-2 bg-green-600 text-white hover:bg-green-700"
+                      onClick={() => approvePaymentMutation.mutate(payout.id)}
+                      disabled={isApproving || isDisputing}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      {isApproving ? "Approving..." : "Approve Payment"}
+                    </Button>
+                    <Button
+                      className="flex-1 gap-2 bg-red-600 text-white hover:bg-red-700"
+                      onClick={() => {
+                        const reason = prompt("Enter reason for dispute:");
+                        if (reason) {
+                          disputePaymentMutation.mutate({ paymentId: payout.id, reason });
+                        }
+                      }}
+                      disabled={isApproving || isDisputing}
+                    >
+                      <XCircle className="h-4 w-4" />
+                      {isDisputing ? "Disputing..." : "Dispute"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
@@ -974,6 +986,7 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
 
 function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
   const { toast } = useToast();
+
   const totalPaid = payouts
     .filter((p) => p.status === "completed")
     .reduce((sum, p) => sum + parseFloat(p.grossAmount), 0);
@@ -989,7 +1002,6 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
   const methodOptions = useMemo(() => {
     const methodMap = new Map<string, string>();
     let includeUnspecified = false;
-
     payouts.forEach((payout) => {
       const method = payout.paymentMethod?.trim();
       if (method && method.length > 0) {
@@ -1004,7 +1016,6 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
         includeUnspecified = true;
       }
     });
-
     return {
       options: Array.from(methodMap.entries()).sort((a, b) => a[1].localeCompare(b[1])),
       includeUnspecified,
@@ -1013,12 +1024,10 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
 
   const filteredPayouts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-
     return payouts.filter((payout) => {
       if (statusFilter !== "all" && payout.status !== statusFilter) {
         return false;
       }
-
       if (methodFilter !== "all") {
         const normalizedMethod = payout.paymentMethod?.trim().toLowerCase() ?? "";
         if (methodFilter === "__unspecified__") {
@@ -1029,11 +1038,9 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
           return false;
         }
       }
-
       if (normalizedSearch.length === 0) {
         return true;
       }
-
       const searchableContent = [
         payout.description,
         payout.id,
@@ -1048,7 +1055,6 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-
       return searchableContent.includes(normalizedSearch);
     });
   }, [methodFilter, payouts, searchTerm, statusFilter]);
@@ -1154,6 +1160,7 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
               </Button>
             </div>
           </div>
+
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-700 md:col-span-3">
               <Filter className="h-4 w-4 text-gray-400" />
@@ -1199,6 +1206,7 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
             </Select>
           </div>
         </div>
+
         <div className="overflow-x-auto">
           {payouts.length === 0 ? (
             <div className="py-12 text-center">
@@ -1309,7 +1317,6 @@ function AdminPaymentDashboard({
   const methodOptions = useMemo(() => {
     const methodMap = new Map<string, string>();
     let includeUnspecified = false;
-
     allPayments.forEach((payment) => {
       const method = payment.paymentMethod?.trim();
       if (method && method.length > 0) {
@@ -1321,7 +1328,6 @@ function AdminPaymentDashboard({
         includeUnspecified = true;
       }
     });
-
     return {
       options: Array.from(methodMap.entries()).sort((a, b) => a[1].localeCompare(b[1])),
       includeUnspecified,
@@ -1330,12 +1336,10 @@ function AdminPaymentDashboard({
 
   const filteredPayments = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-
     return allPayments.filter((payment) => {
       if (statusFilter !== "all" && payment.status !== statusFilter) {
         return false;
       }
-
       if (methodFilter !== "all") {
         const normalizedMethod = payment.paymentMethod?.trim().toLowerCase() ?? "";
         if (methodFilter === "__unspecified__") {
@@ -1346,11 +1350,9 @@ function AdminPaymentDashboard({
           return false;
         }
       }
-
       if (normalizedSearch.length === 0) {
         return true;
       }
-
       const searchableContent = [
         payment.description,
         payment.id,
@@ -1364,13 +1366,13 @@ function AdminPaymentDashboard({
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-
       return searchableContent.includes(normalizedSearch);
     });
   }, [allPayments, methodFilter, searchTerm, statusFilter]);
 
   const hasActiveFilters =
     searchTerm.trim().length > 0 || statusFilter !== "all" || methodFilter !== "all";
+
   const totalTransactions = allPayments.length;
   const displayCount = filteredPayments.length;
   const noFilteredResults = totalTransactions > 0 && displayCount === 0;
@@ -1440,18 +1442,15 @@ function AdminPaymentDashboard({
   const bulkProcessMutation = useMutation({
     mutationFn: async () => {
       const processingPayments = filteredPayments.filter(p => p.status === "processing");
-
       if (processingPayments.length === 0) {
         throw new Error("No processing payments to complete");
       }
-
       const results = await Promise.all(
         processingPayments.map(async payment => {
           const res = await apiRequest("PATCH", `/api/payments/${payment.id}/status`, { status: "completed" });
           return await res.json();
         })
       );
-
       return results;
     },
     onSuccess: (results) => {
@@ -1470,13 +1469,11 @@ function AdminPaymentDashboard({
     },
   });
 
-  // Handler to open confirmation dialog
   const handleApprovePayment = (payment: CreatorPayment) => {
     setPaymentToProcess(payment);
     setConfirmDialogOpen(true);
   };
 
-  // Handler to confirm and process payment
   const confirmProcessPayment = () => {
     if (paymentToProcess) {
       processPaymentMutation.mutate(paymentToProcess.id);
@@ -1485,13 +1482,22 @@ function AdminPaymentDashboard({
     setPaymentToProcess(null);
   };
 
-  // Mutation to approve/process individual payment
   const processPaymentMutation = useMutation({
     mutationFn: async (paymentId: string) => {
       const res = await apiRequest("PATCH", `/api/payments/${paymentId}/status`, { status: "completed" });
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, paymentId) => {
+      // Optimistically update the cache
+      queryClient.setQueryData<CreatorPayment[]>(["/api/payments/all"], (old) => {
+        if (!old) return old;
+        return old.map(payment => 
+          payment.id === paymentId 
+            ? { ...payment, status: "completed" as PaymentStatus }
+            : payment
+        );
+      });
+      
       queryClient.invalidateQueries({ queryKey: ["/api/payments/all"] });
       toast({
         title: "Success",
@@ -1500,22 +1506,17 @@ function AdminPaymentDashboard({
     },
     onError: (error: Error, paymentId: string) => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/all"] });
-
-      // Extract clean error message
+      
       let errorMsg = error.message || "Failed to process payment";
-
-      // Check if it's an insufficient funds error
       const isInsufficientFunds = errorMsg.toLowerCase().includes('insufficient funds');
-
+      
       if (isInsufficientFunds) {
-        // Find the payment that failed
         const payment = allPayments.find(p => p.id === paymentId);
         if (payment) {
           setFailedPayment(payment);
         }
         setInsufficientFundsDialogOpen(true);
       } else {
-        // Show error toast for other types of errors
         toast({
           title: "Payment Failed",
           description: errorMsg,
@@ -1526,13 +1527,22 @@ function AdminPaymentDashboard({
     },
   });
 
-  // Mutation to mark as processing
   const markProcessingMutation = useMutation({
     mutationFn: async (paymentId: string) => {
       const res = await apiRequest("PATCH", `/api/payments/${paymentId}/status`, { status: "processing" });
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, paymentId) => {
+      // Optimistically update the cache
+      queryClient.setQueryData<CreatorPayment[]>(["/api/payments/all"], (old) => {
+        if (!old) return old;
+        return old.map(payment => 
+          payment.id === paymentId 
+            ? { ...payment, status: "processing" as PaymentStatus }
+            : payment
+        );
+      });
+      
       queryClient.invalidateQueries({ queryKey: ["/api/payments/all"] });
       toast({
         title: "Success",
@@ -1683,6 +1693,7 @@ function AdminPaymentDashboard({
             </div>
           )}
         </div>
+
         <div className="overflow-x-auto">
           {totalTransactions === 0 ? (
             <div className="py-12 text-center">
@@ -1728,87 +1739,92 @@ function AdminPaymentDashboard({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {filteredPayments.map((payment) => (
-                  <tr key={payment.id} className="transition hover:bg-gray-50 cursor-pointer">
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      <Link href={`/payments/${payment.id}`} className="block hover:text-primary">
-                        {payment.id.slice(0, 8)}...
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        {payment.description || "Payment"}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        ${parseFloat(payment.grossAmount).toFixed(2)}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-purple-600">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        ${(parseFloat(payment.platformFeeAmount) + parseFloat(payment.stripeFeeAmount)).toFixed(2)}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-green-600">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        ${parseFloat(payment.netAmount).toFixed(2)}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        <StatusBadge status={payment.status} />
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
-                      <Link href={`/payments/${payment.id}`} className="block">
-                        {payment.completedAt
-                          ? new Date(payment.completedAt).toLocaleDateString()
-                          : new Date(payment.createdAt).toLocaleDateString()}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm" onClick={(e) => e.stopPropagation()}>
-                      {payment.status === 'pending' && (
-                        <Button
-                          size="sm"
-                          onClick={(e) => { e.preventDefault(); handleApprovePayment(payment); }}
-                          disabled={processPaymentMutation.isPending}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                        >
-                          <CheckCircle className="mr-1 h-4 w-4" />
-                          Approve & Pay
-                        </Button>
-                      )}
-                      {payment.status === 'processing' && (
-                        <Button
-                          size="sm"
-                          onClick={(e) => { e.preventDefault(); handleApprovePayment(payment); }}
-                          disabled={processPaymentMutation.isPending}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          <Send className="mr-1 h-4 w-4" />
-                          Send Payment
-                        </Button>
-                      )}
-                      {payment.status === 'completed' && (
-                        <span className="text-xs text-gray-500 italic">Completed</span>
-                      )}
-                      {payment.status === 'failed' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => { e.preventDefault(); markProcessingMutation.mutate(payment.id); }}
-                          disabled={markProcessingMutation.isPending}
-                        >
-                          Retry
-                        </Button>
-                      )}
-                      {payment.status === 'refunded' && (
-                        <span className="text-xs text-gray-500 italic">Refunded</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {filteredPayments.map((payment) => {
+                  const isProcessing = processPaymentMutation.isPending && processPaymentMutation.variables === payment.id;
+                  const isMarkingProcessing = markProcessingMutation.isPending && markProcessingMutation.variables === payment.id;
+                  
+                  return (
+                    <tr key={payment.id} className="transition hover:bg-gray-50 cursor-pointer">
+                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+                        <Link href={`/payments/${payment.id}`} className="block hover:text-primary">
+                          {payment.id.slice(0, 8)}...
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                        <Link href={`/payments/${payment.id}`} className="block">
+                          {payment.description || "Payment"}
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+                        <Link href={`/payments/${payment.id}`} className="block">
+                          ${parseFloat(payment.grossAmount).toFixed(2)}
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-purple-600">
+                        <Link href={`/payments/${payment.id}`} className="block">
+                          ${(parseFloat(payment.platformFeeAmount) + parseFloat(payment.stripeFeeAmount)).toFixed(2)}
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-green-600">
+                        <Link href={`/payments/${payment.id}`} className="block">
+                          ${parseFloat(payment.netAmount).toFixed(2)}
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <Link href={`/payments/${payment.id}`} className="block">
+                          <StatusBadge status={payment.status} />
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                        <Link href={`/payments/${payment.id}`} className="block">
+                          {payment.completedAt
+                            ? new Date(payment.completedAt).toLocaleDateString()
+                            : new Date(payment.createdAt).toLocaleDateString()}
+                        </Link>
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                        {payment.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            onClick={(e) => { e.preventDefault(); handleApprovePayment(payment); }}
+                            disabled={isProcessing}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <CheckCircle className="mr-1 h-4 w-4" />
+                            {isProcessing ? "Processing..." : "Approve & Pay"}
+                          </Button>
+                        )}
+                        {payment.status === 'processing' && (
+                          <Button
+                            size="sm"
+                            onClick={(e) => { e.preventDefault(); handleApprovePayment(payment); }}
+                            disabled={isProcessing}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Send className="mr-1 h-4 w-4" />
+                            {isProcessing ? "Sending..." : "Send Payment"}
+                          </Button>
+                        )}
+                        {payment.status === 'completed' && (
+                          <span className="text-xs text-gray-500 italic">Completed</span>
+                        )}
+                        {payment.status === 'failed' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => { e.preventDefault(); markProcessingMutation.mutate(payment.id); }}
+                            disabled={isMarkingProcessing}
+                          >
+                            {isMarkingProcessing ? "Retrying..." : "Retry"}
+                          </Button>
+                        )}
+                        {payment.status === 'refunded' && (
+                          <span className="text-xs text-gray-500 italic">Refunded</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -1825,7 +1841,6 @@ function AdminPaymentDashboard({
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3 pt-2">
               <p>You are about to process a payment of <strong>${paymentToProcess?.netAmount}</strong> to the creator.</p>
-
               <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm">
                 <div className="flex gap-2">
                   <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
@@ -1839,7 +1854,6 @@ function AdminPaymentDashboard({
                   </div>
                 </div>
               </div>
-
               <p className="text-sm">Payment details:</p>
               <div className="text-sm bg-gray-50 rounded p-2 space-y-1">
                 <div><strong>Amount:</strong> ${paymentToProcess?.netAmount}</div>
@@ -1874,7 +1888,6 @@ function AdminPaymentDashboard({
                   The company's PayPal account has insufficient funds to process this payment request. The payment cannot be completed at this time.
                 </p>
               </div>
-
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-gray-700">Payment Request Details:</p>
                 <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
@@ -1892,7 +1905,6 @@ function AdminPaymentDashboard({
                   </div>
                 </div>
               </div>
-
               <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
                 <p className="text-sm font-semibold text-yellow-900 mb-2">What Happened:</p>
                 <ul className="space-y-1.5 text-sm text-yellow-800">
@@ -1910,7 +1922,6 @@ function AdminPaymentDashboard({
                   </li>
                 </ul>
               </div>
-
               <div className="rounded-lg bg-green-50 border border-green-200 p-3">
                 <p className="text-sm font-semibold text-green-900 mb-2">Next Steps:</p>
                 <ol className="list-decimal list-inside space-y-1.5 text-sm text-green-800">
@@ -1919,11 +1930,9 @@ function AdminPaymentDashboard({
                   <li>Use the "Retry" button on the failed payment in the dashboard</li>
                 </ol>
               </div>
-
               <p className="text-xs text-gray-500 italic">
                 This payment request will remain in "failed" status until the company resolves the funding issue and you retry the transaction.
               </p>
-
               <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 mt-4">
                 <p className="text-sm font-semibold text-blue-900 mb-1">✅ Notification Sent Automatically</p>
                 <p className="text-xs text-blue-800">
@@ -1954,12 +1963,10 @@ function AdminPaymentSettings() {
   const [includeReports, setIncludeReports] = useState(true);
   const [smsEscalation, setSmsEscalation] = useState(true);
 
-  // Fetch platform settings
   const { data: platformSettings } = useQuery<Array<{key: string; value: string}>>({
     queryKey: ["/api/admin/settings"],
   });
 
-  // Load settings from backend
   useEffect(() => {
     if (platformSettings) {
       const settingsMap = new Map(platformSettings.map(s => [s.key, s.value]));
@@ -1974,7 +1981,6 @@ function AdminPaymentSettings() {
     }
   }, [platformSettings]);
 
-  // Mutation to update platform settings
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
       const res = await apiRequest("PUT", `/api/admin/settings/${key}`, { value });
@@ -2026,7 +2032,6 @@ function AdminPaymentSettings() {
     }
   };
 
-  // Fetch funding accounts
   const { data: fundingAccounts = [] } = useQuery<Array<{
     id: string;
     name: string;
@@ -2038,7 +2043,6 @@ function AdminPaymentSettings() {
     queryKey: ["/api/admin/funding-accounts"],
   });
 
-  // Add funding account state
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [accountType, setAccountType] = useState<"bank" | "wallet" | "card">("bank");
@@ -2152,7 +2156,6 @@ function AdminPaymentSettings() {
             Configure how platform-wide payouts are released to creators and external partners.
           </p>
         </div>
-
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="admin-settlement-schedule">Settlement Schedule</Label>
@@ -2171,7 +2174,6 @@ function AdminPaymentSettings() {
               Determines how frequently approved creator payments are bundled for release.
             </p>
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="admin-reserve-percentage">Platform Reserve %</Label>
             <Input
@@ -2186,7 +2188,6 @@ function AdminPaymentSettings() {
               Holdback applied to every payout to maintain compliance and risk buffers.
             </p>
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="admin-minimum-balance">Minimum Operating Balance ($)</Label>
             <Input
@@ -2201,7 +2202,6 @@ function AdminPaymentSettings() {
               Payouts pause automatically if platform funds fall below this threshold.
             </p>
           </div>
-
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Automatic Disbursement</Label>
             <div className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
@@ -2215,7 +2215,6 @@ function AdminPaymentSettings() {
             </div>
           </div>
         </div>
-
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <Button
             className="bg-blue-600 text-white hover:bg-blue-700"
@@ -2240,7 +2239,6 @@ function AdminPaymentSettings() {
           </div>
           <Button variant="outline" onClick={() => setShowAddAccount(true)}>Add Funding Source</Button>
         </div>
-
         {showAddAccount && (
           <div className="mb-6 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
             <h4 className="mb-4 font-bold text-blue-900">Add New Funding Account</h4>
@@ -2300,7 +2298,6 @@ function AdminPaymentSettings() {
             </div>
           </div>
         )}
-
         <div className="space-y-4">
           {fundingAccounts.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
@@ -2370,7 +2367,6 @@ function AdminPaymentSettings() {
             Control who is notified when payouts process, fail, or require manual review.
           </p>
         </div>
-
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="admin-notification-email">Primary Finance Contact</Label>
@@ -2382,7 +2378,6 @@ function AdminPaymentSettings() {
             />
             <p className="text-xs text-gray-500">Daily settlement summaries are delivered to this inbox.</p>
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="admin-escalation-email">Escalation Contact</Label>
             <Input
@@ -2393,7 +2388,6 @@ function AdminPaymentSettings() {
             />
             <p className="text-xs text-gray-500">Disputes and compliance holds are routed here for fast action.</p>
           </div>
-
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Attach financial reports</Label>
             <div className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
@@ -2408,7 +2402,6 @@ function AdminPaymentSettings() {
               />
             </div>
           </div>
-
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">SMS escalation</Label>
             <div className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
@@ -2424,7 +2417,6 @@ function AdminPaymentSettings() {
             </div>
           </div>
         </div>
-
         <div className="mt-6 flex justify-end">
           <Button
             className="bg-blue-600 text-white hover:bg-blue-700"
@@ -2443,7 +2435,6 @@ export default function PaymentSettings() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "settings" | "approvals" | "dashboard">("overview");
-
   const [payoutMethod, setPayoutMethod] = useState("etransfer");
   const [payoutEmail, setPayoutEmail] = useState("");
   const [bankRoutingNumber, setBankRoutingNumber] = useState("");
@@ -2475,13 +2466,11 @@ export default function PaymentSettings() {
     }
   }, [user?.role]);
 
-  // Fetch payment methods
   const { data: paymentMethods } = useQuery<PaymentMethod[]>({
     queryKey: ["/api/payment-settings"],
     enabled: isAuthenticated,
   });
 
-  // Fetch payments based on user role
   const { data: creatorPayments = [] } = useQuery<CreatorPayment[]>({
     queryKey: ["/api/payments/creator"],
     enabled: isAuthenticated && user?.role === "creator",
@@ -2500,7 +2489,6 @@ export default function PaymentSettings() {
   const addPaymentMethodMutation = useMutation({
     mutationFn: async () => {
       const payload: Record<string, string> = { payoutMethod };
-
       if (payoutMethod === "etransfer") {
         payload.payoutEmail = payoutEmail;
       } else if (payoutMethod === "wire") {
@@ -2512,7 +2500,6 @@ export default function PaymentSettings() {
         payload.cryptoWalletAddress = cryptoWalletAddress;
         payload.cryptoNetwork = cryptoNetwork;
       }
-
       const res = await apiRequest("POST", "/api/payment-settings", payload);
       return await res.json();
     },
@@ -2598,6 +2585,7 @@ export default function PaymentSettings() {
                 </button>
               </div>
             </div>
+
             {activeTab === "overview" && <CreatorOverview payments={creatorPayments} />}
             {activeTab === "settings" && (
               <CreatorPaymentSettings
@@ -2646,9 +2634,9 @@ export default function PaymentSettings() {
                   }`}
                 >
                   Pending Approvals
-                  {companyPayments.filter((p) => p.status === "pending" || p.status === "processing").length > 0 && (
+                  {companyPayments.filter((p) => p.status === "pending").length > 0 && (
                     <span className="ml-2 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-800">
-                      {companyPayments.filter((p) => p.status === "pending" || p.status === "processing").length}
+                      {companyPayments.filter((p) => p.status === "pending").length}
                     </span>
                   )}
                 </button>
@@ -2664,6 +2652,7 @@ export default function PaymentSettings() {
                 </button>
               </div>
             </div>
+
             {activeTab === "overview" && <CompanyOverview payouts={companyPayments} />}
             {activeTab === "approvals" && <CompanyPayoutApproval payouts={companyPayments} />}
             {activeTab === "settings" && (
@@ -2716,6 +2705,7 @@ export default function PaymentSettings() {
                 </button>
               </div>
             </div>
+
             {activeTab === "dashboard" && (
               <AdminPaymentDashboard payments={allPayments} />
             )}

@@ -11,7 +11,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Mail } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Mail, User as UserIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +37,7 @@ import { TopNavBar } from "../components/TopNavBar";
 export default function Settings() {
   const { toast } = useToast();
   const { isAuthenticated, user } = useAuth();
-  
+
   // Creator profile states
   const [bio, setBio] = useState("");
   const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
@@ -47,7 +47,7 @@ export default function Settings() {
   const [youtubeFollowers, setYoutubeFollowers] = useState("");
   const [tiktokFollowers, setTiktokFollowers] = useState("");
   const [instagramFollowers, setInstagramFollowers] = useState("");
-  
+
   // Company profile states
   const [tradeName, setTradeName] = useState("");
   const [legalName, setLegalName] = useState("");
@@ -68,6 +68,7 @@ export default function Settings() {
   const [verificationDocumentUrl, setVerificationDocumentUrl] = useState("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+  const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
 
   // Account info states
   const [username, setUsername] = useState("");
@@ -85,7 +86,6 @@ export default function Settings() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Privacy & Data states
@@ -113,6 +113,20 @@ export default function Settings() {
     label: niche.name
   }));
 
+  // Get user initials for avatar fallback
+  const getUserInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    if (user?.firstName) {
+      return user.firstName.slice(0, 2).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return 'U';
+  };
+
   // Load saved form data from localStorage on mount
   useEffect(() => {
     const savedFormData = localStorage.getItem('settings-form-data');
@@ -128,6 +142,7 @@ export default function Settings() {
         if (data.youtubeFollowers !== undefined) setYoutubeFollowers(data.youtubeFollowers);
         if (data.tiktokFollowers !== undefined) setTiktokFollowers(data.tiktokFollowers);
         if (data.instagramFollowers !== undefined) setInstagramFollowers(data.instagramFollowers);
+
         // Restore company profile fields
         if (data.tradeName !== undefined) setTradeName(data.tradeName);
         if (data.legalName !== undefined) setLegalName(data.legalName);
@@ -165,7 +180,6 @@ export default function Settings() {
   useEffect(() => {
     if (profile) {
       console.log("[Settings] Profile loaded:", profile);
-
       // Load creator profile data
       if (user?.role === 'creator') {
         setBio(profile.bio || "");
@@ -245,15 +259,139 @@ export default function Settings() {
     facebookUrl, companyInstagramUrl, verificationDocumentUrl
   ]);
 
-  // Handle logo upload
-  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // ✅ FIXED: Handle profile image upload with user null check
+  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // ✅ ADD: Early return if user is undefined
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Validate file type
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
     const isImage = imageExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
     
+    if (!isImage) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload an image file (JPG, PNG, GIF, WebP)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5242880) {
+      toast({
+        title: "File Too Large",
+        description: "Image file must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingProfileImage(true);
+
+    try {
+      // Determine folder based on user role and ID
+      const folder = user.role === 'company'
+        ? `company-logos/${user.id}`
+        : `creatorprofile/${user.id}`;
+
+      // Get upload URL from backend
+      const uploadResponse = await fetch("/api/objects/upload", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ folder, resourceType: "image" }),
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const uploadData = await uploadResponse.json();
+
+      // Upload file to Cloudinary
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      if (uploadData.uploadPreset) {
+        formData.append('upload_preset', uploadData.uploadPreset);
+      } else if (uploadData.signature) {
+        formData.append('signature', uploadData.signature);
+        formData.append('timestamp', uploadData.timestamp.toString());
+        formData.append('api_key', uploadData.apiKey);
+      }
+      
+      if (uploadData.folder) {
+        formData.append('folder', uploadData.folder);
+      }
+
+      const uploadResult = await fetch(uploadData.uploadUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      const cloudinaryResponse = await uploadResult.json();
+      const uploadedUrl = cloudinaryResponse.secure_url;
+
+      // Update profile image on the server
+      await apiRequest("PUT", "/api/auth/profile-image", {
+        profileImageUrl: uploadedUrl,
+      });
+
+      // Refresh user data
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+
+      toast({
+        title: "Success!",
+        description: "Profile image updated successfully.",
+      });
+    } catch (error) {
+      console.error("Profile image upload error:", error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload profile image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingProfileImage(false);
+    }
+  };
+
+  // ✅ FIXED: Handle logo upload with user null check
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // ✅ ADD: Early return if user is undefined
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const isImage = imageExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
     if (!isImage) {
       toast({
         title: "Invalid File Type",
@@ -279,7 +417,7 @@ export default function Settings() {
       // Use company profile ID for organized folder structure
       const folder = profile?.id
         ? `company-logos/${profile.id}`
-        : user?.id
+        : user.id
         ? `company-logos/${user.id}`
         : "company-logos";
 
@@ -292,11 +430,11 @@ export default function Settings() {
         },
         body: JSON.stringify({ folder, resourceType: "image" }),
       });
-      
+
       if (!uploadResponse.ok) {
         throw new Error("Failed to get upload URL");
       }
-      
+
       const uploadData = await uploadResponse.json();
 
       // Upload file to Cloudinary
@@ -326,10 +464,10 @@ export default function Settings() {
 
       const cloudinaryResponse = await uploadResult.json();
       const uploadedUrl = cloudinaryResponse.secure_url;
-      
+
       // Set the logo URL
       setLogoUrl(uploadedUrl);
-      
+
       toast({
         title: "Success!",
         description: "Logo uploaded successfully. Don't forget to save your changes.",
@@ -346,9 +484,20 @@ export default function Settings() {
     }
   };
 
+  // ✅ FIXED: Handle document upload with user null check
   const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // ✅ ADD: Early return if user is undefined
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png'];
     const isValid = allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
@@ -375,7 +524,7 @@ export default function Settings() {
 
     try {
       // Use user ID for organized folder structure
-      const folder = user?.id
+      const folder = user.id
         ? `verification-documents/${user.id}`
         : "verification-documents";
 
@@ -443,7 +592,6 @@ export default function Settings() {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-
       const response = await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
@@ -469,7 +617,6 @@ export default function Settings() {
   const handleExportData = async () => {
     try {
       setIsExportingData(true);
-
       const response = await fetch("/api/user/export-data", {
         method: "GET",
         credentials: "include",
@@ -562,6 +709,7 @@ export default function Settings() {
           setDeleteConfirmation("");
           return;
         }
+
         throw new Error(result.error || result.details || "Failed to delete account");
       }
 
@@ -640,15 +788,12 @@ export default function Settings() {
       if (!currentPassword) {
         throw new Error("Current password is required");
       }
-
       if (!newPassword) {
         throw new Error("New password is required");
       }
-
       if (newPassword.length < 8) {
         throw new Error("New password must be at least 8 characters");
       }
-
       if (newPassword !== confirmPassword) {
         throw new Error("Passwords do not match");
       }
@@ -737,7 +882,6 @@ export default function Settings() {
       // Creator profile payload
       if (user?.role === 'creator') {
         console.log("[Settings] Saving niches:", selectedNiches);
-
         payload = {
           bio,
           niches: selectedNiches,
@@ -774,7 +918,6 @@ export default function Settings() {
       }
 
       console.log("[Settings] API payload:", payload);
-
       const result = await apiRequest("PUT", "/api/profile", payload);
       console.log("[Settings] API response:", result);
       return result;
@@ -823,1151 +966,1209 @@ export default function Settings() {
           <p className="text-muted-foreground mt-1">Manage your account preferences</p>
         </div>
 
-      <Card className="border-card-border shadow-sm">
-        <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-10">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage
-                src={user?.profileImageUrl || ''}
-                alt={user?.firstName || 'User'}
-                referrerPolicy="no-referrer"
-              />
-              <AvatarFallback className="text-lg">{user?.firstName?.[0] || user?.email?.[0] || 'U'}</AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-semibold">{user?.firstName} {user?.lastName}</div>
-              <div className="text-sm text-muted-foreground">{user?.email}</div>
-              <div className="text-xs text-muted-foreground capitalize mt-1">{user?.role} Account</div>
+        <Card className="border-card-border shadow-sm">
+          <CardHeader>
+            <CardTitle>Profile Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-10">
+            <div className="flex items-center gap-6">
+              <div className="relative group">
+                <Avatar className="h-24 w-24 cursor-pointer transition-opacity group-hover:opacity-80">
+                  <AvatarImage
+                    src={user?.profileImageUrl || undefined}
+                    alt={`${user?.firstName || user?.email || 'User'} avatar`}
+                  />
+                  <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
+                    {user?.profileImageUrl ? null : getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                
+                {/* Upload overlay */}
+                <label
+                  htmlFor="profile-image-upload"
+                  className={`absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ${
+                    isUploadingProfileImage ? 'opacity-100' : ''
+                  }`}
+                >
+                  {isUploadingProfileImage ? (
+                    <Upload className="h-6 w-6 text-white animate-pulse" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <Upload className="h-6 w-6 text-white" />
+                      <span className="text-xs text-white font-medium">Change</span>
+                    </div>
+                  )}
+                </label>
+                
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfileImageUpload}
+                  disabled={isUploadingProfileImage}
+                  className="hidden"
+                  id="profile-image-upload"
+                />
+                
+                {/* Remove button */}
+                {user?.profileImageUrl && !isUploadingProfileImage && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await apiRequest("PUT", "/api/auth/profile-image", {
+                          profileImageUrl: null,
+                        });
+                        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+                        toast({
+                          title: "Success",
+                          description: "Profile image removed successfully.",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to remove profile image.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full p-1.5 shadow-lg transition-colors"
+                    title="Remove profile image"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+              
+              <div className="flex-1">
+                <div className="font-semibold text-lg">
+                  {user?.firstName} {user?.lastName}
+                </div>
+                <div className="text-sm text-muted-foreground">{user?.email}</div>
+                <div className="text-xs text-muted-foreground capitalize mt-1">
+                  {user?.role} Account
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Click on your avatar to change your profile picture
+                </p>
+              </div>
             </div>
-          </div>
 
-          <Separator />
+            <Separator />
 
-          {/* COMPANY PROFILE SECTION */}
-          {user?.role === 'company' && (
-            <>
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="tradeName" className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Company Name (Trade Name) *
-                  </Label>
-                  <Input
-                    id="tradeName"
-                    type="text"
-                    placeholder="Your Company Name"
-                    value={tradeName}
-                    onChange={(e) => setTradeName(e.target.value)}
-                    data-testid="input-trade-name"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    This is the name that will appear on all your offers
-                  </p>
-                </div>
+            {/* COMPANY PROFILE SECTION */}
+            {user?.role === 'company' && (
+              <>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="tradeName" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Company Name (Trade Name) *
+                    </Label>
+                    <Input
+                      id="tradeName"
+                      type="text"
+                      placeholder="Your Company Name"
+                      value={tradeName}
+                      onChange={(e) => setTradeName(e.target.value)}
+                      data-testid="input-trade-name"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This is the name that will appear on all your offers
+                    </p>
+                  </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="logoUrl">Company Logo *</Label>
-                  <div className="space-y-4">
-                    {logoUrl ? (
-                      <div className="relative inline-block">
-                        <div className="flex items-center gap-4 p-4 border rounded-lg">
-                          <Avatar className="h-24 w-24">
-                            <AvatarImage src={logoUrl} alt={tradeName || 'Company logo'} />
-                            <AvatarFallback className="text-2xl">
-                              {tradeName?.[0] || 'C'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">Current Logo</p>
-                            <p className="text-sm text-muted-foreground">This logo will appear on all your offers</p>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="logoUrl">Company Logo *</Label>
+                    <div className="space-y-4">
+                      {logoUrl ? (
+                        <div className="relative inline-block">
+                          <div className="flex items-center gap-4 p-4 border rounded-lg">
+                            <Avatar className="h-24 w-24">
+                              <AvatarImage src={logoUrl} alt={tradeName || 'Company logo'} />
+                              <AvatarFallback className="text-2xl">
+                                {tradeName?.[0] || 'C'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">Current Logo</p>
+                              <p className="text-sm text-muted-foreground">This logo will appear on all your offers</p>
+                            </div>
                           </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2"
+                            onClick={() => setLogoUrl("")}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute -top-2 -right-2"
-                          onClick={() => setLogoUrl("")}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          disabled={isUploadingLogo}
-                          className="hidden"
-                          id="logo-upload"
-                        />
-                        <label
-                          htmlFor="logo-upload"
-                          className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block ${
-                            isUploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                        >
-                          <div className="flex flex-col items-center gap-2">
-                            {isUploadingLogo ? (
-                              <>
-                                <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
-                                <div className="text-sm font-medium text-blue-600">
-                                  Uploading Logo...
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="h-8 w-8 text-primary" />
-                                <div className="text-sm font-medium">
-                                  Click to upload company logo
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  JPG, PNG, GIF, WebP (max 5MB)
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  Recommended: 500x500px or larger, square format
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </label>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            disabled={isUploadingLogo}
+                            className="hidden"
+                            id="logo-upload"
+                          />
+                          <label
+                            htmlFor="logo-upload"
+                            className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block ${
+                              isUploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            <div className="flex flex-col items-center gap-2">
+                              {isUploadingLogo ? (
+                                <>
+                                  <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
+                                  <div className="text-sm font-medium text-blue-600">
+                                    Uploading Logo...
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-8 w-8 text-primary" />
+                                  <div className="text-sm font-medium">
+                                    Click to upload company logo
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    JPG, PNG, GIF, WebP (max 5MB)
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Recommended: 500x500px or larger, square format
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </label>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="legalName">Legal Company Name</Label>
-                  <Input
-                    id="legalName"
-                    type="text"
-                    placeholder="Official registered company name"
-                    value={legalName}
-                    onChange={(e) => setLegalName(e.target.value)}
-                    data-testid="input-legal-name"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="industry">Industry</Label>
-                  <Select value={industry} onValueChange={setIndustry}>
-                    <SelectTrigger id="industry" data-testid="select-industry">
-                      <SelectValue placeholder="Select your industry" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="technology">Technology</SelectItem>
-                      <SelectItem value="ecommerce">E-commerce</SelectItem>
-                      <SelectItem value="fashion">Fashion & Apparel</SelectItem>
-                      <SelectItem value="beauty">Beauty & Cosmetics</SelectItem>
-                      <SelectItem value="health">Health & Wellness</SelectItem>
-                      <SelectItem value="fitness">Fitness</SelectItem>
-                      <SelectItem value="food">Food & Beverage</SelectItem>
-                      <SelectItem value="travel">Travel & Hospitality</SelectItem>
-                      <SelectItem value="finance">Finance & Insurance</SelectItem>
-                      <SelectItem value="education">Education</SelectItem>
-                      <SelectItem value="entertainment">Entertainment</SelectItem>
-                      <SelectItem value="gaming">Gaming</SelectItem>
-                      <SelectItem value="home">Home & Garden</SelectItem>
-                      <SelectItem value="automotive">Automotive</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="websiteUrl">Company Website</Label>
-                  <Input
-                    id="websiteUrl"
-                    type="url"
-                    placeholder="https://yourcompany.com"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                    data-testid="input-website-url"
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="companyDescription">Company Description</Label>
-                  <Textarea
-                    id="companyDescription"
-                    placeholder="Tell creators about your company, products, and what makes you unique..."
-                    value={companyDescription}
-                    onChange={(e) => setCompanyDescription(e.target.value)}
-                    className="min-h-32"
-                    data-testid="textarea-company-description"
-                  />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2 md:col-span-2">
                   <div className="space-y-2">
-                    <Label htmlFor="contactName">Contact Name</Label>
+                    <Label htmlFor="legalName">Legal Company Name</Label>
                     <Input
-                      id="contactName"
+                      id="legalName"
                       type="text"
-                      placeholder="Primary contact person"
-                      value={contactName}
-                      onChange={(e) => setContactName(e.target.value)}
-                      data-testid="input-contact-name"
+                      placeholder="Official registered company name"
+                      value={legalName}
+                      onChange={(e) => setLegalName(e.target.value)}
+                      data-testid="input-legal-name"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="contactJobTitle">Contact Job Title</Label>
-                    <Input
-                      id="contactJobTitle"
-                      type="text"
-                      placeholder="Marketing Director, CEO, etc."
-                      value={contactJobTitle}
-                      onChange={(e) => setContactJobTitle(e.target.value)}
-                      data-testid="input-contact-job-title"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                  <Input
-                    id="phoneNumber"
-                    type="tel"
-                    placeholder="+1 (555) 000-0000"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    data-testid="input-phone-number"
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="businessAddress">Business Address</Label>
-                  <Textarea
-                    id="businessAddress"
-                    placeholder="Full business address including street, city, state, ZIP, and country"
-                    value={businessAddress}
-                    onChange={(e) => setBusinessAddress(e.target.value)}
-                    className="min-h-20"
-                    data-testid="textarea-business-address"
-                  />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2 md:col-span-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="companySize">Company Size</Label>
-                    <Select value={companySize} onValueChange={setCompanySize}>
-                      <SelectTrigger id="companySize" data-testid="select-company-size">
-                        <SelectValue placeholder="Select company size" />
+                    <Label htmlFor="industry">Industry</Label>
+                    <Select value={industry} onValueChange={setIndustry}>
+                      <SelectTrigger id="industry" data-testid="select-industry">
+                        <SelectValue placeholder="Select your industry" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1-10">1-10 employees</SelectItem>
-                        <SelectItem value="11-50">11-50 employees</SelectItem>
-                        <SelectItem value="51-200">51-200 employees</SelectItem>
-                        <SelectItem value="201-1000">201-1000 employees</SelectItem>
-                        <SelectItem value="1000+">1000+ employees</SelectItem>
+                        <SelectItem value="technology">Technology</SelectItem>
+                        <SelectItem value="ecommerce">E-commerce</SelectItem>
+                        <SelectItem value="fashion">Fashion & Apparel</SelectItem>
+                        <SelectItem value="beauty">Beauty & Cosmetics</SelectItem>
+                        <SelectItem value="health">Health & Wellness</SelectItem>
+                        <SelectItem value="fitness">Fitness</SelectItem>
+                        <SelectItem value="food">Food & Beverage</SelectItem>
+                        <SelectItem value="travel">Travel & Hospitality</SelectItem>
+                        <SelectItem value="finance">Finance & Insurance</SelectItem>
+                        <SelectItem value="education">Education</SelectItem>
+                        <SelectItem value="entertainment">Entertainment</SelectItem>
+                        <SelectItem value="gaming">Gaming</SelectItem>
+                        <SelectItem value="home">Home & Garden</SelectItem>
+                        <SelectItem value="automotive">Automotive</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="yearFounded">Year Founded</Label>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="websiteUrl">Company Website</Label>
                     <Input
-                      id="yearFounded"
-                      type="number"
-                      min="1800"
-                      max={new Date().getFullYear()}
-                      placeholder={new Date().getFullYear().toString()}
-                      value={yearFounded}
-                      onChange={(e) => setYearFounded(e.target.value)}
-                      data-testid="input-year-founded"
+                      id="websiteUrl"
+                      type="url"
+                      placeholder="https://yourcompany.com"
+                      value={websiteUrl}
+                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      data-testid="input-website-url"
                     />
                   </div>
-                </div>
-              </div>
 
-              <Separator />
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="companyDescription">Company Description</Label>
+                    <Textarea
+                      id="companyDescription"
+                      placeholder="Tell creators about your company, products, and what makes you unique..."
+                      value={companyDescription}
+                      onChange={(e) => setCompanyDescription(e.target.value)}
+                      className="min-h-32"
+                      data-testid="textarea-company-description"
+                    />
+                  </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-base font-semibold">Verification Document</Label>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Upload business registration certificate, EIN/Tax ID, or incorporation certificate
-                </p>
-
-                {verificationDocumentUrl ? (
-                  <div className="flex items-center gap-3 p-4 border rounded-lg bg-green-50 dark:bg-green-950/20 border-green-200">
-                    <FileText className="h-8 w-8 text-green-600" />
-                    <div className="flex-1">
-                      <p className="font-medium text-green-900 dark:text-green-100">Document Uploaded</p>
-                      <p className="text-sm text-green-700 dark:text-green-300">Verification document on file</p>
+                  <div className="grid gap-4 md:grid-cols-2 md:col-span-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="contactName">Contact Name</Label>
+                      <Input
+                        id="contactName"
+                        type="text"
+                        placeholder="Primary contact person"
+                        value={contactName}
+                        onChange={(e) => setContactName(e.target.value)}
+                        data-testid="input-contact-name"
+                      />
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setVerificationDocumentUrl("")}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={handleDocumentUpload}
-                      disabled={isUploadingDocument}
-                      className="hidden"
-                      id="document-upload"
-                    />
-                    <label
-                      htmlFor="document-upload"
-                      className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer block ${
-                        isUploadingDocument ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        {isUploadingDocument ? (
-                          <>
-                            <Upload className="h-6 w-6 text-blue-600 animate-pulse" />
-                            <div className="text-sm font-medium text-blue-600">
-                              Uploading Document...
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <FileText className="h-6 w-6 text-primary" />
-                            <div className="text-sm font-medium">
-                              Click to upload verification document
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              PDF, JPG, PNG (max 10MB)
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </label>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-base font-semibold">Social Media Profiles</Label>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Optional: Add your social media profiles to build trust with creators
-                </p>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="linkedinUrl">LinkedIn Company Page</Label>
-                    <Input
-                      id="linkedinUrl"
-                      type="url"
-                      placeholder="https://linkedin.com/company/yourcompany"
-                      value={linkedinUrl}
-                      onChange={(e) => setLinkedinUrl(e.target.value)}
-                      data-testid="input-linkedin-url"
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="contactJobTitle">Contact Job Title</Label>
+                      <Input
+                        id="contactJobTitle"
+                        type="text"
+                        placeholder="Marketing Director, CEO, etc."
+                        value={contactJobTitle}
+                        onChange={(e) => setContactJobTitle(e.target.value)}
+                        data-testid="input-contact-job-title"
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="twitterUrl">Twitter/X Profile</Label>
+                    <Label htmlFor="phoneNumber">Phone Number</Label>
                     <Input
-                      id="twitterUrl"
-                      type="url"
-                      placeholder="https://twitter.com/yourcompany"
-                      value={twitterUrl}
-                      onChange={(e) => setTwitterUrl(e.target.value)}
-                      data-testid="input-twitter-url"
+                      id="phoneNumber"
+                      type="tel"
+                      placeholder="+1 (555) 000-0000"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      data-testid="input-phone-number"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="facebookUrl">Facebook Page</Label>
-                    <Input
-                      id="facebookUrl"
-                      type="url"
-                      placeholder="https://facebook.com/yourcompany"
-                      value={facebookUrl}
-                      onChange={(e) => setFacebookUrl(e.target.value)}
-                      data-testid="input-facebook-url"
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="businessAddress">Business Address</Label>
+                    <Textarea
+                      id="businessAddress"
+                      placeholder="Full business address including street, city, state, ZIP, and country"
+                      value={businessAddress}
+                      onChange={(e) => setBusinessAddress(e.target.value)}
+                      className="min-h-20"
+                      data-testid="textarea-business-address"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="companyInstagramUrl">Instagram Profile</Label>
-                    <Input
-                      id="companyInstagramUrl"
-                      type="url"
-                      placeholder="https://instagram.com/yourcompany"
-                      value={companyInstagramUrl}
-                      onChange={(e) => setCompanyInstagramUrl(e.target.value)}
-                      data-testid="input-company-instagram-url"
-                    />
+                  <div className="grid gap-4 md:grid-cols-2 md:col-span-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="companySize">Company Size</Label>
+                      <Select value={companySize} onValueChange={setCompanySize}>
+                        <SelectTrigger id="companySize" data-testid="select-company-size">
+                          <SelectValue placeholder="Select company size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1-10">1-10 employees</SelectItem>
+                          <SelectItem value="11-50">11-50 employees</SelectItem>
+                          <SelectItem value="51-200">51-200 employees</SelectItem>
+                          <SelectItem value="201-1000">201-1000 employees</SelectItem>
+                          <SelectItem value="1000+">1000+ employees</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="yearFounded">Year Founded</Label>
+                      <Input
+                        id="yearFounded"
+                        type="number"
+                        min="1800"
+                        max={new Date().getFullYear()}
+                        placeholder={new Date().getFullYear().toString()}
+                        value={yearFounded}
+                        onChange={(e) => setYearFounded(e.target.value)}
+                        data-testid="input-year-founded"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Show warning if critical fields are missing */}
-              {(!tradeName || !logoUrl) && (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <p className="text-sm text-yellow-800">
-                    <strong>⚠️ Important:</strong> Please fill in your Company Name and upload a Logo. 
-                    These are required for your offers to display properly.
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-base font-semibold">Verification Document</Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Upload business registration certificate, EIN/Tax ID, or incorporation certificate
                   </p>
-                </div>
-              )}
-
-              <Button
-                onClick={handleSaveProfile}
-                disabled={updateProfileMutation.isPending}
-                data-testid="button-save-profile"
-                className="w-full md:w-auto"
-              >
-                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            </>
-          )}
-
-          {/* CREATOR PROFILE SECTION */}
-          {user?.role === 'creator' && (
-            <>
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Tell companies about yourself and your audience..."
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    className="min-h-24"
-                    data-testid="textarea-bio"
-                  />
-                </div>
-
-                <div className="space-y-3 md:col-span-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="niches">Content Niches</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className="w-full justify-between font-normal"
-                          data-testid="button-select-niches"
-                        >
-                          {selectedNiches.length === 0 ? (
-                            <span className="text-muted-foreground">Select your content niches...</span>
-                          ) : (
-                            <span>{selectedNiches.length} niche{selectedNiches.length !== 1 ? 's' : ''} selected</span>
-                          )}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0" align="start">
-                        <div className="max-h-[300px] overflow-y-auto p-4 space-y-2">
-                          {nichesLoading ? (
-                            <div className="text-sm text-muted-foreground p-2">Loading niches...</div>
-                          ) : AVAILABLE_NICHES.length === 0 ? (
-                            <div className="text-sm text-muted-foreground p-2">No niches available</div>
-                          ) : (
-                            AVAILABLE_NICHES.map((niche) => (
-                              <div key={niche.value} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`niche-${niche.value}`}
-                                  checked={selectedNiches.includes(niche.value)}
-                                  onCheckedChange={() => toggleNiche(niche.value)}
-                                />
-                                <label
-                                  htmlFor={`niche-${niche.value}`}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                                >
-                                  {niche.label}
-                                </label>
+                  {verificationDocumentUrl ? (
+                    <div className="flex items-center gap-3 p-4 border rounded-lg bg-green-50 dark:bg-green-950/20 border-green-200">
+                      <FileText className="h-8 w-8 text-green-600" />
+                      <div className="flex-1">
+                        <p className="font-medium text-green-900 dark:text-green-100">Document Uploaded</p>
+                        <p className="text-sm text-green-700 dark:text-green-300">Verification document on file</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setVerificationDocumentUrl("")}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleDocumentUpload}
+                        disabled={isUploadingDocument}
+                        className="hidden"
+                        id="document-upload"
+                      />
+                      <label
+                        htmlFor="document-upload"
+                        className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer block ${
+                          isUploadingDocument ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          {isUploadingDocument ? (
+                            <>
+                              <Upload className="h-6 w-6 text-blue-600 animate-pulse" />
+                              <div className="text-sm font-medium text-blue-600">
+                                Uploading Document...
                               </div>
-                            ))
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-6 w-6 text-primary" />
+                              <div className="text-sm font-medium">
+                                Click to upload verification document
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                PDF, JPG, PNG (max 10MB)
+                              </div>
+                            </>
                           )}
                         </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {selectedNiches.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedNiches.map((nicheValue) => {
-                        const niche = AVAILABLE_NICHES.find(n => n.value === nicheValue);
-                        return (
-                          <Badge key={nicheValue} variant="secondary" className="gap-1">
-                            {niche?.label || nicheValue}
-                            <button
-                              type="button"
-                              onClick={() => removeNiche(nicheValue)}
-                              className="ml-1 hover:text-destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        );
-                      })}
+                      </label>
                     </div>
                   )}
+                </div>
 
-                  <p className="text-xs text-muted-foreground">
-                    Your niches help us recommend relevant offers. Select all that apply to your content.
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-base font-semibold">Social Media Profiles</Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Optional: Add your social media profiles to build trust with creators
                   </p>
-                </div>
-
-                {/* Video Platform Requirement Alert */}
-                <Alert className={`${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'} md:col-span-2`}>
-                  <Video className={`h-5 w-5 ${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-600' : 'text-blue-600'}`} />
-                  <AlertTitle className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-900 dark:text-red-300' : 'text-blue-900 dark:text-blue-300'}>
-                    {!youtubeUrl && !tiktokUrl && !instagramUrl ? '⚠️ Video Platform Required' : '✓ Video Platform Requirements'}
-                  </AlertTitle>
-                  <AlertDescription className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-800 dark:text-red-200' : 'text-blue-800 dark:text-blue-200'}>
-                    {!youtubeUrl && !tiktokUrl && !instagramUrl ? (
-                      <>
-                        <strong>You must add at least one video platform to use AffiliateXchange.</strong>
-                        <br />
-                        We only accept video content creators (YouTube, TikTok, or Instagram). Text-only bloggers and podcasters without video are not supported at this time.
-                      </>
-                    ) : (
-                      <>
-                        <strong>Great!</strong> You have at least one video platform set up. Make sure to keep your platform URLs updated for the best experience.
-                      </>
-                    )}
-                  </AlertDescription>
-                </Alert>
-
-                <div className="grid gap-4 md:grid-cols-3 md:col-span-2">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="youtube">YouTube Channel URL</Label>
-                    <Input
-                      id="youtube"
-                      type="url"
-                      placeholder="https://youtube.com/@yourchannel"
-                      value={youtubeUrl}
-                      onChange={(e) => setYoutubeUrl(e.target.value)}
-                      data-testid="input-youtube"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="youtube-followers">YouTube Subscribers</Label>
-                    <Input
-                      id="youtube-followers"
-                      type="number"
-                      placeholder="10000"
-                      value={youtubeFollowers}
-                      onChange={(e) => setYoutubeFollowers(e.target.value)}
-                      data-testid="input-youtube-followers"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-3 md:col-span-2">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="tiktok">TikTok Profile URL</Label>
-                    <Input
-                      id="tiktok"
-                      type="url"
-                      placeholder="https://tiktok.com/@yourusername"
-                      value={tiktokUrl}
-                      onChange={(e) => setTiktokUrl(e.target.value)}
-                      data-testid="input-tiktok"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="tiktok-followers">TikTok Followers</Label>
-                    <Input
-                      id="tiktok-followers"
-                      type="number"
-                      placeholder="50000"
-                      value={tiktokFollowers}
-                      onChange={(e) => setTiktokFollowers(e.target.value)}
-                      data-testid="input-tiktok-followers"
-                    />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="linkedinUrl">LinkedIn Company Page</Label>
+                      <Input
+                        id="linkedinUrl"
+                        type="url"
+                        placeholder="https://linkedin.com/company/yourcompany"
+                        value={linkedinUrl}
+                        onChange={(e) => setLinkedinUrl(e.target.value)}
+                        data-testid="input-linkedin-url"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="twitterUrl">Twitter/X Profile</Label>
+                      <Input
+                        id="twitterUrl"
+                        type="url"
+                        placeholder="https://twitter.com/yourcompany"
+                        value={twitterUrl}
+                        onChange={(e) => setTwitterUrl(e.target.value)}
+                        data-testid="input-twitter-url"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="facebookUrl">Facebook Page</Label>
+                      <Input
+                        id="facebookUrl"
+                        type="url"
+                        placeholder="https://facebook.com/yourcompany"
+                        value={facebookUrl}
+                        onChange={(e) => setFacebookUrl(e.target.value)}
+                        data-testid="input-facebook-url"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="companyInstagramUrl">Instagram Profile</Label>
+                      <Input
+                        id="companyInstagramUrl"
+                        type="url"
+                        placeholder="https://instagram.com/yourcompany"
+                        value={companyInstagramUrl}
+                        onChange={(e) => setCompanyInstagramUrl(e.target.value)}
+                        data-testid="input-company-instagram-url"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-3 md:col-span-2">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="instagram">Instagram Profile URL</Label>
-                    <Input
-                      id="instagram"
-                      type="url"
-                      placeholder="https://instagram.com/yourusername"
-                      value={instagramUrl}
-                      onChange={(e) => setInstagramUrl(e.target.value)}
-                      data-testid="input-instagram"
-                    />
+                {/* Show warning if critical fields are missing */}
+                {(!tradeName || !logoUrl) && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <p className="text-sm text-yellow-800">
+                      <strong>⚠️ Important:</strong> Please fill in your Company Name and upload a Logo.
+                      These are required for your offers to display properly.
+                    </p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="instagram-followers">Instagram Followers</Label>
-                    <Input
-                      id="instagram-followers"
-                      type="number"
-                      placeholder="25000"
-                      value={instagramFollowers}
-                      onChange={(e) => setInstagramFollowers(e.target.value)}
-                      data-testid="input-instagram-followers"
-                    />
-                  </div>
-                </div>
+                )}
 
                 <Button
                   onClick={handleSaveProfile}
                   disabled={updateProfileMutation.isPending}
                   data-testid="button-save-profile"
-                  className="w-full md:w-auto md:col-span-2"
+                  className="w-full md:w-auto"
                 >
                   {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+              </>
+            )}
 
-      <Card className="border-card-border shadow-sm">
-        <CardHeader>
-          <CardTitle>Account Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username *</Label>
-            <Input
-              id="username"
-              type="text"
-              placeholder="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              data-testid="input-username"
-            />
-            <p className="text-xs text-muted-foreground">
-              Your unique username for the platform
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                type="text"
-                placeholder="John"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                data-testid="input-first-name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                type="text"
-                placeholder="Doe"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                data-testid="input-last-name"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Email Address
-            </Label>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                disabled
-                className="flex-1"
-                data-testid="input-email-display"
-              />
-              <Button
-                variant="outline"
-                onClick={() => setShowEmailChangeDialog(true)}
-                data-testid="button-change-email"
-                className="w-full sm:w-auto"
-              >
-                Change Email
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Your email address is used for login and important notifications
-            </p>
-          </div>
-
-          <Button
-            onClick={() => updateAccountMutation.mutate()}
-            disabled={updateAccountMutation.isPending}
-            data-testid="button-save-account"
-            className="w-full sm:w-auto"
-          >
-            {updateAccountMutation.isPending ? "Saving..." : "Save Account Info"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {!user?.googleId && (
-        <Card className="border-card-border shadow-sm">
-          <CardHeader>
-            <CardTitle>Change Password</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password *</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                placeholder="Enter current password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                data-testid="input-current-password"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password *</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                placeholder="Enter new password (min 8 characters)"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                data-testid="input-new-password"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password *</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                data-testid="input-confirm-password"
-              />
-            </div>
-
-            <Button
-              onClick={() => changePasswordMutation.mutate()}
-              disabled={changePasswordMutation.isPending}
-              data-testid="button-change-password"
-              className="w-full sm:w-auto"
-            >
-              {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card className="border-card-border shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Privacy & Data
-          </CardTitle>
-          <CardDescription>
-            Manage your data and privacy settings in compliance with GDPR/CCPA regulations.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex-1">
-                <div className="font-medium">Export Your Data</div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  Download a copy of all your personal data including profile information,
-                  applications, messages, payments, and analytics in JSON format.
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handleExportData}
-                disabled={isExportingData}
-                className="w-full sm:w-auto lg:flex-none"
-              >
-                {isExportingData ? (
-                  <>Exporting...</>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Data
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Hide delete account option for admin users */}
-            {user?.role !== 'admin' && (
+            {/* CREATOR PROFILE SECTION */}
+            {user?.role === 'creator' && (
               <>
-                <Separator />
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      placeholder="Tell companies about yourself and your audience..."
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      className="min-h-24"
+                      data-testid="textarea-bio"
+                    />
+                  </div>
 
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="flex-1">
-                    <div className="font-medium text-destructive">Delete Account</div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Permanently delete your account and all associated data. This action cannot
-                      be undone.
+                  <div className="space-y-3 md:col-span-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="niches">Content Niches</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between font-normal"
+                            data-testid="button-select-niches"
+                          >
+                            {selectedNiches.length === 0 ? (
+                              <span className="text-muted-foreground">Select your content niches...</span>
+                            ) : (
+                              <span>{selectedNiches.length} niche{selectedNiches.length !== 1 ? 's' : ''} selected</span>
+                            )}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <div className="max-h-[300px] overflow-y-auto p-4 space-y-2">
+                            {nichesLoading ? (
+                              <div className="text-sm text-muted-foreground p-2">Loading niches...</div>
+                            ) : AVAILABLE_NICHES.length === 0 ? (
+                              <div className="text-sm text-muted-foreground p-2">No niches available</div>
+                            ) : (
+                              AVAILABLE_NICHES.map((niche) => (
+                                <div key={niche.value} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`niche-${niche.value}`}
+                                    checked={selectedNiches.includes(niche.value)}
+                                    onCheckedChange={() => toggleNiche(niche.value)}
+                                  />
+                                  <label
+                                    htmlFor={`niche-${niche.value}`}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                                  >
+                                    {niche.label}
+                                  </label>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    {selectedNiches.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedNiches.map((nicheValue) => {
+                          const niche = AVAILABLE_NICHES.find(n => n.value === nicheValue);
+                          return (
+                            <Badge key={nicheValue} variant="secondary" className="gap-1">
+                              {niche?.label || nicheValue}
+                              <button
+                                type="button"
+                                onClick={() => removeNiche(nicheValue)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Your niches help us recommend relevant offers. Select all that apply to your content.
+                    </p>
+                  </div>
+
+                  {/* Video Platform Requirement Alert */}
+                  <Alert className={`${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'} md:col-span-2`}>
+                    <Video className={`h-5 w-5 ${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-600' : 'text-blue-600'}`} />
+                    <AlertTitle className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-900 dark:text-red-300' : 'text-blue-900 dark:text-blue-300'}>
+                      {!youtubeUrl && !tiktokUrl && !instagramUrl ? '⚠️ Video Platform Required' : '✓ Video Platform Requirements'}
+                    </AlertTitle>
+                    <AlertDescription className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-800 dark:text-red-200' : 'text-blue-800 dark:text-blue-200'}>
+                      {!youtubeUrl && !tiktokUrl && !instagramUrl ? (
+                        <>
+                          <strong>You must add at least one video platform to use AffiliateXchange.</strong>
+                          <br />
+                          We only accept video content creators (YouTube, TikTok, or Instagram). Text-only bloggers and podcasters without video are not supported at this time.
+                        </>
+                      ) : (
+                        <>
+                          <strong>Great!</strong> You have at least one video platform set up. Make sure to keep your platform URLs updated for the best experience.
+                        </>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="grid gap-4 md:grid-cols-3 md:col-span-2">
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="youtube">YouTube Channel URL</Label>
+                      <Input
+                        id="youtube"
+                        type="url"
+                        placeholder="https://youtube.com/@yourchannel"
+                        value={youtubeUrl}
+                        onChange={(e) => setYoutubeUrl(e.target.value)}
+                        data-testid="input-youtube"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="youtube-followers">YouTube Subscribers</Label>
+                      <Input
+                        id="youtube-followers"
+                        type="number"
+                        placeholder="10000"
+                        value={youtubeFollowers}
+                        onChange={(e) => setYoutubeFollowers(e.target.value)}
+                        data-testid="input-youtube-followers"
+                      />
                     </div>
                   </div>
+
+                  <div className="grid gap-4 md:grid-cols-3 md:col-span-2">
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="tiktok">TikTok Profile URL</Label>
+                      <Input
+                        id="tiktok"
+                        type="url"
+                        placeholder="https://tiktok.com/@yourusername"
+                        value={tiktokUrl}
+                        onChange={(e) => setTiktokUrl(e.target.value)}
+                        data-testid="input-tiktok"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tiktok-followers">TikTok Followers</Label>
+                      <Input
+                        id="tiktok-followers"
+                        type="number"
+                        placeholder="50000"
+                        value={tiktokFollowers}
+                        onChange={(e) => setTiktokFollowers(e.target.value)}
+                        data-testid="input-tiktok-followers"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3 md:col-span-2">
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="instagram">Instagram Profile URL</Label>
+                      <Input
+                        id="instagram"
+                        type="url"
+                        placeholder="https://instagram.com/yourusername"
+                        value={instagramUrl}
+                        onChange={(e) => setInstagramUrl(e.target.value)}
+                        data-testid="input-instagram"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="instagram-followers">Instagram Followers</Label>
+                      <Input
+                        id="instagram-followers"
+                        type="number"
+                        placeholder="25000"
+                        value={instagramFollowers}
+                        onChange={(e) => setInstagramFollowers(e.target.value)}
+                        data-testid="input-instagram-followers"
+                      />
+                    </div>
+                  </div>
+
                   <Button
-                    variant="destructive"
-                    onClick={() => setShowDeleteDialog(true)}
-                    disabled={isDeletingAccount}
-                    className="w-full sm:w-auto lg:flex-none"
+                    onClick={handleSaveProfile}
+                    disabled={updateProfileMutation.isPending}
+                    data-testid="button-save-profile"
+                    className="w-full md:w-auto md:col-span-2"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Account
+                    {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card className="border-card-border shadow-sm">
-        <CardHeader>
-          <CardTitle>Account</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="font-medium">Log Out</div>
-              <div className="text-sm text-muted-foreground">Sign out of your account</div>
+        <Card className="border-card-border shadow-sm">
+          <CardHeader>
+            <CardTitle>Account Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username *</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                data-testid="input-username"
+              />
+              <p className="text-xs text-muted-foreground">
+                Your unique username for the platform
+              </p>
             </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  placeholder="John"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  data-testid="input-first-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Doe"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  data-testid="input-last-name"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email Address
+              </Label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  disabled
+                  className="flex-1"
+                  data-testid="input-email-display"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => setShowEmailChangeDialog(true)}
+                  data-testid="button-change-email"
+                  className="w-full sm:w-auto"
+                >
+                  Change Email
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Your email address is used for login and important notifications
+              </p>
+            </div>
+
             <Button
-              variant="outline"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              data-testid="button-logout"
+              onClick={() => updateAccountMutation.mutate()}
+              disabled={updateAccountMutation.isPending}
+              data-testid="button-save-account"
               className="w-full sm:w-auto"
             >
-              {isLoggingOut ? "Logging out..." : "Log Out"}
+              {updateAccountMutation.isPending ? "Saving..." : "Save Account Info"}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Delete Account Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="w-full max-w-3xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Delete Account - Are you absolutely sure?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4">
-              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
-                <p className="font-bold text-destructive text-base">
-                  ⚠️ WARNING: This action cannot be undone!
-                </p>
-                <p className="text-foreground mt-2">
-                  This will permanently delete your account and remove all your data from our servers.
-                </p>
+        {!user?.googleId && (
+          <Card className="border-card-border shadow-sm">
+            <CardHeader>
+              <CardTitle>Change Password</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Current Password *</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  placeholder="Enter current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  data-testid="input-current-password"
+                />
               </div>
 
-              <div className="bg-muted p-3 rounded-md text-sm">
-                <p className="font-semibold mb-2">The following data will be deleted:</p>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>Personal information (email, name, profile)</li>
-                  <li>Payment information and settings</li>
-                  <li>Profile images and uploaded content from Cloudinary</li>
-                  <li>All offers, applications, and retainer contracts</li>
-                  <li>Favorites, notifications, and preferences</li>
-                  <li>All conversation messages and attachments</li>
-                </ul>
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password *</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  placeholder="Enter new password (min 8 characters)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  data-testid="input-new-password"
+                />
               </div>
 
-              <div className="bg-muted p-3 rounded-md text-sm">
-                <p className="font-semibold mb-2">The following will be kept (anonymized):</p>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>Reviews (content kept, author anonymized)</li>
-                </ul>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password *</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  data-testid="input-confirm-password"
+                />
               </div>
 
-              <div className="space-y-4 pt-2 border-t">
-                <p className="font-semibold text-foreground">
-                  To confirm deletion, please complete the following:
-                </p>
+              <Button
+                onClick={() => changePasswordMutation.mutate()}
+                disabled={changePasswordMutation.isPending}
+                data-testid="button-change-password"
+                className="w-full sm:w-auto"
+              >
+                {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-                {!user?.googleId && user?.password && (
+        <Card className="border-card-border shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Privacy & Data
+            </CardTitle>
+            <CardDescription>
+              Manage your data and privacy settings in compliance with GDPR/CCPA regulations.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex-1">
+                  <div className="font-medium">Export Your Data</div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Download a copy of all your personal data including profile information,
+                    applications, messages, payments, and analytics in JSON format.
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleExportData}
+                  disabled={isExportingData}
+                  className="w-full sm:w-auto lg:flex-none"
+                >
+                  {isExportingData ? (
+                    <>Exporting...</>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Data
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Hide delete account option for admin users */}
+              {user?.role !== 'admin' && (
+                <>
+                  <Separator />
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex-1">
+                      <div className="font-medium text-destructive">Delete Account</div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Permanently delete your account and all associated data. This action cannot
+                        be undone.
+                      </div>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setShowDeleteDialog(true)}
+                      disabled={isDeletingAccount}
+                      className="w-full sm:w-auto lg:flex-none"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Account
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border shadow-sm">
+          <CardHeader>
+            <CardTitle>Account</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="font-medium">Log Out</div>
+                <div className="text-sm text-muted-foreground">Sign out of your account</div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                data-testid="button-logout"
+                className="w-full sm:w-auto"
+              >
+                {isLoggingOut ? "Logging out..." : "Log Out"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Delete Account Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent className="w-full max-w-3xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Delete Account - Are you absolutely sure?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-4">
+                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+                  <p className="font-bold text-destructive text-base">
+                    ⚠️ WARNING: This action cannot be undone!
+                  </p>
+                  <p className="text-foreground mt-2">
+                    This will permanently delete your account and remove all your data from our servers.
+                  </p>
+                </div>
+
+                <div className="bg-muted p-3 rounded-md text-sm">
+                  <p className="font-semibold mb-2">The following data will be deleted:</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                    <li>Personal information (email, name, profile)</li>
+                    <li>Payment information and settings</li>
+                    <li>Profile images and uploaded content from Cloudinary</li>
+                    <li>All offers, applications, and retainer contracts</li>
+                    <li>Favorites, notifications, and preferences</li>
+                    <li>All conversation messages and attachments</li>
+                  </ul>
+                </div>
+
+                <div className="bg-muted p-3 rounded-md text-sm">
+                  <p className="font-semibold mb-2">The following will be kept (anonymized):</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                    <li>Reviews (content kept, author anonymized)</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-4 pt-2 border-t">
+                  <p className="font-semibold text-foreground">
+                    To confirm deletion, please complete the following:
+                  </p>
+
+                  {!user?.googleId && user?.password && (
+                    <div className="space-y-2">
+                      <Label htmlFor="delete-password" className="text-foreground font-semibold">
+                        1. Enter your password <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="delete-password"
+                        type="password"
+                        placeholder="Enter your password"
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                        className="border-destructive/30 focus:border-destructive"
+                      />
+                    </div>
+                  )}
+
                   <div className="space-y-2">
-                    <Label htmlFor="delete-password" className="text-foreground font-semibold">
-                      1. Enter your password <span className="text-destructive">*</span>
+                    <Label htmlFor="delete-confirmation" className="text-foreground font-semibold">
+                      {!user?.googleId && user?.password ? "2." : "1."} Type <span className="font-mono bg-muted px-2 py-1 rounded">DELETE</span> to confirm <span className="text-destructive">*</span>
                     </Label>
                     <Input
-                      id="delete-password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={deletePassword}
-                      onChange={(e) => setDeletePassword(e.target.value)}
-                      className="border-destructive/30 focus:border-destructive"
+                      id="delete-confirmation"
+                      type="text"
+                      placeholder="Type DELETE in capital letters"
+                      value={deleteConfirmation}
+                      onChange={(e) => setDeleteConfirmation(e.target.value)}
+                      className="border-destructive/30 focus:border-destructive font-mono"
                     />
+                    {deleteConfirmation && deleteConfirmation !== "DELETE" && (
+                      <p className="text-sm text-destructive">
+                        Please type exactly: DELETE
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setDeletePassword("");
+                setDeleteConfirmation("");
+              }}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                disabled={
+                  isDeletingAccount ||
+                  deleteConfirmation !== "DELETE" ||
+                  (!user?.googleId && !!user?.password && !deletePassword)
+                }
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeletingAccount ? "Deleting..." : "Yes, permanently delete my account"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Video Platform Requirement Dialog */}
+        <AlertDialog open={showVideoPlatformDialog} onOpenChange={setShowVideoPlatformDialog}>
+          <AlertDialogContent className="w-full max-w-xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="h-6 w-6" />
+                ⚠️ Video Platform Required
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-4 text-base">
+                <p className="font-semibold text-foreground">
+                  You must add at least one video platform to use AffiliateXchange.
+                </p>
+                <p>
+                  We only accept <strong>video content creators</strong> with presence on:
+                </p>
+                <ul className="list-disc list-inside space-y-2 ml-2">
+                  <li><strong>YouTube</strong> - Video channels</li>
+                  <li><strong>TikTok</strong> - Short-form video content</li>
+                  <li><strong>Instagram</strong> - Reels and video content</li>
+                </ul>
+                <p className="text-muted-foreground">
+                  Text-only bloggers and podcasters without video are not supported at this time.
+                </p>
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm text-blue-900 dark:text-blue-100">
+                    <strong>💡 Tip:</strong> Add your YouTube, TikTok, or Instagram URL in the fields above, then click Save Changes again.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setShowVideoPlatformDialog(false)}>
+                I Understand
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Change Email Dialog */}
+        <AlertDialog open={showEmailChangeDialog} onOpenChange={setShowEmailChangeDialog}>
+          <AlertDialogContent className="w-full max-w-xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Change Email Address
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-4">
+                <p className="text-foreground">
+                  Enter your new email address and {!user?.googleId ? 'your current password' : 'confirm'} to update your account email.
+                </p>
+
+                <div className="space-y-2">
+                  <Label htmlFor="current-email-display">Current Email</Label>
+                  <Input
+                    id="current-email-display"
+                    type="email"
+                    value={email}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new-email">New Email Address *</Label>
+                  <Input
+                    id="new-email"
+                    type="email"
+                    placeholder="newemail@example.com"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    data-testid="input-new-email"
+                  />
+                </div>
+
+                {!user?.googleId && (
+                  <div className="space-y-2">
+                    <Label htmlFor="email-change-password">Current Password *</Label>
+                    <Input
+                      id="email-change-password"
+                      type="password"
+                      placeholder="Enter your current password"
+                      value={emailChangePassword}
+                      onChange={(e) => setEmailChangePassword(e.target.value)}
+                      data-testid="input-email-change-password"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      For security, we need to verify your password
+                    </p>
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="delete-confirmation" className="text-foreground font-semibold">
-                    {!user?.googleId && user?.password ? "2." : "1."} Type <span className="font-mono bg-muted px-2 py-1 rounded">DELETE</span> to confirm <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="delete-confirmation"
-                    type="text"
-                    placeholder="Type DELETE in capital letters"
-                    value={deleteConfirmation}
-                    onChange={(e) => setDeleteConfirmation(e.target.value)}
-                    className="border-destructive/30 focus:border-destructive font-mono"
-                  />
-                  {deleteConfirmation && deleteConfirmation !== "DELETE" && (
-                    <p className="text-sm text-destructive">
-                      Please type exactly: DELETE
-                    </p>
-                  )}
-                </div>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setDeletePassword("");
-              setDeleteConfirmation("");
-            }}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAccount}
-              disabled={
-                isDeletingAccount ||
-                deleteConfirmation !== "DELETE" ||
-                (!user?.googleId && !!user?.password && !deletePassword)
-              }
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isDeletingAccount ? "Deleting..." : "Yes, permanently delete my account"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Video Platform Requirement Dialog */}
-      <AlertDialog open={showVideoPlatformDialog} onOpenChange={setShowVideoPlatformDialog}>
-        <AlertDialogContent className="w-full max-w-xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-6 w-6" />
-              ⚠️ Video Platform Required
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4 text-base">
-              <p className="font-semibold text-foreground">
-                You must add at least one video platform to use AffiliateXchange.
-              </p>
-              <p>
-                We only accept <strong>video content creators</strong> with presence on:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-2">
-                <li><strong>YouTube</strong> - Video channels</li>
-                <li><strong>TikTok</strong> - Short-form video content</li>
-                <li><strong>Instagram</strong> - Reels and video content</li>
-              </ul>
-              <p className="text-muted-foreground">
-                Text-only bloggers and podcasters without video are not supported at this time.
-              </p>
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>💡 Tip:</strong> Add your YouTube, TikTok, or Instagram URL in the fields above, then click Save Changes again.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowVideoPlatformDialog(false)}>
-              I Understand
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Change Email Dialog */}
-      <AlertDialog open={showEmailChangeDialog} onOpenChange={setShowEmailChangeDialog}>
-        <AlertDialogContent className="w-full max-w-xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Change Email Address
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4">
-              <p className="text-foreground">
-                Enter your new email address and {!user?.googleId ? 'your current password' : 'confirm'} to update your account email.
-              </p>
-              <div className="space-y-2">
-                <Label htmlFor="current-email-display">Current Email</Label>
-                <Input
-                  id="current-email-display"
-                  type="email"
-                  value={email}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-email">New Email Address *</Label>
-                <Input
-                  id="new-email"
-                  type="email"
-                  placeholder="newemail@example.com"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  data-testid="input-new-email"
-                />
-              </div>
-              {!user?.googleId && (
-                <div className="space-y-2">
-                  <Label htmlFor="email-change-password">Current Password *</Label>
-                  <Input
-                    id="email-change-password"
-                    type="password"
-                    placeholder="Enter your current password"
-                    value={emailChangePassword}
-                    onChange={(e) => setEmailChangePassword(e.target.value)}
-                    data-testid="input-email-change-password"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    For security, we need to verify your password
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-sm text-blue-900 dark:text-blue-100">
+                    <strong>📧 Note:</strong> A verification email will be sent to your new email address. You'll need to verify it to complete the change.
                   </p>
                 </div>
-              )}
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>📧 Note:</strong> A verification email will be sent to your new email address. You'll need to verify it to complete the change.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setNewEmail("");
+                  setEmailChangePassword("");
+                }}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => changeEmailMutation.mutate()}
+                disabled={changeEmailMutation.isPending}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {changeEmailMutation.isPending ? "Updating..." : "Update Email"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Active Items Warning Dialog */}
+        <AlertDialog open={showActiveItemsDialog} onOpenChange={setShowActiveItemsDialog}>
+          <AlertDialogContent className="w-full max-w-3xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+                <AlertTriangle className="h-6 w-6" />
+                Cannot Delete Account - Active Activities Found
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-4 text-base">
+                <p className="font-semibold text-foreground">
+                  You have active activities that must be completed or cancelled before deleting your account.
                 </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setNewEmail("");
-                setEmailChangePassword("");
-              }}
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => changeEmailMutation.mutate()}
-              disabled={changeEmailMutation.isPending}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {changeEmailMutation.isPending ? "Updating..." : "Update Email"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
-      {/* Active Items Warning Dialog */}
-      <AlertDialog open={showActiveItemsDialog} onOpenChange={setShowActiveItemsDialog}>
-        <AlertDialogContent className="w-full max-w-3xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
-              <AlertTriangle className="h-6 w-6" />
-              Cannot Delete Account - Active Activities Found
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4 text-base">
-              <p className="font-semibold text-foreground">
-                You have active activities that must be completed or cancelled before deleting your account.
-              </p>
+                {activeItemsDetails && (
+                  <div className="space-y-3">
+                    {activeItemsDetails.details.applications > 0 && (
+                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                          {activeItemsDetails.details.applications} Active Application{activeItemsDetails.details.applications > 1 ? 's' : ''}
+                        </p>
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          {user?.role === 'creator'
+                            ? 'You have active offers you are working on. Please complete or cancel these applications first.'
+                            : 'You have active applications from creators. Please complete or cancel these applications first.'}
+                        </p>
+                      </div>
+                    )}
 
-              {activeItemsDetails && (
-                <div className="space-y-3">
-                  {activeItemsDetails.details.applications > 0 && (
-                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                        {activeItemsDetails.details.applications} Active Application{activeItemsDetails.details.applications > 1 ? 's' : ''}
-                      </p>
-                      <p className="text-sm text-amber-800 dark:text-amber-200">
-                        {user?.role === 'creator'
-                          ? 'You have active offers you are working on. Please complete or cancel these applications first.'
-                          : 'You have active applications from creators. Please complete or cancel these applications first.'}
-                      </p>
-                    </div>
-                  )}
+                    {activeItemsDetails.details.retainerContracts > 0 && (
+                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                          {activeItemsDetails.details.retainerContracts} Active Retainer Contract{activeItemsDetails.details.retainerContracts > 1 ? 's' : ''}
+                        </p>
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          {user?.role === 'creator'
+                            ? 'You are currently assigned to active retainer contracts. Please complete or cancel these contracts first.'
+                            : 'You have active retainer contracts with creators. Please complete or cancel these contracts first.'}
+                        </p>
+                      </div>
+                    )}
 
-                  {activeItemsDetails.details.retainerContracts > 0 && (
-                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                        {activeItemsDetails.details.retainerContracts} Active Retainer Contract{activeItemsDetails.details.retainerContracts > 1 ? 's' : ''}
-                      </p>
-                      <p className="text-sm text-amber-800 dark:text-amber-200">
-                        {user?.role === 'creator'
-                          ? 'You are currently assigned to active retainer contracts. Please complete or cancel these contracts first.'
-                          : 'You have active retainer contracts with creators. Please complete or cancel these contracts first.'}
-                      </p>
-                    </div>
-                  )}
+                    {activeItemsDetails.details.retainerApplications > 0 && (
+                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                          {activeItemsDetails.details.retainerApplications} Pending Retainer Application{activeItemsDetails.details.retainerApplications > 1 ? 's' : ''}
+                        </p>
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          You have pending retainer applications. Please wait for them to be processed or cancel them first.
+                        </p>
+                      </div>
+                    )}
 
-                  {activeItemsDetails.details.retainerApplications > 0 && (
-                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                        {activeItemsDetails.details.retainerApplications} Pending Retainer Application{activeItemsDetails.details.retainerApplications > 1 ? 's' : ''}
-                      </p>
-                      <p className="text-sm text-amber-800 dark:text-amber-200">
-                        You have pending retainer applications. Please wait for them to be processed or cancel them first.
-                      </p>
-                    </div>
-                  )}
+                    {activeItemsDetails.details.offersWithApplications > 0 && (
+                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                          {activeItemsDetails.details.offersWithApplications} Active Offer{activeItemsDetails.details.offersWithApplications > 1 ? 's' : ''} with Applications
+                        </p>
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          You have active offers with creator applications. Please complete or cancel these offers first.
+                        </p>
+                      </div>
+                    )}
 
-                  {activeItemsDetails.details.offersWithApplications > 0 && (
-                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                        {activeItemsDetails.details.offersWithApplications} Active Offer{activeItemsDetails.details.offersWithApplications > 1 ? 's' : ''} with Applications
-                      </p>
-                      <p className="text-sm text-amber-800 dark:text-amber-200">
-                        You have active offers with creator applications. Please complete or cancel these offers first.
-                      </p>
-                    </div>
-                  )}
+                    {activeItemsDetails.details.pendingPayments > 0 && (
+                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                          {activeItemsDetails.details.pendingPayments} Pending Payment{activeItemsDetails.details.pendingPayments > 1 ? 's' : ''}
+                        </p>
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          You have pending or processing payments. Please wait for them to complete before deleting your account.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                  {activeItemsDetails.details.pendingPayments > 0 && (
-                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                        {activeItemsDetails.details.pendingPayments} Pending Payment{activeItemsDetails.details.pendingPayments > 1 ? 's' : ''}
-                      </p>
-                      <p className="text-sm text-amber-800 dark:text-amber-200">
-                        You have pending or processing payments. Please wait for them to complete before deleting your account.
-                      </p>
-                    </div>
-                  )}
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm text-blue-900 dark:text-blue-100">
+                    <strong>💡 What to do:</strong> Go to your {user?.role === 'creator' ? 'applications or retainer contracts' : 'offers or retainer contracts'} page and complete or cancel all active items. Then you can return here to delete your account.
+                  </p>
                 </div>
-              )}
-
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>💡 What to do:</strong> Go to your {user?.role === 'creator' ? 'applications or retainer contracts' : 'offers or retainer contracts'} page and complete or cancel all active items. Then you can return here to delete your account.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowActiveItemsDialog(false)}>
-              I Understand
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setShowActiveItemsDialog(false)}>
+                I Understand
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
