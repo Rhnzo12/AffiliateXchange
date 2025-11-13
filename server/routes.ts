@@ -53,6 +53,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize notification service
   const notificationService = new NotificationService(storage);
 
+  // Initialize object storage helper
+  const objectStorage = new ObjectStorageService();
+
   // Initialize priority listing scheduler
   const priorityListingScheduler = new PriorityListingScheduler(notificationService);
 
@@ -68,6 +71,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   }, 60000); // Check every minute
+
+  app.post("/api/objects/upload", requireAuth, async (req, res) => {
+    try {
+      const { folder, resourceType } = req.body ?? {};
+
+      const normalizedFolder = typeof folder === "string" && folder.trim() !== ""
+        ? folder.trim()
+        : undefined;
+
+      const allowedResourceTypes = new Set(["image", "video", "raw", "auto"]);
+      const resourceTypeInput = typeof resourceType === "string" ? resourceType.toLowerCase() : "auto";
+      const normalizedResourceType = allowedResourceTypes.has(resourceTypeInput)
+        ? resourceTypeInput
+        : "auto";
+
+      const uploadData = await objectStorage.getObjectEntityUploadURL(
+        normalizedFolder,
+        normalizedResourceType,
+      );
+
+      res.json(uploadData);
+    } catch (error: any) {
+      console.error("[Objects] Failed to create upload URL:", error);
+      res.status(500).json({ error: "Failed to create upload URL" });
+    }
+  });
 
   // Profile routes
   app.get("/api/profile", requireAuth, async (req, res) => {
