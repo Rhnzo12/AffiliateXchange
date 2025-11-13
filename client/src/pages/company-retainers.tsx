@@ -31,14 +31,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Plus, DollarSign, Video, Calendar, Users, Eye } from "lucide-react";
-import { useState } from "react";
+import { Plus, DollarSign, Video, Calendar, Users, Eye, Search, SlidersHorizontal } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
+import { Label } from "../components/ui/label";
 
 const createRetainerSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
@@ -59,8 +60,11 @@ type CreateRetainerForm = z.infer<typeof createRetainerSchema>;
 export default function CompanyRetainers() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [platformFilter, setPlatformFilter] = useState("all");
 
-  const { data: contracts, isLoading } = useQuery<any[]>({
+  const { data: contracts = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/company/retainer-contracts"],
   });
 
@@ -131,6 +135,70 @@ export default function CompanyRetainers() {
     }
   };
 
+  const statusOptions = useMemo(() => {
+    const statuses = new Set<string>();
+    for (const contract of contracts) {
+      if (contract.status) {
+        statuses.add(contract.status);
+      }
+    }
+    return Array.from(statuses.values());
+  }, [contracts]);
+
+  const platformOptions = useMemo(() => {
+    const platforms = new Set<string>();
+    for (const contract of contracts) {
+      if (contract.requiredPlatform) {
+        platforms.add(contract.requiredPlatform);
+      }
+    }
+    return Array.from(platforms.values());
+  }, [contracts]);
+
+  const filteredContracts = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return contracts.filter((contract: any) => {
+      const matchesStatus = statusFilter === "all" || contract.status === statusFilter;
+      const matchesPlatform =
+        platformFilter === "all" || contract.requiredPlatform === platformFilter;
+
+      if (!matchesStatus || !matchesPlatform) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const searchableContent = [
+        contract.title,
+        contract.description,
+        contract.requiredPlatform,
+        Array.isArray(contract.niches) ? contract.niches.join(" ") : contract.niches,
+        contract.contentGuidelines,
+        contract.brandSafetyRequirements,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableContent.includes(normalizedSearch);
+    });
+  }, [contracts, platformFilter, searchTerm, statusFilter]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || statusFilter !== "all" || platformFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setPlatformFilter("all");
+  };
+
+  const totalContracts = contracts.length;
+  const filteredCount = filteredContracts.length;
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -153,8 +221,13 @@ export default function CompanyRetainers() {
             Monthly Retainers
           </h1>
           <p className="text-muted-foreground">
-            Hire creators for ongoing monthly video production
+            Hire creators for ongoing monthly video production ({totalContracts} total)
           </p>
+          {totalContracts > 0 && filteredCount !== totalContracts && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Showing {filteredCount} retainer{filteredCount === 1 ? "" : "s"} that match your filters
+            </p>
+          )}
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -420,7 +493,86 @@ export default function CompanyRetainers() {
         </Dialog>
       </div>
 
-      {contracts && contracts.length === 0 ? (
+      {totalContracts > 0 && (
+        <Card className="border border-card-border bg-muted/30">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="w-full lg:max-w-sm">
+                <Label htmlFor="retainer-search" className="flex items-center gap-2 text-sm font-medium">
+                  <Search className="h-4 w-4" />
+                  Search retainers
+                </Label>
+                <div className="relative mt-2">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="retainer-search"
+                    placeholder="Search by title, platform, or niche"
+                    className="pl-9"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    data-testid="input-retainers-search"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                <div className="flex-1 min-w-[200px]">
+                  <Label htmlFor="retainer-status-filter" className="flex items-center gap-2 text-sm font-medium">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filter by status
+                  </Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger id="retainer-status-filter" data-testid="select-retainer-status-filter">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      {statusOptions.map((status) => (
+                        <SelectItem key={status} value={status} className="capitalize">
+                          {status.replace("_", " ")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex-1 min-w-[200px]">
+                  <Label htmlFor="retainer-platform-filter" className="flex items-center gap-2 text-sm font-medium">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filter by platform
+                  </Label>
+                  <Select value={platformFilter} onValueChange={setPlatformFilter}>
+                    <SelectTrigger id="retainer-platform-filter" data-testid="select-retainer-platform-filter">
+                      <SelectValue placeholder="All platforms" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All platforms</SelectItem>
+                      {platformOptions.map((platform) => (
+                        <SelectItem key={platform} value={platform} className="capitalize">
+                          {platform}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  onClick={clearFilters}
+                  className="self-start sm:self-auto"
+                  data-testid="button-clear-retainer-filters"
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {totalContracts === 0 ? (
         <Card className="border-card-border">
           <CardContent className="p-12 text-center">
             <DollarSign className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
@@ -434,9 +586,26 @@ export default function CompanyRetainers() {
             </Button>
           </CardContent>
         </Card>
+      ) : filteredCount === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="p-12 text-center space-y-4">
+            <DollarSign className="h-12 w-12 text-muted-foreground/50 mx-auto" />
+            <div>
+              <h3 className="font-semibold mb-2">No retainers match your filters</h3>
+              <p className="text-muted-foreground">
+                Try adjusting your search or filters to find the retainer contracts you are looking for.
+              </p>
+            </div>
+            {hasActiveFilters && (
+              <Button variant="outline" onClick={clearFilters} data-testid="button-reset-retainer-filters">
+                Clear filters
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-6">
-          {contracts?.map((contract: any) => (
+          {filteredContracts.map((contract: any) => (
             <Card
               key={contract.id}
               className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-primary/30 hover:ring-primary/50 hover:shadow-primary/20"
