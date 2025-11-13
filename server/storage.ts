@@ -583,6 +583,9 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
+ codex/revert-branches-merged-into-main-me3q0j
+  deleteUser(id: string): Promise<void>;
+ main
 
   // Creator Profiles
   getCreatorProfile(userId: string): Promise<CreatorProfile | undefined>;
