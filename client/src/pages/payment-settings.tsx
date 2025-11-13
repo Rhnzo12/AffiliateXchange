@@ -119,6 +119,9 @@ const formatMethodLabel = (method: string) =>
 
 function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<PaymentStatus | "all">("all");
+  const [methodFilter, setMethodFilter] = useState<string>("all");
   const { totalEarnings, pendingEarnings, completedEarnings, processingEarnings } = useMemo(() => {
     const totals = payments.reduce(
       (acc, payment) => {
@@ -141,20 +144,112 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
     return totals;
   }, [payments]);
 
+  const methodOptions = useMemo(() => {
+    const methodMap = new Map<string, string>();
+    let includeUnspecified = false;
+
+    payments.forEach((payment) => {
+      const method = payment.paymentMethod?.trim();
+
+      if (method && method.length > 0) {
+        const key = method.toLowerCase();
+        if (!methodMap.has(key)) {
+          methodMap.set(key, formatMethodLabel(method));
+        }
+      } else {
+        includeUnspecified = true;
+      }
+    });
+
+    return {
+      options: Array.from(methodMap.entries()).sort((a, b) => a[1].localeCompare(b[1])),
+      includeUnspecified,
+    };
+  }, [payments]);
+
+  const filteredPayments = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return payments.filter((payment) => {
+      if (statusFilter !== "all" && payment.status !== statusFilter) {
+        return false;
+      }
+
+      if (methodFilter !== "all") {
+        const normalizedMethod = payment.paymentMethod?.trim().toLowerCase() ?? "";
+        if (methodFilter === "__unspecified__") {
+          if (normalizedMethod.length > 0) {
+            return false;
+          }
+        } else if (normalizedMethod !== methodFilter) {
+          return false;
+        }
+      }
+
+      if (normalizedSearch.length === 0) {
+        return true;
+      }
+
+      const searchableContent = [
+        payment.description,
+        payment.id,
+        payment.offerId,
+        payment.paymentMethod,
+        payment.status,
+        payment.grossAmount,
+        payment.netAmount,
+        payment.createdAt,
+        payment.completedAt,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableContent.includes(normalizedSearch);
+    });
+  }, [methodFilter, payments, searchTerm, statusFilter]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || statusFilter !== "all" || methodFilter !== "all";
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setMethodFilter("all");
+  };
+
+  const datasetForExport = hasActiveFilters ? filteredPayments : payments;
+  const totalPayments = payments.length;
+  const displayCount = filteredPayments.length;
+  const showMethodFilter = methodOptions.options.length > 0 || methodOptions.includeUnspecified;
+  const noFilteredResults = totalPayments > 0 && filteredPayments.length === 0;
+
   const exportPayments = () => {
     const csv = [
-      ['ID', 'Description', 'Gross', 'Platform Fee', 'Processing Fee', 'Net Amount', 'Status', 'Date'],
-      ...payments.map(p => [
-        p.id.slice(0, 8),
-        p.description || 'Payment',
-        p.grossAmount,
-        p.platformFeeAmount,
-        p.stripeFeeAmount,
-        p.netAmount,
-        p.status,
-        p.completedAt || p.createdAt
-      ])
-    ].map(row => row.join(',')).join('\n');
+      [
+        "ID",
+        "Description",
+        "Gross",
+        "Platform Fee",
+        "Processing Fee",
+        "Net Amount",
+        "Status",
+        "Method",
+        "Date",
+      ],
+      ...datasetForExport.map((payment) => [
+        payment.id.slice(0, 8),
+        payment.description || "Payment",
+        payment.grossAmount,
+        payment.platformFeeAmount,
+        payment.stripeFeeAmount,
+        payment.netAmount,
+        payment.status,
+        payment.paymentMethod ? formatMethodLabel(payment.paymentMethod) : "Unspecified",
+        payment.completedAt || payment.createdAt,
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
 
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -211,19 +306,108 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
       </div>
 
       <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
-        <div className="border-b border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-900">Payment History</h3>
-            <Button variant="outline" size="sm" onClick={exportPayments}>
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
-            </Button>
+        <div className="border-b border-gray-200 p-6 space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Payment History</h3>
+              <p className="text-sm text-gray-500">
+                {totalPayments > 0
+                  ? `Showing ${displayCount} of ${totalPayments} ${totalPayments === 1 ? "payment" : "payments"}`
+                  : "Track payouts as they move from pending to paid."}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearFilters}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Clear filters
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={exportPayments}>
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+            <div className="flex flex-1 flex-col gap-2">
+              <Label htmlFor="creator-payments-search" className="text-sm font-medium text-gray-700">
+                Search payments
+              </Label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  id="creator-payments-search"
+                  placeholder="Search by description, amount, or ID"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 lg:w-56">
+              <Label htmlFor="creator-payments-status" className="text-sm font-medium text-gray-700">
+                Status
+              </Label>
+              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as PaymentStatus | "all")}>
+                <SelectTrigger id="creator-payments-status">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {showMethodFilter && (
+              <div className="flex flex-col gap-2 lg:w-56">
+                <Label htmlFor="creator-payments-method" className="text-sm font-medium text-gray-700">
+                  Payout method
+                </Label>
+                <Select value={methodFilter} onValueChange={setMethodFilter}>
+                  <SelectTrigger id="creator-payments-method">
+                    <SelectValue placeholder="All payout methods" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All payout methods</SelectItem>
+                    {methodOptions.options.map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                    {methodOptions.includeUnspecified && (
+                      <SelectItem value="__unspecified__">Unspecified</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </div>
         <div className="overflow-x-auto">
-          {payments.length === 0 ? (
+          {totalPayments === 0 ? (
             <div className="py-12 text-center">
               <p className="text-gray-500">No payment history yet</p>
+            </div>
+          ) : noFilteredResults ? (
+            <div className="py-12 text-center">
+              <p className="text-gray-500">No payments match the selected filters</p>
+              {hasActiveFilters && (
+                <Button variant="outline" size="sm" className="mt-4" onClick={handleClearFilters}>
+                  Clear filters
+                </Button>
+              )}
             </div>
           ) : (
             <table className="w-full">
@@ -259,7 +443,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {payments.map((payment) => (
+                {filteredPayments.map((payment) => (
                   <tr key={payment.id} className="transition hover:bg-gray-50">
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                       {payment.id.slice(0, 8)}...
