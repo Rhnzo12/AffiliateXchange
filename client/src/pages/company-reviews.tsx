@@ -1,13 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Star, MessageSquare, Reply } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { Star, MessageSquare, Reply, Search, SlidersHorizontal } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
 
@@ -38,6 +47,61 @@ export default function CompanyReviews() {
     queryKey: ["/api/company/reviews"],
     enabled: isAuthenticated,
   });
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("all");
+  const [responseFilter, setResponseFilter] = useState("all");
+
+  const filteredReviews = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return companyReviews.filter((review: any) => {
+      const matchesRating =
+        ratingFilter === "all" ||
+        (typeof review.overallRating === "number" && String(review.overallRating) === ratingFilter);
+
+      if (!matchesRating) {
+        return false;
+      }
+
+      const hasResponse = typeof review.companyResponse === "string" && review.companyResponse.trim().length > 0;
+      const matchesResponse =
+        responseFilter === "all" ||
+        (responseFilter === "responded" && hasResponse) ||
+        (responseFilter === "pending" && !hasResponse);
+
+      if (!matchesResponse) {
+        return false;
+      }
+
+      if (normalizedSearch.length === 0) {
+        return true;
+      }
+
+      const searchableContent = [
+        review.creator?.firstName,
+        review.creator?.lastName,
+        review.reviewText,
+        review.companyResponse,
+        review.application?.offer?.title,
+        review.application?.offerTitle,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableContent.includes(normalizedSearch);
+    });
+  }, [companyReviews, ratingFilter, responseFilter, searchTerm]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || ratingFilter !== "all" || responseFilter !== "all";
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setRatingFilter("all");
+    setResponseFilter("all");
+  };
 
   const submitResponseMutation = useMutation({
     mutationFn: async ({ reviewId, response }: { reviewId: string; response: string }) => {
@@ -127,8 +191,13 @@ export default function CompanyReviews() {
       <div>
         <h1 className="text-3xl font-bold">Reviews</h1>
         <p className="text-muted-foreground mt-1">
-          See what creators are saying about your offers
+          See what creators are saying about your offers ({companyReviews.length} total)
         </p>
+        {companyReviews.length > 0 && filteredReviews.length !== companyReviews.length && (
+          <p className="text-sm text-muted-foreground mt-1">
+            Showing {filteredReviews.length} review{filteredReviews.length === 1 ? "" : "s"} that match your filters
+          </p>
+        )}
       </div>
 
       {companyReviews.length > 0 && (
@@ -195,9 +264,102 @@ export default function CompanyReviews() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {companyReviews.map((review: any) => (
-            <Card key={review.id} className="border-card-border" data-testid={`card-review-${review.id}`}>
+        <div className="space-y-6">
+          <Card className="border border-card-border bg-muted/30">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="w-full lg:max-w-sm">
+                  <Label htmlFor="review-search" className="flex items-center gap-2 text-sm font-medium">
+                    <Search className="h-4 w-4" />
+                    Search reviews
+                  </Label>
+                  <div className="relative mt-2">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="review-search"
+                      className="pl-9"
+                      placeholder="Search by creator, comment, or response"
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      data-testid="input-review-search"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 lg:flex lg:flex-row lg:items-end lg:gap-4">
+                  <div className="min-w-[200px]">
+                    <Label htmlFor="rating-filter" className="flex items-center gap-2 text-sm font-medium">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filter by rating
+                    </Label>
+                    <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                      <SelectTrigger id="rating-filter" data-testid="select-review-rating-filter">
+                        <SelectValue placeholder="All ratings" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All ratings</SelectItem>
+                        <SelectItem value="5">5 stars</SelectItem>
+                        <SelectItem value="4">4 stars</SelectItem>
+                        <SelectItem value="3">3 stars</SelectItem>
+                        <SelectItem value="2">2 stars</SelectItem>
+                        <SelectItem value="1">1 star</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="min-w-[200px]">
+                    <Label htmlFor="response-filter" className="flex items-center gap-2 text-sm font-medium">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filter by response status
+                    </Label>
+                    <Select value={responseFilter} onValueChange={setResponseFilter}>
+                      <SelectTrigger id="response-filter" data-testid="select-review-response-filter">
+                        <SelectValue placeholder="All responses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All reviews</SelectItem>
+                        <SelectItem value="responded">Responded reviews</SelectItem>
+                        <SelectItem value="pending">Awaiting response</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {hasActiveFilters && (
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearFilters}
+                    data-testid="button-clear-review-filters"
+                  >
+                    Clear filters
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {filteredReviews.length === 0 ? (
+            <Card className="border-card-border">
+              <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+                <Search className="h-10 w-10 text-muted-foreground/60" />
+                <div>
+                  <h3 className="text-lg font-semibold">No reviews match these filters</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Try adjusting your search or filters to see more reviews.
+                  </p>
+                </div>
+                <Button variant="outline" onClick={handleClearFilters} size="sm">
+                  Clear filters
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {filteredReviews.map((review: any) => (
+                <Card key={review.id} className="border-card-border" data-testid={`card-review-${review.id}`}>
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -293,7 +455,9 @@ export default function CompanyReviews() {
                 )}
               </CardContent>
             </Card>
-          ))}
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -468,7 +468,19 @@ export async function setupAuth(app: Express) {
     try {
       const userId = (req.user as any).id;
       const user = await storage.getUser(userId);
-      res.json(user);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      let profileImageUrl = user.profileImageUrl ?? null;
+
+      if (!profileImageUrl && user.role === "company") {
+        const companyProfile = await storage.getCompanyProfile(userId);
+        profileImageUrl = companyProfile?.logoUrl ?? null;
+      }
+
+      res.json({ ...user, profileImageUrl });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
