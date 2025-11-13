@@ -577,6 +577,7 @@ export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
   getUserByEmailVerificationToken(token: string): Promise<User | undefined>;
   getUserByPasswordResetToken(token: string): Promise<User | undefined>;
@@ -584,6 +585,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
+  getUsersByRole(role: 'creator' | 'company' | 'admin'): Promise<User[]>;
 
   // Creator Profiles
   getCreatorProfile(userId: string): Promise<CreatorProfile | undefined>;
@@ -645,6 +647,7 @@ export interface IStorage {
   // Reviews
   getReview(id: string): Promise<Review | undefined>;
   getReviewsByCompany(companyId: string): Promise<Review[]>;
+  getReviewsByCreator(creatorId: string): Promise<Review[]>;
   getReviewsByCreatorAndCompany(creatorId: string, companyId: string): Promise<Review[]>;
   createReview(review: InsertReview): Promise<Review>;
   updateReview(id: string, updates: Partial<Review>): Promise<Review | undefined>;
@@ -4525,4 +4528,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage: IStorage = new DatabaseStorage();

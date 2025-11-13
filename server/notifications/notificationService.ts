@@ -1,6 +1,6 @@
 import sgMail from '@sendgrid/mail';
 import webpush from 'web-push';
-import type { DatabaseStorage } from '../storage';
+import type { IStorage } from '../storage';
 import type { InsertNotification, UserNotificationPreferences } from '../../shared/schema';
 import * as emailTemplates from './emailTemplates';
 
@@ -88,7 +88,7 @@ interface NotificationData {
 }
 
 export class NotificationService {
-  constructor(private storage: DatabaseStorage) {}
+  constructor(private storage: IStorage) {}
 
   /**
    * Generate the correct linkUrl based on notification type and metadata
