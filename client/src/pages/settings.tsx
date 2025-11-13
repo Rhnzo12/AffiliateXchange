@@ -815,18 +815,19 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="pb-12">
       <TopNavBar />
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground mt-1">Manage your account preferences</p>
-      </div>
+      <div className="space-y-8 w-full max-w-6xl mx-auto px-4 lg:px-8">
+        <div>
+          <h1 className="text-3xl font-bold">Settings</h1>
+          <p className="text-muted-foreground mt-1">Manage your account preferences</p>
+        </div>
 
-      <Card className="border-card-border">
+      <Card className="border-card-border shadow-sm">
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-10">
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
               <AvatarImage
@@ -848,185 +849,185 @@ export default function Settings() {
           {/* COMPANY PROFILE SECTION */}
           {user?.role === 'company' && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="tradeName" className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Company Name (Trade Name) *
-                </Label>
-                <Input
-                  id="tradeName"
-                  type="text"
-                  placeholder="Your Company Name"
-                  value={tradeName}
-                  onChange={(e) => setTradeName(e.target.value)}
-                  data-testid="input-trade-name"
-                />
-                <p className="text-xs text-muted-foreground">
-                  This is the name that will appear on all your offers
-                </p>
-              </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="tradeName" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Company Name (Trade Name) *
+                  </Label>
+                  <Input
+                    id="tradeName"
+                    type="text"
+                    placeholder="Your Company Name"
+                    value={tradeName}
+                    onChange={(e) => setTradeName(e.target.value)}
+                    data-testid="input-trade-name"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This is the name that will appear on all your offers
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="logoUrl">Company Logo *</Label>
-                <div className="space-y-4">
-                  {logoUrl ? (
-                    <div className="relative inline-block">
-                      <div className="flex items-center gap-4 p-4 border rounded-lg">
-                        <Avatar className="h-24 w-24">
-                          <AvatarImage src={logoUrl} alt={tradeName || 'Company logo'} />
-                          <AvatarFallback className="text-2xl">
-                            {tradeName?.[0] || 'C'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">Current Logo</p>
-                          <p className="text-sm text-muted-foreground">This logo will appear on all your offers</p>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="logoUrl">Company Logo *</Label>
+                  <div className="space-y-4">
+                    {logoUrl ? (
+                      <div className="relative inline-block">
+                        <div className="flex items-center gap-4 p-4 border rounded-lg">
+                          <Avatar className="h-24 w-24">
+                            <AvatarImage src={logoUrl} alt={tradeName || 'Company logo'} />
+                            <AvatarFallback className="text-2xl">
+                              {tradeName?.[0] || 'C'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">Current Logo</p>
+                            <p className="text-sm text-muted-foreground">This logo will appear on all your offers</p>
+                          </div>
                         </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2"
+                          onClick={() => setLogoUrl("")}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2"
-                        onClick={() => setLogoUrl("")}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        disabled={isUploadingLogo}
-                        className="hidden"
-                        id="logo-upload"
-                      />
-                      <label
-                        htmlFor="logo-upload"
-                        className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block ${
-                          isUploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                      >
-                        <div className="flex flex-col items-center gap-2">
-                          {isUploadingLogo ? (
-                            <>
-                              <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
-                              <div className="text-sm font-medium text-blue-600">
-                                Uploading Logo...
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-8 w-8 text-primary" />
-                              <div className="text-sm font-medium">
-                                Click to upload company logo
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                JPG, PNG, GIF, WebP (max 5MB)
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Recommended: 500x500px or larger, square format
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </label>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          disabled={isUploadingLogo}
+                          className="hidden"
+                          id="logo-upload"
+                        />
+                        <label
+                          htmlFor="logo-upload"
+                          className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block ${
+                            isUploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <div className="flex flex-col items-center gap-2">
+                            {isUploadingLogo ? (
+                              <>
+                                <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
+                                <div className="text-sm font-medium text-blue-600">
+                                  Uploading Logo...
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-8 w-8 text-primary" />
+                                <div className="text-sm font-medium">
+                                  Click to upload company logo
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  JPG, PNG, GIF, WebP (max 5MB)
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Recommended: 500x500px or larger, square format
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="legalName">Legal Company Name</Label>
-                <Input
-                  id="legalName"
-                  type="text"
-                  placeholder="Official registered company name"
-                  value={legalName}
-                  onChange={(e) => setLegalName(e.target.value)}
-                  data-testid="input-legal-name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="industry">Industry</Label>
-                <Select value={industry} onValueChange={setIndustry}>
-                  <SelectTrigger id="industry" data-testid="select-industry">
-                    <SelectValue placeholder="Select your industry" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="technology">Technology</SelectItem>
-                    <SelectItem value="ecommerce">E-commerce</SelectItem>
-                    <SelectItem value="fashion">Fashion & Apparel</SelectItem>
-                    <SelectItem value="beauty">Beauty & Cosmetics</SelectItem>
-                    <SelectItem value="health">Health & Wellness</SelectItem>
-                    <SelectItem value="fitness">Fitness</SelectItem>
-                    <SelectItem value="food">Food & Beverage</SelectItem>
-                    <SelectItem value="travel">Travel & Hospitality</SelectItem>
-                    <SelectItem value="finance">Finance & Insurance</SelectItem>
-                    <SelectItem value="education">Education</SelectItem>
-                    <SelectItem value="entertainment">Entertainment</SelectItem>
-                    <SelectItem value="gaming">Gaming</SelectItem>
-                    <SelectItem value="home">Home & Garden</SelectItem>
-                    <SelectItem value="automotive">Automotive</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="websiteUrl">Company Website</Label>
-                <Input
-                  id="websiteUrl"
-                  type="url"
-                  placeholder="https://yourcompany.com"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  data-testid="input-website-url"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="companyDescription">Company Description</Label>
-                <Textarea
-                  id="companyDescription"
-                  placeholder="Tell creators about your company, products, and what makes you unique..."
-                  value={companyDescription}
-                  onChange={(e) => setCompanyDescription(e.target.value)}
-                  className="min-h-32"
-                  data-testid="textarea-company-description"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="contactName">Contact Name</Label>
+                  <Label htmlFor="legalName">Legal Company Name</Label>
                   <Input
-                    id="contactName"
+                    id="legalName"
                     type="text"
-                    placeholder="Primary contact person"
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
-                    data-testid="input-contact-name"
+                    placeholder="Official registered company name"
+                    value={legalName}
+                    onChange={(e) => setLegalName(e.target.value)}
+                    data-testid="input-legal-name"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="contactJobTitle">Contact Job Title</Label>
+                  <Label htmlFor="industry">Industry</Label>
+                  <Select value={industry} onValueChange={setIndustry}>
+                    <SelectTrigger id="industry" data-testid="select-industry">
+                      <SelectValue placeholder="Select your industry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="technology">Technology</SelectItem>
+                      <SelectItem value="ecommerce">E-commerce</SelectItem>
+                      <SelectItem value="fashion">Fashion & Apparel</SelectItem>
+                      <SelectItem value="beauty">Beauty & Cosmetics</SelectItem>
+                      <SelectItem value="health">Health & Wellness</SelectItem>
+                      <SelectItem value="fitness">Fitness</SelectItem>
+                      <SelectItem value="food">Food & Beverage</SelectItem>
+                      <SelectItem value="travel">Travel & Hospitality</SelectItem>
+                      <SelectItem value="finance">Finance & Insurance</SelectItem>
+                      <SelectItem value="education">Education</SelectItem>
+                      <SelectItem value="entertainment">Entertainment</SelectItem>
+                      <SelectItem value="gaming">Gaming</SelectItem>
+                      <SelectItem value="home">Home & Garden</SelectItem>
+                      <SelectItem value="automotive">Automotive</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="websiteUrl">Company Website</Label>
                   <Input
-                    id="contactJobTitle"
-                    type="text"
-                    placeholder="Marketing Director, CEO, etc."
-                    value={contactJobTitle}
-                    onChange={(e) => setContactJobTitle(e.target.value)}
-                    data-testid="input-contact-job-title"
+                    id="websiteUrl"
+                    type="url"
+                    placeholder="https://yourcompany.com"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    data-testid="input-website-url"
                   />
                 </div>
-              </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="companyDescription">Company Description</Label>
+                  <Textarea
+                    id="companyDescription"
+                    placeholder="Tell creators about your company, products, and what makes you unique..."
+                    value={companyDescription}
+                    onChange={(e) => setCompanyDescription(e.target.value)}
+                    className="min-h-32"
+                    data-testid="textarea-company-description"
+                  />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 md:col-span-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="contactName">Contact Name</Label>
+                    <Input
+                      id="contactName"
+                      type="text"
+                      placeholder="Primary contact person"
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                      data-testid="input-contact-name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contactJobTitle">Contact Job Title</Label>
+                    <Input
+                      id="contactJobTitle"
+                      type="text"
+                      placeholder="Marketing Director, CEO, etc."
+                      value={contactJobTitle}
+                      onChange={(e) => setContactJobTitle(e.target.value)}
+                      data-testid="input-contact-job-title"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="phoneNumber">Phone Number</Label>
                   <Input
@@ -1038,49 +1039,49 @@ export default function Settings() {
                     data-testid="input-phone-number"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="businessAddress">Business Address</Label>
-                <Textarea
-                  id="businessAddress"
-                  placeholder="Full business address including street, city, state, ZIP, and country"
-                  value={businessAddress}
-                  onChange={(e) => setBusinessAddress(e.target.value)}
-                  className="min-h-20"
-                  data-testid="textarea-business-address"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="companySize">Company Size</Label>
-                  <Select value={companySize} onValueChange={setCompanySize}>
-                    <SelectTrigger id="companySize" data-testid="select-company-size">
-                      <SelectValue placeholder="Select company size" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1-10">1-10 employees</SelectItem>
-                      <SelectItem value="11-50">11-50 employees</SelectItem>
-                      <SelectItem value="51-200">51-200 employees</SelectItem>
-                      <SelectItem value="201-1000">201-1000 employees</SelectItem>
-                      <SelectItem value="1000+">1000+ employees</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="businessAddress">Business Address</Label>
+                  <Textarea
+                    id="businessAddress"
+                    placeholder="Full business address including street, city, state, ZIP, and country"
+                    value={businessAddress}
+                    onChange={(e) => setBusinessAddress(e.target.value)}
+                    className="min-h-20"
+                    data-testid="textarea-business-address"
+                  />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="yearFounded">Year Founded</Label>
-                  <Input
-                    id="yearFounded"
-                    type="number"
-                    min="1800"
-                    max={new Date().getFullYear()}
-                    placeholder={new Date().getFullYear().toString()}
-                    value={yearFounded}
-                    onChange={(e) => setYearFounded(e.target.value)}
-                    data-testid="input-year-founded"
-                  />
+                <div className="grid gap-4 md:grid-cols-2 md:col-span-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="companySize">Company Size</Label>
+                    <Select value={companySize} onValueChange={setCompanySize}>
+                      <SelectTrigger id="companySize" data-testid="select-company-size">
+                        <SelectValue placeholder="Select company size" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1-10">1-10 employees</SelectItem>
+                        <SelectItem value="11-50">11-50 employees</SelectItem>
+                        <SelectItem value="51-200">51-200 employees</SelectItem>
+                        <SelectItem value="201-1000">201-1000 employees</SelectItem>
+                        <SelectItem value="1000+">1000+ employees</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="yearFounded">Year Founded</Label>
+                    <Input
+                      id="yearFounded"
+                      type="number"
+                      min="1800"
+                      max={new Date().getFullYear()}
+                      placeholder={new Date().getFullYear().toString()}
+                      value={yearFounded}
+                      onChange={(e) => setYearFounded(e.target.value)}
+                      data-testid="input-year-founded"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1163,7 +1164,7 @@ export default function Settings() {
                   Optional: Add your social media profiles to build trust with creators
                 </p>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="linkedinUrl">LinkedIn Company Page</Label>
                     <Input
@@ -1228,6 +1229,7 @@ export default function Settings() {
                 onClick={handleSaveProfile}
                 disabled={updateProfileMutation.isPending}
                 data-testid="button-save-profile"
+                className="w-full md:w-auto"
               >
                 {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
@@ -1237,202 +1239,206 @@ export default function Settings() {
           {/* CREATOR PROFILE SECTION */}
           {user?.role === 'creator' && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea
-                  id="bio"
-                  placeholder="Tell companies about yourself and your audience..."
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  className="min-h-24"
-                  data-testid="textarea-bio"
-                />
-              </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="bio">Bio</Label>
+                  <Textarea
+                    id="bio"
+                    placeholder="Tell companies about yourself and your audience..."
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    className="min-h-24"
+                    data-testid="textarea-bio"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="niches">Content Niches</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between font-normal"
-                      data-testid="button-select-niches"
-                    >
-                      {selectedNiches.length === 0 ? (
-                        <span className="text-muted-foreground">Select your content niches...</span>
-                      ) : (
-                        <span>{selectedNiches.length} niche{selectedNiches.length !== 1 ? 's' : ''} selected</span>
-                      )}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
-                    <div className="max-h-[300px] overflow-y-auto p-4 space-y-2">
-                      {nichesLoading ? (
-                        <div className="text-sm text-muted-foreground p-2">Loading niches...</div>
-                      ) : AVAILABLE_NICHES.length === 0 ? (
-                        <div className="text-sm text-muted-foreground p-2">No niches available</div>
-                      ) : (
-                        AVAILABLE_NICHES.map((niche) => (
-                          <div key={niche.value} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`niche-${niche.value}`}
-                              checked={selectedNiches.includes(niche.value)}
-                              onCheckedChange={() => toggleNiche(niche.value)}
-                            />
-                            <label
-                              htmlFor={`niche-${niche.value}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                            >
-                              {niche.label}
-                            </label>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-
-                {/* Display selected niches as badges */}
-                {selectedNiches.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedNiches.map((nicheValue) => {
-                      const niche = AVAILABLE_NICHES.find(n => n.value === nicheValue);
-                      return (
-                        <Badge key={nicheValue} variant="secondary" className="gap-1">
-                          {niche?.label || nicheValue}
-                          <button
-                            type="button"
-                            onClick={() => removeNiche(nicheValue)}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      );
-                    })}
+                <div className="space-y-3 md:col-span-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="niches">Content Niches</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className="w-full justify-between font-normal"
+                          data-testid="button-select-niches"
+                        >
+                          {selectedNiches.length === 0 ? (
+                            <span className="text-muted-foreground">Select your content niches...</span>
+                          ) : (
+                            <span>{selectedNiches.length} niche{selectedNiches.length !== 1 ? 's' : ''} selected</span>
+                          )}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <div className="max-h-[300px] overflow-y-auto p-4 space-y-2">
+                          {nichesLoading ? (
+                            <div className="text-sm text-muted-foreground p-2">Loading niches...</div>
+                          ) : AVAILABLE_NICHES.length === 0 ? (
+                            <div className="text-sm text-muted-foreground p-2">No niches available</div>
+                          ) : (
+                            AVAILABLE_NICHES.map((niche) => (
+                              <div key={niche.value} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`niche-${niche.value}`}
+                                  checked={selectedNiches.includes(niche.value)}
+                                  onCheckedChange={() => toggleNiche(niche.value)}
+                                />
+                                <label
+                                  htmlFor={`niche-${niche.value}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                                >
+                                  {niche.label}
+                                </label>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                )}
 
-                <p className="text-xs text-muted-foreground">
-                  Your niches help us recommend relevant offers. Select all that apply to your content.
-                </p>
-              </div>
-
-              {/* Video Platform Requirement Alert */}
-              <Alert className={`${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'}`}>
-                <Video className={`h-5 w-5 ${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-600' : 'text-blue-600'}`} />
-                <AlertTitle className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-900 dark:text-red-300' : 'text-blue-900 dark:text-blue-300'}>
-                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? '⚠️ Video Platform Required' : '✓ Video Platform Requirements'}
-                </AlertTitle>
-                <AlertDescription className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-800 dark:text-red-200' : 'text-blue-800 dark:text-blue-200'}>
-                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? (
-                    <>
-                      <strong>You must add at least one video platform to use AffiliateXchange.</strong>
-                      <br />
-                      We only accept video content creators (YouTube, TikTok, or Instagram). Text-only bloggers and podcasters without video are not supported at this time.
-                    </>
-                  ) : (
-                    <>
-                      <strong>Great!</strong> You have at least one video platform set up. Make sure to keep your platform URLs updated for the best experience.
-                    </>
+                  {selectedNiches.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedNiches.map((nicheValue) => {
+                        const niche = AVAILABLE_NICHES.find(n => n.value === nicheValue);
+                        return (
+                          <Badge key={nicheValue} variant="secondary" className="gap-1">
+                            {niche?.label || nicheValue}
+                            <button
+                              type="button"
+                              onClick={() => removeNiche(nicheValue)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
                   )}
-                </AlertDescription>
-              </Alert>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="youtube">YouTube Channel URL</Label>
-                  <Input
-                    id="youtube"
-                    type="url"
-                    placeholder="https://youtube.com/@yourchannel"
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    data-testid="input-youtube"
-                  />
+                  <p className="text-xs text-muted-foreground">
+                    Your niches help us recommend relevant offers. Select all that apply to your content.
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="youtube-followers">YouTube Subscribers</Label>
-                  <Input
-                    id="youtube-followers"
-                    type="number"
-                    placeholder="10000"
-                    value={youtubeFollowers}
-                    onChange={(e) => setYoutubeFollowers(e.target.value)}
-                    data-testid="input-youtube-followers"
-                  />
+
+                {/* Video Platform Requirement Alert */}
+                <Alert className={`${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'} md:col-span-2`}>
+                  <Video className={`h-5 w-5 ${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-600' : 'text-blue-600'}`} />
+                  <AlertTitle className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-900 dark:text-red-300' : 'text-blue-900 dark:text-blue-300'}>
+                    {!youtubeUrl && !tiktokUrl && !instagramUrl ? '⚠️ Video Platform Required' : '✓ Video Platform Requirements'}
+                  </AlertTitle>
+                  <AlertDescription className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-800 dark:text-red-200' : 'text-blue-800 dark:text-blue-200'}>
+                    {!youtubeUrl && !tiktokUrl && !instagramUrl ? (
+                      <>
+                        <strong>You must add at least one video platform to use AffiliateXchange.</strong>
+                        <br />
+                        We only accept video content creators (YouTube, TikTok, or Instagram). Text-only bloggers and podcasters without video are not supported at this time.
+                      </>
+                    ) : (
+                      <>
+                        <strong>Great!</strong> You have at least one video platform set up. Make sure to keep your platform URLs updated for the best experience.
+                      </>
+                    )}
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid gap-4 md:grid-cols-3 md:col-span-2">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="youtube">YouTube Channel URL</Label>
+                    <Input
+                      id="youtube"
+                      type="url"
+                      placeholder="https://youtube.com/@yourchannel"
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      data-testid="input-youtube"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="youtube-followers">YouTube Subscribers</Label>
+                    <Input
+                      id="youtube-followers"
+                      type="number"
+                      placeholder="10000"
+                      value={youtubeFollowers}
+                      onChange={(e) => setYoutubeFollowers(e.target.value)}
+                      data-testid="input-youtube-followers"
+                    />
+                  </div>
                 </div>
+
+                <div className="grid gap-4 md:grid-cols-3 md:col-span-2">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="tiktok">TikTok Profile URL</Label>
+                    <Input
+                      id="tiktok"
+                      type="url"
+                      placeholder="https://tiktok.com/@yourusername"
+                      value={tiktokUrl}
+                      onChange={(e) => setTiktokUrl(e.target.value)}
+                      data-testid="input-tiktok"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tiktok-followers">TikTok Followers</Label>
+                    <Input
+                      id="tiktok-followers"
+                      type="number"
+                      placeholder="50000"
+                      value={tiktokFollowers}
+                      onChange={(e) => setTiktokFollowers(e.target.value)}
+                      data-testid="input-tiktok-followers"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3 md:col-span-2">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="instagram">Instagram Profile URL</Label>
+                    <Input
+                      id="instagram"
+                      type="url"
+                      placeholder="https://instagram.com/yourusername"
+                      value={instagramUrl}
+                      onChange={(e) => setInstagramUrl(e.target.value)}
+                      data-testid="input-instagram"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="instagram-followers">Instagram Followers</Label>
+                    <Input
+                      id="instagram-followers"
+                      type="number"
+                      placeholder="25000"
+                      value={instagramFollowers}
+                      onChange={(e) => setInstagramFollowers(e.target.value)}
+                      data-testid="input-instagram-followers"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSaveProfile}
+                  disabled={updateProfileMutation.isPending}
+                  data-testid="button-save-profile"
+                  className="w-full md:w-auto md:col-span-2"
+                >
+                  {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
               </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="tiktok">TikTok Profile URL</Label>
-                  <Input
-                    id="tiktok"
-                    type="url"
-                    placeholder="https://tiktok.com/@yourusername"
-                    value={tiktokUrl}
-                    onChange={(e) => setTiktokUrl(e.target.value)}
-                    data-testid="input-tiktok"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tiktok-followers">TikTok Followers</Label>
-                  <Input
-                    id="tiktok-followers"
-                    type="number"
-                    placeholder="50000"
-                    value={tiktokFollowers}
-                    onChange={(e) => setTiktokFollowers(e.target.value)}
-                    data-testid="input-tiktok-followers"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="instagram">Instagram Profile URL</Label>
-                  <Input
-                    id="instagram"
-                    type="url"
-                    placeholder="https://instagram.com/yourusername"
-                    value={instagramUrl}
-                    onChange={(e) => setInstagramUrl(e.target.value)}
-                    data-testid="input-instagram"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="instagram-followers">Instagram Followers</Label>
-                  <Input
-                    id="instagram-followers"
-                    type="number"
-                    placeholder="25000"
-                    value={instagramFollowers}
-                    onChange={(e) => setInstagramFollowers(e.target.value)}
-                    data-testid="input-instagram-followers"
-                  />
-                </div>
-              </div>
-
-              <Button
-                onClick={handleSaveProfile}
-                disabled={updateProfileMutation.isPending}
-                data-testid="button-save-profile"
-              >
-                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
             </>
           )}
         </CardContent>
       </Card>
 
-      <Card className="border-card-border">
+      <Card className="border-card-border shadow-sm">
         <CardHeader>
           <CardTitle>Account Information</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="username">Username *</Label>
             <Input
@@ -1448,7 +1454,7 @@ export default function Settings() {
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
               <Input
@@ -1479,7 +1485,7 @@ export default function Settings() {
               <Mail className="h-4 w-4" />
               Email Address
             </Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Input
                 id="email"
                 type="email"
@@ -1493,6 +1499,7 @@ export default function Settings() {
                 variant="outline"
                 onClick={() => setShowEmailChangeDialog(true)}
                 data-testid="button-change-email"
+                className="w-full sm:w-auto"
               >
                 Change Email
               </Button>
@@ -1506,6 +1513,7 @@ export default function Settings() {
             onClick={() => updateAccountMutation.mutate()}
             disabled={updateAccountMutation.isPending}
             data-testid="button-save-account"
+            className="w-full sm:w-auto"
           >
             {updateAccountMutation.isPending ? "Saving..." : "Save Account Info"}
           </Button>
@@ -1513,11 +1521,11 @@ export default function Settings() {
       </Card>
 
       {!user?.googleId && (
-        <Card className="border-card-border">
+        <Card className="border-card-border shadow-sm">
           <CardHeader>
             <CardTitle>Change Password</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="currentPassword">Current Password *</Label>
               <Input
@@ -1558,6 +1566,7 @@ export default function Settings() {
               onClick={() => changePasswordMutation.mutate()}
               disabled={changePasswordMutation.isPending}
               data-testid="button-change-password"
+              className="w-full sm:w-auto"
             >
               {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
             </Button>
@@ -1565,7 +1574,7 @@ export default function Settings() {
         </Card>
       )}
 
-      <Card className="border-card-border">
+      <Card className="border-card-border shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -1577,7 +1586,7 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex-1">
                 <div className="font-medium">Export Your Data</div>
                 <div className="text-sm text-muted-foreground mt-1">
@@ -1589,7 +1598,7 @@ export default function Settings() {
                 variant="outline"
                 onClick={handleExportData}
                 disabled={isExportingData}
-                className="flex-shrink-0"
+                className="w-full sm:w-auto lg:flex-none"
               >
                 {isExportingData ? (
                   <>Exporting...</>
@@ -1607,7 +1616,7 @@ export default function Settings() {
               <>
                 <Separator />
 
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex-1">
                     <div className="font-medium text-destructive">Delete Account</div>
                     <div className="text-sm text-muted-foreground mt-1">
@@ -1619,7 +1628,7 @@ export default function Settings() {
                     variant="destructive"
                     onClick={() => setShowDeleteDialog(true)}
                     disabled={isDeletingAccount}
-                    className="flex-shrink-0"
+                    className="w-full sm:w-auto lg:flex-none"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete Account
@@ -1631,12 +1640,12 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="border-card-border">
+      <Card className="border-card-border shadow-sm">
         <CardHeader>
           <CardTitle>Account</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+        <CardContent className="space-y-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="font-medium">Log Out</div>
               <div className="text-sm text-muted-foreground">Sign out of your account</div>
@@ -1646,6 +1655,7 @@ export default function Settings() {
               onClick={handleLogout}
               disabled={isLoggingOut}
               data-testid="button-logout"
+              className="w-full sm:w-auto"
             >
               {isLoggingOut ? "Logging out..." : "Log Out"}
             </Button>
@@ -1655,7 +1665,7 @@ export default function Settings() {
 
       {/* Delete Account Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="max-w-2xl">
+        <AlertDialogContent className="w-full max-w-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
@@ -1756,7 +1766,7 @@ export default function Settings() {
 
       {/* Video Platform Requirement Dialog */}
       <AlertDialog open={showVideoPlatformDialog} onOpenChange={setShowVideoPlatformDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-full max-w-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-6 w-6" />
@@ -1794,7 +1804,7 @@ export default function Settings() {
 
       {/* Change Email Dialog */}
       <AlertDialog open={showEmailChangeDialog} onOpenChange={setShowEmailChangeDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-full max-w-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
@@ -1870,7 +1880,7 @@ export default function Settings() {
 
       {/* Active Items Warning Dialog */}
       <AlertDialog open={showActiveItemsDialog} onOpenChange={setShowActiveItemsDialog}>
-        <AlertDialogContent className="max-w-2xl">
+        <AlertDialogContent className="w-full max-w-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
               <AlertTriangle className="h-6 w-6" />
@@ -1958,6 +1968,7 @@ export default function Settings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

@@ -32,14 +32,34 @@ import {
 } from "../components/ui/form";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
-import { DollarSign, Video, Calendar, Briefcase, Send, CheckCircle, XCircle, Clock, Eye, AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import {
+  DollarSign,
+  Video,
+  Calendar,
+  Briefcase,
+  Send,
+  CheckCircle,
+  Clock,
+  Eye,
+  AlertTriangle,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useLocation } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { Label } from "../components/ui/label";
 
 const applyRetainerSchema = z.object({
   message: z.string().min(20, "Message must be at least 20 characters"),
@@ -55,14 +75,82 @@ export default function CreatorRetainers() {
   const [selectedContract, setSelectedContract] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [showVideoPlatformDialog, setShowVideoPlatformDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [platformFilter, setPlatformFilter] = useState("all");
 
-  const { data: contracts, isLoading } = useQuery<any[]>({
+  const { data: contracts = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/retainer-contracts"],
   });
 
   const { data: myApplications } = useQuery<any[]>({
     queryKey: ["/api/creator/retainer-applications"],
   });
+
+  const statusOptions = useMemo(() => {
+    const statuses = new Set<string>();
+    for (const contract of contracts) {
+      if (contract.status) {
+        statuses.add(contract.status);
+      }
+    }
+    return Array.from(statuses.values());
+  }, [contracts]);
+
+  const platformOptions = useMemo(() => {
+    const platforms = new Set<string>();
+    for (const contract of contracts) {
+      if (contract.requiredPlatform) {
+        platforms.add(contract.requiredPlatform);
+      }
+    }
+    return Array.from(platforms.values());
+  }, [contracts]);
+
+  const filteredContracts = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return contracts.filter((contract: any) => {
+      const matchesStatus = statusFilter === "all" || contract.status === statusFilter;
+      const matchesPlatform =
+        platformFilter === "all" || contract.requiredPlatform === platformFilter;
+
+      if (!matchesStatus || !matchesPlatform) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const searchableContent = [
+        contract.title,
+        contract.description,
+        contract.requiredPlatform,
+        contract.company?.tradeName,
+        contract.company?.legalName,
+        Array.isArray(contract.niches) ? contract.niches.join(" ") : contract.niches,
+        contract.contentGuidelines,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableContent.includes(normalizedSearch);
+    });
+  }, [contracts, platformFilter, searchTerm, statusFilter]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || statusFilter !== "all" || platformFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setPlatformFilter("all");
+  };
+
+  const totalContracts = contracts?.length ?? 0;
+  const filteredCount = filteredContracts.length;
 
   const form = useForm<ApplyRetainerForm>({
     resolver: zodResolver(applyRetainerSchema),
@@ -118,14 +206,6 @@ export default function CreatorRetainers() {
   // Get application for a specific contract
   const getApplication = (contractId: string) => {
     return myApplications?.find((app: any) => app.contractId === contractId);
-  };
-
-  // Check if user can apply (no application or rejected)
-  const canApply = (contractId: string) => {
-    const application = getApplication(contractId);
-    if (!application) return true;
-    // Can reapply if rejected
-    return application.status === 'rejected';
   };
 
   // Get button text, badge, and icon based on application status
@@ -196,11 +276,110 @@ export default function CreatorRetainers() {
           Monthly Retainers
         </h1>
         <p className="text-muted-foreground">
-          Browse ongoing monthly video production contracts
+          Browse ongoing monthly video production contracts ({totalContracts} total)
         </p>
+        {totalContracts > 0 && filteredCount !== totalContracts && (
+          <p className="text-sm text-muted-foreground mt-1">
+            Showing {filteredCount} retainer{filteredCount === 1 ? "" : "s"} that match your filters
+          </p>
+        )}
       </div>
 
-      {contracts && contracts.length === 0 ? (
+      {totalContracts > 0 && (
+        <Card className="border border-card-border bg-muted/30">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="w-full lg:max-w-sm">
+                <Label
+                  htmlFor="creator-retainers-search"
+                  className="flex items-center gap-2 text-sm font-medium"
+                >
+                  <Search className="h-4 w-4" />
+                  Search retainers
+                </Label>
+                <div className="relative mt-2">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="creator-retainers-search"
+                    placeholder="Search by title, company, or niche"
+                    className="pl-9"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    data-testid="input-creator-retainers-search"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                <div className="flex-1 min-w-[200px]">
+                  <Label
+                    htmlFor="creator-retainers-status-filter"
+                    className="flex items-center gap-2 text-sm font-medium"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filter by status
+                  </Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger
+                      id="creator-retainers-status-filter"
+                      data-testid="select-creator-retainers-status"
+                    >
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      {statusOptions.map((status) => (
+                        <SelectItem key={status} value={status} className="capitalize">
+                          {status.replace("_", " ")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex-1 min-w-[200px]">
+                  <Label
+                    htmlFor="creator-retainers-platform-filter"
+                    className="flex items-center gap-2 text-sm font-medium"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filter by platform
+                  </Label>
+                  <Select value={platformFilter} onValueChange={setPlatformFilter}>
+                    <SelectTrigger
+                      id="creator-retainers-platform-filter"
+                      data-testid="select-creator-retainers-platform"
+                    >
+                      <SelectValue placeholder="All platforms" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All platforms</SelectItem>
+                      {platformOptions.map((platform) => (
+                        <SelectItem key={platform} value={platform} className="capitalize">
+                          {platform}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  onClick={clearFilters}
+                  className="self-start sm:self-auto"
+                  data-testid="button-clear-creator-retainers-filters"
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {totalContracts === 0 ? (
         <Card className="border-card-border">
           <CardContent className="p-12 text-center">
             <Briefcase className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
@@ -210,13 +389,33 @@ export default function CreatorRetainers() {
             </p>
           </CardContent>
         </Card>
+      ) : filteredCount === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="p-12 text-center space-y-4">
+            <Search className="h-12 w-12 text-muted-foreground/50 mx-auto" />
+            <div>
+              <h3 className="font-semibold mb-2">No retainers match your filters</h3>
+              <p className="text-muted-foreground">
+                Try adjusting your search or filters to discover more retainer opportunities.
+              </p>
+            </div>
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                data-testid="button-reset-creator-retainers-filters"
+              >
+                Reset filters
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-6">
-          {contracts?.map((contract: any) => {
+          {filteredContracts.map((contract: any) => {
             const applicationStatus = getApplicationStatus(contract.id);
-            const allowApply = canApply(contract.id);
             const StatusIcon = applicationStatus.icon;
-            
+
             return (
               <Card
                 key={contract.id}

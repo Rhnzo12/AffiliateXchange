@@ -19,12 +19,9 @@ interface TopNavBarProps {
 export function TopNavBar({ children }: TopNavBarProps) {
   const { user } = useAuth();
 
-  // Get user initials for avatar
-  const getUserInitials = () => {
-    if (!user) return "U";
-    const firstName = user.firstName || user.email || "User";
-    return firstName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
-  };
+  const displayName = user?.firstName || user?.email || "Account";
+  const avatarUrl = user?.profileImageUrl || undefined;
+  const initials = (user?.firstName?.[0] || user?.email?.[0] || "A").toUpperCase();
 
   const handleLogout = async () => {
     try {
@@ -54,23 +51,40 @@ export function TopNavBar({ children }: TopNavBarProps) {
             {/* Profile Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
-                  <Avatar className="h-9 w-9 border-2 border-primary/20">
-                    <AvatarImage
-                      src={user?.profileImageUrl || ''}
-                      alt={user?.firstName || 'User'}
-                      referrerPolicy="no-referrer"
-                    />
-                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
-                      {getUserInitials()}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 pl-2 pr-3 font-semibold text-sm gap-2"
+                >
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={avatarUrl} alt={`${displayName} avatar`} />
+                    <AvatarFallback className="text-xs font-medium">
+                      {initials}
                     </AvatarFallback>
                   </Avatar>
-                </button>
+                  <span className="max-w-[140px] truncate text-left">{displayName}</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="px-3 py-2 border-b">
-                  <p className="text-sm font-medium">{user?.firstName || user?.email || 'User'}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{user?.role || 'creator'}</p>
+              <DropdownMenuContent align="end" className="w-64">
+                <div className="flex items-center gap-3 px-3 py-3 border-b">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={avatarUrl} alt={`${displayName} avatar`} />
+                    <AvatarFallback className="font-medium">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold leading-none">{displayName}</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {user?.role || "creator"}
+                    </p>
+                    {user?.email && (
+                      <p className="text-xs text-muted-foreground truncate max-w-[160px]">
+                        {user.email}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <DropdownMenuItem asChild>
                   <Link href="/settings">

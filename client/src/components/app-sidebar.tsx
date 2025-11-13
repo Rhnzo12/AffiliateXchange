@@ -21,7 +21,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import {
   Home,
@@ -303,18 +302,13 @@ export function AppSidebar() {
       <SidebarFooter className="border-t p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 w-full hover-elevate p-2 rounded-md" data-testid="button-user-menu">
-              <Avatar className="h-8 w-8">
-                <AvatarImage
-                  src={user?.profileImageUrl || ''}
-                  alt={user?.firstName || 'User'}
-                  referrerPolicy="no-referrer"
-                />
-                <AvatarFallback>{user?.firstName?.[0] || user?.email?.[0] || 'U'}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 text-left">
-                <div className="text-sm font-medium">{user?.firstName || user?.email || 'User'}</div>
-                <div className="text-xs text-muted-foreground capitalize">{user?.role || 'creator'}</div>
+            <button
+              className="flex items-center justify-between w-full hover-elevate p-2 rounded-md"
+              data-testid="button-user-menu"
+            >
+              <div className="flex flex-col text-left">
+                <span className="text-sm font-medium">{user?.firstName || user?.email || 'User'}</span>
+                <span className="text-xs text-muted-foreground capitalize">{user?.role || 'creator'}</span>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </button>
@@ -327,10 +321,10 @@ export function AppSidebar() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={async () => {
                 try {
-                  await fetch('/api/auth/logout', { 
+                  await fetch('/api/auth/logout', {
                     method: 'POST',
                     credentials: 'include'
                   });
