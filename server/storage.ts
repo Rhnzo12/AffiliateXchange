@@ -798,8 +798,63 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // Users
+ // Users
   async getUser(id: string): Promise<User | undefined> {
+    try {
+      const result = await db
+        .select({
+          user: users,
+          companyLogoUrl: companyProfiles.logoUrl,
+        })
+        .from(users)
+        .leftJoin(companyProfiles, eq(users.id, companyProfiles.userId))
+        .where(eq(users.id, id))
+        .limit(1);
+
+      const row = result[0];
+      if (!row) {
+        return undefined;
+      }
+
+      const { user, companyLogoUrl } = row;
+
+      let resolvedProfileImage = user.profileImageUrl ?? null;
+      const normalizedCompanyLogo = companyLogoUrl && companyLogoUrl.trim() !== ""
+        ? companyLogoUrl
+        : null;
+
+      if ((!resolvedProfileImage || resolvedProfileImage.trim() === "") && !user.googleId) {
+        if (user.role === "company" && normalizedCompanyLogo) {
+          resolvedProfileImage = normalizedCompanyLogo;
+        }
+      }
+
+      return {
+        ...user,
+        profileImageUrl: resolvedProfileImage,
+      };
+    } catch (error) {
+      if (
+        isMissingRelationError(error, "company_profiles") ||
+        isMissingColumnError(error, "company_profiles", ["logo_url"])
+      ) {
+        console.warn(
+          "[Storage] Falling back to basic user lookup because company profile data is unavailable",
+        );
+      } else {
+        throw error;
+      }
+    }
+
+    // Fallback: fetch user without company profile join
+    const fallbackResult = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+
+    return fallbackResult[0];
+  }
     const result = await db
       .select({
         user: users,
