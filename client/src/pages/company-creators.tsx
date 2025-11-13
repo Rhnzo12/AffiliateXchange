@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -6,16 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
-import { Users, MessageSquare, TrendingUp, ExternalLink, Search, SlidersHorizontal } from "lucide-react";
+import { Users, MessageSquare, TrendingUp, ExternalLink } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
 import { apiRequest } from "../lib/queryClient";
@@ -24,9 +15,6 @@ export default function CompanyCreators() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [platformFilter, setPlatformFilter] = useState("all");
-  const [offerFilter, setOfferFilter] = useState("all");
 
   const startConversationMutation = useMutation({
     mutationFn: async (applicationId: string) => {
@@ -65,108 +53,26 @@ export default function CompanyCreators() {
   });
 
   // Get unique creators from approved applications
-  const creators = useMemo(() => {
-    return applications
-      .filter((app: any) => app.status === 'approved' && app.creator)
-      .reduce((acc: any[], app: any) => {
-        const existing = acc.find((creator: any) => creator.id === app.creator.id);
-        if (!existing) {
-          acc.push({
-            ...app.creator,
-            applications: [app],
-            totalClicks: app.clickCount || 0,
-            totalConversions: app.conversionCount || 0,
-            totalEarnings: parseFloat(app.totalEarnings || '0'),
-          });
-        } else {
-          existing.applications.push(app);
-          existing.totalClicks += app.clickCount || 0;
-          existing.totalConversions += app.conversionCount || 0;
-          existing.totalEarnings += parseFloat(app.totalEarnings || '0');
-        }
-        return acc;
-      }, []);
-  }, [applications]);
-
-  const platformOptions = useMemo(() => {
-    const options: { value: string; label: string }[] = [];
-    if (creators.some((creator: any) => creator.youtubeUrl)) {
-      options.push({ value: "youtube", label: "YouTube" });
-    }
-    if (creators.some((creator: any) => creator.tiktokUrl)) {
-      options.push({ value: "tiktok", label: "TikTok" });
-    }
-    if (creators.some((creator: any) => creator.instagramUrl)) {
-      options.push({ value: "instagram", label: "Instagram" });
-    }
-    return options;
-  }, [creators]);
-
-  const offerOptions = useMemo(() => {
-    const uniqueOffers = new Map<string, string>();
-    for (const creator of creators) {
-      for (const application of creator.applications || []) {
-        const offerId = application.offer?.id;
-        if (offerId && !uniqueOffers.has(offerId)) {
-          uniqueOffers.set(offerId, application.offer?.title || "Untitled Offer");
-        }
+  const creators = applications
+    .filter((app: any) => app.status === 'approved' && app.creator)
+    .reduce((acc: any[], app: any) => {
+      const existing = acc.find(c => c.id === app.creator.id);
+      if (!existing) {
+        acc.push({
+          ...app.creator,
+          applications: [app],
+          totalClicks: app.clickCount || 0,
+          totalConversions: app.conversionCount || 0,
+          totalEarnings: parseFloat(app.totalEarnings || '0'),
+        });
+      } else {
+        existing.applications.push(app);
+        existing.totalClicks += app.clickCount || 0;
+        existing.totalConversions += app.conversionCount || 0;
+        existing.totalEarnings += parseFloat(app.totalEarnings || '0');
       }
-    }
-    return Array.from(uniqueOffers.entries());
-  }, [creators]);
-
-  const filteredCreators = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    return creators.filter((creator: any) => {
-      const matchesPlatform =
-        platformFilter === "all" ||
-        (platformFilter === "youtube" && creator.youtubeUrl) ||
-        (platformFilter === "tiktok" && creator.tiktokUrl) ||
-        (platformFilter === "instagram" && creator.instagramUrl);
-
-      if (!matchesPlatform) {
-        return false;
-      }
-
-      const matchesOffer =
-        offerFilter === "all" ||
-        creator.applications?.some((application: any) => application.offer?.id === offerFilter);
-
-      if (!matchesOffer) {
-        return false;
-      }
-
-      if (normalizedSearch.length === 0) {
-        return true;
-      }
-
-      const searchableContent = [
-        creator.firstName,
-        creator.lastName,
-        creator.bio,
-        creator.email,
-        creator.applications
-          ?.map((application: any) => application.offer?.title)
-          .filter(Boolean)
-          .join(" "),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return searchableContent.includes(normalizedSearch);
-    });
-  }, [creators, offerFilter, platformFilter, searchTerm]);
-
-  const hasActiveFilters =
-    searchTerm.trim().length > 0 || platformFilter !== "all" || offerFilter !== "all";
-
-  const handleClearFilters = () => {
-    setSearchTerm("");
-    setPlatformFilter("all");
-    setOfferFilter("all");
-  };
+      return acc;
+    }, []);
 
   if (isLoading) {
     return (
@@ -182,14 +88,8 @@ export default function CompanyCreators() {
       <div>
         <h1 className="text-3xl font-bold">Creators</h1>
         <p className="text-muted-foreground mt-1">
-          Manage relationships with creators promoting your offers ({creators.length} total)
+          Manage relationships with creators promoting your offers
         </p>
-        {creators.length > 0 && filteredCreators.length !== creators.length && (
-          <p className="text-sm text-muted-foreground mt-1">
-            Showing {filteredCreators.length} creator{filteredCreators.length === 1 ? "" : "s"} that
-            match your filters
-          </p>
-        )}
       </div>
 
       {loadingCreators ? (
@@ -209,109 +109,13 @@ export default function CompanyCreators() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          <Card className="border border-card-border bg-muted/30">
-            <CardContent className="p-4">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div className="w-full lg:max-w-sm">
-                  <Label htmlFor="creator-search" className="flex items-center gap-2 text-sm font-medium">
-                    <Search className="h-4 w-4" />
-                    Search creators
-                  </Label>
-                  <div className="relative mt-2">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="creator-search"
-                      className="pl-9"
-                      placeholder="Search by name, offer, or bio"
-                      value={searchTerm}
-                      onChange={(event) => setSearchTerm(event.target.value)}
-                      data-testid="input-creator-search"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2 lg:flex lg:flex-row lg:items-end lg:gap-4">
-                  <div className="min-w-[200px]">
-                    <Label htmlFor="platform-filter" className="flex items-center gap-2 text-sm font-medium">
-                      <SlidersHorizontal className="h-4 w-4" />
-                      Filter by platform
-                    </Label>
-                    <Select value={platformFilter} onValueChange={setPlatformFilter}>
-                      <SelectTrigger id="platform-filter" data-testid="select-platform-filter">
-                        <SelectValue placeholder="All platforms" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All platforms</SelectItem>
-                        {platformOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="min-w-[200px]">
-                    <Label htmlFor="offer-filter" className="flex items-center gap-2 text-sm font-medium">
-                      <SlidersHorizontal className="h-4 w-4" />
-                      Filter by offer
-                    </Label>
-                    <Select value={offerFilter} onValueChange={setOfferFilter}>
-                      <SelectTrigger id="offer-filter" data-testid="select-creator-offer-filter">
-                        <SelectValue placeholder="All offers" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All offers</SelectItem>
-                        {offerOptions.map(([id, title]) => (
-                          <SelectItem key={id} value={id}>
-                            {title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              {hasActiveFilters && (
-                <div className="mt-4 flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearFilters}
-                    data-testid="button-clear-creator-filters"
-                  >
-                    Clear filters
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {filteredCreators.length === 0 ? (
-            <Card className="border-card-border">
-              <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-                <Search className="h-10 w-10 text-muted-foreground/60" />
-                <div>
-                  <h3 className="text-lg font-semibold">No creators match these filters</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Try adjusting your search or filters to see more creators.
-                  </p>
-                </div>
-                <Button variant="outline" onClick={handleClearFilters} size="sm">
-                  Clear filters
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredCreators.map((creator: any) => (
-                <Card key={creator.id} className="border-card-border" data-testid={`card-creator-${creator.id}`}>
-                  <CardHeader>
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={creator.profileImageUrl} />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {creators.map((creator: any) => (
+            <Card key={creator.id} className="border-card-border" data-testid={`card-creator-${creator.id}`}>
+              <CardHeader>
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={creator.profileImageUrl} />
                     <AvatarFallback>
                       {creator.firstName?.[0] || 'C'}
                     </AvatarFallback>
@@ -393,11 +197,9 @@ export default function CompanyCreators() {
                     </Button>
                   </Link>
                 </div>
-                </CardContent>
-              </Card>
-              ))}
-            </div>
-          )}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

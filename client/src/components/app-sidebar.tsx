@@ -14,6 +14,14 @@ import {
   SidebarFooter,
   useSidebar,
 } from "./ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "./ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import {
   Home,
@@ -26,6 +34,10 @@ import {
   Star,
   Building2,
   Users,
+  ShieldCheck,
+  Zap,
+  ChevronDown,
+  LogOut,
   Video,
   CalendarClock,
   ScrollText,
@@ -214,6 +226,7 @@ export function AppSidebar() {
       url: "/admin/platform-settings",
       icon: Sliders,
     },
+    // Removed admin 'Account Settings' to avoid duplication with global Settings
   ];
 
   const getMenuItems = () => {
@@ -271,7 +284,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupLabel>Settings</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -288,14 +301,52 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">
-        <div className="flex flex-col gap-1 text-center">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} AffiliateXchange
-          </p>
-          <p className="text-xs text-muted-foreground">
-            All rights reserved
-          </p>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-3 w-full hover-elevate p-2 rounded-md" data-testid="button-user-menu">
+              <Avatar className="h-8 w-8">
+                <AvatarImage
+                  src={user?.profileImageUrl || ''}
+                  alt={user?.firstName || 'User'}
+                  referrerPolicy="no-referrer"
+                />
+                <AvatarFallback>{user?.firstName?.[0] || user?.email?.[0] || 'U'}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 text-left">
+                <div className="text-sm font-medium">{user?.firstName || user?.email || 'User'}</div>
+                <div className="text-xs text-muted-foreground capitalize">{user?.role || 'creator'}</div>
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem asChild>
+              <Link href="/settings" onClick={handleNavClick}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={async () => {
+                try {
+                  await fetch('/api/auth/logout', { 
+                    method: 'POST',
+                    credentials: 'include'
+                  });
+                  window.location.href = '/';
+                } catch (error) {
+                  console.error('Logout error:', error);
+                  window.location.href = '/';
+                }
+              }}
+              data-testid="button-logout"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,29 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
-import {
-  Copy,
-  ExternalLink,
-  MessageSquare,
-  TrendingUp,
-  FileText,
-  Clock,
-  CheckCircle2,
-  Star,
-  Search,
-} from "lucide-react";
+import { Copy, ExternalLink, MessageSquare, TrendingUp, FileText, Clock, CheckCircle2, Star, StarOff } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
-import { Input } from "../components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
 
 const STATUS_COLORS: Record<string, any> = {
   pending: { variant: "secondary" as const, icon: Clock },
@@ -93,8 +75,6 @@ export default function Applications() {
   const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [commissionFilter, setCommissionFilter] = useState("all");
   const [reviewDialog, setReviewDialog] = useState<{ open: boolean; application: any | null }>({
     open: false,
     application: null,
@@ -231,60 +211,10 @@ export default function Applications() {
     submitReviewMutation.mutate(reviewForm);
   };
 
-  const commissionTypes = useMemo(() => {
-    if (!applications) return [];
-    const unique = new Set<string>();
-
-    applications.forEach((application) => {
-      const type = application.offer?.commissionType;
-      if (type) {
-        unique.add(type);
-      }
-    });
-
-    return Array.from(unique).sort();
-  }, [applications]);
-
-  const filteredApplications = useMemo(() => {
-    if (!applications) return [];
-
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    return applications.filter((app) => {
-      if (activeTab !== "all" && app.status !== activeTab) {
-        return false;
-      }
-
-      if (commissionFilter !== "all" && app.offer?.commissionType !== commissionFilter) {
-        return false;
-      }
-
-      if (normalizedSearch.length === 0) {
-        return true;
-      }
-
-      const searchableContent = [
-        app.offer?.title,
-        app.offer?.company?.tradeName,
-        app.offer?.shortDescription,
-        app.offer?.commissionType?.replace(/_/g, " "),
-        app.status,
-      ]
-        .filter(Boolean)
-        .map((value) => String(value).toLowerCase());
-
-      return searchableContent.some((content) => content.includes(normalizedSearch));
-    });
-  }, [activeTab, applications, commissionFilter, searchTerm]);
-
-  const hasActiveFilters =
-    searchTerm.trim().length > 0 || commissionFilter !== "all" || activeTab !== "all";
-
-  const clearFilters = () => {
-    setSearchTerm("");
-    setCommissionFilter("all");
-    setActiveTab("all");
-  };
+  const filteredApplications = applications?.filter(app => {
+    if (activeTab === "all") return true;
+    return app.status === activeTab;
+  });
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
@@ -299,63 +229,6 @@ export default function Applications() {
       <div>
         <h1 className="text-3xl font-bold">My Applications</h1>
         <p className="text-muted-foreground mt-1">Track all your affiliate applications in one place</p>
-      </div>
-
-      <div className="space-y-4 rounded-lg border border-card-border bg-card p-4 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-end">
-            <div className="flex flex-1 flex-col gap-2">
-              <Label htmlFor="my-applications-search" className="text-sm font-medium text-muted-foreground">
-                Search applications
-              </Label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="my-applications-search"
-                  placeholder="Search by offer, company, or status"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  className="pl-9"
-                  data-testid="input-my-applications-search"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-1 flex-col gap-2 md:max-w-xs">
-              <Label htmlFor="my-applications-commission-filter" className="text-sm font-medium text-muted-foreground">
-                Commission type
-              </Label>
-              <Select
-                value={commissionFilter}
-                onValueChange={setCommissionFilter}
-              >
-                <SelectTrigger id="my-applications-commission-filter" data-testid="select-my-applications-commission">
-                  <SelectValue placeholder="All commission types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All commission types</SelectItem>
-                  {commissionTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type.replace(/_/g, " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="self-start"
-              data-testid="button-clear-my-applications-filters"
-            >
-              Clear filters
-            </Button>
-          )}
-        </div>
       </div>
 
       {/* Tabs */}
@@ -378,7 +251,7 @@ export default function Applications() {
         <TabsContent value={activeTab} className="space-y-4 mt-6">
           {applicationsLoading ? (
             <ListSkeleton count={3} />
-          ) : filteredApplications.length === 0 ? (
+          ) : !filteredApplications || filteredApplications.length === 0 ? (
             <Card className="border-card-border">
               <CardContent className="p-12 text-center">
                 <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />

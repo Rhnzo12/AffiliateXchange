@@ -583,7 +583,9 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
+ codex/revert-branches-merged-into-main-me3q0j
   deleteUser(id: string): Promise<void>;
+ main
 
   // Creator Profiles
   getCreatorProfile(userId: string): Promise<CreatorProfile | undefined>;
@@ -864,10 +866,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return result[0];
-  }
-
-  async deleteUser(id: string): Promise<void> {
-    await db.delete(users).where(eq(users.id, id));
   }
 
   // Creator Profiles
@@ -1152,14 +1150,14 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(offers.companyId, filters.companyId));
     }
 
-    // Search filter - search in title, shortDescription, and fullDescription
+    // Search filter - search in title, shortDescription, and longDescription
     if (filters.search) {
       const searchTerm = `%${filters.search.toLowerCase()}%`;
       conditions.push(
         or(
           sql`LOWER(${offers.title}) LIKE ${searchTerm}`,
           sql`LOWER(${offers.shortDescription}) LIKE ${searchTerm}`,
-          sql`LOWER(${offers.fullDescription}) LIKE ${searchTerm}`
+          sql`LOWER(${offers.longDescription}) LIKE ${searchTerm}`
         )
       );
     }
@@ -1189,7 +1187,7 @@ export class DatabaseStorage implements IStorage {
     if (filters.sortBy === 'highest_commission') {
       // Sort by commission amount/percentage/rate (descending)
       query = (query.orderBy(
-        desc(sql`COALESCE(${offers.commissionAmount}, ${offers.commissionPercentage}, 0)`)
+        desc(sql`COALESCE(${offers.commissionAmount}, ${offers.commissionPercentage}, ${offers.commissionRate}, 0)`)
       ) as unknown) as typeof query;
     } else if (filters.sortBy === 'trending') {
       // Sort by view count and application count
