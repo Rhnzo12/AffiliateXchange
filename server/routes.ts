@@ -105,13 +105,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user as any;
 
       if (user.role === 'creator') {
-        const profile = await storage.getCreatorProfile(userId);
+        let profile = await storage.getCreatorProfile(userId);
         if (!profile) {
           // Create default profile if doesn't exist
-          const newProfile = await storage.createCreatorProfile({ userId });
-          return res.json(newProfile);
+          profile = await storage.createCreatorProfile({ userId });
         }
-        return res.json(profile);
+
+        const userRecord = await storage.getUser(userId);
+
+        return res.json({
+          ...profile,
+          profileImageUrl: userRecord?.profileImageUrl ?? null,
+        });
       } else if (user.role === 'company') {
         const profile = await storage.getCompanyProfile(userId);
         return res.json(profile);
@@ -144,7 +149,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("[Profile Update] Validated data:", validated);
         const profile = await storage.updateCreatorProfile(userId, validated);
         console.log("[Profile Update] Updated profile:", profile);
-        return res.json(profile);
+
+        const userRecord = await storage.getUser(userId);
+
+        const profilePayload = profile ?? (await storage.getCreatorProfile(userId));
+
+        if (!profilePayload) {
+          return res.status(500).json({ error: "Failed to load creator profile" });
+        }
+
+        return res.json({
+          ...profilePayload,
+          profileImageUrl: userRecord?.profileImageUrl ?? null,
+        });
       } else if (user.role === 'company') {
         const validated = insertCompanyProfileSchema.partial().parse(profileData);
         const profile = await storage.updateCompanyProfile(userId, validated);
