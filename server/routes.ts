@@ -53,6 +53,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize notification service
   const notificationService = new NotificationService(storage);
 
+  // Initialize object storage helper
+  const objectStorage = new ObjectStorageService();
+
   // Initialize priority listing scheduler
   const priorityListingScheduler = new PriorityListingScheduler(notificationService);
 
@@ -69,6 +72,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }, 60000); // Check every minute
 
+  app.post("/api/objects/upload", requireAuth, async (req, res) => {
+    try {
+      const { folder, resourceType } = req.body ?? {};
+
+      const normalizedFolder = typeof folder === "string" && folder.trim() !== ""
+        ? folder.trim()
+        : undefined;
+
+      const allowedResourceTypes = new Set(["image", "video", "raw", "auto"]);
+      const resourceTypeInput = typeof resourceType === "string" ? resourceType.toLowerCase() : "auto";
+      const normalizedResourceType = allowedResourceTypes.has(resourceTypeInput)
+        ? resourceTypeInput
+        : "auto";
+
+      const uploadData = await objectStorage.getObjectEntityUploadURL(
+        normalizedFolder,
+        normalizedResourceType,
+      );
+
+      res.json(uploadData);
+    } catch (error: any) {
+      console.error("[Objects] Failed to create upload URL:", error);
+      res.status(500).json({ error: "Failed to create upload URL" });
+    }
+  });
+
   // Profile routes
   app.get("/api/profile", requireAuth, async (req, res) => {
     try {
@@ -76,13 +105,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user as any;
 
       if (user.role === 'creator') {
-        const profile = await storage.getCreatorProfile(userId);
+        let profile = await storage.getCreatorProfile(userId);
         if (!profile) {
           // Create default profile if doesn't exist
-          const newProfile = await storage.createCreatorProfile({ userId });
-          return res.json(newProfile);
+          profile = await storage.createCreatorProfile({ userId });
         }
-        return res.json(profile);
+
+        const userRecord = await storage.getUser(userId);
+
+        return res.json({
+          ...profile,
+          profileImageUrl: userRecord?.profileImageUrl ?? null,
+        });
       } else if (user.role === 'company') {
         const profile = await storage.getCompanyProfile(userId);
         return res.json(profile);
@@ -115,7 +149,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("[Profile Update] Validated data:", validated);
         const profile = await storage.updateCreatorProfile(userId, validated);
         console.log("[Profile Update] Updated profile:", profile);
-        return res.json(profile);
+
+        const userRecord = await storage.getUser(userId);
+
+        const profilePayload = profile ?? (await storage.getCreatorProfile(userId));
+
+        if (!profilePayload) {
+          return res.status(500).json({ error: "Failed to load creator profile" });
+        }
+
+        return res.json({
+          ...profilePayload,
+          profileImageUrl: userRecord?.profileImageUrl ?? null,
+        });
       } else if (user.role === 'company') {
         const validated = insertCompanyProfileSchema.partial().parse(profileData);
         const profile = await storage.updateCompanyProfile(userId, validated);
