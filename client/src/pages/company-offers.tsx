@@ -1,11 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { TrendingUp, Plus, DollarSign, Users, Eye, MoreVertical, Trash2, Edit, ImageIcon, Play, Star, MousePointer, Crown } from "lucide-react";
+import {
+  TrendingUp,
+  Plus,
+  DollarSign,
+  Users,
+  Eye,
+  MoreVertical,
+  Trash2,
+  Edit,
+  ImageIcon,
+  Play,
+  Star,
+  MousePointer,
+  Crown,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { PriorityListingPurchase } from "../components/PriorityListingPurchase";
@@ -29,6 +45,15 @@ import {
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
 import { OfferCardSkeleton } from "../components/skeletons";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 const COMMISSION_TYPES = [
   { value: "per_sale", label: "Per Sale" },
@@ -123,6 +148,10 @@ export default function CompanyOffers() {
     offerTitle: string;
     isRenewal: boolean;
   } | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [nicheFilter, setNicheFilter] = useState("all");
+  const [commissionFilter, setCommissionFilter] = useState("all");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -141,6 +170,61 @@ export default function CompanyOffers() {
     queryKey: ["/api/company/offers"],
     enabled: isAuthenticated,
   });
+
+  const statusOptions = useMemo(() => {
+    const statuses = new Set<string>();
+    for (const offer of offers) {
+      if (offer.status) {
+        statuses.add(offer.status);
+      }
+    }
+    return Array.from(statuses.values());
+  }, [offers]);
+
+  const nicheOptions = useMemo(() => {
+    const niches = new Set<string>();
+    for (const offer of offers) {
+      if (offer.primaryNiche) {
+        niches.add(offer.primaryNiche);
+      }
+      if (offer.secondaryNiche) {
+        niches.add(offer.secondaryNiche);
+      }
+    }
+    return Array.from(niches.values());
+  }, [offers]);
+
+  const filteredOffers = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return offers.filter((offer: any) => {
+      const matchesStatus = statusFilter === "all" || offer.status === statusFilter;
+      const matchesCommission = commissionFilter === "all" || offer.commissionType === commissionFilter;
+      const matchesNiche =
+        nicheFilter === "all" || offer.primaryNiche === nicheFilter || offer.secondaryNiche === nicheFilter;
+
+      if (!matchesStatus || !matchesCommission || !matchesNiche) {
+        return false;
+      }
+
+      if (normalizedSearch.length === 0) {
+        return true;
+      }
+
+      const searchableContent = [
+        offer.title,
+        offer.description,
+        offer.company?.tradeName,
+        offer.primaryNiche,
+        offer.secondaryNiche,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableContent.includes(normalizedSearch);
+    });
+  }, [commissionFilter, nicheFilter, offers, searchTerm, statusFilter]);
 
   const deleteMutation = useMutation({
     mutationFn: async (offerId: string) => {
@@ -191,10 +275,17 @@ export default function CompanyOffers() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-foreground">My Offers</h1>
+            <h1 className="text-4xl font-bold text-foreground" data-testid="heading-company-offers">
+              My Offers
+            </h1>
             <p className="text-muted-foreground text-base">
-              Manage your affiliate offers and track performance
+              Manage your affiliate offers and track performance ({offers.length} total)
             </p>
+            {offers.length > 0 && filteredOffers.length !== offers.length && (
+              <p className="text-sm text-muted-foreground">
+                Showing {filteredOffers.length} offer{filteredOffers.length === 1 ? "" : "s"} that match your filters
+              </p>
+            )}
           </div>
           <Link href="/company/offers/create">
             <Button className="gap-2" data-testid="button-create-offer">
@@ -203,6 +294,114 @@ export default function CompanyOffers() {
             </Button>
           </Link>
         </div>
+
+        {offers.length > 0 && (
+          <Card className="border border-card-border bg-muted/30">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="w-full lg:max-w-sm">
+                  <Label htmlFor="offers-search" className="flex items-center gap-2 text-sm font-medium">
+                    <Search className="h-4 w-4" />
+                    Search offers
+                  </Label>
+                  <div className="relative mt-2">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="offers-search"
+                      className="pl-9"
+                      placeholder="Search by title, company, or niche"
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      data-testid="input-offers-search"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 lg:flex lg:flex-row lg:items-end lg:gap-4">
+                  <div className="min-w-[200px]">
+                    <Label htmlFor="status-filter" className="flex items-center gap-2 text-sm font-medium">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filter by status
+                    </Label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger id="status-filter" data-testid="select-status-filter">
+                        <SelectValue placeholder="All statuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All statuses</SelectItem>
+                        {statusOptions.map((status) => (
+                          <SelectItem key={status} value={status} className="capitalize">
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="min-w-[200px]">
+                    <Label htmlFor="niche-filter" className="flex items-center gap-2 text-sm font-medium">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filter by niche
+                    </Label>
+                    <Select value={nicheFilter} onValueChange={setNicheFilter}>
+                      <SelectTrigger id="niche-filter" data-testid="select-niche-filter">
+                        <SelectValue placeholder="All niches" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All niches</SelectItem>
+                        {nicheOptions.map((niche) => (
+                          <SelectItem key={niche} value={niche}>
+                            {niche}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="min-w-[200px]">
+                    <Label htmlFor="commission-filter" className="flex items-center gap-2 text-sm font-medium">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Commission type
+                    </Label>
+                    <Select value={commissionFilter} onValueChange={setCommissionFilter}>
+                      <SelectTrigger id="commission-filter" data-testid="select-commission-filter">
+                        <SelectValue placeholder="All commission types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All commission types</SelectItem>
+                        {COMMISSION_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setNicheFilter("all");
+                    setCommissionFilter("all");
+                  }}
+                  disabled={
+                    searchTerm.trim() === "" &&
+                    statusFilter === "all" &&
+                    nicheFilter === "all" &&
+                    commissionFilter === "all"
+                  }
+                  className="justify-start lg:justify-center"
+                  data-testid="button-clear-offer-filters"
+                >
+                  Clear filters
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Offers Grid */}
         {loadingOffers ? (
@@ -229,9 +428,35 @@ export default function CompanyOffers() {
               </Link>
             </CardContent>
           </Card>
+        ) : filteredOffers.length === 0 ? (
+          <Card className="border border-dashed">
+            <CardContent className="p-12 text-center space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-muted/60 flex items-center justify-center">
+                <Search className="h-8 w-8 text-muted-foreground/70" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">No offers match your filters</h3>
+                <p className="text-sm text-muted-foreground">
+                  Try adjusting your search or filters to find the offers you're looking for.
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                  setNicheFilter("all");
+                  setCommissionFilter("all");
+                }}
+                data-testid="button-reset-offer-filters"
+              >
+                Reset filters
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {offers.map((offer: any) => {
+            {filteredOffers.map((offer: any) => {
               const category = getOfferCategory(offer);
               const isRetainer = offer.commissionType === 'monthly_retainer';
 
