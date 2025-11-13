@@ -1296,8 +1296,9 @@ function AdminPaymentDashboard({
   payments: CreatorPayment[];
 }) {
   const { toast } = useToast();
-  const [selectedPayments, setSelectedPayments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [methodFilter, setMethodFilter] = useState("all");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [paymentToProcess, setPaymentToProcess] = useState<CreatorPayment | null>(null);
   const [insufficientFundsDialogOpen, setInsufficientFundsDialogOpen] = useState(false);
@@ -1305,10 +1306,81 @@ function AdminPaymentDashboard({
 
   const allPayments = payments;
 
+  const methodOptions = useMemo(() => {
+    const methodMap = new Map<string, string>();
+    let includeUnspecified = false;
+
+    allPayments.forEach((payment) => {
+      const method = payment.paymentMethod?.trim();
+      if (method && method.length > 0) {
+        const key = method.toLowerCase();
+        if (!methodMap.has(key)) {
+          methodMap.set(key, formatMethodLabel(method));
+        }
+      } else {
+        includeUnspecified = true;
+      }
+    });
+
+    return {
+      options: Array.from(methodMap.entries()).sort((a, b) => a[1].localeCompare(b[1])),
+      includeUnspecified,
+    };
+  }, [allPayments]);
+
   const filteredPayments = useMemo(() => {
-    if (statusFilter === "all") return allPayments;
-    return allPayments.filter(p => p.status === statusFilter);
-  }, [allPayments, statusFilter]);
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return allPayments.filter((payment) => {
+      if (statusFilter !== "all" && payment.status !== statusFilter) {
+        return false;
+      }
+
+      if (methodFilter !== "all") {
+        const normalizedMethod = payment.paymentMethod?.trim().toLowerCase() ?? "";
+        if (methodFilter === "__unspecified__") {
+          if (normalizedMethod.length > 0) {
+            return false;
+          }
+        } else if (normalizedMethod !== methodFilter) {
+          return false;
+        }
+      }
+
+      if (normalizedSearch.length === 0) {
+        return true;
+      }
+
+      const searchableContent = [
+        payment.description,
+        payment.id,
+        payment.grossAmount,
+        payment.netAmount,
+        payment.status,
+        payment.paymentMethod,
+        payment.completedAt,
+        payment.createdAt,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableContent.includes(normalizedSearch);
+    });
+  }, [allPayments, methodFilter, searchTerm, statusFilter]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || statusFilter !== "all" || methodFilter !== "all";
+  const totalTransactions = allPayments.length;
+  const displayCount = filteredPayments.length;
+  const noFilteredResults = totalTransactions > 0 && displayCount === 0;
+  const showMethodFilter = methodOptions.options.length > 0 || methodOptions.includeUnspecified;
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setMethodFilter("all");
+  };
 
   const totalPlatformRevenue = allPayments.reduce((sum, payment) => {
     return sum + parseFloat(payment.platformFeeAmount) + parseFloat(payment.stripeFeeAmount);
@@ -1323,24 +1395,39 @@ function AdminPaymentDashboard({
   ).length;
 
   const exportPayments = () => {
+    const dataset = hasActiveFilters ? filteredPayments : allPayments;
     const csv = [
-      ['Transaction ID', 'Description', 'Gross', 'Platform Fee', 'Net', 'Status', 'Date'],
-      ...filteredPayments.map(p => [
+      [
+        "Transaction ID",
+        "Description",
+        "Gross",
+        "Platform Fee",
+        "Net",
+        "Status",
+        "Method",
+        "Date",
+      ],
+      ...dataset.map((p) => [
         p.id.slice(0, 8),
-        p.description || 'Payment',
+        p.description || "Payment",
         p.grossAmount,
         (parseFloat(p.platformFeeAmount) + parseFloat(p.stripeFeeAmount)).toFixed(2),
         p.netAmount,
         p.status,
-        p.completedAt || p.createdAt
-      ])
-    ].map(row => row.join(',')).join('\n');
+        p.paymentMethod && p.paymentMethod.trim().length > 0
+          ? formatMethodLabel(p.paymentMethod)
+          : "Unspecified",
+        p.completedAt || p.createdAt,
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `platform-payments-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `platform-payments-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 
@@ -1522,35 +1609,93 @@ function AdminPaymentDashboard({
       )}
 
       <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
-        <div className="flex items-center justify-between border-b border-gray-200 p-6">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">All Transactions</h3>
-            <p className="mt-1 text-sm text-gray-600">Complete platform payment history</p>
+        <div className="border-b border-gray-200 p-6 space-y-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">All Transactions</h3>
+              <p className="mt-1 text-sm text-gray-600">Complete platform payment history</p>
+              {hasActiveFilters && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Showing {displayCount} of {totalTransactions} transaction
+                  {totalTransactions === 1 ? "" : "s"}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2 md:justify-end">
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+                  Clear filters
+                </Button>
+              )}
+              <Button variant="outline" size="sm" className="gap-2" onClick={exportPayments}>
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="processing">Processing</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-                <SelectItem value="refunded">Refunded</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" className="gap-2" onClick={exportPayments}>
-              <Download className="h-4 w-4" />
-              Export CSV
-            </Button>
-          </div>
+
+          {totalTransactions > 0 && (
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-700 md:col-span-3">
+                <Filter className="h-4 w-4 text-gray-400" />
+                Filters
+              </div>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search by description, ID, or amount"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
+              {showMethodFilter && (
+                <Select value={methodFilter} onValueChange={setMethodFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All payout methods" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All payout methods</SelectItem>
+                    {methodOptions.includeUnspecified && (
+                      <SelectItem value="__unspecified__">Unspecified method</SelectItem>
+                    )}
+                    {methodOptions.options.map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
         </div>
         <div className="overflow-x-auto">
-          {filteredPayments.length === 0 ? (
+          {totalTransactions === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-gray-500">No payments match the selected filter</p>
+              <p className="text-gray-500">No transactions yet</p>
+            </div>
+          ) : noFilteredResults ? (
+            <div className="py-12 text-center">
+              <p className="text-gray-500">No payments match the selected filters</p>
+              {hasActiveFilters && (
+                <Button variant="outline" size="sm" className="mt-4" onClick={handleClearFilters}>
+                  Clear filters
+                </Button>
+              )}
             </div>
           ) : (
             <table className="w-full">
