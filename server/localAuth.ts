@@ -1144,6 +1144,7 @@ export async function setupAuth(app: Express) {
 
       // Start account deletion process
       console.log(`[Account Deletion] Starting deletion for user ${userId} (${user.email})`);
+      
       // 1. Collect Cloudinary folders for cleanup after database deletion completes
       const foldersToDelete = new Set<string>();
       const conversationIdsForCleanup = new Set<string>();
