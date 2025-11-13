@@ -40,6 +40,7 @@ import {
   TrendingUp,
   Users,
   XCircle,
+  Search,
 } from "lucide-react";
 
 import type { User } from "../../../shared/schema";
@@ -108,6 +109,13 @@ function StatusBadge({ status }: { status: PaymentStatus }) {
     </span>
   );
 }
+
+const formatMethodLabel = (method: string) =>
+  method
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 
 function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
   const { toast } = useToast();
@@ -522,10 +530,53 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
     [payouts]
   );
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "processing">("all");
+
+  const filteredPendingPayouts = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return pendingPayouts.filter((payout) => {
+      if (statusFilter !== "all" && payout.status !== statusFilter) {
+        return false;
+      }
+
+      if (normalizedSearch.length === 0) {
+        return true;
+      }
+
+      const searchableContent = [
+        payout.description,
+        payout.id,
+        payout.offerId,
+        payout.grossAmount,
+        payout.platformFeeAmount,
+        payout.createdAt,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableContent.includes(normalizedSearch);
+    });
+  }, [pendingPayouts, searchTerm, statusFilter]);
+
   const totalPendingAmount = pendingPayouts.reduce(
     (sum, payout) => sum + parseFloat(payout.grossAmount),
     0
   );
+
+  const filteredPendingAmount = filteredPendingPayouts.reduce(
+    (sum, payout) => sum + parseFloat(payout.grossAmount),
+    0
+  );
+
+  const hasActiveFilters = searchTerm.trim().length > 0 || statusFilter !== "all";
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+  };
 
   const approvePaymentMutation = useMutation({
     mutationFn: async (paymentId: string) => {
@@ -583,20 +634,79 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
             You have {pendingPayouts.length} payout{pendingPayouts.length !== 1 ? "s" : ""} pending approval
             totaling ${totalPendingAmount.toFixed(2)}
           </p>
+          {hasActiveFilters && (
+            <p className="mt-2 text-sm text-yellow-700">
+              Showing {filteredPendingPayouts.length} payout{filteredPendingPayouts.length === 1 ? "" : "s"} matching
+              your filters totaling ${filteredPendingAmount.toFixed(2)}
+            </p>
+          )}
         </div>
       )}
 
       <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
         <div className="border-b border-gray-200 p-6">
-          <h3 className="text-lg font-bold text-gray-900">Payout Requests</h3>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Payout Requests</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Review payouts awaiting approval ({pendingPayouts.length} total)
+              </p>
+              {hasActiveFilters && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Showing {filteredPendingPayouts.length} request{filteredPendingPayouts.length === 1 ? "" : "s"} that
+                  match your filters
+                </p>
+              )}
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={handleClearFilters} className="self-start">
+                Clear filters
+              </Button>
+            )}
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-700 md:col-span-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              Filters
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search payouts by creator, offer, or amount..."
+                className="pl-9"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | "pending" | "processing")}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="divide-y divide-gray-200">
           {pendingPayouts.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-gray-500">No pending approvals</p>
             </div>
+          ) : filteredPendingPayouts.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-gray-500">No payouts match the selected filters</p>
+              {hasActiveFilters && (
+                <Button variant="outline" className="mt-4" onClick={handleClearFilters}>
+                  Clear filters
+                </Button>
+              )}
+            </div>
           ) : (
-            pendingPayouts.map((payout) => (
+            filteredPendingPayouts.map((payout) => (
               <div key={payout.id} className="p-6 transition hover:bg-gray-50">
                 <div className="mb-4 flex items-start justify-between">
                   <div>
@@ -683,15 +793,102 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
     .filter((p) => p.status === "pending" || p.status === "processing")
     .reduce((sum, p) => sum + parseFloat(p.grossAmount), 0);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<PaymentStatus | "all">("all");
+  const [methodFilter, setMethodFilter] = useState<string>("all");
+
+  const methodOptions = useMemo(() => {
+    const methodMap = new Map<string, string>();
+    let includeUnspecified = false;
+
+    payouts.forEach((payout) => {
+      const method = payout.paymentMethod?.trim();
+      if (method && method.length > 0) {
+        const key = method.toLowerCase();
+        if (!methodMap.has(key)) {
+          methodMap.set(
+            key,
+            formatMethodLabel(method)
+          );
+        }
+      } else {
+        includeUnspecified = true;
+      }
+    });
+
+    return {
+      options: Array.from(methodMap.entries()).sort((a, b) => a[1].localeCompare(b[1])),
+      includeUnspecified,
+    };
+  }, [payouts]);
+
+  const filteredPayouts = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return payouts.filter((payout) => {
+      if (statusFilter !== "all" && payout.status !== statusFilter) {
+        return false;
+      }
+
+      if (methodFilter !== "all") {
+        const normalizedMethod = payout.paymentMethod?.trim().toLowerCase() ?? "";
+        if (methodFilter === "__unspecified__") {
+          if (normalizedMethod.length > 0) {
+            return false;
+          }
+        } else if (normalizedMethod !== methodFilter) {
+          return false;
+        }
+      }
+
+      if (normalizedSearch.length === 0) {
+        return true;
+      }
+
+      const searchableContent = [
+        payout.description,
+        payout.id,
+        payout.offerId,
+        payout.paymentMethod,
+        payout.status,
+        payout.grossAmount,
+        payout.netAmount,
+        payout.createdAt,
+        payout.completedAt,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableContent.includes(normalizedSearch);
+    });
+  }, [methodFilter, payouts, searchTerm, statusFilter]);
+
+  const filteredGrossTotal = useMemo(
+    () => filteredPayouts.reduce((sum, payout) => sum + parseFloat(payout.grossAmount), 0),
+    [filteredPayouts]
+  );
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || statusFilter !== "all" || methodFilter !== "all";
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setMethodFilter("all");
+  };
+
   const exportPayments = () => {
+    const dataset = hasActiveFilters ? filteredPayouts : payouts;
     const csv = [
-      ['ID', 'Description', 'Creator Earnings', 'Fees', 'Status', 'Date'],
-      ...payouts.map(p => [
+      ['ID', 'Description', 'Creator Earnings', 'Fees', 'Status', 'Method', 'Date'],
+      ...dataset.map(p => [
         p.id.slice(0, 8),
         p.description || 'Payment',
         p.grossAmount,
         (parseFloat(p.platformFeeAmount) + parseFloat(p.stripeFeeAmount)).toFixed(2),
         p.status,
+        p.paymentMethod ? formatMethodLabel(p.paymentMethod) : 'Unspecified',
         p.completedAt || p.createdAt
       ])
     ].map(row => row.join(',')).join('\n');
@@ -743,18 +940,89 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
 
       <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
         <div className="border-b border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-900">Payment History</h3>
-            <Button variant="outline" size="sm" onClick={exportPayments}>
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
-            </Button>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Payment History</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Detailed record of every payout your company has processed.
+              </p>
+              {hasActiveFilters && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Showing {filteredPayouts.length} of {payouts.length} payments totaling $
+                  {filteredGrossTotal.toFixed(2)}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2 md:justify-end">
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+                  Clear filters
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={exportPayments} className="gap-2">
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-700 md:col-span-3">
+              <Filter className="h-4 w-4 text-gray-400" />
+              Filters
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search payments by creator, offer, or amount..."
+                className="pl-9"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as PaymentStatus | "all")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="refunded">Refunded</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={methodFilter} onValueChange={setMethodFilter}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All payout methods" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All payout methods</SelectItem>
+                {methodOptions.includeUnspecified && (
+                  <SelectItem value="__unspecified__">Unspecified method</SelectItem>
+                )}
+                {methodOptions.options.map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div className="overflow-x-auto">
           {payouts.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-gray-500">No payment history yet</p>
+            </div>
+          ) : filteredPayouts.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-gray-500">No payments match the selected filters</p>
+              {hasActiveFilters && (
+                <Button variant="outline" className="mt-4" onClick={handleClearFilters}>
+                  Clear filters
+                </Button>
+              )}
             </div>
           ) : (
             <table className="w-full">
@@ -776,6 +1044,9 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Method
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -784,7 +1055,7 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {payouts.map((payout) => (
+                {filteredPayouts.map((payout) => (
                   <tr key={payout.id} className="transition hover:bg-gray-50">
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                       {payout.id.slice(0, 8)}...
@@ -800,6 +1071,11 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <StatusBadge status={payout.status} />
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                      {payout.paymentMethod && payout.paymentMethod.trim().length > 0
+                        ? formatMethodLabel(payout.paymentMethod)
+                        : "Unspecified"}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
                       {payout.completedAt
