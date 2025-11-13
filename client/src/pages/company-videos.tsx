@@ -5,6 +5,14 @@ import { apiRequest, queryClient } from "../lib/queryClient";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,9 +32,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
-import { Play, Trash2, ExternalLink, Video } from "lucide-react";
+import { Play, Trash2, ExternalLink, Video, Filter, X } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { TopNavBar } from "../components/TopNavBar";
 import { VideoPlayer } from "../components/VideoPlayer";
 
@@ -34,6 +42,9 @@ export default function CompanyVideos() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [offerFilter, setOfferFilter] = useState("all");
+  const [creditFilter, setCreditFilter] = useState("all");
 
   // Fetch all offers for the company
   const { data: offers, isLoading } = useQuery<any[]>({
@@ -62,13 +73,51 @@ export default function CompanyVideos() {
   });
 
   // Collect all videos from all offers
-  const allVideos = offers?.flatMap((offer: any) => 
+  const allVideos = offers?.flatMap((offer: any) =>
     (offer.videos || []).map((video: any) => ({
       ...video,
       offerTitle: offer.title,
       offerId: offer.id,
     }))
   ) || [];
+
+  const uniqueOffers = useMemo(() => {
+    const seen = new Map<string, string>();
+    allVideos.forEach((video: any) => {
+      if (video.offerId && video.offerTitle) {
+        seen.set(video.offerId, video.offerTitle);
+      }
+    });
+    return Array.from(seen.entries());
+  }, [allVideos]);
+
+  const filteredVideos = useMemo(() => {
+    return allVideos.filter((video: any) => {
+      const matchesSearch = searchTerm
+        ? [video.title, video.description, video.offerTitle, video.creatorCredit]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
+      const matchesOffer = offerFilter === "all" || video.offerId === offerFilter;
+      const matchesCredit =
+        creditFilter === "all"
+          ? true
+          : creditFilter === "with"
+            ? Boolean(video.creatorCredit)
+            : !video.creatorCredit;
+
+      return matchesSearch && matchesOffer && matchesCredit;
+    });
+  }, [allVideos, creditFilter, offerFilter, searchTerm]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || offerFilter !== "all" || creditFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setOfferFilter("all");
+    setCreditFilter("all");
+  };
 
   if (isLoading) {
     return (
@@ -87,9 +136,65 @@ export default function CompanyVideos() {
       <div>
         <h1 className="text-3xl font-bold" data-testid="heading-company-videos">Promotional Videos</h1>
         <p className="text-muted-foreground">
-          All promotional videos across your offers ({allVideos.length} total)
+          All promotional videos across your offers ({filteredVideos.length} showing)
         </p>
       </div>
+
+      <Card className="border-card-border">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+              Search & Filter
+            </h3>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="ml-auto text-xs" onClick={clearFilters}>
+                <X className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Search</label>
+              <Input
+                placeholder="Search by title, offer, or creator credit"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Offer</label>
+              <Select value={offerFilter} onValueChange={setOfferFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All offers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Offers</SelectItem>
+                  {uniqueOffers.map(([id, title]) => (
+                    <SelectItem key={id} value={id}>
+                      {title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Creator Credit</label>
+              <Select value={creditFilter} onValueChange={setCreditFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All videos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Videos</SelectItem>
+                  <SelectItem value="with">With Creator Credit</SelectItem>
+                  <SelectItem value="without">Without Creator Credit</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {allVideos.length === 0 ? (
         <Card className="border-card-border">
@@ -101,9 +206,19 @@ export default function CompanyVideos() {
             </p>
           </CardContent>
         </Card>
+      ) : filteredVideos.length === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="p-10 text-center space-y-2">
+            <Video className="h-10 w-10 text-muted-foreground/50 mx-auto" />
+            <p className="font-medium">No videos match your filters</p>
+            <p className="text-sm text-muted-foreground">
+              Try adjusting your search keywords or filter selections.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {allVideos.map((video: any) => (
+          {filteredVideos.map((video: any) => (
             <Card
               key={video.id}
               className="hover-elevate border-card-border overflow-hidden"

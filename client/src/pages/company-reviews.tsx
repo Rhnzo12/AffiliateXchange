@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +7,15 @@ import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Star, MessageSquare, Reply } from "lucide-react";
+import { Star, MessageSquare, Reply, Filter, Search, X } from "lucide-react";
+import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import { formatDistanceToNow } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
 
@@ -20,6 +28,10 @@ export default function CompanyReviews() {
     reviewId: null,
     response: "",
   });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("all");
+  const [offerFilter, setOfferFilter] = useState("all");
+  const [responseFilter, setResponseFilter] = useState("all");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -38,6 +50,63 @@ export default function CompanyReviews() {
     queryKey: ["/api/company/reviews"],
     enabled: isAuthenticated,
   });
+
+  const uniqueOfferOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    companyReviews.forEach((review: any) => {
+      if (review.offer?.id && review.offer?.title) {
+        map.set(review.offer.id, review.offer.title);
+      }
+    });
+    return Array.from(map.entries());
+  }, [companyReviews]);
+
+  const filteredReviews = useMemo(() => {
+    return companyReviews.filter((review: any) => {
+      const matchesSearch = searchTerm
+        ? [
+            review.reviewText,
+            review.creator?.firstName,
+            review.creator?.lastName,
+            review.offer?.title,
+          ]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
+
+      const matchesRating = (() => {
+        if (ratingFilter === "all") return true;
+        if (ratingFilter === "5") return review.overallRating === 5;
+        if (ratingFilter === "4plus") return review.overallRating >= 4;
+        if (ratingFilter === "3orless") return review.overallRating <= 3;
+        return true;
+      })();
+
+      const matchesOffer = offerFilter === "all" || review.offer?.id === offerFilter;
+
+      const matchesResponse = (() => {
+        if (responseFilter === "all") return true;
+        if (responseFilter === "responded") return Boolean(review.companyResponse);
+        if (responseFilter === "no-response") return !review.companyResponse;
+        return true;
+      })();
+
+      return matchesSearch && matchesRating && matchesOffer && matchesResponse;
+    });
+  }, [companyReviews, offerFilter, ratingFilter, responseFilter, searchTerm]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 ||
+    ratingFilter !== "all" ||
+    offerFilter !== "all" ||
+    responseFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setRatingFilter("all");
+    setOfferFilter("all");
+    setResponseFilter("all");
+  };
 
   const submitResponseMutation = useMutation({
     mutationFn: async ({ reviewId, response }: { reviewId: string; response: string }) => {
@@ -131,6 +200,81 @@ export default function CompanyReviews() {
         </p>
       </div>
 
+      <Card className="border-card-border">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              <span className="text-sm font-semibold uppercase tracking-wider">Search & Filter</span>
+            </div>
+            <div className="sm:ml-auto text-sm text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{filteredReviews.length}</span> of {companyReviews.length}
+              {` review${companyReviews.length === 1 ? "" : "s"}`}
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="text-xs sm:ml-4" onClick={clearFilters}>
+                <X className="h-3 w-3 mr-1" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium">Search</label>
+              <Input
+                placeholder="Search by creator, offer, or keywords"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Rating</label>
+              <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All ratings" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Ratings</SelectItem>
+                  <SelectItem value="5">5 stars</SelectItem>
+                  <SelectItem value="4plus">4 stars & up</SelectItem>
+                  <SelectItem value="3orless">3 stars & below</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Offer</label>
+              <Select value={offerFilter} onValueChange={setOfferFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All offers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Offers</SelectItem>
+                  {uniqueOfferOptions.map(([id, title]) => (
+                    <SelectItem key={id} value={id}>
+                      {title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Response Status</label>
+              <Select value={responseFilter} onValueChange={setResponseFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All responses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Reviews</SelectItem>
+                  <SelectItem value="responded">Responded</SelectItem>
+                  <SelectItem value="no-response">Awaiting Response</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {companyReviews.length > 0 && (
         <div className="grid gap-6 md:grid-cols-3">
           <Card className="border-card-border">
@@ -194,9 +338,19 @@ export default function CompanyReviews() {
             </p>
           </CardContent>
         </Card>
+      ) : filteredReviews.length === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="flex flex-col items-center justify-center py-12 space-y-3">
+            <Search className="h-10 w-10 text-muted-foreground/40" />
+            <h3 className="text-lg font-semibold">No reviews match your filters</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Adjust your filters or clear them to see more feedback from creators.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
-          {companyReviews.map((review: any) => (
+          {filteredReviews.map((review: any) => (
             <Card key={review.id} className="border-card-border" data-testid={`card-review-${review.id}`}>
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">

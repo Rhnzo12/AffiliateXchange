@@ -1,16 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { Heart, Star, Play, X } from "lucide-react";
+import { Heart, Star, Play, X, Filter, Search } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
 import { CardGridSkeleton } from "../components/skeletons";
+import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
@@ -29,6 +37,9 @@ const formatCommission = (offer: any) => {
 export default function Favorites() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [nicheFilter, setNicheFilter] = useState("all");
+  const [commissionFilter, setCommissionFilter] = useState("all");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -40,6 +51,51 @@ export default function Favorites() {
     queryKey: ["/api/favorites"],
     enabled: isAuthenticated,
   });
+
+  const uniqueNiches = useMemo(() => {
+    const set = new Set<string>();
+    (favorites || []).forEach((favorite: any) => {
+      const offer = favorite.offer;
+      if (offer?.primaryNiche) set.add(offer.primaryNiche);
+      if (offer?.secondaryNiche) set.add(offer.secondaryNiche);
+    });
+    return Array.from(set);
+  }, [favorites]);
+
+  const uniqueCommissionTypes = useMemo(() => {
+    return Array.from(
+      new Set(
+        (favorites || [])
+          .map((favorite: any) => favorite.offer?.commissionType)
+          .filter(Boolean)
+      )
+    );
+  }, [favorites]);
+
+  const filteredFavorites = useMemo(() => {
+    return (favorites || []).filter((favorite: any) => {
+      const offer = favorite.offer;
+      if (!offer) return false;
+      const matchesSearch = searchTerm
+        ? [offer.title, offer.company?.tradeName, offer.shortDescription, offer.description]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
+      const matchesNiche =
+        nicheFilter === "all" || offer.primaryNiche === nicheFilter || offer.secondaryNiche === nicheFilter;
+      const matchesCommission = commissionFilter === "all" || offer.commissionType === commissionFilter;
+      return matchesSearch && matchesNiche && matchesCommission;
+    });
+  }, [commissionFilter, favorites, nicheFilter, searchTerm]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || nicheFilter !== "all" || commissionFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setNicheFilter("all");
+    setCommissionFilter("all");
+  };
 
   const removeFavoriteMutation = useMutation({
     mutationFn: async (offerId: string) => {
@@ -87,6 +143,70 @@ export default function Favorites() {
         </p>
       </div>
 
+      <Card className="border-card-border">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              <span className="text-sm font-semibold uppercase tracking-wider">Search & Filter</span>
+            </div>
+            <div className="sm:ml-auto text-sm text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{filteredFavorites.length}</span> of {favorites?.length || 0}
+              {` favorite${(favorites?.length || 0) === 1 ? "" : "s"}`}
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="text-xs sm:ml-4" onClick={clearFilters}>
+                <X className="h-3 w-3 mr-1" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2 md:col-span-1">
+              <label className="text-sm font-medium">Search</label>
+              <Input
+                placeholder="Search saved offers"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Niche</label>
+              <Select value={nicheFilter} onValueChange={setNicheFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All niches" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Niches</SelectItem>
+                  {uniqueNiches.map((niche) => (
+                    <SelectItem key={niche} value={niche}>
+                      {niche}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Commission Type</label>
+              <Select value={commissionFilter} onValueChange={setCommissionFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All commission types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  {uniqueCommissionTypes.map((type) => (
+                    <SelectItem key={type} value={type} className="capitalize">
+                      {type.replace(/_/g, " ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Favorites Grid */}
       {favoritesLoading ? (
         <CardGridSkeleton count={8} />
@@ -101,9 +221,17 @@ export default function Favorites() {
             </Link>
           </CardContent>
         </Card>
+      ) : filteredFavorites.length === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="p-12 text-center space-y-2">
+            <Search className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+            <h3 className="font-semibold text-lg">No favorites match your filters</h3>
+            <p className="text-sm text-muted-foreground">Try adjusting your search or clearing the filters.</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {favorites.map((favorite: any) => {
+          {filteredFavorites.map((favorite: any) => {
             const offer = favorite.offer;
             if (!offer) return null; // Skip if offer data is missing
             

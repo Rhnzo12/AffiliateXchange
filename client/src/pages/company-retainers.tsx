@@ -31,8 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Plus, DollarSign, Video, Calendar, Users, Eye } from "lucide-react";
-import { useState } from "react";
+import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -59,10 +59,48 @@ type CreateRetainerForm = z.infer<typeof createRetainerSchema>;
 export default function CompanyRetainers() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [platformFilter, setPlatformFilter] = useState("all");
 
   const { data: contracts, isLoading } = useQuery<any[]>({
     queryKey: ["/api/company/retainer-contracts"],
   });
+
+  const contractsList = contracts ?? [];
+
+  const uniqueStatuses = useMemo(
+    () => Array.from(new Set(contractsList.map((contract) => contract.status).filter(Boolean))),
+    [contractsList]
+  );
+
+  const uniquePlatforms = useMemo(
+    () => Array.from(new Set(contractsList.map((contract) => contract.requiredPlatform).filter(Boolean))),
+    [contractsList]
+  );
+
+  const filteredContracts = useMemo(() => {
+    return contractsList.filter((contract) => {
+      const matchesSearch = searchTerm
+        ? [contract.title, contract.description, contract.requiredPlatform, contract.niches?.join(", ")]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
+      const matchesStatus = statusFilter === "all" || contract.status === statusFilter;
+      const matchesPlatform = platformFilter === "all" || contract.requiredPlatform === platformFilter;
+
+      return matchesSearch && matchesStatus && matchesPlatform;
+    });
+  }, [contractsList, platformFilter, searchTerm, statusFilter]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || statusFilter !== "all" || platformFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setPlatformFilter("all");
+  };
 
   const form = useForm<CreateRetainerForm>({
     resolver: zodResolver(createRetainerSchema),
@@ -420,7 +458,71 @@ export default function CompanyRetainers() {
         </Dialog>
       </div>
 
-      {contracts && contracts.length === 0 ? (
+      <Card className="border-card-border">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              <span className="text-sm font-semibold uppercase tracking-widest">Search & Filter</span>
+            </div>
+            <div className="sm:ml-auto text-sm text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{filteredContracts.length}</span> of {contractsList.length}
+              {` contract${contractsList.length === 1 ? "" : "s"}`}
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="text-xs sm:ml-4" onClick={clearFilters}>
+                <X className="h-3 w-3 mr-1" />
+                Reset
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Search</label>
+              <Input
+                placeholder="Search contracts or niches"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {uniqueStatuses.map((status) => (
+                    <SelectItem key={status} value={status} className="capitalize">
+                      {status.replace("_", " ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Platform</label>
+              <Select value={platformFilter} onValueChange={setPlatformFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All platforms" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Platforms</SelectItem>
+                  {uniquePlatforms.map((platform) => (
+                    <SelectItem key={platform} value={platform}>
+                      {platform}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {contractsList.length === 0 ? (
         <Card className="border-card-border">
           <CardContent className="p-12 text-center">
             <DollarSign className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
@@ -434,9 +536,17 @@ export default function CompanyRetainers() {
             </Button>
           </CardContent>
         </Card>
+      ) : filteredContracts.length === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="p-10 text-center space-y-2">
+            <Calendar className="h-10 w-10 mx-auto text-muted-foreground/40" />
+            <h3 className="text-lg font-semibold">No contracts match your filters</h3>
+            <p className="text-sm text-muted-foreground">Try refining your search or clearing the filters.</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-6">
-          {contracts?.map((contract: any) => (
+          {filteredContracts.map((contract: any) => (
             <Card
               key={contract.id}
               className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-primary/30 hover:ring-primary/50 hover:shadow-primary/20"
