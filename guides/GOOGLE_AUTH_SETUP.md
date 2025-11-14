@@ -60,22 +60,33 @@ Google OAuth allows users to sign in or register using their Gmail account. The 
 ## Step 4: Configure Environment Variables
 
 1. Open your `.env` file (create one from `.env.example` if it doesn't exist)
-2. Add the following variables:
+2. Make sure the application name matches your latest branding:
+
+```env
+# App branding used in server logs and Google OAuth warnings
+APP_NAME=AffiliateXchange
+```
+
+3. Add the following variables:
 
 ```env
 # Google OAuth Configuration
 GOOGLE_CLIENT_ID=your-client-id-here
 GOOGLE_CLIENT_SECRET=your-client-secret-here
 GOOGLE_CALLBACK_URL=/api/auth/google/callback
+# Optional: force Google to refresh cached consent-screen text after updating credentials
+# GOOGLE_OAUTH_PROMPT=consent
 ```
 
-Replace `your-client-id-here` and `your-client-secret-here` with the values from Step 3.
+Replace `your-client-id-here` and `your-client-secret-here` with the values from Step 3. If you previously used CreatorLink credentials, update them now. After switching to the new credentials you can temporarily set `GOOGLE_OAUTH_PROMPT=consent` to force Google to refresh the consent screen and display the AffiliateXchange name.
 
 **For Replit deployments:**
 - Go to Tools → Secrets
 - Add `GOOGLE_CLIENT_ID` with your client ID
 - Add `GOOGLE_CLIENT_SECRET` with your client secret
 - Add `GOOGLE_CALLBACK_URL` with `/api/auth/google/callback`
+- (Optional) Add `APP_NAME` if you want logs to reference a different brand name
+- (Optional) Add `GOOGLE_OAUTH_PROMPT` and set it to `consent` when rotating credentials
 
 ## Step 5: Run Database Migration
 
@@ -215,8 +226,10 @@ Before deploying to production:
    - Example: `https://affiliatexchange.com/api/auth/google/callback`
 
 3. **Update Environment Variables:**
+   - Confirm `APP_NAME` reflects your public-facing brand (e.g., `AffiliateXchange`)
    - Set production `GOOGLE_CALLBACK_URL` if different from default
    - Ensure `NODE_ENV=production` for secure cookies
+   - After rotating credentials, temporarily set `GOOGLE_OAUTH_PROMPT=consent` to refresh the consent screen branding
 
 4. **SSL/HTTPS:**
    - Ensure your production app uses HTTPS

@@ -8,6 +8,8 @@ import type { User } from "../shared/schema";
 export async function setupGoogleAuth(app: Express) {
   const googleClientId = process.env.GOOGLE_CLIENT_ID;
   const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const appName = process.env.APP_NAME || "AffiliateXchange";
+  const googlePrompt = process.env.GOOGLE_OAUTH_PROMPT;
 
   // Build absolute callback URL
   const port = process.env.PORT || 3000;
@@ -25,6 +27,12 @@ export async function setupGoogleAuth(app: Express) {
   }
 
   console.log("[Google Auth] Callback URL:", callbackURL);
+
+  if (googleClientId?.toLowerCase().includes("creatorlink")) {
+    console.warn(
+      `[Google Auth] GOOGLE_CLIENT_ID is still configured for the legacy CreatorLink project. Update your Google OAuth credentials so the consent screen shows the current ${appName} branding.`
+    );
+  }
 
   // Configure Google OAuth Strategy
   passport.use(
@@ -114,10 +122,17 @@ export async function setupGoogleAuth(app: Express) {
   );
 
   // Google OAuth routes
-  app.get(
-    "/api/auth/google",
-    passport.authenticate("google", { scope: ["profile", "email"] })
-  );
+  app.get("/api/auth/google", (req, res, next) => {
+    const authenticateOptions: Record<string, unknown> = {
+      scope: ["profile", "email"],
+    };
+
+    if (googlePrompt) {
+      authenticateOptions.prompt = googlePrompt;
+    }
+
+    return passport.authenticate("google", authenticateOptions)(req, res, next);
+  });
 
   app.get(
     "/api/auth/google/callback",
