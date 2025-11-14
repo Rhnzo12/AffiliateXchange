@@ -55,6 +55,33 @@ const NICHE_COLORS: Record<string, string> = {
   "Education": "bg-teal-500/10 text-teal-600 border-teal-500/20",
 };
 
+// Helper function to normalize niche/category strings so comparisons work regardless of
+// whether we store the human readable name or a slugified version in the database.
+const normalizeNicheValue = (value?: string | null): string => {
+  if (!value) return "";
+  return value
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+};
+
+const getOfferNicheValues = (offer: any): string[] => {
+  const primary = normalizeNicheValue(offer?.primaryNiche);
+  const secondary = normalizeNicheValue(offer?.secondaryNiche);
+  const additional = Array.isArray(offer?.additionalNiches)
+    ? offer.additionalNiches.map((niche: string) => normalizeNicheValue(niche))
+    : [];
+
+  return Array.from(
+    new Set([
+      primary,
+      secondary,
+      ...additional,
+    ].filter(Boolean)),
+  );
+};
+
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
   if (offer.commissionAmount) {
@@ -146,7 +173,7 @@ export default function Browse() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [commissionType, setCommissionType] = useState<string>("");
   const [commissionRange, setCommissionRange] = useState([0, 10000]);
   const [minimumPayout, setMinimumPayout] = useState([0]);
@@ -216,6 +243,38 @@ export default function Browse() {
     },
     enabled: isAuthenticated && activeTab === "recommended",
   });
+
+  const categoryOptions = useMemo(
+    () => [
+      { label: "All", value: "all" },
+      ...niches.map((niche) => ({ label: niche.name, value: normalizeNicheValue(niche.name) })),
+    ],
+    [niches],
+  );
+
+  useEffect(() => {
+    if (selectedCategory !== "all" && !categoryOptions.some((option) => option.value === selectedCategory)) {
+      setSelectedCategory("all");
+    }
+  }, [categoryOptions, selectedCategory]);
+
+  useEffect(() => {
+    if (selectedNiches.length === 0) {
+      return;
+    }
+
+    const validNiches = new Set(
+      categoryOptions
+        .filter((option) => option.value !== "all")
+        .map((option) => option.value),
+    );
+
+    const filteredSelections = selectedNiches.filter((niche) => validNiches.has(niche));
+
+    if (filteredSelections.length !== selectedNiches.length) {
+      setSelectedNiches(filteredSelections);
+    }
+  }, [categoryOptions, selectedNiches]);
 
   // New listings query (recently approved)
   const { data: newListingsData, isLoading: newListingsLoading } = useQuery<any[]>({
@@ -287,14 +346,20 @@ export default function Browse() {
       }
     }
 
+    const offerNiches = getOfferNicheValues(offer);
+
     // Category filter (from category pills)
-    if (selectedCategory !== "All" && offer.primaryNiche !== selectedCategory) {
+    if (selectedCategory !== "all" && !offerNiches.includes(selectedCategory)) {
       return false;
     }
 
     // Niche filter (from filter sheet checkboxes)
-    if (selectedNiches.length > 0 && !selectedNiches.includes(offer.primaryNiche)) {
-      return false;
+    if (selectedNiches.length > 0) {
+      const hasMatchingNiche = selectedNiches.some((niche) => offerNiches.includes(niche));
+
+      if (!hasMatchingNiche) {
+        return false;
+      }
     }
 
     // Commission type filter (from filter sheet)
@@ -401,7 +466,7 @@ export default function Browse() {
     setShowTrending(false);
     setShowPriority(false);
     setSearchTerm("");
-    setSelectedCategory("All");
+    setSelectedCategory("all");
   };
 
   const { data: favorites = [] } = useQuery<any[]>({
@@ -501,17 +566,18 @@ export default function Browse() {
         {/* Category Pills - Horizontal Scroll */}
         <div className="relative">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {["All", ...niches.map(n => n.name)].map((category) => (
+            {categoryOptions.map(({ label, value }) => (
               <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
+                key={value || label}
+                onClick={() => setSelectedCategory(value)}
                 className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                  selectedCategory === category
+                  selectedCategory === value
                     ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
                     : 'bg-secondary/50 hover:bg-secondary text-secondary-foreground'
                 }`}
+                aria-pressed={selectedCategory === value}
               >
-                {category}
+                {label}
               </button>
             ))}
           </div>
@@ -560,22 +626,25 @@ export default function Browse() {
                     ) : niches.length === 0 ? (
                       <div className="text-sm text-muted-foreground">No niches available</div>
                     ) : (
-                      niches.map((niche) => (
-                        <div key={niche.id} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`niche-${niche.id}`}
-                            checked={selectedNiches.includes(niche.name)}
-                            onCheckedChange={() => toggleNiche(niche.name)}
-                            data-testid={`checkbox-niche-${niche.name}`}
-                          />
-                          <Label
-                            htmlFor={`niche-${niche.id}`}
-                            className="text-sm font-normal cursor-pointer"
-                          >
-                            {niche.name}
-                          </Label>
-                        </div>
-                      ))
+                      niches.map((niche) => {
+                        const normalizedValue = normalizeNicheValue(niche.name);
+                        return (
+                          <div key={niche.id} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`niche-${niche.id}`}
+                              checked={selectedNiches.includes(normalizedValue)}
+                              onCheckedChange={() => toggleNiche(normalizedValue)}
+                              data-testid={`checkbox-niche-${niche.name}`}
+                            />
+                            <Label
+                              htmlFor={`niche-${niche.id}`}
+                              className="text-sm font-normal cursor-pointer"
+                            >
+                              {niche.name}
+                            </Label>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
