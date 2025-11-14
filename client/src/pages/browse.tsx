@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import { Slider } from "../components/ui/slider";
 import { Checkbox } from "../components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Switch } from "../components/ui/switch";
+import { ScrollArea } from "../components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -53,6 +54,33 @@ const NICHE_COLORS: Record<string, string> = {
   "Lifestyle": "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
   "Business": "bg-gray-500/10 text-gray-600 border-gray-500/20",
   "Education": "bg-teal-500/10 text-teal-600 border-teal-500/20",
+};
+
+// Helper function to normalize niche/category strings so comparisons work regardless of
+// whether we store the human readable name or a slugified version in the database.
+const normalizeNicheValue = (value?: string | null): string => {
+  if (!value) return "";
+  return value
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+};
+
+const getOfferNicheValues = (offer: any): string[] => {
+  const primary = normalizeNicheValue(offer?.primaryNiche);
+  const secondary = normalizeNicheValue(offer?.secondaryNiche);
+  const additional = Array.isArray(offer?.additionalNiches)
+    ? offer.additionalNiches.map((niche: string) => normalizeNicheValue(niche))
+    : [];
+
+  return Array.from(
+    new Set([
+      primary,
+      secondary,
+      ...additional,
+    ].filter(Boolean)),
+  );
 };
 
 // Helper function to format commission display
@@ -146,7 +174,7 @@ export default function Browse() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [commissionType, setCommissionType] = useState<string>("");
   const [commissionRange, setCommissionRange] = useState([0, 10000]);
   const [minimumPayout, setMinimumPayout] = useState([0]);
@@ -216,6 +244,38 @@ export default function Browse() {
     },
     enabled: isAuthenticated && activeTab === "recommended",
   });
+
+  const categoryOptions = useMemo(
+    () => [
+      { label: "All", value: "all" },
+      ...niches.map((niche) => ({ label: niche.name, value: normalizeNicheValue(niche.name) })),
+    ],
+    [niches],
+  );
+
+  useEffect(() => {
+    if (selectedCategory !== "all" && !categoryOptions.some((option) => option.value === selectedCategory)) {
+      setSelectedCategory("all");
+    }
+  }, [categoryOptions, selectedCategory]);
+
+  useEffect(() => {
+    if (selectedNiches.length === 0) {
+      return;
+    }
+
+    const validNiches = new Set(
+      categoryOptions
+        .filter((option) => option.value !== "all")
+        .map((option) => option.value),
+    );
+
+    const filteredSelections = selectedNiches.filter((niche) => validNiches.has(niche));
+
+    if (filteredSelections.length !== selectedNiches.length) {
+      setSelectedNiches(filteredSelections);
+    }
+  }, [categoryOptions, selectedNiches]);
 
   // New listings query (recently approved)
   const { data: newListingsData, isLoading: newListingsLoading } = useQuery<any[]>({
@@ -287,14 +347,20 @@ export default function Browse() {
       }
     }
 
+    const offerNiches = getOfferNicheValues(offer);
+
     // Category filter (from category pills)
-    if (selectedCategory !== "All" && offer.primaryNiche !== selectedCategory) {
+    if (selectedCategory !== "all" && !offerNiches.includes(selectedCategory)) {
       return false;
     }
 
     // Niche filter (from filter sheet checkboxes)
-    if (selectedNiches.length > 0 && !selectedNiches.includes(offer.primaryNiche)) {
-      return false;
+    if (selectedNiches.length > 0) {
+      const hasMatchingNiche = selectedNiches.some((niche) => offerNiches.includes(niche));
+
+      if (!hasMatchingNiche) {
+        return false;
+      }
     }
 
     // Commission type filter (from filter sheet)
@@ -331,15 +397,53 @@ export default function Browse() {
     return true;
   }) || [];
 
-  // Sort offers to show priority listings first
-  const sortedOffers = [...(filteredOffers || [])].sort((a, b) => {
-    const aIsPriority = isPriorityOffer(a);
-    const bIsPriority = isPriorityOffer(b);
+  const sortedOffers = useMemo(() => {
+    const offersToSort = [...filteredOffers];
 
-    if (aIsPriority && !bIsPriority) return -1;
-    if (!aIsPriority && bIsPriority) return 1;
-    return 0;
-  });
+    const priorityComparison = (a: any, b: any) => {
+      const aIsPriority = isPriorityOffer(a);
+      const bIsPriority = isPriorityOffer(b);
+
+      if (aIsPriority && !bIsPriority) return -1;
+      if (!aIsPriority && bIsPriority) return 1;
+      return 0;
+    };
+
+    offersToSort.sort((a, b) => {
+      const priorityResult = priorityComparison(a, b);
+      if (priorityResult !== 0) return priorityResult;
+
+      switch (sortBy) {
+        case "highest_commission":
+          return getCommissionValue(b) - getCommissionValue(a);
+        case "lowest_commission":
+          return getCommissionValue(a) - getCommissionValue(b);
+        case "most_popular":
+          return (b.applicationCount || 0) - (a.applicationCount || 0);
+        case "best_rated": {
+          const aRating = typeof a.company?.averageRating === 'number' ? a.company.averageRating : 0;
+          const bRating = typeof b.company?.averageRating === 'number' ? b.company.averageRating : 0;
+
+          if (bRating !== aRating) {
+            return bRating - aRating;
+          }
+
+          const aReviews = typeof a.company?.reviewCount === 'number' ? a.company.reviewCount : 0;
+          const bReviews = typeof b.company?.reviewCount === 'number' ? b.company.reviewCount : 0;
+
+          return bReviews - aReviews;
+        }
+        case "newest":
+        default: {
+          const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return bCreated - aCreated;
+        }
+      }
+    });
+
+    return offersToSort;
+  }, [filteredOffers, sortBy]);
 
   // Get trending offers for the trending section (only on "all" tab)
   const trendingOffers = activeTab === "all" ? sortedOffers
@@ -363,7 +467,7 @@ export default function Browse() {
     setShowTrending(false);
     setShowPriority(false);
     setSearchTerm("");
-    setSelectedCategory("All");
+    setSelectedCategory("all");
   };
 
   const { data: favorites = [] } = useQuery<any[]>({
@@ -461,23 +565,24 @@ export default function Browse() {
         </Tabs>
 
         {/* Category Pills - Horizontal Scroll */}
-        <div className="relative">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {["All", ...niches.map(n => n.name)].map((category) => (
+        <ScrollArea orientation="horizontal" className="w-full pb-3">
+          <div className="flex gap-2 pb-1 pr-4">
+            {categoryOptions.map(({ label, value }) => (
               <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
+                key={value || label}
+                onClick={() => setSelectedCategory(value)}
                 className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                  selectedCategory === category
+                  selectedCategory === value
                     ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
                     : 'bg-secondary/50 hover:bg-secondary text-secondary-foreground'
                 }`}
+                aria-pressed={selectedCategory === value}
               >
-                {category}
+                {label}
               </button>
             ))}
           </div>
-        </div>
+        </ScrollArea>
 
         {/* Filters Row */}
         <div className="flex items-center gap-4">
@@ -486,10 +591,11 @@ export default function Browse() {
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="highest_commission">Highest Commission</SelectItem>
-              <SelectItem value="most_popular">Most Popular</SelectItem>
-              <SelectItem value="trending">Trending</SelectItem>
+              <SelectItem value="highest_commission">Commission: High to Low</SelectItem>
+              <SelectItem value="lowest_commission">Commission: Low to High</SelectItem>
+              <SelectItem value="newest">Most Recently Posted</SelectItem>
+              <SelectItem value="most_popular">Most Popular (by applications)</SelectItem>
+              <SelectItem value="best_rated">Best Rated Companies</SelectItem>
             </SelectContent>
           </Select>
 
@@ -521,22 +627,25 @@ export default function Browse() {
                     ) : niches.length === 0 ? (
                       <div className="text-sm text-muted-foreground">No niches available</div>
                     ) : (
-                      niches.map((niche) => (
-                        <div key={niche.id} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`niche-${niche.id}`}
-                            checked={selectedNiches.includes(niche.name)}
-                            onCheckedChange={() => toggleNiche(niche.name)}
-                            data-testid={`checkbox-niche-${niche.name}`}
-                          />
-                          <Label
-                            htmlFor={`niche-${niche.id}`}
-                            className="text-sm font-normal cursor-pointer"
-                          >
-                            {niche.name}
-                          </Label>
-                        </div>
-                      ))
+                      niches.map((niche) => {
+                        const normalizedValue = normalizeNicheValue(niche.name);
+                        return (
+                          <div key={niche.id} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`niche-${niche.id}`}
+                              checked={selectedNiches.includes(normalizedValue)}
+                              onCheckedChange={() => toggleNiche(normalizedValue)}
+                              data-testid={`checkbox-niche-${niche.name}`}
+                            />
+                            <Label
+                              htmlFor={`niche-${niche.id}`}
+                              className="text-sm font-normal cursor-pointer"
+                            >
+                              {niche.name}
+                            </Label>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
