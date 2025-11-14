@@ -565,28 +565,25 @@ export default function Browse() {
         </Tabs>
 
         {/* Category Pills - Horizontal Scroll */}
-// codex/add-sort-options-to-browse-offers-3myv3h
-        <ScrollArea orientation="horizontal" className="w-full pb-3">
-          <div className="flex gap-2 pb-1 pr-4">
-
-        <div className="relative">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {categoryOptions.map(({ label, value }) => (
-              <button
-                key={value || label}
-                onClick={() => setSelectedCategory(value)}
-                className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                  selectedCategory === value
-                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-                    : 'bg-secondary/50 hover:bg-secondary text-secondary-foreground'
-                }`}
-                aria-pressed={selectedCategory === value}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </ScrollArea>
+        {/* Category Pills - Horizontal Scroll */}
+<ScrollArea orientation="horizontal" className="w-full pb-3">
+  <div className="flex gap-2 pb-1 pr-4 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+    {categoryOptions.map(({ label, value }) => (
+      <button
+        key={value || label}
+        onClick={() => setSelectedCategory(value)}
+        className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+          selectedCategory === value
+            ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+            : 'bg-secondary/50 hover:bg-secondary text-secondary-foreground'
+        }`}
+        aria-pressed={selectedCategory === value}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+</ScrollArea>
 
         {/* Filters Row */}
         <div className="flex items-center gap-4">
