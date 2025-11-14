@@ -11,6 +11,7 @@ import { Slider } from "../components/ui/slider";
 import { Checkbox } from "../components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Switch } from "../components/ui/switch";
+import { ScrollArea } from "../components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -564,6 +565,10 @@ export default function Browse() {
         </Tabs>
 
         {/* Category Pills - Horizontal Scroll */}
+// codex/add-sort-options-to-browse-offers-3myv3h
+        <ScrollArea orientation="horizontal" className="w-full pb-3">
+          <div className="flex gap-2 pb-1 pr-4">
+
         <div className="relative">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {categoryOptions.map(({ label, value }) => (
@@ -581,7 +586,7 @@ export default function Browse() {
               </button>
             ))}
           </div>
-        </div>
+        </ScrollArea>
 
         {/* Filters Row */}
         <div className="flex items-center gap-4">
