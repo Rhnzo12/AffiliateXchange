@@ -32,14 +32,34 @@ import {
 } from "../components/ui/form";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
-import { DollarSign, Video, Calendar, Briefcase, Send, CheckCircle, XCircle, Clock, Eye, AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import {
+  DollarSign,
+  Video,
+  Calendar,
+  Briefcase,
+  Send,
+  CheckCircle,
+  Clock,
+  Eye,
+  AlertTriangle,
+  Search,
+  Users,
+  Star,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useLocation } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 const applyRetainerSchema = z.object({
   message: z.string().min(20, "Message must be at least 20 characters"),
@@ -55,6 +75,11 @@ export default function CreatorRetainers() {
   const [selectedContract, setSelectedContract] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [showVideoPlatformDialog, setShowVideoPlatformDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [platformFilter, setPlatformFilter] = useState("all");
+  const [budgetFilter, setBudgetFilter] = useState("all");
+  const [nicheFilter, setNicheFilter] = useState("all");
+  const [sortOption, setSortOption] = useState("recent");
 
   const { data: contracts, isLoading } = useQuery<any[]>({
     queryKey: ["/api/retainer-contracts"],
@@ -120,19 +145,11 @@ export default function CreatorRetainers() {
     return myApplications?.find((app: any) => app.contractId === contractId);
   };
 
-  // Check if user can apply (no application or rejected)
-  const canApply = (contractId: string) => {
-    const application = getApplication(contractId);
-    if (!application) return true;
-    // Can reapply if rejected
-    return application.status === 'rejected';
-  };
-
   // Get button text, badge, and icon based on application status
   const getApplicationStatus = (contractId: string) => {
     const application = getApplication(contractId);
-    if (!application) return { 
-      badge: null, 
+    if (!application) return {
+      badge: null,
       buttonText: 'Apply Now', 
       disabled: false,
       variant: 'default' as const,
@@ -175,6 +192,109 @@ export default function CreatorRetainers() {
     }
   };
 
+  const uniquePlatforms = useMemo(() => {
+    const set = new Set<string>();
+    contracts?.forEach((contract: any) => {
+      if (contract.requiredPlatform) {
+        set.add(contract.requiredPlatform);
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [contracts]);
+
+  const uniqueNiches = useMemo(() => {
+    const set = new Set<string>();
+    contracts?.forEach((contract: any) => {
+      if (Array.isArray(contract.niches)) {
+        contract.niches.forEach((niche: string) => {
+          if (niche) {
+            set.add(niche);
+          }
+        });
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [contracts]);
+
+  const filteredContracts = useMemo(() => {
+    if (!contracts) return [];
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return contracts.filter((contract: any) => {
+      const matchesSearch = normalizedSearch
+        ? [
+            contract.title,
+            contract.description,
+            contract.company?.tradeName,
+            contract.company?.legalName,
+            Array.isArray(contract.niches) ? contract.niches.join(" ") : "",
+          ]
+            .filter(Boolean)
+            .some((field) => String(field).toLowerCase().includes(normalizedSearch))
+        : true;
+
+      const matchesPlatform =
+        platformFilter === "all" || contract.requiredPlatform?.toLowerCase() === platformFilter.toLowerCase();
+
+      const monthlyAmount = contract.monthlyAmount ? parseFloat(contract.monthlyAmount) : 0;
+      const matchesBudget =
+        budgetFilter === "all" || monthlyAmount >= Number(budgetFilter);
+
+      const matchesNiche =
+        nicheFilter === "all" || (Array.isArray(contract.niches) && contract.niches.some((n: string) => n === nicheFilter));
+
+      return matchesSearch && matchesPlatform && matchesBudget && matchesNiche;
+    });
+  }, [contracts, searchTerm, platformFilter, budgetFilter, nicheFilter]);
+
+  const filtersApplied =
+    searchTerm.trim() !== "" || platformFilter !== "all" || budgetFilter !== "all" || nicheFilter !== "all";
+
+  const sortedContracts = useMemo(() => {
+    const contractsToSort = [...filteredContracts];
+
+    switch (sortOption) {
+      case "commission_desc":
+        return contractsToSort.sort((a, b) => {
+          const amountA = a.monthlyAmount ? Number(a.monthlyAmount) : 0;
+          const amountB = b.monthlyAmount ? Number(b.monthlyAmount) : 0;
+          if (amountB !== amountA) return amountB - amountA;
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+      case "commission_asc":
+        return contractsToSort.sort((a, b) => {
+          const amountA = a.monthlyAmount ? Number(a.monthlyAmount) : 0;
+          const amountB = b.monthlyAmount ? Number(b.monthlyAmount) : 0;
+          if (amountA !== amountB) return amountA - amountB;
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+      case "popular":
+        return contractsToSort.sort((a, b) => {
+          const applicationsA = typeof a.applicationCount === "number" ? a.applicationCount : 0;
+          const applicationsB = typeof b.applicationCount === "number" ? b.applicationCount : 0;
+          if (applicationsB !== applicationsA) return applicationsB - applicationsA;
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+      case "rated":
+        return contractsToSort.sort((a, b) => {
+          const ratingA = typeof a.companyAverageRating === "number" ? a.companyAverageRating : -1;
+          const ratingB = typeof b.companyAverageRating === "number" ? b.companyAverageRating : -1;
+          if (ratingB !== ratingA) return ratingB - ratingA;
+
+          const reviewCountA = typeof a.companyReviewCount === "number" ? a.companyReviewCount : 0;
+          const reviewCountB = typeof b.companyReviewCount === "number" ? b.companyReviewCount : 0;
+          if (reviewCountB !== reviewCountA) return reviewCountB - reviewCountA;
+
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+      case "recent":
+      default:
+        return contractsToSort.sort(
+          (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+        );
+    }
+  }, [filteredContracts, sortOption]);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -211,13 +331,129 @@ export default function CreatorRetainers() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6">
-          {contracts?.map((contract: any) => {
-            const applicationStatus = getApplicationStatus(contract.id);
-            const allowApply = canApply(contract.id);
-            const StatusIcon = applicationStatus.icon;
-            
-            return (
+        <div className="space-y-6">
+          <Card className="border-card-border">
+            <CardHeader className="pb-0">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="text-lg">Search & Filter</CardTitle>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">Sort by</p>
+                  <Select value={sortOption} onValueChange={setSortOption}>
+                    <SelectTrigger className="w-[220px]" data-testid="select-retainer-sort">
+                      <SelectValue placeholder="Most Recently Posted" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recent">Most Recently Posted</SelectItem>
+                      <SelectItem value="commission_desc">Commission: High to Low</SelectItem>
+                      <SelectItem value="commission_asc">Commission: Low to High</SelectItem>
+                      <SelectItem value="popular">Most Popular (by applications)</SelectItem>
+                      <SelectItem value="rated">Best Rated Companies</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Search</p>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      placeholder="Search by title, company, or niche"
+                      className="pl-9"
+                      data-testid="input-retainer-search"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Platform</p>
+                  <Select value={platformFilter} onValueChange={setPlatformFilter}>
+                    <SelectTrigger data-testid="select-platform-filter">
+                      <SelectValue placeholder="All platforms" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All platforms</SelectItem>
+                      {uniquePlatforms.map((platform) => (
+                        <SelectItem key={platform} value={platform}>
+                          {platform}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Minimum Monthly Budget</p>
+                  <Select value={budgetFilter} onValueChange={setBudgetFilter}>
+                    <SelectTrigger data-testid="select-budget-filter">
+                      <SelectValue placeholder="All budgets" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All budgets</SelectItem>
+                      <SelectItem value="500">$500+</SelectItem>
+                      <SelectItem value="1000">$1,000+</SelectItem>
+                      <SelectItem value="2500">$2,500+</SelectItem>
+                      <SelectItem value="5000">$5,000+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Niche</p>
+                  <Select value={nicheFilter} onValueChange={setNicheFilter}>
+                    <SelectTrigger data-testid="select-niche-filter">
+                      <SelectValue placeholder="All niches" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All niches</SelectItem>
+                      {uniqueNiches.map((niche) => (
+                        <SelectItem key={niche} value={niche}>
+                          {niche}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {filtersApplied && (
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setPlatformFilter("all");
+                      setBudgetFilter("all");
+                      setNicheFilter("all");
+                    }}
+                    data-testid="button-clear-retainer-filters"
+                  >
+                    Clear filters
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {sortedContracts.length === 0 ? (
+            <Card className="border-card-border">
+              <CardContent className="p-12 text-center space-y-2">
+                <Briefcase className="h-12 w-12 text-muted-foreground/50 mx-auto" />
+                <h3 className="font-semibold">No retainer contracts match your filters</h3>
+                <p className="text-muted-foreground">Try adjusting your search or filter selections to discover more opportunities.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6">
+              {sortedContracts.map((contract: any) => {
+                const applicationStatus = getApplicationStatus(contract.id);
+                const StatusIcon = applicationStatus.icon;
+
+                return (
               <Card
                 key={contract.id}
                 className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-primary/30 hover:ring-primary/50 hover:shadow-primary/20"
@@ -305,6 +541,26 @@ export default function CreatorRetainers() {
                     </div>
                   </div>
 
+                  <div className="flex flex-wrap gap-4 pt-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-primary" />
+                      <span>
+                        {contract.applicationCount ?? 0} applicant{(contract.applicationCount ?? 0) === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    {typeof contract.companyAverageRating === "number" && contract.companyAverageRating > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        <span>
+                          {contract.companyAverageRating.toFixed(1)} average rating
+                          {contract.companyReviewCount
+                            ? ` (${contract.companyReviewCount} review${contract.companyReviewCount === 1 ? "" : "s"})`
+                            : ""}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
                   {contract.contentGuidelines && (
                     <div className="pt-4 border-t">
                       <h4 className="font-semibold text-sm mb-2">Content Guidelines</h4>
@@ -362,7 +618,9 @@ export default function CreatorRetainers() {
                 </CardContent>
               </Card>
             );
-          })}
+              })}
+            </div>
+          )}
         </div>
       )}
 

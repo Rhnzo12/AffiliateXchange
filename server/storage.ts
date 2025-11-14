@@ -807,6 +807,93 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private async attachRetainerContractStats<T extends { id?: string | null; companyId?: string | null }>(
+    contracts: T[],
+  ): Promise<(T & {
+    applicationCount: number;
+    companyAverageRating: number | null;
+    companyReviewCount: number;
+  })[]> {
+    if (!contracts.length) {
+      return contracts.map((contract) => ({
+        ...contract,
+        applicationCount: 0,
+        companyAverageRating: null,
+        companyReviewCount: 0,
+      }));
+    }
+
+    const contractIds = Array.from(
+      new Set(
+        contracts
+          .map((contract) => contract.id)
+          .filter((id): id is string => typeof id === "string" && id.trim().length > 0),
+      ),
+    );
+
+    const companyIds = Array.from(
+      new Set(
+        contracts
+          .map((contract) => contract.companyId)
+          .filter((id): id is string => typeof id === "string" && id.trim().length > 0),
+      ),
+    );
+
+    const applicationCounts: Record<string, number> = {};
+    if (contractIds.length > 0) {
+      const applicationRows = await db
+        .select({
+          contractId: retainerApplications.contractId,
+          count: sql<number>`COUNT(*)::int`,
+        })
+        .from(retainerApplications)
+        .where(inArray(retainerApplications.contractId, contractIds))
+        .groupBy(retainerApplications.contractId);
+
+      for (const row of applicationRows) {
+        applicationCounts[row.contractId] = Number(row.count) || 0;
+      }
+    }
+
+    const companyRatings: Record<string, { averageRating: number; reviewCount: number }> = {};
+    if (companyIds.length > 0) {
+      const ratingRows = await db
+        .select({
+          companyId: reviews.companyId,
+          averageRating: sql<number>`AVG(${reviews.overallRating})::float`,
+          reviewCount: sql<number>`COUNT(*)::int`,
+        })
+        .from(reviews)
+        .where(
+          and(
+            inArray(reviews.companyId, companyIds),
+            eq(reviews.isApproved, true),
+            sql`COALESCE(${reviews.isHidden}, false) = false`,
+          ),
+        )
+        .groupBy(reviews.companyId);
+
+      for (const row of ratingRows) {
+        companyRatings[row.companyId] = {
+          averageRating: Number(row.averageRating),
+          reviewCount: Number(row.reviewCount) || 0,
+        };
+      }
+    }
+
+    return contracts.map((contract) => {
+      const applicationCount = contract.id ? applicationCounts[contract.id] ?? 0 : 0;
+      const ratingStats = contract.companyId ? companyRatings[contract.companyId] : undefined;
+
+      return {
+        ...contract,
+        applicationCount,
+        companyAverageRating: ratingStats ? ratingStats.averageRating : null,
+        companyReviewCount: ratingStats ? ratingStats.reviewCount : 0,
+      };
+    });
+  }
+
   // Users
   async getUser(id: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
@@ -2496,6 +2583,9 @@ export class DatabaseStorage implements IStorage {
   // Analytics
   async getAnalyticsByCreator(creatorId: string): Promise<any> {
     try {
+      const now = new Date();
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
       // Get affiliate earnings from analytics table
       const affiliateResult = await db
         .select({
@@ -2508,6 +2598,20 @@ export class DatabaseStorage implements IStorage {
         .leftJoin(analytics, eq(analytics.applicationId, applications.id))
         .where(eq(applications.creatorId, creatorId));
 
+      const affiliateMonthlyResult = await db
+        .select({
+          monthlyEarnings: sql<number>`COALESCE(SUM(CAST(${analytics.earnings} AS DECIMAL)), 0)`,
+          monthlyClicks: sql<number>`COALESCE(SUM(${analytics.clicks}), 0)`,
+        })
+        .from(applications)
+        .leftJoin(analytics, eq(analytics.applicationId, applications.id))
+        .where(
+          and(
+            eq(applications.creatorId, creatorId),
+            gte(analytics.date, monthStart)
+          )
+        );
+
       // Get retainer earnings from retainer_payments table (only completed payments)
       const retainerResult = await db
         .select({
@@ -2518,15 +2622,36 @@ export class DatabaseStorage implements IStorage {
           sql`${retainerPayments.creatorId} = ${creatorId} AND ${retainerPayments.status} = 'completed'`
         );
 
+      const retainerMonthlyResult = await db
+        .select({
+          monthlyRetainerEarnings: sql<number>`COALESCE(SUM(CAST(${retainerPayments.amount} AS DECIMAL)), 0)`,
+        })
+        .from(retainerPayments)
+        .where(
+          and(
+            eq(retainerPayments.creatorId, creatorId),
+            eq(retainerPayments.status, "completed"),
+            sql`COALESCE(${retainerPayments.completedAt}, ${retainerPayments.createdAt}) >= ${monthStart}`
+          )
+        );
+
       const affiliateEarnings = Number(affiliateResult[0]?.totalEarnings || 0);
       const retainerEarnings = Number(retainerResult[0]?.totalRetainerEarnings || 0);
       const totalEarnings = affiliateEarnings + retainerEarnings;
 
+      const monthlyAffiliateEarnings = Number(affiliateMonthlyResult[0]?.monthlyEarnings || 0);
+      const monthlyRetainerEarnings = Number(retainerMonthlyResult[0]?.monthlyRetainerEarnings || 0);
+      const monthlyEarnings = monthlyAffiliateEarnings + monthlyRetainerEarnings;
+
       return {
-        totalEarnings: totalEarnings,
-        affiliateEarnings: affiliateEarnings,
-        retainerEarnings: retainerEarnings,
+        totalEarnings,
+        affiliateEarnings,
+        retainerEarnings,
+        monthlyEarnings,
+        monthlyAffiliateEarnings,
+        monthlyRetainerEarnings,
         totalClicks: Number(affiliateResult[0]?.totalClicks || 0),
+        monthlyClicks: Number(affiliateMonthlyResult[0]?.monthlyClicks || 0),
         uniqueClicks: Number(affiliateResult[0]?.uniqueClicks || 0),
         conversions: Number(affiliateResult[0]?.conversions || 0),
       };
@@ -2536,7 +2661,11 @@ export class DatabaseStorage implements IStorage {
         totalEarnings: 0,
         affiliateEarnings: 0,
         retainerEarnings: 0,
+        monthlyEarnings: 0,
+        monthlyAffiliateEarnings: 0,
+        monthlyRetainerEarnings: 0,
         totalClicks: 0,
+        monthlyClicks: 0,
         uniqueClicks: 0,
         conversions: 0,
       };
@@ -3412,7 +3541,8 @@ export class DatabaseStorage implements IStorage {
       contract.assignedCreator = creator;
     }
 
-    return contract;
+    const [enriched] = await this.attachRetainerContractStats([contract]);
+    return enriched;
   }
 
   async getRetainerContracts(filters?: any): Promise<any[]> {
@@ -3428,11 +3558,13 @@ export class DatabaseStorage implements IStorage {
 
     const results = await query.orderBy(desc(retainerContracts.createdAt));
 
-    return results.map((r: any) => ({
+    const contracts = results.map((r: any) => ({
       ...r.retainer_contracts,
       company: r.company_profiles,
       companyUser: r.users,
     }));
+
+    return this.attachRetainerContractStats(contracts);
   }
 
   async getRetainerContractsByCompany(companyId: string): Promise<any[]> {
@@ -3453,7 +3585,7 @@ export class DatabaseStorage implements IStorage {
       })
     );
 
-    return contractsWithCreators;
+    return this.attachRetainerContractStats(contractsWithCreators);
   }
 
   async getRetainerContractsByCreator(creatorId: string): Promise<any[]> {
@@ -3464,10 +3596,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(retainerContracts.assignedCreatorId, creatorId))
       .orderBy(desc(retainerContracts.createdAt));
 
-    return results.map((r: any) => ({
+    const contracts = results.map((r: any) => ({
       ...r.retainer_contracts,
       company: r.company_profiles,
     }));
+
+    return this.attachRetainerContractStats(contracts);
   }
 
   async getOpenRetainerContracts(): Promise<any[]> {
@@ -3479,11 +3613,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(retainerContracts.status, "open"))
       .orderBy(desc(retainerContracts.createdAt));
 
-    return results.map((r: any) => ({
+    const contracts = results.map((r: any) => ({
       ...r.retainer_contracts,
       company: r.company_profiles,
       companyUser: r.users,
     }));
+
+    return this.attachRetainerContractStats(contracts);
   }
 
   async createRetainerContract(contract: InsertRetainerContract): Promise<RetainerContract> {
