@@ -14,14 +14,6 @@ import {
   SidebarFooter,
   useSidebar,
 } from "./ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "./ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import {
   Home,
@@ -29,15 +21,10 @@ import {
   FileText,
   MessageSquare,
   Heart,
-  Settings,
   DollarSign,
   Star,
   Building2,
   Users,
-  ShieldCheck,
-  Zap,
-  ChevronDown,
-  LogOut,
   Video,
   CalendarClock,
   ScrollText,
@@ -50,6 +37,7 @@ export function AppSidebar() {
   const { user } = useAuth();
   const [location] = useLocation();
   const { isMobile, setOpenMobile } = useSidebar();
+  const currentYear = new Date().getFullYear();
 
   // Fetch conversations to get unread count
   const { data: conversations } = useQuery<any[]>({
@@ -283,70 +271,15 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Settings</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location === '/settings'} data-testid="nav-settings">
-                  <Link href="/settings" onClick={handleNavClick}>
-                    <Settings className="h-4 w-4" />
-                    <span>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 w-full hover-elevate p-2 rounded-md" data-testid="button-user-menu">
-              <Avatar className="h-8 w-8">
-                <AvatarImage
-                  src={user?.profileImageUrl || ''}
-                  alt={user?.firstName || 'User'}
-                  referrerPolicy="no-referrer"
-                />
-                <AvatarFallback>{user?.firstName?.[0] || user?.email?.[0] || 'U'}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 text-left">
-                <div className="text-sm font-medium">{user?.firstName || user?.email || 'User'}</div>
-                <div className="text-xs text-muted-foreground capitalize">{user?.role || 'creator'}</div>
-              </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem asChild>
-              <Link href="/settings" onClick={handleNavClick}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={async () => {
-                try {
-                  await fetch('/api/auth/logout', { 
-                    method: 'POST',
-                    credentials: 'include'
-                  });
-                  window.location.href = '/';
-                } catch (error) {
-                  console.error('Logout error:', error);
-                  window.location.href = '/';
-                }
-              }}
-              data-testid="button-logout"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Log Out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="rounded-md border border-dashed border-primary/30 bg-muted/40 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Credits</p>
+          <p className="mt-1 text-sm font-medium text-foreground">AffiliateXchange Platform</p>
+          <p className="text-xs text-muted-foreground">© {currentYear} All rights reserved.</p>
+          <p className="text-xs text-muted-foreground">Crafted with care for our creators and partners.</p>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

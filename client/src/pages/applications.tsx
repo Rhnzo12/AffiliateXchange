@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,11 +9,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
-import { Copy, ExternalLink, MessageSquare, TrendingUp, FileText, Clock, CheckCircle2, Star, StarOff } from "lucide-react";
+import { Copy, ExternalLink, MessageSquare, TrendingUp, FileText, Clock, CheckCircle2, Star, StarOff, Filter, Search, X } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
+import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 const STATUS_COLORS: Record<string, any> = {
   pending: { variant: "secondary" as const, icon: Clock },
@@ -75,6 +83,9 @@ export default function Applications() {
   const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [offerFilter, setOfferFilter] = useState("all");
   const [reviewDialog, setReviewDialog] = useState<{ open: boolean; application: any | null }>({
     open: false,
     application: null,
@@ -100,6 +111,23 @@ export default function Applications() {
     queryKey: ["/api/applications"],
     enabled: isAuthenticated,
   });
+
+  const totalApplications = applications?.length ?? 0;
+
+  const uniqueStatuses = useMemo(
+    () => Array.from(new Set((applications || []).map((app: any) => app.status).filter(Boolean))),
+    [applications]
+  );
+
+  const uniqueOffers = useMemo(() => {
+    const map = new Map<string, string>();
+    (applications || []).forEach((app: any) => {
+      if (app.offer?.id && app.offer?.title) {
+        map.set(app.offer.id, app.offer.title);
+      }
+    });
+    return Array.from(map.entries());
+  }, [applications]);
 
   // Fetch user's reviews to check which applications have been reviewed
   const { data: userReviews = [] } = useQuery<any[]>({
@@ -211,10 +239,34 @@ export default function Applications() {
     submitReviewMutation.mutate(reviewForm);
   };
 
-  const filteredApplications = applications?.filter(app => {
-    if (activeTab === "all") return true;
-    return app.status === activeTab;
-  });
+  const filteredApplications = useMemo(() => {
+    return (applications || []).filter((app: any) => {
+      const matchesTab = activeTab === "all" || app.status === activeTab;
+      const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+      const matchesOffer = offerFilter === "all" || app.offer?.id === offerFilter;
+      const matchesSearch = searchTerm
+        ? [
+            app.offer?.title,
+            app.offer?.company?.tradeName,
+            app.offer?.primaryNiche,
+            app.offer?.secondaryNiche,
+          ]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
+
+      return matchesTab && matchesStatus && matchesOffer && matchesSearch;
+    });
+  }, [activeTab, applications, offerFilter, searchTerm, statusFilter]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || statusFilter !== "all" || offerFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setOfferFilter("all");
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
@@ -230,6 +282,70 @@ export default function Applications() {
         <h1 className="text-3xl font-bold">My Applications</h1>
         <p className="text-muted-foreground mt-1">Track all your affiliate applications in one place</p>
       </div>
+
+      <Card className="border-card-border">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              <span className="text-sm font-semibold uppercase tracking-wider">Search & Filter</span>
+            </div>
+            <div className="sm:ml-auto text-sm text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{filteredApplications.length}</span> of {totalApplications}
+              {` application${totalApplications === 1 ? "" : "s"}`}
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs sm:ml-4">
+                <X className="h-3 w-3 mr-1" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Search</label>
+              <Input
+                placeholder="Search by offer or niche"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {uniqueStatuses.map((status) => (
+                    <SelectItem key={status} value={status} className="capitalize">
+                      {status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Offer</label>
+              <Select value={offerFilter} onValueChange={setOfferFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All offers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Offers</SelectItem>
+                  {uniqueOffers.map(([id, title]) => (
+                    <SelectItem key={id} value={id}>
+                      {title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -251,7 +367,7 @@ export default function Applications() {
         <TabsContent value={activeTab} className="space-y-4 mt-6">
           {applicationsLoading ? (
             <ListSkeleton count={3} />
-          ) : !filteredApplications || filteredApplications.length === 0 ? (
+          ) : totalApplications === 0 ? (
             <Card className="border-card-border">
               <CardContent className="p-12 text-center">
                 <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
@@ -260,6 +376,14 @@ export default function Applications() {
                 <Link href="/browse">
                   <Button data-testid="button-browse-offers">Browse Offers</Button>
                 </Link>
+              </CardContent>
+            </Card>
+          ) : filteredApplications.length === 0 ? (
+            <Card className="border-card-border">
+              <CardContent className="p-10 text-center space-y-2">
+                <Search className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+                <h3 className="font-semibold text-lg">No applications match your filters</h3>
+                <p className="text-sm text-muted-foreground">Try adjusting your search or filter selections.</p>
               </CardContent>
             </Card>
           ) : (

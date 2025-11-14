@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -9,8 +9,15 @@ import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import { Label } from "../components/ui/label";
-import { FileText, CheckCircle, Clock, XCircle, MessageCircle, DollarSign } from "lucide-react";
+import { FileText, CheckCircle, Clock, XCircle, MessageCircle, DollarSign, Filter, Search, X } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
@@ -26,6 +33,9 @@ export default function CompanyApplications() {
   const [saleAmount, setSaleAmount] = useState("");
   const [reviewPromptOpen, setReviewPromptOpen] = useState(false);
   const [reviewPromptData, setReviewPromptData] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [offerFilter, setOfferFilter] = useState("all");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -44,6 +54,52 @@ export default function CompanyApplications() {
     queryKey: ["/api/company/applications"],
     enabled: isAuthenticated,
   });
+
+  const totalApplications = applications.length;
+
+  const uniqueStatuses = useMemo(
+    () => Array.from(new Set(applications.map((application: any) => application.status).filter(Boolean))),
+    [applications]
+  );
+
+  const uniqueOffers = useMemo(() => {
+    const map = new Map<string, string>();
+    applications.forEach((application: any) => {
+      if (application.offer?.id && application.offer?.title) {
+        map.set(application.offer.id, application.offer.title);
+      }
+    });
+    return Array.from(map.entries());
+  }, [applications]);
+
+  const filteredApplications = useMemo(() => {
+    return applications.filter((app: any) => {
+      const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+      const matchesOffer = offerFilter === "all" || app.offer?.id === offerFilter;
+      const matchesSearch = searchTerm
+        ? [
+            app.offer?.title,
+            app.offer?.company?.tradeName,
+            app.creator?.firstName,
+            app.creator?.lastName,
+            app.trackingLink,
+          ]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
+
+      return matchesStatus && matchesOffer && matchesSearch;
+    });
+  }, [applications, offerFilter, searchTerm, statusFilter]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || statusFilter !== "all" || offerFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setOfferFilter("all");
+  };
 
   const completeApplicationMutation = useMutation({
     mutationFn: async (applicationId: string) => {
@@ -257,9 +313,73 @@ export default function CompanyApplications() {
         </p>
       </div>
 
+      <Card className="border-card-border">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              <span className="text-sm font-semibold uppercase tracking-wider">Search & Filter</span>
+            </div>
+            <div className="sm:ml-auto text-sm text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{filteredApplications.length}</span> of {totalApplications}
+              {` application${totalApplications === 1 ? "" : "s"}`}
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="text-xs sm:ml-4" onClick={clearFilters}>
+                <X className="h-3 w-3 mr-1" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Search</label>
+              <Input
+                placeholder="Search by offer, creator, or tracking link"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {uniqueStatuses.map((status) => (
+                    <SelectItem key={status} value={status} className="capitalize">
+                      {status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Offer</label>
+              <Select value={offerFilter} onValueChange={setOfferFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All offers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Offers</SelectItem>
+                  {uniqueOffers.map(([id, title]) => (
+                    <SelectItem key={id} value={id}>
+                      {title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {loadingApplications ? (
         <ListSkeleton count={5} />
-      ) : applications.length === 0 ? (
+      ) : totalApplications === 0 ? (
         <Card className="border-card-border">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
@@ -269,9 +389,19 @@ export default function CompanyApplications() {
             </p>
           </CardContent>
         </Card>
+      ) : filteredApplications.length === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="flex flex-col items-center justify-center py-12 space-y-3">
+            <Search className="h-10 w-10 text-muted-foreground/40" />
+            <h3 className="text-lg font-semibold">No applications match your filters</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Try adjusting your search or clearing the filters to see more results.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
-          {applications.map((app: any) => (
+          {filteredApplications.map((app: any) => (
             <Card key={app.id} className="border-card-border" data-testid={`card-application-${app.id}`}>
               <CardHeader className="pb-3 sm:pb-6">
                 <div className="flex items-start justify-between gap-2 sm:gap-4">
