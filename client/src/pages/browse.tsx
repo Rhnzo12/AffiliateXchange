@@ -565,8 +565,12 @@ export default function Browse() {
         </Tabs>
 
         {/* Category Pills - Horizontal Scroll */}
+// codex/add-sort-options-to-browse-offers-3myv3h
         <ScrollArea orientation="horizontal" className="w-full pb-3">
           <div className="flex gap-2 pb-1 pr-4">
+
+        <div className="relative">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {categoryOptions.map(({ label, value }) => (
               <button
                 key={value || label}
