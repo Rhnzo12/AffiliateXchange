@@ -486,10 +486,11 @@ export default function Browse() {
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="highest_commission">Highest Commission</SelectItem>
-              <SelectItem value="most_popular">Most Popular</SelectItem>
-              <SelectItem value="trending">Trending</SelectItem>
+              <SelectItem value="highest_commission">Commission: High to Low</SelectItem>
+              <SelectItem value="lowest_commission">Commission: Low to High</SelectItem>
+              <SelectItem value="newest">Most Recently Posted</SelectItem>
+              <SelectItem value="most_popular">Most Popular (by applications)</SelectItem>
+              <SelectItem value="best_rated">Best Rated Companies</SelectItem>
             </SelectContent>
           </Select>
 
