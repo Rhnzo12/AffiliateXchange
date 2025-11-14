@@ -1,6 +1,6 @@
 // path: src/server/storage.ts
 import { randomUUID } from "crypto";
-import { eq, and, or, desc, sql, count, inArray, gte, lte } from "drizzle-orm";
+import { eq, and, or, desc, asc, sql, count, inArray, gte, lte } from "drizzle-orm";
 import { db, pool } from "./db";
 import geoip from "geoip-lite";
 import {
@@ -1194,11 +1194,18 @@ export class DatabaseStorage implements IStorage {
       query = (query.where(and(...conditions)) as unknown) as typeof query;
     }
 
+    const sortByBestRated = filters.sortBy === 'best_rated';
+
     // Sort by
     if (filters.sortBy === 'highest_commission') {
       // Sort by commission amount/percentage/rate (descending)
       query = (query.orderBy(
         desc(sql`COALESCE(${offers.commissionAmount}, ${offers.commissionPercentage}, 0)`)
+      ) as unknown) as typeof query;
+    } else if (filters.sortBy === 'lowest_commission') {
+      // Sort by commission amount/percentage/rate (ascending)
+      query = (query.orderBy(
+        asc(sql`COALESCE(${offers.commissionAmount}, ${offers.commissionPercentage}, 0)`)
       ) as unknown) as typeof query;
     } else if (filters.sortBy === 'trending') {
       // Sort by view count and application count
@@ -1222,21 +1229,88 @@ export class DatabaseStorage implements IStorage {
 
     const results = await query;
 
+    const companyIds = Array.from(
+      new Set(
+        results
+          .map((row: any) => row.offer?.companyId)
+          .filter((companyId: string | undefined) => Boolean(companyId)),
+      ),
+    ) as string[];
+
+    let ratingsByCompany: Record<string, { averageRating: number | null; reviewCount: number }> = {};
+
+    if (companyIds.length > 0) {
+      const ratingRows = await db
+        .select({
+          companyId: reviews.companyId,
+          averageRating: sql<number | null>`AVG(${reviews.overallRating})`,
+          reviewCount: sql<number>`COUNT(*)::int`,
+        })
+        .from(reviews)
+        .where(
+          and(
+            inArray(reviews.companyId, companyIds),
+            eq(reviews.isHidden, false),
+            eq(reviews.isApproved, true),
+          ),
+        )
+        .groupBy(reviews.companyId);
+
+      ratingsByCompany = ratingRows.reduce(
+        (acc, row) => {
+          acc[row.companyId] = {
+            averageRating: row.averageRating,
+            reviewCount: row.reviewCount,
+          };
+          return acc;
+        },
+        {} as Record<string, { averageRating: number | null; reviewCount: number }>,
+      );
+    }
+
     // ✅ ADD: Map to include company data and stats
-    const offersWithStats = await Promise.all(
+    let offersWithStats = await Promise.all(
       results.map(async (row: any) => {
         const activeCreatorsCount = await this.getActiveCreatorsCountForOffer(row.offer.id);
         const clickStats = await this.getOfferClickStats(row.offer.id);
+        const ratingStats = ratingsByCompany[row.offer.companyId];
+
+        const companyData = row.company
+          ? {
+              ...(row.company as any),
+              averageRating:
+                ratingStats && ratingStats.averageRating !== null
+                  ? Number(ratingStats.averageRating)
+                  : null,
+              reviewCount: ratingStats?.reviewCount ?? 0,
+            }
+          : row.company;
 
         return {
           ...row.offer,
-          company: row.company,
+          company: companyData,
           activeCreatorsCount,
           totalClicks: clickStats.totalClicks,
           uniqueClicks: clickStats.uniqueClicks,
         };
       })
     );
+
+    if (sortByBestRated) {
+      offersWithStats = offersWithStats.sort((a: any, b: any) => {
+        const aRating = typeof a.company?.averageRating === 'number' ? a.company.averageRating : 0;
+        const bRating = typeof b.company?.averageRating === 'number' ? b.company.averageRating : 0;
+
+        if (bRating !== aRating) {
+          return bRating - aRating;
+        }
+
+        const aReviews = typeof a.company?.reviewCount === 'number' ? a.company.reviewCount : 0;
+        const bReviews = typeof b.company?.reviewCount === 'number' ? b.company.reviewCount : 0;
+
+        return bReviews - aReviews;
+      });
+    }
 
     return offersWithStats;
   }

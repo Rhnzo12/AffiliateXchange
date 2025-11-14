@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -331,15 +331,53 @@ export default function Browse() {
     return true;
   }) || [];
 
-  // Sort offers to show priority listings first
-  const sortedOffers = [...(filteredOffers || [])].sort((a, b) => {
-    const aIsPriority = isPriorityOffer(a);
-    const bIsPriority = isPriorityOffer(b);
+  const sortedOffers = useMemo(() => {
+    const offersToSort = [...filteredOffers];
 
-    if (aIsPriority && !bIsPriority) return -1;
-    if (!aIsPriority && bIsPriority) return 1;
-    return 0;
-  });
+    const priorityComparison = (a: any, b: any) => {
+      const aIsPriority = isPriorityOffer(a);
+      const bIsPriority = isPriorityOffer(b);
+
+      if (aIsPriority && !bIsPriority) return -1;
+      if (!aIsPriority && bIsPriority) return 1;
+      return 0;
+    };
+
+    offersToSort.sort((a, b) => {
+      const priorityResult = priorityComparison(a, b);
+      if (priorityResult !== 0) return priorityResult;
+
+      switch (sortBy) {
+        case "highest_commission":
+          return getCommissionValue(b) - getCommissionValue(a);
+        case "lowest_commission":
+          return getCommissionValue(a) - getCommissionValue(b);
+        case "most_popular":
+          return (b.applicationCount || 0) - (a.applicationCount || 0);
+        case "best_rated": {
+          const aRating = typeof a.company?.averageRating === 'number' ? a.company.averageRating : 0;
+          const bRating = typeof b.company?.averageRating === 'number' ? b.company.averageRating : 0;
+
+          if (bRating !== aRating) {
+            return bRating - aRating;
+          }
+
+          const aReviews = typeof a.company?.reviewCount === 'number' ? a.company.reviewCount : 0;
+          const bReviews = typeof b.company?.reviewCount === 'number' ? b.company.reviewCount : 0;
+
+          return bReviews - aReviews;
+        }
+        case "newest":
+        default: {
+          const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return bCreated - aCreated;
+        }
+      }
+    });
+
+    return offersToSort;
+  }, [filteredOffers, sortBy]);
 
   // Get trending offers for the trending section (only on "all" tab)
   const trendingOffers = activeTab === "all" ? sortedOffers
@@ -486,10 +524,11 @@ export default function Browse() {
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="highest_commission">Highest Commission</SelectItem>
-              <SelectItem value="most_popular">Most Popular</SelectItem>
-              <SelectItem value="trending">Trending</SelectItem>
+              <SelectItem value="highest_commission">Commission: High to Low</SelectItem>
+              <SelectItem value="lowest_commission">Commission: Low to High</SelectItem>
+              <SelectItem value="newest">Most Recently Posted</SelectItem>
+              <SelectItem value="most_popular">Most Popular (by applications)</SelectItem>
+              <SelectItem value="best_rated">Best Rated Companies</SelectItem>
             </SelectContent>
           </Select>
 
