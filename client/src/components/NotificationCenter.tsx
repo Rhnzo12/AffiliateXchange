@@ -138,12 +138,7 @@ export function NotificationCenter() {
         });
 
         toast({
-          title: (
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              <span>{notification.title}</span>
-            </div>
-          ),
+          title: notification.title ?? "New Company Registration",
           description: notification.message,
           action: (
             <ToastAction

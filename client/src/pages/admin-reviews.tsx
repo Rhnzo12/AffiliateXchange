@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
@@ -8,10 +8,18 @@ import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
-import { Star, Eye, EyeOff, Trash2, FileText, CheckCircle2, AlertCircle } from "lucide-react";
+import { Star, Eye, EyeOff, Trash2, FileText, CheckCircle2, AlertCircle, Filter, Search, X } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
+import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 export default function AdminReviews() {
   const { toast } = useToast();
@@ -21,6 +29,11 @@ export default function AdminReviews() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [adminNote, setAdminNote] = useState("");
   const [editedReview, setEditedReview] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [visibilityFilter, setVisibilityFilter] = useState("all");
+  const [ratingFilter, setRatingFilter] = useState("all");
+  const [companyFilter, setCompanyFilter] = useState("all");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -39,6 +52,67 @@ export default function AdminReviews() {
     queryKey: ["/api/admin/reviews"],
     enabled: isAuthenticated,
   });
+
+  const uniqueCompanyOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    reviews.forEach((review: any) => {
+      if (review.companyId) {
+        map.set(review.companyId, review.companyName || review.companyId);
+      }
+    });
+    return Array.from(map.entries());
+  }, [reviews]);
+
+  const filteredReviews = useMemo(() => {
+    return reviews.filter((review: any) => {
+      const matchesSearch = searchTerm
+        ? [review.reviewText, review.companyId, review.creatorId]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
+
+      const matchesStatus = (() => {
+        if (statusFilter === "all") return true;
+        if (statusFilter === "approved") return review.isApproved;
+        if (statusFilter === "pending") return !review.isApproved;
+        return true;
+      })();
+
+      const matchesVisibility = (() => {
+        if (visibilityFilter === "all") return true;
+        if (visibilityFilter === "hidden") return review.isHidden;
+        if (visibilityFilter === "visible") return !review.isHidden;
+        return true;
+      })();
+
+      const matchesRating = (() => {
+        if (ratingFilter === "all") return true;
+        if (ratingFilter === "5") return review.overallRating === 5;
+        if (ratingFilter === "4plus") return review.overallRating >= 4;
+        if (ratingFilter === "3orless") return review.overallRating <= 3;
+        return true;
+      })();
+
+      const matchesCompany = companyFilter === "all" || review.companyId === companyFilter;
+
+      return matchesSearch && matchesStatus && matchesVisibility && matchesRating && matchesCompany;
+    });
+  }, [companyFilter, ratingFilter, reviews, searchTerm, statusFilter, visibilityFilter]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 ||
+    statusFilter !== "all" ||
+    visibilityFilter !== "all" ||
+    ratingFilter !== "all" ||
+    companyFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setVisibilityFilter("all");
+    setRatingFilter("all");
+    setCompanyFilter("all");
+  };
 
   const hideReviewMutation = useMutation({
     mutationFn: async (reviewId: string) => {
@@ -195,6 +269,94 @@ export default function AdminReviews() {
         </p>
       </div>
 
+      <Card className="border-card-border">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              <span className="text-sm font-semibold uppercase tracking-wider">Search & Filter</span>
+            </div>
+            <div className="sm:ml-auto text-sm text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{filteredReviews.length}</span> of {reviews.length}
+              {` review${reviews.length === 1 ? "" : "s"}`}
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="text-xs sm:ml-4" onClick={clearFilters}>
+                <X className="h-3 w-3 mr-1" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium">Search</label>
+              <Input
+                placeholder="Search review text or IDs"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Reviews</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="pending">Pending Approval</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Visibility</label>
+              <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All visibility" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Reviews</SelectItem>
+                  <SelectItem value="visible">Visible</SelectItem>
+                  <SelectItem value="hidden">Hidden</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Rating</label>
+              <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All ratings" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Ratings</SelectItem>
+                  <SelectItem value="5">5 stars</SelectItem>
+                  <SelectItem value="4plus">4+ stars</SelectItem>
+                  <SelectItem value="3orless">3 stars & below</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium">Company</label>
+              <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All companies" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Companies</SelectItem>
+                  {uniqueCompanyOptions.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="border-card-border" data-testid="card-total-reviews">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -245,11 +407,19 @@ export default function AdminReviews() {
             </div>
           </CardContent>
         </Card>
+      ) : filteredReviews.length === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="pt-10 pb-12 flex flex-col items-center gap-2 text-center text-muted-foreground">
+            <Search className="h-10 w-10" />
+            <h3 className="text-lg font-semibold text-foreground">No reviews match your filters</h3>
+            <p className="text-sm">Try adjusting your search terms or resetting the selected filters.</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-4">
-          {reviews.map((review: any) => (
-            <Card 
-              key={review.id} 
+          {filteredReviews.map((review: any) => (
+            <Card
+              key={review.id}
               className={`border-card-border ${review.isHidden ? 'opacity-50' : ''}`}
               data-testid={`card-review-${review.id}`}
             >

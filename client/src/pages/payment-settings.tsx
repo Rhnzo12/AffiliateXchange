@@ -36,9 +36,11 @@ import {
   Download,
   Eye,
   Filter,
+  Search,
   Send,
   TrendingUp,
   Users,
+  X,
   XCircle,
 } from "lucide-react";
 
@@ -516,6 +518,8 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
   const { toast } = useToast();
   const [disputePayoutId, setDisputePayoutId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const pendingPayouts = useMemo(
     () => payouts.filter((payout) => payout.status === "pending" || payout.status === "processing"),
@@ -526,6 +530,33 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
     (sum, payout) => sum + parseFloat(payout.grossAmount),
     0
   );
+
+  const filteredPendingPayouts = useMemo(() => {
+    return pendingPayouts.filter((payout) => {
+      const matchesSearch = searchTerm
+        ? [
+            payout.description,
+            payout.id,
+            payout.status,
+          ]
+            .filter(Boolean)
+            .some(
+              (value) =>
+                typeof value === "string" &&
+                value.toLowerCase().includes(searchTerm.toLowerCase()),
+            )
+        : true;
+      const matchesStatus = statusFilter === "all" || payout.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [pendingPayouts, searchTerm, statusFilter]);
+
+  const hasActiveFilters = searchTerm.trim().length > 0 || statusFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+  };
 
   const approvePaymentMutation = useMutation({
     mutationFn: async (paymentId: string) => {
@@ -587,16 +618,58 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
       )}
 
       <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
-        <div className="border-b border-gray-200 p-6">
-          <h3 className="text-lg font-bold text-gray-900">Payout Requests</h3>
+        <div className="border-b border-gray-200 p-6 space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-lg font-bold text-gray-900">Payout Requests</h3>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
+                <X className="h-3 w-3 mr-1" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="text-xs font-medium text-gray-500">Search</label>
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search by description or ID"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500">
+            Showing {filteredPendingPayouts.length} of {pendingPayouts.length} pending payout request
+            {pendingPayouts.length === 1 ? "" : "s"}
+          </p>
         </div>
         <div className="divide-y divide-gray-200">
-          {pendingPayouts.length === 0 ? (
+          {filteredPendingPayouts.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-gray-500">No pending approvals</p>
+              {pendingPayouts.length === 0 ? (
+                <p className="text-gray-500">No pending approvals</p>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-gray-500">
+                  <Search className="h-8 w-8" />
+                  <p>No payout requests match your filters</p>
+                </div>
+              )}
             </div>
           ) : (
-            pendingPayouts.map((payout) => (
+            filteredPendingPayouts.map((payout) => (
               <div key={payout.id} className="p-6 transition hover:bg-gray-50">
                 <div className="mb-4 flex items-start justify-between">
                   <div>
@@ -675,6 +748,8 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
 
 function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const totalPaid = payouts
     .filter((p) => p.status === "completed")
     .reduce((sum, p) => sum + parseFloat(p.grossAmount), 0);
@@ -682,6 +757,33 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
   const pendingAmount = payouts
     .filter((p) => p.status === "pending" || p.status === "processing")
     .reduce((sum, p) => sum + parseFloat(p.grossAmount), 0);
+
+  const filteredPayouts = useMemo(() => {
+    return payouts.filter((payout) => {
+      const matchesSearch = searchTerm
+        ? [
+            payout.description,
+            payout.id,
+            payout.status,
+          ]
+            .filter(Boolean)
+            .some(
+              (value) =>
+                typeof value === "string" &&
+                value.toLowerCase().includes(searchTerm.toLowerCase()),
+            )
+        : true;
+      const matchesStatus = statusFilter === "all" || payout.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [payouts, searchTerm, statusFilter]);
+
+  const hasActiveFilters = searchTerm.trim().length > 0 || statusFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+  };
 
   const exportPayments = () => {
     const csv = [
@@ -742,19 +844,62 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
       </div>
 
       <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
-        <div className="border-b border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-900">Payment History</h3>
-            <Button variant="outline" size="sm" onClick={exportPayments}>
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
-            </Button>
+        <div className="border-b border-gray-200 p-6 space-y-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold text-gray-900">Payment History</h3>
+              <Badge variant="secondary" className="hidden lg:inline-flex">
+                {filteredPayouts.length} of {payouts.length}
+              </Badge>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <div className="flex-1 min-w-[200px]">
+                <Input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search transactions"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
+                  <X className="h-3 w-3 mr-1" />
+                  Reset
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={exportPayments}>
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
           </div>
+          <p className="text-xs text-gray-500">
+            Showing {filteredPayouts.length} of {payouts.length} records
+          </p>
         </div>
         <div className="overflow-x-auto">
-          {payouts.length === 0 ? (
+          {filteredPayouts.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-gray-500">No payment history yet</p>
+              {payouts.length === 0 ? (
+                <p className="text-gray-500">No payment history yet</p>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-gray-500">
+                  <Search className="h-8 w-8" />
+                  <p>No payments match your filters</p>
+                </div>
+              )}
             </div>
           ) : (
             <table className="w-full">
@@ -784,7 +929,7 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {payouts.map((payout) => (
+                {filteredPayouts.map((payout) => (
                   <tr key={payout.id} className="transition hover:bg-gray-50">
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                       {payout.id.slice(0, 8)}...
@@ -833,6 +978,7 @@ function AdminPaymentDashboard({
   const { toast } = useToast();
   const [selectedPayments, setSelectedPayments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [paymentToProcess, setPaymentToProcess] = useState<CreatorPayment | null>(null);
   const [insufficientFundsDialogOpen, setInsufficientFundsDialogOpen] = useState(false);
@@ -841,9 +987,27 @@ function AdminPaymentDashboard({
   const allPayments = payments;
 
   const filteredPayments = useMemo(() => {
-    if (statusFilter === "all") return allPayments;
-    return allPayments.filter(p => p.status === statusFilter);
-  }, [allPayments, statusFilter]);
+    return allPayments.filter((payment) => {
+      const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
+      const matchesSearch = searchTerm
+        ? [payment.description, payment.id, payment.status]
+            .filter(Boolean)
+            .some(
+              (value) =>
+                typeof value === "string" &&
+                value.toLowerCase().includes(searchTerm.toLowerCase()),
+            )
+        : true;
+      return matchesStatus && matchesSearch;
+    });
+  }, [allPayments, searchTerm, statusFilter]);
+
+  const hasActiveFilters = searchTerm.trim().length > 0 || statusFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+  };
 
   const totalPlatformRevenue = allPayments.reduce((sum, payment) => {
     return sum + parseFloat(payment.platformFeeAmount) + parseFloat(payment.stripeFeeAmount);
@@ -1057,12 +1221,22 @@ function AdminPaymentDashboard({
       )}
 
       <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
-        <div className="flex items-center justify-between border-b border-gray-200 p-6">
+        <div className="flex flex-col gap-4 border-b border-gray-200 p-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h3 className="text-lg font-bold text-gray-900">All Transactions</h3>
             <p className="mt-1 text-sm text-gray-600">Complete platform payment history</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Showing {filteredPayments.length} of {allPayments.length} transactions
+            </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex-1 min-w-[200px]">
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search payments"
+              />
+            </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="All statuses" />
@@ -1076,6 +1250,12 @@ function AdminPaymentDashboard({
                 <SelectItem value="refunded">Refunded</SelectItem>
               </SelectContent>
             </Select>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
+                <X className="h-3 w-3 mr-1" />
+                Reset
+              </Button>
+            )}
             <Button variant="outline" className="gap-2" onClick={exportPayments}>
               <Download className="h-4 w-4" />
               Export CSV
@@ -1084,8 +1264,15 @@ function AdminPaymentDashboard({
         </div>
         <div className="overflow-x-auto">
           {filteredPayments.length === 0 ? (
-            <div className="py-12 text-center">
-              <p className="text-gray-500">No payments match the selected filter</p>
+            <div className="py-12 text-center text-gray-500">
+              {allPayments.length === 0 ? (
+                <p>No payments found</p>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <Search className="h-8 w-8" />
+                  <p>No payments match your filters</p>
+                </div>
+              )}
             </div>
           ) : (
             <table className="w-full">

@@ -1,12 +1,20 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Users, MessageSquare, TrendingUp, ExternalLink } from "lucide-react";
+import { Users, MessageSquare, TrendingUp, ExternalLink, Filter, X } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
 import { apiRequest } from "../lib/queryClient";
@@ -15,6 +23,9 @@ export default function CompanyCreators() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [offerFilter, setOfferFilter] = useState("all");
+  const [platformFilter, setPlatformFilter] = useState("all");
 
   const startConversationMutation = useMutation({
     mutationFn: async (applicationId: string) => {
@@ -74,6 +85,56 @@ export default function CompanyCreators() {
       return acc;
     }, []);
 
+  const uniqueOfferOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    creators.forEach((creator: any) => {
+      creator.applications.forEach((application: any) => {
+        if (application.offer?.id && application.offer?.title) {
+          map.set(application.offer.id, application.offer.title);
+        }
+      });
+    });
+    return Array.from(map.entries());
+  }, [creators]);
+
+  const filteredCreators = useMemo(() => {
+    return creators.filter((creator: any) => {
+      const matchesSearch = searchTerm
+        ? [
+            creator.firstName,
+            creator.lastName,
+            creator.bio,
+            creator.applications.map((app: any) => app.offer?.title).join(" "),
+          ]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
+
+      const matchesOffer =
+        offerFilter === "all" ||
+        creator.applications.some((application: any) => application.offer?.id === offerFilter);
+
+      const matchesPlatform = (() => {
+        if (platformFilter === "all") return true;
+        if (platformFilter === "youtube") return Boolean(creator.youtubeUrl);
+        if (platformFilter === "tiktok") return Boolean(creator.tiktokUrl);
+        if (platformFilter === "instagram") return Boolean(creator.instagramUrl);
+        return true;
+      })();
+
+      return matchesSearch && matchesOffer && matchesPlatform;
+    });
+  }, [creators, offerFilter, platformFilter, searchTerm]);
+
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || offerFilter !== "all" || platformFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setOfferFilter("all");
+    setPlatformFilter("all");
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -92,6 +153,68 @@ export default function CompanyCreators() {
         </p>
       </div>
 
+      <Card className="border-card-border">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              <span className="text-sm font-semibold uppercase tracking-wider">Search & Filter</span>
+            </div>
+            <div className="sm:ml-auto text-sm text-muted-foreground">
+              Showing <span className="font-semibold text-foreground">{filteredCreators.length}</span> of {creators.length}
+              {` creator${creators.length === 1 ? "" : "s"}`}
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="text-xs sm:ml-4" onClick={clearFilters}>
+                <X className="h-3 w-3 mr-1" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Search</label>
+              <Input
+                placeholder="Search by creator, bio, or offer"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Offer</label>
+              <Select value={offerFilter} onValueChange={setOfferFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All offers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Offers</SelectItem>
+                  {uniqueOfferOptions.map(([id, title]) => (
+                    <SelectItem key={id} value={id}>
+                      {title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Platform</label>
+              <Select value={platformFilter} onValueChange={setPlatformFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All platforms" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Platforms</SelectItem>
+                  <SelectItem value="youtube">YouTube</SelectItem>
+                  <SelectItem value="tiktok">TikTok</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {loadingCreators ? (
         <div className="text-center py-12">
           <div className="animate-pulse text-lg text-muted-foreground">
@@ -108,9 +231,19 @@ export default function CompanyCreators() {
             </p>
           </CardContent>
         </Card>
+      ) : filteredCreators.length === 0 ? (
+        <Card className="border-card-border">
+          <CardContent className="flex flex-col items-center justify-center py-12 space-y-3">
+            <Users className="h-12 w-12 text-muted-foreground/40" />
+            <h3 className="text-lg font-semibold">No creators match your filters</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Try updating your search query or clearing your selected filters.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {creators.map((creator: any) => (
+          {filteredCreators.map((creator: any) => (
             <Card key={creator.id} className="border-card-border" data-testid={`card-creator-${creator.id}`}>
               <CardHeader>
                 <div className="flex items-start gap-3">

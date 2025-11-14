@@ -54,17 +54,28 @@ export function TopNavBar({ children }: TopNavBarProps) {
             {/* Profile Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
+                <button className="flex items-center gap-3 hover:opacity-80 transition-opacity focus:outline-none">
                   <Avatar className="h-9 w-9 border-2 border-primary/20">
                     <AvatarImage
                       src={user?.profileImageUrl || ''}
-                      alt={user?.firstName || 'User'}
+                      alt={user?.firstName || user?.email || 'User'}
                       referrerPolicy="no-referrer"
                     />
                     <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
+                  <div className="text-left max-w-[160px] min-w-0">
+                    <p className="text-sm font-medium leading-none text-foreground truncate">
+                      {user?.firstName && user?.lastName
+                        ? `${user.firstName} ${user.lastName}`
+                        : user?.firstName || user?.email || 'User'}
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-none capitalize truncate">
+                      {user?.role || 'creator'}
+                    </p>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
