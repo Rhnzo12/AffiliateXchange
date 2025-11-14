@@ -2496,6 +2496,9 @@ export class DatabaseStorage implements IStorage {
   // Analytics
   async getAnalyticsByCreator(creatorId: string): Promise<any> {
     try {
+      const now = new Date();
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
       // Get affiliate earnings from analytics table
       const affiliateResult = await db
         .select({
@@ -2508,6 +2511,20 @@ export class DatabaseStorage implements IStorage {
         .leftJoin(analytics, eq(analytics.applicationId, applications.id))
         .where(eq(applications.creatorId, creatorId));
 
+      const affiliateMonthlyResult = await db
+        .select({
+          monthlyEarnings: sql<number>`COALESCE(SUM(CAST(${analytics.earnings} AS DECIMAL)), 0)`,
+          monthlyClicks: sql<number>`COALESCE(SUM(${analytics.clicks}), 0)`,
+        })
+        .from(applications)
+        .leftJoin(analytics, eq(analytics.applicationId, applications.id))
+        .where(
+          and(
+            eq(applications.creatorId, creatorId),
+            gte(analytics.date, monthStart)
+          )
+        );
+
       // Get retainer earnings from retainer_payments table (only completed payments)
       const retainerResult = await db
         .select({
@@ -2518,15 +2535,36 @@ export class DatabaseStorage implements IStorage {
           sql`${retainerPayments.creatorId} = ${creatorId} AND ${retainerPayments.status} = 'completed'`
         );
 
+      const retainerMonthlyResult = await db
+        .select({
+          monthlyRetainerEarnings: sql<number>`COALESCE(SUM(CAST(${retainerPayments.amount} AS DECIMAL)), 0)`,
+        })
+        .from(retainerPayments)
+        .where(
+          and(
+            eq(retainerPayments.creatorId, creatorId),
+            eq(retainerPayments.status, "completed"),
+            sql`COALESCE(${retainerPayments.completedAt}, ${retainerPayments.createdAt}) >= ${monthStart}`
+          )
+        );
+
       const affiliateEarnings = Number(affiliateResult[0]?.totalEarnings || 0);
       const retainerEarnings = Number(retainerResult[0]?.totalRetainerEarnings || 0);
       const totalEarnings = affiliateEarnings + retainerEarnings;
 
+      const monthlyAffiliateEarnings = Number(affiliateMonthlyResult[0]?.monthlyEarnings || 0);
+      const monthlyRetainerEarnings = Number(retainerMonthlyResult[0]?.monthlyRetainerEarnings || 0);
+      const monthlyEarnings = monthlyAffiliateEarnings + monthlyRetainerEarnings;
+
       return {
-        totalEarnings: totalEarnings,
-        affiliateEarnings: affiliateEarnings,
-        retainerEarnings: retainerEarnings,
+        totalEarnings,
+        affiliateEarnings,
+        retainerEarnings,
+        monthlyEarnings,
+        monthlyAffiliateEarnings,
+        monthlyRetainerEarnings,
         totalClicks: Number(affiliateResult[0]?.totalClicks || 0),
+        monthlyClicks: Number(affiliateMonthlyResult[0]?.monthlyClicks || 0),
         uniqueClicks: Number(affiliateResult[0]?.uniqueClicks || 0),
         conversions: Number(affiliateResult[0]?.conversions || 0),
       };
@@ -2536,7 +2574,11 @@ export class DatabaseStorage implements IStorage {
         totalEarnings: 0,
         affiliateEarnings: 0,
         retainerEarnings: 0,
+        monthlyEarnings: 0,
+        monthlyAffiliateEarnings: 0,
+        monthlyRetainerEarnings: 0,
         totalClicks: 0,
+        monthlyClicks: 0,
         uniqueClicks: 0,
         conversions: 0,
       };
