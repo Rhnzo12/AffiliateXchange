@@ -21,7 +21,14 @@ export const userAccountStatusEnum = pgEnum('user_account_status', ['active', 's
 export const companyStatusEnum = pgEnum('company_status', ['pending', 'approved', 'rejected', 'suspended']);
 export const offerStatusEnum = pgEnum('offer_status', ['draft', 'pending_review', 'approved', 'paused', 'archived']);
 export const commissionTypeEnum = pgEnum('commission_type', ['per_sale', 'per_lead', 'per_click', 'monthly_retainer', 'hybrid']);
-export const applicationStatusEnum = pgEnum('application_status', ['pending', 'approved', 'active', 'completed', 'rejected']);
+export const applicationStatusEnum = pgEnum('application_status', [
+  'pending',
+  'approved',
+  'active',
+  'paused',
+  'completed',
+  'rejected',
+]);
 export const payoutMethodEnum = pgEnum('payout_method', ['etransfer', 'wire', 'paypal', 'crypto']);
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'processing', 'completed', 'failed', 'refunded']);
 export const retainerStatusEnum = pgEnum('retainer_status', ['open', 'in_progress', 'completed', 'cancelled', 'paused']);
