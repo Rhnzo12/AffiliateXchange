@@ -1458,7 +1458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).send('Forbidden');
       }
 
-      const updated = await storage.updateApplicationStatus(application.id, status as any);
+      const updated = await storage.updateApplication(application.id, { status: status as any });
       res.json(updated);
     } catch (error: any) {
       console.error('[Update Application Status] Error:', error);

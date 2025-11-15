@@ -32,6 +32,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
   AreaChart,
   Area,
   PieChart,
@@ -192,7 +193,6 @@ export default function Analytics() {
       return;
     }
 
-    // Create CSV content
     const csvContent = [
       ['Date', 'Clicks', 'Conversions', 'Earnings'],
       ...chartData.map((item: any) => [
@@ -203,7 +203,6 @@ export default function Analytics() {
       ])
     ].map(row => row.join(',')).join('\n');
 
-    // Download CSV
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -460,37 +459,18 @@ export default function Analytics() {
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={exportPdf}
-            disabled={!analytics}
-          >
-            <FileText className="h-4 w-4" />
-            PDF Report
-          </Button>
-          {!applicationId && (
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={sendToZapier}
-              disabled={!analytics}
-            >
-              <Share2 className="h-4 w-4" />
-              Zapier Webhook
-            </Button>
-          )}
         </div>
       </div>
 
+      {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-card-border">
+        <Card className="border-card-border shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono">
+            <div className="text-2xl font-bold font-mono text-green-600 dark:text-green-400">
               ${primaryTotal.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -499,7 +479,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="border-card-border">
+        <Card className="border-card-border shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Offers</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -512,20 +492,20 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card className="border-card-border">
+        <Card className="border-card-border shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
             <MousePointerClick className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalClicks}</div>
+            <div className="text-2xl font-bold">{totalClicks.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {uniqueClicks} unique visitors
+              {uniqueClicks.toLocaleString()} unique visitors
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-card-border">
+        <Card className="border-card-border shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
@@ -535,82 +515,265 @@ export default function Analytics() {
               {conversionRate.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {conversions} conversions
+              {conversions.toLocaleString()} conversions
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border-card-border">
-        <CardHeader>
-          <CardTitle>Clicks & Conversions</CardTitle>
+      {/* Enhanced Performance Graph with Wave-like Lines */}
+      <Card className="border-card-border shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="text-xl">Performance Overview</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Track your clicks and conversions over time
+              </p>
+            </div>
+            <div className="flex gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-primary" />
+                <span className="text-muted-foreground">Clicks</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-orange-500" />
+                <span className="text-muted-foreground">Conversions</span>
+              </div>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {chartData.length > 0 ? (
-            <div className="h-80">
+            <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                  <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                <LineChart 
+                  data={chartData}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    {/* Gradient for clicks line */}
+                    <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    </linearGradient>
+                    {/* Gradient for conversions line */}
+                    <linearGradient id="colorConversions" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    className="stroke-muted/50" 
+                    vertical={false}
+                  />
+                  <XAxis 
+                    dataKey="date" 
+                    className="text-xs" 
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tickLine={false}
+                    axisLine={false}
+                    height={50}
+                    angle={-45}
+                    textAnchor="end"
+                  />
+                  <YAxis 
+                    className="text-xs" 
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }} 
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
+                    width={60}
+                  />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--popover))',
                       border: '1px solid hsl(var(--border))',
-                      borderRadius: '6px',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                      padding: '12px',
+                    }}
+                    labelStyle={{ 
+                      fontWeight: 600,
+                      marginBottom: '8px',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                    formatter={(value: any, name: string) => {
+                      const label = name === 'clicks' ? 'Clicks' : 'Conversions';
+                      return [value.toLocaleString(), label];
                     }}
                   />
-                  <Line type="monotone" dataKey="clicks" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="conversions" stroke="#f97316" strokeWidth={2} dot={false} />
+                  {/* Average Click Reference Line */}
+                  <ReferenceLine 
+                    y={chartData.reduce((sum, d) => sum + d.clicks, 0) / chartData.length} 
+                    stroke="hsl(var(--primary))" 
+                    strokeDasharray="5 5"
+                    strokeOpacity={0.6}
+                    label={{ 
+                      value: 'Avg Clicks', 
+                      position: 'right',
+                      fill: 'hsl(var(--primary))',
+                      fontSize: 11,
+                      fontWeight: 500
+                    }}
+                  />
+                  {/* Average Conversion Reference Line */}
+                  <ReferenceLine 
+                    y={chartData.reduce((sum, d) => sum + d.conversions, 0) / chartData.length} 
+                    stroke="#f97316" 
+                    strokeDasharray="5 5"
+                    strokeOpacity={0.6}
+                    label={{ 
+                      value: 'Avg Conv.', 
+                      position: 'right',
+                      fill: '#f97316',
+                      fontSize: 11,
+                      fontWeight: 500
+                    }}
+                  />
+                  {/* Wave-like Line for Clicks */}
+                  <Line 
+                    type="natural"
+                    dataKey="clicks" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={3}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    dot={{ 
+                      r: 6,
+                      strokeWidth: 3, 
+                      fill: 'hsl(var(--background))',
+                      stroke: 'hsl(var(--primary))',
+                    }}
+                    activeDot={{ 
+                      r: 8,
+                      strokeWidth: 3,
+                      fill: 'hsl(var(--primary))',
+                      stroke: 'hsl(var(--background))',
+                    }}
+                    name="clicks"
+                    fill="url(#colorClicks)"
+                    animationDuration={1000}
+                    animationEasing="ease-in-out"
+                  />
+                  {/* Wave-like Line for Conversions */}
+                 <Line 
+                    type="monotone" 
+                    dataKey="clicks" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={3}
+                    strokeLinecap="round"  
+                    strokeLinejoin="round"  
+                    dot={{ 
+                      r: 6,  
+                      strokeWidth: 3, 
+                      fill: 'hsl(var(--background))',
+                      stroke: 'hsl(var(--primary))',
+                    }}
+                    activeDot={{ 
+                      r: 8,  
+                      strokeWidth: 3,
+                      fill: 'hsl(var(--primary))',
+                      stroke: 'hsl(var(--background))',
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'  
+                    }}
+                    name="Clicks"
+                    fill="url(#colorClicks)"
+                    animationDuration={1000}  
+                    animationEasing="ease-in-out"
+                  />
+                    <Line 
+                      type="natural"  
+                      dataKey="conversions" 
+                      stroke="#f97316" 
+                      strokeWidth={3}
+                      strokeLinecap="round"  
+                      strokeLinejoin="round"  
+                      dot={{ 
+                        r: 6,  
+                        strokeWidth: 3, 
+                        fill: 'hsl(var(--background))',
+                        stroke: '#f97316',
+                      }}
+                      activeDot={{ 
+                        r: 8,  
+                        strokeWidth: 3,
+                        fill: '#f97316',
+                        stroke: 'hsl(var(--background))',
+                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' 
+                      }}
+                      name="Conversions"
+                      fill="url(#colorConversions)"
+                      animationDuration={1000}  
+                      animationEasing="ease-in-out"
+                    />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="text-center py-12">
-              <MousePointerClick className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-              <p className="text-muted-foreground">No tracking data yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Your click data will appear once traffic flows in.</p>
+            <div className="text-center py-20">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
+                <MousePointerClick className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+              <p className="text-lg font-medium text-muted-foreground">No tracking data yet</p>
+              <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
+                Your click data will appear here once traffic starts flowing to your tracking links.
+              </p>
             </div>
           )}
         </CardContent>
       </Card>
 
+      {/* Offer breakdown section */}
       {!applicationId && (
-        <Card className="border-card-border">
-          <CardHeader>
-            <CardTitle>Performance by Offer</CardTitle>
+        <Card className="border-card-border shadow-sm">
+          <CardHeader className="border-b bg-muted/30">
+            <CardTitle className="text-xl">Performance by Offer</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              See how each offer is performing
+            </p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {analytics?.offerBreakdown && analytics.offerBreakdown.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {analytics.offerBreakdown.map((offer: any) => (
-                  <div key={offer.offerId} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-semibold">{offer.offerTitle}</h4>
-                      <p className="text-sm text-muted-foreground">{offer.companyName}</p>
+                  <div 
+                    key={offer.offerId} 
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 hover:border-primary/50 transition-all duration-200 cursor-pointer"
+                  >
+                    <div className="flex-1 min-w-0 pr-4">
+                      <h4 className="font-semibold text-base truncate">{offer.offerTitle}</h4>
+                      <p className="text-sm text-muted-foreground truncate">{offer.companyName}</p>
                     </div>
-                    <div className="grid grid-cols-3 gap-6 text-center">
+                    <div className="grid grid-cols-3 gap-6 text-center flex-shrink-0">
                       <div>
-                        <div className="text-xs text-muted-foreground">Clicks</div>
-                        <div className="font-semibold">{offer.clicks || 0}</div>
+                        <div className="text-xs text-muted-foreground mb-1">Clicks</div>
+                        <div className="font-semibold text-lg">{(offer.clicks || 0).toLocaleString()}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-muted-foreground">Conv.</div>
-                        <div className="font-semibold">{offer.conversions || 0}</div>
+                        <div className="text-xs text-muted-foreground mb-1">Conv.</div>
+                        <div className="font-semibold text-lg">{(offer.conversions || 0).toLocaleString()}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-muted-foreground">Earned</div>
-                        <div className="font-semibold font-mono">${Number(offer.earnings || 0).toFixed(2)}</div>
+                        <div className="text-xs text-muted-foreground mb-1">Earned</div>
+                        <div className="font-semibold font-mono text-lg text-green-600 dark:text-green-400">
+                          ${Number(offer.earnings || 0).toFixed(2)}
+                        </div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <p className="text-muted-foreground">No active offers yet</p>
-                <p className="text-sm text-muted-foreground mt-1">Apply to offers to start tracking performance</p>
+              <div className="text-center py-20">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
+                  <TrendingUp className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+                <p className="text-lg font-medium text-muted-foreground">No active offers yet</p>
+                <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
+                  Apply to offers to start tracking your performance across different campaigns.
+                </p>
               </div>
             )}
           </CardContent>
