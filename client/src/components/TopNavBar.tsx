@@ -83,14 +83,17 @@ export function TopNavBar({ children }: TopNavBarProps) {
                   <p className="text-sm font-medium">{user?.firstName || user?.email || 'User'}</p>
                   <p className="text-xs text-muted-foreground capitalize">{user?.role || 'creator'}</p>
                 </div>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="hover:bg-primary/20 hover:text-primary hover:font-bold hover:scale-105 transition-all duration-200 cursor-pointer">
                   <Link href="/settings">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
+                <DropdownMenuItem 
+                  onClick={handleLogout}
+                  className="hover:font-bold hover:scale-105 transition-all duration-200 cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50 focus:bg-red-50 focus:text-red-700"
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log Out</span>
                 </DropdownMenuItem>

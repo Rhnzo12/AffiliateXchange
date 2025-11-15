@@ -718,10 +718,14 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                   <Button
                     className="flex-1 gap-2 bg-green-600 text-white hover:bg-green-700"
                     onClick={() => approvePaymentMutation.mutate(payout.id)}
-                    disabled={approvePaymentMutation.isPending}
+                    disabled={approvePaymentMutation.isPending || payout.status === "processing"}
                   >
                     <CheckCircle className="h-4 w-4" />
-                    {approvePaymentMutation.isPending ? "Approving..." : "Approve Payment"}
+                    {payout.status === "processing" 
+                      ? "Processing..." 
+                      : approvePaymentMutation.isPending 
+                      ? "Approving..." 
+                      : "Approve Payment"}
                   </Button>
                   <Button
                     className="flex-1 gap-2 bg-red-600 text-white hover:bg-red-700"
@@ -731,12 +735,13 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                         disputePaymentMutation.mutate({ paymentId: payout.id, reason });
                       }
                     }}
-                    disabled={disputePaymentMutation.isPending}
+                    disabled={disputePaymentMutation.isPending || payout.status === "processing"}
                   >
                     <XCircle className="h-4 w-4" />
                     {disputePaymentMutation.isPending ? "Disputing..." : "Dispute"}
                   </Button>
                 </div>
+
               </div>
             ))
           )}
