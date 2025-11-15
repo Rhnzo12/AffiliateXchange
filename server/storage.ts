@@ -638,6 +638,10 @@ export interface IStorage {
   approveApplication(id: string, trackingLink: string, trackingCode: string): Promise<Application | undefined>;
   completeApplication(id: string): Promise<Application | undefined>;
   getApplicationsByCompany(companyId: string): Promise<any[]>;
+  updateApplicationStatus(
+    applicationId: string,
+    status: 'pending' | 'approved' | 'active' | 'paused' | 'completed' | 'rejected'
+  ): Promise<Application | undefined>;
 
   // Messages & Conversations
   getConversation(id: string): Promise<any>;
@@ -669,6 +673,17 @@ export interface IStorage {
   getAnalyticsTimeSeriesByCreator(creatorId: string, dateRange: string): Promise<any[]>;
   getAnalyticsByCompany(companyId: string): Promise<any>;
   getAnalyticsTimeSeriesByCompany(companyId: string, dateRange: string): Promise<any[]>;
+  getApplicationsTimeSeriesByCompany(companyId: string, dateRange: string): Promise<any[]>;
+  getConversionFunnelByCompany(companyId: string): Promise<{
+    applied: number;
+    approved: number;
+    active: number;
+    paused: number;
+    completed: number;
+    conversions: number;
+  }>;
+  getCreatorAcquisitionSourcesByCompany(companyId: string): Promise<{ source: string; creators: number }[]>;
+  getCreatorGeographyByCompany(companyId: string): Promise<{ country: string; count: number }[]>;
   getAnalyticsByApplication(applicationId: string): Promise<any[]>;
   getAnalyticsTimeSeriesByApplication(applicationId: string, dateRange: string): Promise<any[]>;
   logTrackingClick(
@@ -700,6 +715,7 @@ export interface IStorage {
   getPaymentsByCreator(creatorId: string): Promise<Payment[]>;
   getPaymentsByCompany(companyId: string): Promise<Payment[]>;
   getAllPayments(): Promise<any[]>;
+  getPendingPaymentsForApplication(applicationId: string): Promise<Payment[]>;
   updatePaymentStatus(id: string, status: string, updates?: Partial<Payment>): Promise<Payment | undefined>;
 
   // Retainer Contracts
@@ -1925,6 +1941,35 @@ export class DatabaseStorage implements IStorage {
       .groupBy(applications.id, offers.id, users.id, creatorProfiles.id)
       .orderBy(desc(applications.createdAt));
 
+    const applicationIds = result.map((app) => app.id);
+
+    let pendingPaymentsMap = new Map<string, { id: string; netAmount: string }>();
+    if (applicationIds.length > 0) {
+      const pendingPayments = await db
+        .select({
+          id: payments.id,
+          applicationId: payments.applicationId,
+          netAmount: payments.netAmount,
+          status: payments.status,
+        })
+        .from(payments)
+        .where(
+          and(
+            inArray(payments.applicationId, applicationIds),
+            sql`${payments.status} = 'pending'`
+          )
+        );
+
+      pendingPayments.forEach((payment) => {
+        if (!pendingPaymentsMap.has(payment.applicationId)) {
+          pendingPaymentsMap.set(payment.applicationId, {
+            id: payment.id,
+            netAmount: payment.netAmount?.toString?.() || '0',
+          });
+        }
+      });
+    }
+
     return result.map((app) => ({
       id: app.id,
       offerId: app.offerId,
@@ -1962,7 +2007,21 @@ export class DatabaseStorage implements IStorage {
         instagramUrl: app.creatorInstagramUrl,
         niches: app.creatorNiches,
       },
+      pendingPayment: pendingPaymentsMap.get(app.id) || null,
     }));
+  }
+
+  async updateApplicationStatus(
+    applicationId: string,
+    status: 'pending' | 'approved' | 'active' | 'paused' | 'completed' | 'rejected',
+  ): Promise<Application | undefined> {
+    const result = await db
+      .update(applications)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(applications.id, applicationId))
+      .returning();
+
+    return result[0];
   }
 
   // Messages & Conversations
@@ -2860,20 +2919,217 @@ export class DatabaseStorage implements IStorage {
 
       const result = await db
         .select({
-          date: sql<string>`TO_CHAR(${analytics.date}, 'Mon DD')`,
+          date: sql<string>`TO_CHAR(DATE(${analytics.date}), 'Mon DD')`,
+          isoDate: sql<string>`TO_CHAR(DATE(${analytics.date}), 'YYYY-MM-DD')`,
           clicks: sql<number>`COALESCE(SUM(${analytics.clicks}), 0)`,
+          conversions: sql<number>`COALESCE(SUM(${analytics.conversions}), 0)`,
+          earnings: sql<number>`COALESCE(SUM(${analytics.earnings}), 0)`,
         })
         .from(analytics)
         .innerJoin(applications, eq(analytics.applicationId, applications.id))
         .where(and(...whereClauses))
-        .groupBy(analytics.date)
-        .orderBy(analytics.date);
+        .groupBy(sql`DATE(${analytics.date})`)
+        .orderBy(sql`DATE(${analytics.date})`);
 
       return result || [];
     } catch (error) {
       console.error("[getAnalyticsTimeSeriesByCompany] Error:", error);
       return [];
     }
+  }
+
+  async getApplicationsTimeSeriesByCompany(companyId: string, dateRange: string): Promise<any[]> {
+    const companyProfile = await this.getCompanyProfile(companyId);
+    if (!companyProfile) {
+      return [];
+    }
+
+    const whereClauses: any[] = [eq(offers.companyId, companyProfile.id)];
+
+    if (dateRange !== "all") {
+      let daysBack = 30;
+      if (dateRange === "7d") daysBack = 7;
+      else if (dateRange === "30d") daysBack = 30;
+      else if (dateRange === "90d") daysBack = 90;
+
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - daysBack);
+      whereClauses.push(sql`${applications.createdAt} >= ${startDate}`);
+    }
+
+    const rows = await db
+      .select({
+        date: sql<string>`TO_CHAR(DATE(${applications.createdAt}), 'Mon DD')`,
+        isoDate: sql<string>`TO_CHAR(DATE(${applications.createdAt}), 'YYYY-MM-DD')`,
+        total: sql<number>`COUNT(${applications.id})`,
+        pending: sql<number>`SUM(CASE WHEN ${applications.status} = 'pending' THEN 1 ELSE 0 END)`,
+        approved: sql<number>`SUM(CASE WHEN ${applications.status} = 'approved' THEN 1 ELSE 0 END)`,
+        active: sql<number>`SUM(CASE WHEN ${applications.status} = 'active' THEN 1 ELSE 0 END)`,
+        paused: sql<number>`SUM(CASE WHEN ${applications.status} = 'paused' THEN 1 ELSE 0 END)`,
+        completed: sql<number>`SUM(CASE WHEN ${applications.status} = 'completed' THEN 1 ELSE 0 END)`,
+      })
+      .from(applications)
+      .innerJoin(offers, eq(applications.offerId, offers.id))
+      .where(and(...whereClauses))
+      .groupBy(sql`DATE(${applications.createdAt})`)
+      .orderBy(sql`DATE(${applications.createdAt})`);
+
+    return rows || [];
+  }
+
+  async getConversionFunnelByCompany(companyId: string): Promise<{
+    applied: number;
+    approved: number;
+    active: number;
+    paused: number;
+    completed: number;
+    conversions: number;
+  }> {
+    const companyProfile = await this.getCompanyProfile(companyId);
+    if (!companyProfile) {
+      return {
+        applied: 0,
+        approved: 0,
+        active: 0,
+        paused: 0,
+        completed: 0,
+        conversions: 0,
+      };
+    }
+
+    const offerIdsResult = await db
+      .select({ id: offers.id })
+      .from(offers)
+      .where(eq(offers.companyId, companyProfile.id));
+
+    if (offerIdsResult.length === 0) {
+      return {
+        applied: 0,
+        approved: 0,
+        active: 0,
+        paused: 0,
+        completed: 0,
+        conversions: 0,
+      };
+    }
+
+    const offerIds = offerIdsResult.map((o) => o.id);
+
+    const [applicationCounts, conversionRows] = await Promise.all([
+      db
+        .select({
+          applied: sql<number>`COUNT(${applications.id})`,
+          approved: sql<number>`SUM(CASE WHEN ${applications.status} IN ('approved', 'active', 'completed') THEN 1 ELSE 0 END)`,
+          active: sql<number>`SUM(CASE WHEN ${applications.status} = 'active' THEN 1 ELSE 0 END)`,
+          paused: sql<number>`SUM(CASE WHEN ${applications.status} = 'paused' THEN 1 ELSE 0 END)`,
+          completed: sql<number>`SUM(CASE WHEN ${applications.status} = 'completed' THEN 1 ELSE 0 END)`,
+        })
+        .from(applications)
+        .where(inArray(applications.offerId, offerIds)),
+      db
+        .select({
+          conversions: sql<number>`COALESCE(SUM(${analytics.conversions}), 0)`,
+        })
+        .from(analytics)
+        .innerJoin(applications, eq(analytics.applicationId, applications.id))
+        .where(inArray(applications.offerId, offerIds)),
+    ]);
+
+    return {
+      applied: applicationCounts[0]?.applied || 0,
+      approved: applicationCounts[0]?.approved || 0,
+      active: applicationCounts[0]?.active || 0,
+      paused: applicationCounts[0]?.paused || 0,
+      completed: applicationCounts[0]?.completed || 0,
+      conversions: conversionRows[0]?.conversions || 0,
+    };
+  }
+
+  async getCreatorAcquisitionSourcesByCompany(companyId: string): Promise<{
+    source: string;
+    creators: number;
+  }[]> {
+    const companyProfile = await this.getCompanyProfile(companyId);
+    if (!companyProfile) {
+      return [];
+    }
+
+    const applicationsForCompany = await db
+      .select({ id: applications.id, creatorId: applications.creatorId })
+      .from(applications)
+      .innerJoin(offers, eq(applications.offerId, offers.id))
+      .where(eq(offers.companyId, companyProfile.id));
+
+    if (applicationsForCompany.length === 0) {
+      return [];
+    }
+
+    const creatorIds = new Set(applicationsForCompany.map((app) => app.creatorId));
+    const applicationIds = applicationsForCompany.map((app) => app.id);
+
+    const clickRows = await db
+      .select({
+        creatorId: clickEvents.creatorId,
+        utmSource: clickEvents.utmSource,
+        timestamp: clickEvents.timestamp,
+      })
+      .from(clickEvents)
+      .where(inArray(clickEvents.applicationId, applicationIds))
+      .orderBy(asc(clickEvents.timestamp));
+
+    const creatorSource = new Map<string, string>();
+
+    clickRows.forEach((row) => {
+      if (!creatorSource.has(row.creatorId)) {
+        creatorSource.set(row.creatorId, row.utmSource || "Direct/Other");
+      }
+    });
+
+    // Ensure every creator is represented
+    creatorIds.forEach((creatorId) => {
+      if (!creatorSource.has(creatorId)) {
+        creatorSource.set(creatorId, "Direct/Other");
+      }
+    });
+
+    const sourceCounts = new Map<string, number>();
+    creatorSource.forEach((source) => {
+      const key = source?.trim() || "Direct/Other";
+      sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1);
+    });
+
+    return Array.from(sourceCounts.entries()).map(([source, creators]) => ({
+      source,
+      creators,
+    }));
+  }
+
+  async getCreatorGeographyByCompany(companyId: string): Promise<{
+    country: string;
+    count: number;
+  }[]> {
+    const companyProfile = await this.getCompanyProfile(companyId);
+    if (!companyProfile) {
+      return [];
+    }
+
+    const rows = await db
+      .select({
+        country: clickEvents.country,
+        count: sql<number>`COUNT(${clickEvents.id})`,
+      })
+      .from(clickEvents)
+      .innerJoin(applications, eq(clickEvents.applicationId, applications.id))
+      .innerJoin(offers, eq(applications.offerId, offers.id))
+      .where(eq(offers.companyId, companyProfile.id))
+      .groupBy(clickEvents.country);
+
+    return rows
+      .filter((row) => !!row.country)
+      .map((row) => ({
+        country: row.country!,
+        count: row.count,
+      }));
   }
 
   async getAnalyticsByApplication(applicationId: string): Promise<any[]> {
@@ -3333,6 +3589,19 @@ export class DatabaseStorage implements IStorage {
       const dateB = new Date(b.createdAt || b.initiatedAt || 0).getTime();
       return dateB - dateA;
     });
+  }
+
+  async getPendingPaymentsForApplication(applicationId: string): Promise<Payment[]> {
+    return await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.applicationId, applicationId),
+          sql`${payments.status} = 'pending'`
+        ),
+      )
+      .orderBy(asc(payments.createdAt));
   }
 
   async getAllPayments(): Promise<any[]> {

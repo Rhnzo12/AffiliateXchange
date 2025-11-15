@@ -12,8 +12,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { DollarSign, TrendingUp, MousePointerClick, Target, Download, ArrowLeft } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  DollarSign,
+  TrendingUp,
+  MousePointerClick,
+  Target,
+  Download,
+  ArrowLeft,
+  FileText,
+  Share2,
+  Globe2,
+  Users,
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  FunnelChart,
+  Funnel,
+  LabelList,
+} from 'recharts';
 import { TopNavBar } from "../components/TopNavBar";
 import { StatsGridSkeleton, ChartSkeleton } from "../components/skeletons";
 
@@ -23,6 +50,35 @@ const DATE_RANGES = [
   { value: "90d", label: "Last 90 Days" },
   { value: "all", label: "All Time" },
 ];
+
+const TIMELINE_SERIES = [
+  { key: "pending", label: "Pending", color: "#fbbf24" },
+  { key: "approved", label: "Approved", color: "#60a5fa" },
+  { key: "active", label: "Active", color: "#34d399" },
+  { key: "paused", label: "Paused", color: "#94a3b8" },
+  { key: "completed", label: "Completed", color: "#c084fc" },
+];
+
+const PIE_COLORS = ["#2563eb", "#f97316", "#10b981", "#a855f7", "#facc15", "#ec4899"];
+
+type TimelinePoint = {
+  date: string;
+  isoDate?: string;
+  clicks: number;
+  conversions: number;
+  earnings: number;
+};
+
+type ApplicationTimelinePoint = {
+  date: string;
+  isoDate?: string;
+  total: number;
+  pending: number;
+  approved: number;
+  active: number;
+  paused: number;
+  completed: number;
+};
 
 export default function Analytics() {
   const { toast } = useToast();
@@ -56,7 +112,60 @@ export default function Analytics() {
     enabled: isAuthenticated,
   });
 
-  const chartData = analytics?.chartData || [];
+  const chartData: TimelinePoint[] = (analytics?.chartData || []).map((item: any) => ({
+    date: item.date,
+    isoDate: item.isoDate,
+    clicks: Number(item.clicks || 0),
+    conversions: Number(item.conversions || 0),
+    earnings: Number(item.earnings || 0),
+  }));
+
+  const applicationsTimeline: ApplicationTimelinePoint[] = (analytics?.applicationsTimeline || []).map((item: any) => ({
+    date: item.date,
+    isoDate: item.isoDate,
+    total: Number(item.total || 0),
+    pending: Number(item.pending || 0),
+    approved: Number(item.approved || 0),
+    active: Number(item.active || 0),
+    paused: Number(item.paused || 0),
+    completed: Number(item.completed || 0),
+  }));
+
+  const conversionFunnel = analytics?.conversionFunnel as
+    | { applied: number; approved: number; active: number; paused: number; completed: number; conversions: number }
+    | undefined;
+
+  const funnelChartData: { name: string; value: number }[] = conversionFunnel
+    ? [
+        { name: "Applied", value: conversionFunnel.applied },
+        { name: "Approved", value: conversionFunnel.approved },
+        { name: "Active", value: conversionFunnel.active },
+        { name: "Paused", value: conversionFunnel.paused },
+        { name: "Completed", value: conversionFunnel.completed },
+        { name: "Converted", value: conversionFunnel.conversions },
+      ]
+    : [];
+
+  const acquisitionSources: { source: string; creators: number }[] = (analytics?.acquisitionSources || []).map((item: any) => ({
+    source: item.source || "Direct/Other",
+    creators: Number(item.creators || 0),
+  }));
+
+  const geography: { country: string; count: number }[] = (analytics?.geography || []).map((item: any) => ({
+    country: item.country || "Unknown",
+    count: Number(item.count || 0),
+  }));
+
+  const conversionRate = Number(analytics?.conversionRate ?? 0);
+  const maxGeoCount = geography.reduce((max: number, item) => Math.max(max, item.count), 0);
+  const totalEarningsDisplay = Number(analytics?.totalEarnings ?? analytics?.totalSpent ?? 0);
+  const affiliateSpent = Number(analytics?.affiliateSpent || 0);
+  const retainerSpent = Number(analytics?.retainerSpent || 0);
+  const totalClicks = Number(analytics?.totalClicks || 0);
+  const uniqueClicks = Number(analytics?.uniqueClicks || 0);
+  const conversions = Number(analytics?.conversions || 0);
+  const activeOffers = Number(analytics?.activeOffers || 0);
+  const activeCreators = Number(analytics?.activeCreators || 0);
 
   const exportData = () => {
     if (!analytics) {
@@ -94,6 +203,157 @@ export default function Analytics() {
       title: "Data exported",
       description: "Your analytics data has been downloaded as CSV",
     });
+  };
+
+  const exportPdf = () => {
+    if (!analytics) {
+      toast({
+        title: "No data to export",
+        description: "There is no analytics data available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) {
+      toast({
+        title: "Popup blocked",
+        description: "Allow popups to generate the PDF report.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const now = new Date().toLocaleString();
+    const summaryRows: Array<[string, string]> = [
+      ["Total Spend", `$${Number(analytics.totalSpent || 0).toFixed(2)}`],
+      ["Affiliate Spend", `$${Number(analytics.affiliateSpent || 0).toFixed(2)}`],
+      ["Retainer Spend", `$${Number(analytics.retainerSpent || 0).toFixed(2)}`],
+      ["Total Clicks", `${Number(analytics.totalClicks || 0).toLocaleString()}`],
+      ["Conversions", `${Number(analytics.conversions || 0).toLocaleString()}`],
+      ["Conversion Rate", `${conversionRate.toFixed(1)}%`],
+      ["Active Offers", `${Number(analytics.activeOffers || 0)}`],
+      ["Active Creators", `${Number(analytics.activeCreators || 0)}`],
+    ];
+
+    const timelineSummary = chartData
+      .map(
+        (item: TimelinePoint) =>
+          `${item.date}: ${item.clicks.toLocaleString()} clicks, ${item.conversions.toLocaleString()} conversions, $${item.earnings.toFixed(2)} earnings`,
+      )
+      .join("<br/>");
+
+    const acquisitionSummary = acquisitionSources.length
+      ? acquisitionSources.map((item: { source: string; creators: number }) => `${item.source}: ${item.creators} creators`).join("<br/>")
+      : "No acquisition data available.";
+
+    const geographySummary = geography.length
+      ? geography.map((item: { country: string; count: number }) => `${item.country}: ${item.count}`).join("<br/>")
+      : "No geographic data available.";
+
+    printWindow.document.write(`<!DOCTYPE html>
+      <html>
+        <head>
+          <title>Analytics Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; color: #111827; }
+            h1 { font-size: 24px; margin-bottom: 4px; }
+            h2 { font-size: 18px; margin-top: 24px; margin-bottom: 8px; }
+            table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+            td { border: 1px solid #e5e7eb; padding: 8px; font-size: 14px; }
+            .muted { color: #6b7280; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <h1>${applicationId ? "Application Analytics Report" : "Company Analytics Report"}</h1>
+          <div class="muted">Generated ${now}</div>
+          <h2>Summary</h2>
+          <table>
+            ${summaryRows.map(([label, value]) => `<tr><td><strong>${label}</strong></td><td>${value}</td></tr>`).join("")}
+          </table>
+          <h2>Performance Timeline</h2>
+          <div>${timelineSummary || "No timeline data available."}</div>
+          <h2>Conversion Funnel</h2>
+          <div>${
+            conversionFunnel
+              ? `Applied: ${conversionFunnel.applied}<br/>Approved: ${conversionFunnel.approved}<br/>Active: ${conversionFunnel.active}<br/>Paused: ${conversionFunnel.paused}<br/>Completed: ${conversionFunnel.completed}<br/>Converted: ${conversionFunnel.conversions}`
+              : "No funnel data available."
+          }</div>
+          <h2>Top Acquisition Sources</h2>
+          <div>${acquisitionSummary}</div>
+          <h2>Geographic Heatmap</h2>
+          <div>${geographySummary}</div>
+        </body>
+      </html>`);
+
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 300);
+
+    toast({
+      title: "PDF ready",
+      description: "Use the browser dialog to save the report as PDF.",
+    });
+  };
+
+  const sendToZapier = async () => {
+    if (!analytics) {
+      toast({
+        title: "No data to export",
+        description: "There is no analytics data available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const webhookUrl = window.prompt("Enter the Zapier webhook URL");
+    if (!webhookUrl) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/analytics/export/zapier", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          webhookUrl,
+          payload: {
+            range: dateRange,
+            totals: {
+              totalSpent: Number(analytics.totalSpent || 0),
+              totalClicks: Number(analytics.totalClicks || 0),
+              conversions: Number(analytics.conversions || 0),
+              conversionRate,
+            },
+            timeline: chartData,
+            applicationsTimeline,
+            funnel: conversionFunnel,
+            acquisition: acquisitionSources,
+            geography,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const message = await res.text();
+        throw new Error(message || "Failed to send webhook");
+      }
+
+      toast({
+        title: "Zapier webhook sent",
+        description: "Analytics data delivered to the configured URL.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Zapier export failed",
+        description: err.message || "Unable to send data to Zapier.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -146,7 +406,7 @@ export default function Analytics() {
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 justify-end">
           <Select value={dateRange} onValueChange={setDateRange}>
             <SelectTrigger className="w-40" data-testid="select-date-range">
               <SelectValue />
@@ -167,8 +427,28 @@ export default function Analytics() {
             disabled={!analytics || chartData.length === 0}
           >
             <Download className="h-4 w-4" />
-            Export
+            Export CSV
           </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={exportPdf}
+            disabled={!analytics}
+          >
+            <FileText className="h-4 w-4" />
+            PDF Report
+          </Button>
+          {!applicationId && (
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={sendToZapier}
+              disabled={!analytics}
+            >
+              <Share2 className="h-4 w-4" />
+              Zapier Webhook
+            </Button>
+          )}
         </div>
       </div>
 
@@ -181,10 +461,10 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">
-              ${Number(analytics?.totalEarnings || 0).toFixed(2)}
+              ${totalEarningsDisplay.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              <span className="text-green-600">+{analytics?.earningsGrowth || 0}%</span> from last period
+              Affiliate ${affiliateSpent.toFixed(2)} • Retainer ${retainerSpent.toFixed(2)}
             </p>
           </CardContent>
         </Card>
@@ -195,9 +475,9 @@ export default function Analytics() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics?.activeOffers || 0}</div>
+            <div className="text-2xl font-bold">{activeOffers}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Currently promoting
+              {activeCreators} active creators
             </p>
           </CardContent>
         </Card>
@@ -208,9 +488,9 @@ export default function Analytics() {
             <MousePointerClick className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics?.totalClicks || 0}</div>
+            <div className="text-2xl font-bold">{totalClicks}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {analytics?.uniqueClicks || 0} unique visitors
+              {uniqueClicks} unique visitors
             </p>
           </CardContent>
         </Card>
@@ -222,108 +502,241 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Number(analytics?.conversionRate ?? 0).toFixed(1)}%
+              {conversionRate.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {analytics?.conversions || 0} conversions
+              {conversions} conversions
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Chart */}
-      <Card className="border-card-border">
-        <CardHeader>
-          <CardTitle>Clicks Over Time</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {analyticsLoading ? (
-            <div className="h-80 flex items-center justify-center">
-              <div className="animate-pulse text-muted-foreground">Loading chart data...</div>
-            </div>
-          ) : chartData.length > 0 ? (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="date" 
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--popover))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '6px',
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="clicks"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <MousePointerClick className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-              <p className="text-muted-foreground">No tracking data yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Your click data will appear here once you start promoting offers</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Per-Offer Breakdown - Only show for general analytics, not per-application */}
-      {!applicationId && (
+      {/* Trend Charts */}
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-card-border">
           <CardHeader>
-            <CardTitle>Performance by Offer</CardTitle>
+            <CardTitle>Applications Over Time</CardTitle>
           </CardHeader>
           <CardContent>
-            {analytics?.offerBreakdown && analytics.offerBreakdown.length > 0 ? (
-              <div className="space-y-4">
-                {analytics.offerBreakdown.map((offer: any) => (
-                  <div key={offer.offerId} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-semibold">{offer.offerTitle}</h4>
-                      <p className="text-sm text-muted-foreground">{offer.companyName}</p>
+            {applicationsTimeline.length > 0 ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={applicationsTimeline}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px',
+                      }}
+                    />
+                    {TIMELINE_SERIES.map((series) => (
+                      <Area
+                        key={series.key}
+                        type="monotone"
+                        dataKey={series.key}
+                        stackId="1"
+                        name={series.label}
+                        stroke={series.color}
+                        fill={series.color}
+                        fillOpacity={0.35}
+                      />
+                    ))}
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No application data in this range</p>
+                <p className="text-sm text-muted-foreground mt-1">Adjust the date range to see application trends.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Clicks & Conversions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {chartData.length > 0 ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px',
+                      }}
+                    />
+                    <Line type="monotone" dataKey="clicks" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="conversions" stroke="#f97316" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <MousePointerClick className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No tracking data yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Your click data will appear once traffic flows in.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Conversion & Acquisition */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Conversion Funnel</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {funnelChartData.length > 0 ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <FunnelChart>
+                    <Tooltip />
+                    <Funnel dataKey="value" data={funnelChartData} isAnimationActive={false}>
+                      <LabelList position="right" fill="#111827" stroke="none" dataKey="name" />
+                    </Funnel>
+                  </FunnelChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Target className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No funnel data yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Approve applications to populate the funnel.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Creator Acquisition by Source</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {acquisitionSources.length > 0 ? (
+              <div className="h-80 flex flex-col">
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Tooltip />
+                      <Pie data={acquisitionSources} dataKey="creators" nameKey="source" innerRadius={60} outerRadius={100}>
+                        {acquisitionSources.map((entry: any, index: number) => (
+                          <Cell key={entry.source} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-2 pt-4 text-sm">
+                  {acquisitionSources.map((entry: { source: string; creators: number }) => (
+                    <div key={entry.source} className="flex items-center justify-between">
+                      <span>{entry.source}</span>
+                      <span className="text-muted-foreground">{entry.creators} creators</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-6 text-center">
-                      <div>
-                        <div className="text-xs text-muted-foreground">Clicks</div>
-                        <div className="font-semibold">{offer.clicks || 0}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">Conv.</div>
-                        <div className="font-semibold">{offer.conversions || 0}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">Earned</div>
-                        <div className="font-semibold font-mono">${Number(offer.earnings || 0).toFixed(2)}</div>
-                      </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No acquisition data yet</p>
+                <p className="text-sm text-muted-foreground mt-1">UTM tags will populate this view automatically.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Geography & Offer Breakdown */}
+      <div className={`grid gap-6 ${applicationId ? "" : "lg:grid-cols-2"}`}>
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Geographic Heatmap</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {geography.length > 0 ? (
+              <div className="space-y-3">
+                {geography.map((entry: { country: string; count: number }) => (
+                  <div key={entry.country} className="flex items-center gap-3">
+                    <div className="w-32 text-sm font-medium truncate" title={entry.country}>
+                      {entry.country}
                     </div>
+                    <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-primary/30 to-primary"
+                        style={{ width: maxGeoCount ? `${(entry.count / maxGeoCount) * 100}%` : '4px' }}
+                      />
+                    </div>
+                    <div className="w-10 text-xs text-muted-foreground text-right">{entry.count}</div>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-12">
-                <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <p className="text-muted-foreground">No active offers yet</p>
-                <p className="text-sm text-muted-foreground mt-1">Apply to offers to start tracking performance</p>
+                <Globe2 className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No geographic data yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Clicks with location data will appear here.</p>
               </div>
             )}
           </CardContent>
         </Card>
-      )}
+
+        {!applicationId && (
+          <Card className="border-card-border">
+            <CardHeader>
+              <CardTitle>Performance by Offer</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {analytics?.offerBreakdown && analytics.offerBreakdown.length > 0 ? (
+                <div className="space-y-4">
+                  {analytics.offerBreakdown.map((offer: any) => (
+                    <div key={offer.offerId} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-semibold">{offer.offerTitle}</h4>
+                        <p className="text-sm text-muted-foreground">{offer.companyName}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-6 text-center">
+                        <div>
+                          <div className="text-xs text-muted-foreground">Clicks</div>
+                          <div className="font-semibold">{offer.clicks || 0}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground">Conv.</div>
+                          <div className="font-semibold">{offer.conversions || 0}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground">Earned</div>
+                          <div className="font-semibold font-mono">${Number(offer.earnings || 0).toFixed(2)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground">No active offers yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Apply to offers to start tracking performance</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* End sections */}
     </div>
   );
 }
