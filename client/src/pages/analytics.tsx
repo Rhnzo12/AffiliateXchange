@@ -82,7 +82,7 @@ type ApplicationTimelinePoint = {
 
 export default function Analytics() {
   const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [dateRange, setDateRange] = useState("30d");
   const [, params] = useRoute("/analytics/:id");
   const applicationId = params?.id;
@@ -93,7 +93,9 @@ export default function Analytics() {
     }
   }, [isAuthenticated, isLoading]);
 
-  const { data: analytics, isLoading: analyticsLoading, error } = useQuery<any>({
+  const isCompany = user?.role === 'company';
+
+  const { data: analytics, isLoading: analyticsLoading } = useQuery<any>({
     queryKey: ["/api/analytics", { range: dateRange, applicationId }],
     queryFn: async () => {
       const url = applicationId
@@ -131,7 +133,7 @@ export default function Analytics() {
     completed: Number(item.completed || 0),
   }));
 
-  const conversionFunnel = analytics?.conversionFunnel as
+  const conversionFunnel = (isCompany ? analytics?.conversionFunnel : undefined) as
     | { applied: number; approved: number; active: number; paused: number; completed: number; conversions: number }
     | undefined;
 
@@ -146,26 +148,36 @@ export default function Analytics() {
       ]
     : [];
 
-  const acquisitionSources: { source: string; creators: number }[] = (analytics?.acquisitionSources || []).map((item: any) => ({
-    source: item.source || "Direct/Other",
-    creators: Number(item.creators || 0),
-  }));
+  const acquisitionSources: { source: string; creators: number }[] = isCompany
+    ? (analytics?.acquisitionSources || []).map((item: any) => ({
+        source: item.source || "Direct/Other",
+        creators: Number(item.creators || 0),
+      }))
+    : [];
 
-  const geography: { country: string; count: number }[] = (analytics?.geography || []).map((item: any) => ({
-    country: item.country || "Unknown",
-    count: Number(item.count || 0),
-  }));
+  const geography: { country: string; count: number }[] = isCompany
+    ? (analytics?.geography || []).map((item: any) => ({
+        country: item.country || "Unknown",
+        count: Number(item.count || 0),
+      }))
+    : [];
 
   const conversionRate = Number(analytics?.conversionRate ?? 0);
   const maxGeoCount = geography.reduce((max: number, item) => Math.max(max, item.count), 0);
-  const totalEarningsDisplay = Number(analytics?.totalEarnings ?? analytics?.totalSpent ?? 0);
-  const affiliateSpent = Number(analytics?.affiliateSpent || 0);
-  const retainerSpent = Number(analytics?.retainerSpent || 0);
+  const totalSpend = Number(analytics?.totalSpent ?? 0);
+  const totalEarnings = Number(analytics?.totalEarnings ?? 0);
+  const primaryTotal = isCompany ? (totalSpend || totalEarnings) : totalEarnings;
+  const affiliateBreakdown = isCompany
+    ? Number(analytics?.affiliateSpent || 0)
+    : Number(analytics?.affiliateEarnings || 0);
+  const retainerBreakdown = isCompany
+    ? Number(analytics?.retainerSpent || 0)
+    : Number(analytics?.retainerEarnings || 0);
   const totalClicks = Number(analytics?.totalClicks || 0);
   const uniqueClicks = Number(analytics?.uniqueClicks || 0);
   const conversions = Number(analytics?.conversions || 0);
   const activeOffers = Number(analytics?.activeOffers || 0);
-  const activeCreators = Number(analytics?.activeCreators || 0);
+  const activeCreators = isCompany ? Number(analytics?.activeCreators || 0) : undefined;
 
   const exportData = () => {
     if (!analytics) {
@@ -226,16 +238,26 @@ export default function Analytics() {
     }
 
     const now = new Date().toLocaleString();
-    const summaryRows: Array<[string, string]> = [
-      ["Total Spend", `$${Number(analytics.totalSpent || 0).toFixed(2)}`],
-      ["Affiliate Spend", `$${Number(analytics.affiliateSpent || 0).toFixed(2)}`],
-      ["Retainer Spend", `$${Number(analytics.retainerSpent || 0).toFixed(2)}`],
-      ["Total Clicks", `${Number(analytics.totalClicks || 0).toLocaleString()}`],
-      ["Conversions", `${Number(analytics.conversions || 0).toLocaleString()}`],
-      ["Conversion Rate", `${conversionRate.toFixed(1)}%`],
-      ["Active Offers", `${Number(analytics.activeOffers || 0)}`],
-      ["Active Creators", `${Number(analytics.activeCreators || 0)}`],
-    ];
+    const summaryRows: Array<[string, string]> = isCompany
+      ? [
+          ["Total Spend", `$${Number(analytics.totalSpent || analytics.totalEarnings || 0).toFixed(2)}`],
+          ["Affiliate Spend", `$${Number(analytics.affiliateSpent || 0).toFixed(2)}`],
+          ["Retainer Spend", `$${Number(analytics.retainerSpent || 0).toFixed(2)}`],
+          ["Total Clicks", `${Number(analytics.totalClicks || 0).toLocaleString()}`],
+          ["Conversions", `${Number(analytics.conversions || 0).toLocaleString()}`],
+          ["Conversion Rate", `${conversionRate.toFixed(1)}%`],
+          ["Active Offers", `${Number(analytics.activeOffers || 0)}`],
+          ["Active Creators", `${Number(analytics.activeCreators || 0)}`],
+        ]
+      : [
+          ["Total Earnings", `$${Number(analytics.totalEarnings || 0).toFixed(2)}`],
+          ["Affiliate Earnings", `$${Number(analytics.affiliateEarnings || 0).toFixed(2)}`],
+          ["Retainer Earnings", `$${Number(analytics.retainerEarnings || 0).toFixed(2)}`],
+          ["Total Clicks", `${Number(analytics.totalClicks || 0).toLocaleString()}`],
+          ["Conversions", `${Number(analytics.conversions || 0).toLocaleString()}`],
+          ["Conversion Rate", `${conversionRate.toFixed(1)}%`],
+          ["Active Offers", `${Number(analytics.activeOffers || 0)}`],
+        ];
 
     const timelineSummary = chartData
       .map(
@@ -266,7 +288,13 @@ export default function Analytics() {
           </style>
         </head>
         <body>
-          <h1>${applicationId ? "Application Analytics Report" : "Company Analytics Report"}</h1>
+          <h1>${applicationId
+            ? isCompany
+              ? "Application Analytics Report"
+              : "Application Performance Report"
+            : isCompany
+              ? "Company Analytics Report"
+              : "Creator Analytics Report"}</h1>
           <div class="muted">Generated ${now}</div>
           <h2>Summary</h2>
           <table>
@@ -368,8 +396,14 @@ export default function Analytics() {
         <TopNavBar />
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Track your performance across all offers</p>
+            <h1 className="text-3xl font-bold">
+              {isCompany ? "Analytics Dashboard" : "Creator Analytics"}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {isCompany
+                ? "Track your performance across all offers"
+                : "Monitor your own performance across all offers"}
+            </p>
           </div>
         </div>
         <StatsGridSkeleton count={4} />
@@ -393,12 +427,20 @@ export default function Analytics() {
             </Link>
           )}
           <h1 className="text-3xl font-bold">
-            {applicationId ? "Application Analytics" : "Analytics Dashboard"}
+            {applicationId
+              ? isCompany
+                ? "Application Analytics"
+                : "Application Performance"
+              : isCompany
+                ? "Analytics Dashboard"
+                : "Creator Analytics"}
           </h1>
           <p className="text-muted-foreground mt-1">
             {applicationId
               ? "Track performance for this specific application"
-              : "Track your performance across all offers"}
+              : isCompany
+                ? "Track your performance across all offers"
+                : "Monitor your own performance across all offers"}
           </p>
           {analytics?.offerTitle && applicationId && (
             <p className="text-sm font-medium text-primary mt-2">
@@ -438,7 +480,7 @@ export default function Analytics() {
             <FileText className="h-4 w-4" />
             PDF Report
           </Button>
-          {!applicationId && (
+          {!applicationId && isCompany && (
             <Button
               variant="outline"
               className="gap-2"
@@ -456,15 +498,17 @@ export default function Analytics() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-card-border">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {isCompany ? "Total Spend" : "Total Earnings"}
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">
-              ${totalEarningsDisplay.toFixed(2)}
+              ${primaryTotal.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Affiliate ${affiliateSpent.toFixed(2)} • Retainer ${retainerSpent.toFixed(2)}
+              Affiliate ${affiliateBreakdown.toFixed(2)} • Retainer ${retainerBreakdown.toFixed(2)}
             </p>
           </CardContent>
         </Card>
@@ -477,7 +521,9 @@ export default function Analytics() {
           <CardContent>
             <div className="text-2xl font-bold">{activeOffers}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {activeCreators} active creators
+              {isCompany
+                ? `${activeCreators ?? 0} active creators`
+                : "Offers you're approved or active in"}
             </p>
           </CardContent>
         </Card>
@@ -512,50 +558,52 @@ export default function Analytics() {
       </div>
 
       {/* Trend Charts */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-card-border">
-          <CardHeader>
-            <CardTitle>Applications Over Time</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {applicationsTimeline.length > 0 ? (
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={applicationsTimeline}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                    <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--popover))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px',
-                      }}
-                    />
-                    {TIMELINE_SERIES.map((series) => (
-                      <Area
-                        key={series.key}
-                        type="monotone"
-                        dataKey={series.key}
-                        stackId="1"
-                        name={series.label}
-                        stroke={series.color}
-                        fill={series.color}
-                        fillOpacity={0.35}
+      <div className={`grid gap-6 ${isCompany ? "lg:grid-cols-2" : ""}`}>
+        {isCompany && (
+          <Card className="border-card-border">
+            <CardHeader>
+              <CardTitle>Applications Over Time</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {applicationsTimeline.length > 0 ? (
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={applicationsTimeline}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                      <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--popover))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '6px',
+                        }}
                       />
-                    ))}
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <p className="text-muted-foreground">No application data in this range</p>
-                <p className="text-sm text-muted-foreground mt-1">Adjust the date range to see application trends.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      {TIMELINE_SERIES.map((series) => (
+                        <Area
+                          key={series.key}
+                          type="monotone"
+                          dataKey={series.key}
+                          stackId="1"
+                          name={series.label}
+                          stroke={series.color}
+                          fill={series.color}
+                          fillOpacity={0.35}
+                        />
+                      ))}
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground">No application data in this range</p>
+                  <p className="text-sm text-muted-foreground mt-1">Adjust the date range to see application trends.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="border-card-border">
           <CardHeader>
@@ -592,106 +640,108 @@ export default function Analytics() {
         </Card>
       </div>
 
-      {/* Conversion & Acquisition */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-card-border">
-          <CardHeader>
-            <CardTitle>Conversion Funnel</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {funnelChartData.length > 0 ? (
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <FunnelChart>
-                    <Tooltip />
-                    <Funnel dataKey="value" data={funnelChartData} isAnimationActive={false}>
-                      <LabelList position="right" fill="#111827" stroke="none" dataKey="name" />
-                    </Funnel>
-                  </FunnelChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Target className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <p className="text-muted-foreground">No funnel data yet</p>
-                <p className="text-sm text-muted-foreground mt-1">Approve applications to populate the funnel.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-card-border">
-          <CardHeader>
-            <CardTitle>Creator Acquisition by Source</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {acquisitionSources.length > 0 ? (
-              <div className="h-80 flex flex-col">
-                <div className="h-56">
+      {isCompany && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="border-card-border">
+            <CardHeader>
+              <CardTitle>Conversion Funnel</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {funnelChartData.length > 0 ? (
+                <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <FunnelChart>
                       <Tooltip />
-                      <Pie data={acquisitionSources} dataKey="creators" nameKey="source" innerRadius={60} outerRadius={100}>
-                        {acquisitionSources.map((entry: any, index: number) => (
-                          <Cell key={entry.source} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                    </PieChart>
+                      <Funnel dataKey="value" data={funnelChartData} isAnimationActive={false}>
+                        <LabelList position="right" fill="#111827" stroke="none" dataKey="name" />
+                      </Funnel>
+                    </FunnelChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="space-y-2 pt-4 text-sm">
-                  {acquisitionSources.map((entry: { source: string; creators: number }) => (
-                    <div key={entry.source} className="flex items-center justify-between">
-                      <span>{entry.source}</span>
-                      <span className="text-muted-foreground">{entry.creators} creators</span>
+              ) : (
+                <div className="text-center py-12">
+                  <Target className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground">No funnel data yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Approve applications to populate the funnel.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-card-border">
+            <CardHeader>
+              <CardTitle>Creator Acquisition by Source</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {acquisitionSources.length > 0 ? (
+                <div className="h-80 flex flex-col">
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Tooltip />
+                        <Pie data={acquisitionSources} dataKey="creators" nameKey="source" innerRadius={60} outerRadius={100}>
+                          {acquisitionSources.map((entry: any, index: number) => (
+                            <Cell key={entry.source} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="space-y-2 pt-4 text-sm">
+                    {acquisitionSources.map((entry: { source: string; creators: number }) => (
+                      <div key={entry.source} className="flex items-center justify-between">
+                        <span>{entry.source}</span>
+                        <span className="text-muted-foreground">{entry.creators} creators</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground">No acquisition data yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">UTM tags will populate this view automatically.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <div className={`grid gap-6 ${isCompany && !applicationId ? "lg:grid-cols-2" : ""}`}>
+        {isCompany && (
+          <Card className="border-card-border">
+            <CardHeader>
+              <CardTitle>Geographic Heatmap</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {geography.length > 0 ? (
+                <div className="space-y-3">
+                  {geography.map((entry: { country: string; count: number }) => (
+                    <div key={entry.country} className="flex items-center gap-3">
+                      <div className="w-32 text-sm font-medium truncate" title={entry.country}>
+                        {entry.country}
+                      </div>
+                      <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-primary/30 to-primary"
+                          style={{ width: maxGeoCount ? `${(entry.count / maxGeoCount) * 100}%` : '4px' }}
+                        />
+                      </div>
+                      <div className="w-10 text-xs text-muted-foreground text-right">{entry.count}</div>
                     </div>
                   ))}
                 </div>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <p className="text-muted-foreground">No acquisition data yet</p>
-                <p className="text-sm text-muted-foreground mt-1">UTM tags will populate this view automatically.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Geography & Offer Breakdown */}
-      <div className={`grid gap-6 ${applicationId ? "" : "lg:grid-cols-2"}`}>
-        <Card className="border-card-border">
-          <CardHeader>
-            <CardTitle>Geographic Heatmap</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {geography.length > 0 ? (
-              <div className="space-y-3">
-                {geography.map((entry: { country: string; count: number }) => (
-                  <div key={entry.country} className="flex items-center gap-3">
-                    <div className="w-32 text-sm font-medium truncate" title={entry.country}>
-                      {entry.country}
-                    </div>
-                    <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-primary/30 to-primary"
-                        style={{ width: maxGeoCount ? `${(entry.count / maxGeoCount) * 100}%` : '4px' }}
-                      />
-                    </div>
-                    <div className="w-10 text-xs text-muted-foreground text-right">{entry.count}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Globe2 className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <p className="text-muted-foreground">No geographic data yet</p>
-                <p className="text-sm text-muted-foreground mt-1">Clicks with location data will appear here.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              ) : (
+                <div className="text-center py-12">
+                  <Globe2 className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <p className="text-muted-foreground">No geographic data yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Clicks with location data will appear here.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {!applicationId && (
           <Card className="border-card-border">
@@ -717,7 +767,7 @@ export default function Analytics() {
                           <div className="font-semibold">{offer.conversions || 0}</div>
                         </div>
                         <div>
-                          <div className="text-xs text-muted-foreground">Earned</div>
+                          <div className="text-xs text-muted-foreground">{isCompany ? 'Spent' : 'Earned'}</div>
                           <div className="font-semibold font-mono">${Number(offer.earnings || 0).toFixed(2)}</div>
                         </div>
                       </div>
