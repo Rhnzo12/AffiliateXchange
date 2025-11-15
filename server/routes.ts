@@ -1433,6 +1433,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/company/applications/:id/status", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const { status } = req.body as { status?: string };
+      const allowedStatuses = ['pending', 'approved', 'active', 'paused', 'completed', 'rejected'];
+
+      if (!status || !allowedStatuses.includes(status)) {
+        return res.status(400).json({ error: 'Invalid status provided' });
+      }
+
+      const userId = (req.user as any).id;
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile) {
+        return res.status(404).send('Company profile not found');
+      }
+
+      const application = await storage.getApplication(req.params.id);
+      if (!application) {
+        return res.status(404).send('Application not found');
+      }
+
+      const offer = await storage.getOffer(application.offerId);
+      if (!offer || offer.companyId !== companyProfile.id) {
+        return res.status(403).send('Forbidden');
+      }
+
+      const updated = await storage.updateApplicationStatus(application.id, status as any);
+      res.json(updated);
+    } catch (error: any) {
+      console.error('[Update Application Status] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Favorites routes
   app.get("/api/favorites", requireAuth, requireRole('creator'), async (req, res) => {
     try {
@@ -1680,8 +1713,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (userRole === 'company') {
         // Company analytics
-        const analyticsData = await storage.getAnalyticsByCompany(userId);
-        const chartData = await storage.getAnalyticsTimeSeriesByCompany(userId, dateRange);
+        const [
+          analyticsData,
+          chartData,
+          applicationsTimeline,
+          conversionFunnel,
+          acquisitionSources,
+          geography,
+        ] = await Promise.all([
+          storage.getAnalyticsByCompany(userId),
+          storage.getAnalyticsTimeSeriesByCompany(userId, dateRange),
+          storage.getApplicationsTimeSeriesByCompany(userId, dateRange),
+          storage.getConversionFunnelByCompany(userId),
+          storage.getCreatorAcquisitionSourcesByCompany(userId),
+          storage.getCreatorGeographyByCompany(userId),
+        ]);
 
         // Get offer breakdown for company
         const companyProfile = await storage.getCompanyProfile(userId);
@@ -1740,6 +1786,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : 0,
           chartData: chartData,
           offerBreakdown: offerBreakdown,
+          applicationsTimeline,
+          conversionFunnel,
+          acquisitionSources,
+          geography,
         };
 
         res.json(stats);
@@ -1797,6 +1847,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json(stats);
       }
     } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/analytics/export/zapier", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const { webhookUrl, payload } = req.body as { webhookUrl?: string; payload?: any };
+      const userId = (req.user as any).id;
+      const companyProfile = await storage.getCompanyProfile(userId);
+
+      if (!companyProfile) {
+        return res.status(404).send("Company profile not found");
+      }
+
+      if (!webhookUrl || typeof webhookUrl !== 'string' || !/^https?:\/\//i.test(webhookUrl)) {
+        return res.status(400).json({ error: 'A valid webhookUrl is required' });
+      }
+
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          companyId: companyProfile.id,
+          generatedAt: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        return res.status(502).json({
+          error: 'Webhook responded with an error',
+          status: response.status,
+          body: text,
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('[Zapier Export] Error:', error);
       res.status(500).send(error.message);
     }
   });
