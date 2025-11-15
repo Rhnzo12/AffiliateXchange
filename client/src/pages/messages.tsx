@@ -21,7 +21,12 @@ import {
   Bell,
   BellOff,
   ArrowLeft,
-  X
+  X,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut
 } from "lucide-react";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
@@ -45,7 +50,6 @@ export default function Messages() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [location] = useLocation();
   
-  // Get conversation ID from URL query parameter
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const conversationFromUrl = urlParams.get('conversation');
   
@@ -61,6 +65,13 @@ export default function Messages() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [attachmentPreviews, setAttachmentPreviews] = useState<string[]>([]);
+  
+  // Image viewer state
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentImages, setCurrentImages] = useState<string[]>([]);
+  const [imageZoom, setImageZoom] = useState(1);
+  
   const wsRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -72,10 +83,99 @@ export default function Messages() {
   const selectedConversationRef = useRef<string | null>(selectedConversation);
   const userIdRef = useRef<string | undefined>(user?.id);
 
+  // Image viewer functions
+  const openImageViewer = (images: string[], startIndex: number = 0) => {
+    setCurrentImages(images);
+    setCurrentImageIndex(startIndex);
+    setImageZoom(1);
+    setViewerOpen(true);
+  };
+
+  const closeImageViewer = () => {
+    setViewerOpen(false);
+    setCurrentImages([]);
+    setCurrentImageIndex(0);
+    setImageZoom(1);
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % currentImages.length);
+    setImageZoom(1);
+  };
+
+  const previousImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + currentImages.length) % currentImages.length);
+    setImageZoom(1);
+  };
+
+  const zoomIn = () => {
+    setImageZoom((prev) => Math.min(prev + 0.25, 3));
+  };
+
+  const zoomOut = () => {
+    setImageZoom((prev) => Math.max(prev - 0.25, 0.5));
+  };
+
+  const downloadImage = async () => {
+    const imageUrl = currentImages[currentImageIndex];
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `image-${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download started",
+        description: "Image is being downloaded",
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Failed to download image",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle keyboard navigation in image viewer
+  useEffect(() => {
+    if (!viewerOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'Escape':
+          closeImageViewer();
+          break;
+        case 'ArrowLeft':
+          if (currentImages.length > 1) previousImage();
+          break;
+        case 'ArrowRight':
+          if (currentImages.length > 1) nextImage();
+          break;
+        case '+':
+        case '=':
+          zoomIn();
+          break;
+        case '-':
+        case '_':
+          zoomOut();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewerOpen, currentImages.length]);
+
   // Update refs when values change
   useEffect(() => {
     selectedConversationRef.current = selectedConversation;
-    // Clear typing users when switching conversations
     setTypingUsers(new Set());
   }, [selectedConversation]);
 
@@ -83,45 +183,31 @@ export default function Messages() {
     userIdRef.current = user?.id;
   }, [user?.id]);
 
-  // Helper function to get display name for user or company
   const getDisplayName = (user: any) => {
     if (!user) return 'User';
-
-    // Try company-specific fields first (tradeName, legalName from backend)
     const companyName = user.tradeName || user.legalName || user.companyName || user.company_name || user.businessName;
     if (companyName) return companyName;
-
-    // If it's explicitly a company role
     if (user.role === 'company') {
       return user.name || user.username || user.email || 'Company';
     }
-
-    // For creators/other users, show first name or username
     const displayName = user.firstName || user.first_name || user.name || user.username || user.email;
     return displayName || 'User';
   };
 
-  // Helper function to get avatar fallback
   const getAvatarFallback = (user: any) => {
     if (!user) return 'U';
-
-    // Try company-specific fields first (tradeName, legalName from backend)
     const companyName = user.tradeName || user.legalName || user.companyName || user.company_name || user.businessName;
     if (companyName) return companyName[0].toUpperCase();
-
-    // Try general name fields
     const name = user.firstName || user.first_name || user.name || user.username || user.email;
     return name ? name[0].toUpperCase() : 'U';
   };
 
-  // Update selected conversation when URL changes
   useEffect(() => {
     if (conversationFromUrl && conversationFromUrl !== selectedConversation) {
       setSelectedConversation(conversationFromUrl);
     }
   }, [conversationFromUrl, selectedConversation]);
 
-  // Initialize notification sound
   useEffect(() => {
     audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvHZhjMICGS56+OcTgwOUKzk7rdkHQc2jdXy0IEsDipu0ObnllkTClGn4u2yaBcGLXjH8N+OSA==');
   }, []);
@@ -132,29 +218,22 @@ export default function Messages() {
     }
   }, [isAuthenticated, isLoading]);
 
-  // WebSocket connection (only reconnect on auth changes, not UI state)
-// WebSocket connection (only reconnect on auth changes, not UI state)
-useEffect(() => {
-  if (!isAuthenticated) return;
+  useEffect(() => {
+    if (!isAuthenticated) return;
 
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  // For cloud environments (Codespaces, etc.), use window.location.host directly
-  // This includes the forwarded port in the hostname, so we don't add :port again
-  const wsUrl = `${protocol}//${window.location.host}/ws`;
-  
-  let shouldReconnect = true; // Per-effect reconnect flag
-  
-  const connectWebSocket = () => {
-    try {
-      setIsConnecting(true);
-      const socket = new WebSocket(wsUrl);
-      
-      // Rest of your code...
-        // Assign immediately so error/close handlers can identify this socket
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    let shouldReconnect = true;
+    
+    const connectWebSocket = () => {
+      try {
+        setIsConnecting(true);
+        const socket = new WebSocket(wsUrl);
+        
         wsRef.current = socket;
         
         socket.onopen = () => {
-          // Only update state if this socket is still current
           if (socket === wsRef.current) {
             setIsConnecting(false);
             setIsConnected(true);
@@ -166,7 +245,6 @@ useEffect(() => {
             const data = JSON.parse(event.data);
             
             if (data.type === 'new_message') {
-              // Invalidate queries
               if (data.message?.conversationId) {
                 queryClient.invalidateQueries({ 
                   queryKey: ["/api/messages", data.message.conversationId] 
@@ -174,19 +252,16 @@ useEffect(() => {
               }
               queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
               
-              // Play sound - read from current state
               const currentSoundEnabled = localStorage.getItem('messageSoundEnabled');
               const shouldPlaySound = currentSoundEnabled === null ? true : currentSoundEnabled === 'true';
               if (shouldPlaySound && data.message?.senderId !== userIdRef.current && audioRef.current) {
                 audioRef.current.play().catch(() => {});
               }
             } else if (data.type === 'user_typing') {
-              // Use ref to get current conversation (not stale closure value)
               if (data.conversationId === selectedConversationRef.current) {
                 setTypingUsers(prev => new Set(prev).add(data.userId));
               }
             } else if (data.type === 'user_stop_typing') {
-              // Only remove typing indicator if it's for the current conversation
               if (data.conversationId === selectedConversationRef.current) {
                 setTypingUsers(prev => {
                   const next = new Set(prev);
@@ -195,7 +270,6 @@ useEffect(() => {
                 });
               }
             } else if (data.type === 'messages_read') {
-              // Invalidate regardless of current conversation
               queryClient.invalidateQueries({ 
                 queryKey: ["/api/messages", data.conversationId] 
               });
@@ -207,7 +281,6 @@ useEffect(() => {
 
         socket.onerror = (error) => {
           console.error('WebSocket error:', error);
-          // Only update state if this socket is still current
           if (socket === wsRef.current) {
             setIsConnecting(false);
             setIsConnected(false);
@@ -215,13 +288,11 @@ useEffect(() => {
         };
 
         socket.onclose = () => {
-          // Only handle close if this socket is still the current one
           if (socket === wsRef.current) {
             setIsConnecting(false);
             setIsConnected(false);
             wsRef.current = null;
             
-            // Only attempt to reconnect if we should and still authenticated
             if (shouldReconnect) {
               reconnectTimeoutRef.current = setTimeout(() => {
                 if (shouldReconnect) {
@@ -240,31 +311,26 @@ useEffect(() => {
 
     connectWebSocket();
 
-    // Cleanup function
     return () => {
-      // Disable reconnection for this effect instance
       shouldReconnect = false;
       
-      // Clear any pending reconnect timeout
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = undefined;
       }
       
-      // Close the socket if it exists
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
       }
     };
-  }, [isAuthenticated]); // Only depend on auth, not UI state
+  }, [isAuthenticated]);
 
   const { data: conversations } = useQuery<any[]>({
     queryKey: ["/api/conversations"],
     enabled: isAuthenticated,
   });
 
-  // Debug: Log conversations to see the data structure
   useEffect(() => {
     if (conversations && conversations.length > 0) {
       console.log('Conversations data:', conversations);
@@ -277,14 +343,12 @@ useEffect(() => {
     enabled: !!selectedConversation && isAuthenticated,
   });
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
-  // Mark messages as read when conversation is viewed
   useEffect(() => {
     if (selectedConversation && isConnected && wsRef.current && user?.id) {
       wsRef.current.send(JSON.stringify({
@@ -295,22 +359,18 @@ useEffect(() => {
     }
   }, [selectedConversation, isConnected, user?.id, messages.length]);
 
-  // Handle typing indicators
   const handleTyping = useCallback(() => {
     if (!selectedConversation || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
-    // Send typing start
     wsRef.current.send(JSON.stringify({
       type: 'typing_start',
       conversationId: selectedConversation,
     }));
 
-    // Clear existing timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Set new timeout to send typing stop
     typingTimeoutRef.current = setTimeout(() => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({
@@ -321,14 +381,12 @@ useEffect(() => {
     }, 3000);
   }, [selectedConversation]);
 
-  // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
     const fileArray = Array.from(files);
 
-    // Validate file types (images only)
     const validFiles = fileArray.filter(file => {
       if (!file.type.startsWith('image/')) {
         toast({
@@ -339,7 +397,6 @@ useEffect(() => {
         return false;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "File too large",
@@ -354,7 +411,6 @@ useEffect(() => {
 
     if (validFiles.length === 0) return;
 
-    // Limit to 3 attachments total
     const remainingSlots = 3 - selectedFiles.length;
     if (validFiles.length > remainingSlots) {
       toast({
@@ -367,7 +423,6 @@ useEffect(() => {
 
     setSelectedFiles(prev => [...prev, ...validFiles]);
 
-    // Create preview URLs
     validFiles.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -379,86 +434,94 @@ useEffect(() => {
     });
   };
 
-  // Remove selected file
   const removeFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     setAttachmentPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Upload files to Cloudinary
   const uploadFiles = async (filesToUpload?: File[]): Promise<string[]> => {
-    const files = filesToUpload || selectedFiles;
-    if (files.length === 0) return [];
+  const files = filesToUpload || selectedFiles;
+  if (files.length === 0) return [];
 
-    setUploadingFiles(true);
-    const uploadedUrls: string[] = [];
+  if (!selectedConversation || !user?.id || !user?.role) {
+    toast({
+      title: "Upload Failed",
+      description: "Missing conversation or user information",
+      variant: "destructive",
+    });
+    return [];
+  }
 
-    try {
-      for (const file of files) {
-        // Get upload URL from backend
-        const uploadResponse = await fetch("/api/objects/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            folder: "creatorlink/attachments",
-            resourceType: "image"
-          }),
-        });
+  setUploadingFiles(true);
+  const uploadedUrls: string[] = [];
 
-        if (!uploadResponse.ok) {
-          throw new Error("Failed to get upload URL");
-        }
+  try {
+    // Determine the folder path based on user role - without user_id
+    const userType = user.role === 'company' ? 'company' : 'creator';
+    const folderPath = `creatorlink/attachments/${selectedConversation}/${userType}`;
 
-        const uploadData = await uploadResponse.json();
+    for (const file of files) {
+      const uploadResponse = await fetch("/api/objects/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          folder: folderPath,
+          resourceType: "image"
+        }),
+      });
 
-        // Upload file to Cloudinary
-        const formData = new FormData();
-        formData.append('file', file);
-
-        if (uploadData.uploadPreset) {
-          formData.append('upload_preset', uploadData.uploadPreset);
-        } else if (uploadData.signature) {
-          formData.append('signature', uploadData.signature);
-          formData.append('timestamp', uploadData.timestamp.toString());
-          formData.append('api_key', uploadData.apiKey);
-        }
-
-        if (uploadData.folder) {
-          formData.append('folder', uploadData.folder);
-        }
-
-        const uploadResult = await fetch(uploadData.uploadUrl, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!uploadResult.ok) {
-          throw new Error("Failed to upload file");
-        }
-
-        const cloudinaryResponse = await uploadResult.json();
-        uploadedUrls.push(cloudinaryResponse.secure_url);
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to get upload URL");
       }
 
-      return uploadedUrls;
-    } catch (error) {
-      console.error("File upload error:", error);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload attachments. Please try again.",
-        variant: "destructive",
+      const uploadData = await uploadResponse.json();
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      if (uploadData.uploadPreset) {
+        formData.append('upload_preset', uploadData.uploadPreset);
+      } else if (uploadData.signature) {
+        formData.append('signature', uploadData.signature);
+        formData.append('timestamp', uploadData.timestamp.toString());
+        formData.append('api_key', uploadData.apiKey);
+      }
+
+      if (uploadData.folder) {
+        formData.append('folder', uploadData.folder);
+      }
+
+      const uploadResult = await fetch(uploadData.uploadUrl, {
+        method: "POST",
+        body: formData,
       });
-      throw error;
-    } finally {
-      setUploadingFiles(false);
+
+      if (!uploadResult.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      const cloudinaryResponse = await uploadResult.json();
+      uploadedUrls.push(cloudinaryResponse.secure_url);
     }
-  };
+
+    return uploadedUrls;
+  } catch (error) {
+    console.error("File upload error:", error);
+    toast({
+      title: "Upload Failed",
+      description: "Failed to upload attachments. Please try again.",
+      variant: "destructive",
+    });
+    throw error;
+  } finally {
+    setUploadingFiles(false);
+  }
+};
 
   const sendMessage = async () => {
     if (!selectedConversation || (!messageText.trim() && selectedFiles.length === 0) || !user?.id) return;
 
-    // Clear typing indicator
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
@@ -473,29 +536,25 @@ useEffect(() => {
     const filesToUpload = [...selectedFiles];
     const previewsToRestore = [...attachmentPreviews];
 
-    // Clear input immediately for better UX
     setMessageText("");
     setSelectedFiles([]);
     setAttachmentPreviews([]);
 
     try {
-      // Upload files first if any
       let uploadedUrls: string[] = [];
       if (filesToUpload.length > 0) {
         uploadedUrls = await uploadFiles(filesToUpload);
       }
 
-      // Send via WebSocket if connected
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({
           type: 'chat_message',
           conversationId: selectedConversation,
           senderId: user.id,
-          content: messageContent || '', // Use empty string if no content
+          content: messageContent || '',
           attachments: uploadedUrls,
         }));
 
-        // Immediately refetch messages after sending
         queryClient.invalidateQueries({
           queryKey: ["/api/messages", selectedConversation]
         });
@@ -503,7 +562,6 @@ useEffect(() => {
           queryKey: ["/api/conversations"]
         });
       } else {
-        // Restore message if not connected
         setMessageText(messageContent);
         setSelectedFiles(filesToUpload);
         setAttachmentPreviews(previewsToRestore);
@@ -514,7 +572,6 @@ useEffect(() => {
         });
       }
     } catch (error) {
-      // Restore message on error
       setMessageText(messageContent);
       setSelectedFiles(filesToUpload);
       setAttachmentPreviews(previewsToRestore);
@@ -557,7 +614,7 @@ useEffect(() => {
     if (currentMessage.senderId !== previousMessage.senderId) return false;
     
     const timeDiff = new Date(currentMessage.createdAt).getTime() - new Date(previousMessage.createdAt).getTime();
-    return timeDiff < 60000; // Group if within 1 minute
+    return timeDiff < 60000;
   };
 
   const currentConversation = conversations?.find((c: any) => c.id === selectedConversation);
@@ -565,7 +622,6 @@ useEffect(() => {
   const isOtherUserTyping = typingUsers.size > 0;
   const isCompany = user?.role === 'company';
 
-  // Get tracking link and creator name for templates (company only)
   const trackingLink = currentConversation?.application?.trackingLink;
   const creatorName = otherUser?.firstName || otherUser?.name || otherUser?.username || 'there';
 
@@ -578,9 +634,112 @@ useEffect(() => {
   return (
     <div className="space-y-6">
       <TopNavBar />
+      
+      {/* Image Viewer Modal */}
+      {viewerOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          onClick={closeImageViewer}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={closeImageViewer}
+            className="absolute top-4 right-4 text-white hover:bg-white/20 h-10 w-10 z-10"
+          >
+            <X className="h-6 w-6" />
+          </Button>
+
+          {currentImages.length > 1 && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  previousImage();
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12 z-10"
+              >
+                <ChevronLeft className="h-8 w-8" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  nextImage();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-12 w-12 z-10"
+              >
+                <ChevronRight className="h-8 w-8" />
+              </Button>
+            </>
+          )}
+
+          <div className="absolute top-4 left-4 flex gap-2 z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomOut();
+              }}
+              className="text-white hover:bg-white/20 h-10 w-10"
+              disabled={imageZoom <= 0.5}
+            >
+              <ZoomOut className="h-5 w-5" />
+            </Button>
+            <span className="text-white bg-black/50 rounded-md px-3 flex items-center text-sm">
+              {Math.round(imageZoom * 100)}%
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomIn();
+              }}
+              className="text-white hover:bg-white/20 h-10 w-10"
+              disabled={imageZoom >= 3}
+            >
+              <ZoomIn className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                downloadImage();
+              }}
+              className="text-white hover:bg-white/20 h-10 w-10"
+            >
+              <Download className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {currentImages.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white rounded-md px-4 py-2 text-sm z-10">
+              {currentImageIndex + 1} / {currentImages.length}
+            </div>
+          )}
+
+          <div 
+            className="max-w-[90vw] max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={currentImages[currentImageIndex]}
+              alt={`Image ${currentImageIndex + 1}`}
+              className="max-w-full max-h-[90vh] object-contain transition-transform duration-200"
+              style={{ transform: `scale(${imageZoom})` }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="h-[calc(100vh-12rem)]">
         <div className="grid md:grid-cols-[320px_1fr] gap-4 h-full">
-          {/* Conversations List - Hidden on mobile when conversation is selected */}
           <Card className={`border-card-border flex flex-col overflow-hidden ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
           <CardContent className="p-0 flex flex-col h-full">
             <div className="p-4 border-b flex items-center justify-between shrink-0">
@@ -672,7 +831,6 @@ useEffect(() => {
           </CardContent>
         </Card>
 
-        {/* Messages View - Show on mobile when conversation selected */}
         <Card className={`border-card-border flex flex-col overflow-hidden ${!selectedConversation ? 'hidden md:flex' : 'flex'}`}>
           {!selectedConversation ? (
             <div className="flex-1 flex items-center justify-center">
@@ -686,11 +844,9 @@ useEffect(() => {
             </div>
           ) : (
             <>
-              {/* Header with back button on mobile */}
               <div className="p-4 border-b shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {/* Back button for mobile */}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -737,7 +893,6 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Messages */}
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
                   {messages?.map((message, index) => {
@@ -760,7 +915,6 @@ useEffect(() => {
                             groupWithPrevious ? 'mt-1' : 'mt-4'
                           }`}
                         >
-                          {/* Avatar for other user's messages */}
                           {!isOwnMessage && (
                             <Avatar className={`h-8 w-8 shrink-0 ${groupWithPrevious ? 'invisible' : ''}`}>
                               <AvatarImage src={otherUser?.profileImageUrl || otherUser?.logoUrl} />
@@ -777,16 +931,13 @@ useEffect(() => {
                                 : 'bg-muted rounded-bl-md'
                             }`}
                           >
-                            {/* Attachments */}
                             {message.attachments && message.attachments.length > 0 && (
                               <div className="mb-2 space-y-2">
                                 {message.attachments.map((url, idx) => (
-                                  <a
+                                  <button
                                     key={idx}
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block"
+                                    onClick={() => openImageViewer(message.attachments || [], idx)}
+                                    className="block w-full text-left"
                                   >
                                     <img
                                       src={url}
@@ -794,7 +945,7 @@ useEffect(() => {
                                       className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
                                       style={{ maxHeight: '300px' }}
                                     />
-                                  </a>
+                                  </button>
                                 ))}
                               </div>
                             )}
@@ -823,7 +974,6 @@ useEffect(() => {
                     );
                   })}
                   
-                  {/* Typing Indicator */}
                   {isOtherUserTyping && (
                     <div className="flex gap-2 justify-start mt-4">
                       <Avatar className="h-8 w-8 shrink-0">
@@ -846,9 +996,7 @@ useEffect(() => {
                 </div>
               </ScrollArea>
 
-              {/* Input - Better mobile touch targets */}
               <div className="p-3 sm:p-4 border-t bg-background shrink-0">
-                {/* Attachment Previews */}
                 {attachmentPreviews.length > 0 && (
                   <div className="mb-3 flex gap-2 flex-wrap">
                     {attachmentPreviews.map((preview, idx) => (
@@ -871,7 +1019,6 @@ useEffect(() => {
                 )}
 
                 <div className="flex gap-2">
-                  {/* Hidden file input */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -881,32 +1028,30 @@ useEffect(() => {
                     className="hidden"
                   />
 
-                  {/* Message Templates - Company Only */}
+                  {/* Image attach button - available for both creators and companies */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    data-testid="button-attach-image"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingFiles || selectedFiles.length >= 3}
+                    className="h-11 w-11 shrink-0"
+                    title={selectedFiles.length >= 3 ? "Maximum 3 attachments" : "Attach images"}
+                  >
+                    {uploadingFiles ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <ImageIcon className="h-5 w-5" />
+                    )}
+                  </Button>
+
+                  {/* Message templates - only for companies */}
                   {isCompany && (
                     <MessageTemplates
                       onSelectTemplate={(content) => setMessageText(content)}
                       trackingLink={trackingLink}
                       creatorName={creatorName}
                     />
-                  )}
-
-                  {/* Image Attachment Button - Creator Only */}
-                  {!isCompany && (
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      data-testid="button-attach-image"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingFiles || selectedFiles.length >= 3}
-                      className="h-11 w-11 shrink-0"
-                      title={selectedFiles.length >= 3 ? "Maximum 3 attachments" : "Attach images"}
-                    >
-                      {uploadingFiles ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <ImageIcon className="h-5 w-5" />
-                      )}
-                    </Button>
                   )}
 
                   <Input

@@ -164,15 +164,18 @@ export default function Analytics() {
 
   const conversionRate = Number(analytics?.conversionRate ?? 0);
   const maxGeoCount = geography.reduce((max: number, item) => Math.max(max, item.count), 0);
+
   const totalSpend = Number(analytics?.totalSpent ?? 0);
   const totalEarnings = Number(analytics?.totalEarnings ?? 0);
   const primaryTotal = isCompany ? (totalSpend || totalEarnings) : totalEarnings;
+
   const affiliateBreakdown = isCompany
     ? Number(analytics?.affiliateSpent || 0)
     : Number(analytics?.affiliateEarnings || 0);
   const retainerBreakdown = isCompany
     ? Number(analytics?.retainerSpent || 0)
     : Number(analytics?.retainerEarnings || 0);
+
   const totalClicks = Number(analytics?.totalClicks || 0);
   const uniqueClicks = Number(analytics?.uniqueClicks || 0);
   const conversions = Number(analytics?.conversions || 0);
@@ -238,6 +241,7 @@ export default function Analytics() {
     }
 
     const now = new Date().toLocaleString();
+
     const summaryRows: Array<[string, string]> = isCompany
       ? [
           ["Total Spend", `$${Number(analytics.totalSpent || analytics.totalEarnings || 0).toFixed(2)}`],
@@ -406,7 +410,6 @@ export default function Analytics() {
     );
   }
 
-
   const renderCreatorAnalytics = () => (
     <div className="space-y-8">
       <TopNavBar />
@@ -434,7 +437,7 @@ export default function Analytics() {
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 justify-end">
           <Select value={dateRange} onValueChange={setDateRange}>
             <SelectTrigger className="w-40" data-testid="select-date-range">
               <SelectValue />
@@ -455,8 +458,28 @@ export default function Analytics() {
             disabled={!analytics || chartData.length === 0}
           >
             <Download className="h-4 w-4" />
-            Export
+            Export CSV
           </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={exportPdf}
+            disabled={!analytics}
+          >
+            <FileText className="h-4 w-4" />
+            PDF Report
+          </Button>
+          {!applicationId && (
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={sendToZapier}
+              disabled={!analytics}
+            >
+              <Share2 className="h-4 w-4" />
+              Zapier Webhook
+            </Button>
+          )}
         </div>
       </div>
 
@@ -468,10 +491,10 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">
-              ${Number(analytics?.totalEarnings || 0).toFixed(2)}
+              ${primaryTotal.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              <span className="text-green-600">+{analytics?.earningsGrowth || 0}%</span> from last period
+              Affiliate ${affiliateBreakdown.toFixed(2)} • Retainer ${retainerBreakdown.toFixed(2)}
             </p>
           </CardContent>
         </Card>
@@ -482,9 +505,9 @@ export default function Analytics() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics?.activeOffers || 0}</div>
+            <div className="text-2xl font-bold">{activeOffers}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Currently promoting
+              Offers you're approved or active in
             </p>
           </CardContent>
         </Card>
@@ -495,9 +518,9 @@ export default function Analytics() {
             <MousePointerClick className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics?.totalClicks || 0}</div>
+            <div className="text-2xl font-bold">{totalClicks}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {analytics?.uniqueClicks || 0} unique visitors
+              {uniqueClicks} unique visitors
             </p>
           </CardContent>
         </Card>
@@ -509,10 +532,10 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Number(analytics?.conversionRate ?? 0).toFixed(1)}%
+              {conversionRate.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {analytics?.conversions || 0} conversions
+              {conversions} conversions
             </p>
           </CardContent>
         </Card>
@@ -520,7 +543,7 @@ export default function Analytics() {
 
       <Card className="border-card-border">
         <CardHeader>
-          <CardTitle>Clicks Over Time</CardTitle>
+          <CardTitle>Clicks & Conversions</CardTitle>
         </CardHeader>
         <CardContent>
           {chartData.length > 0 ? (
@@ -528,15 +551,8 @@ export default function Analytics() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis
-                    dataKey="date"
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <YAxis
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                  />
+                  <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--popover))',
@@ -544,13 +560,8 @@ export default function Analytics() {
                       borderRadius: '6px',
                     }}
                   />
-                  <Line
-                    type="monotone"
-                    dataKey="clicks"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                  />
+                  <Line type="monotone" dataKey="clicks" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="conversions" stroke="#f97316" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -558,7 +569,7 @@ export default function Analytics() {
             <div className="text-center py-12">
               <MousePointerClick className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
               <p className="text-muted-foreground">No tracking data yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Your click data will appear here once you start promoting offers</p>
+              <p className="text-sm text-muted-foreground mt-1">Your click data will appear once traffic flows in.</p>
             </div>
           )}
         </CardContent>
@@ -615,6 +626,7 @@ export default function Analytics() {
   return (
     <div className="space-y-8">
       <TopNavBar />
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
@@ -627,20 +639,12 @@ export default function Analytics() {
             </Link>
           )}
           <h1 className="text-3xl font-bold">
-            {applicationId
-              ? isCompany
-                ? "Application Analytics"
-                : "Application Performance"
-              : isCompany
-                ? "Analytics Dashboard"
-                : "Creator Analytics"}
+            {applicationId ? "Application Analytics" : "Analytics Dashboard"}
           </h1>
           <p className="text-muted-foreground mt-1">
             {applicationId
               ? "Track performance for this specific application"
-              : isCompany
-                ? "Track your performance across all offers"
-                : "Monitor your own performance across all offers"}
+              : "Track your performance across all offers"}
           </p>
           {analytics?.offerTitle && applicationId && (
             <p className="text-sm font-medium text-primary mt-2">
@@ -680,7 +684,7 @@ export default function Analytics() {
             <FileText className="h-4 w-4" />
             PDF Report
           </Button>
-          {!applicationId && isCompany && (
+          {!applicationId && (
             <Button
               variant="outline"
               className="gap-2"
@@ -698,9 +702,7 @@ export default function Analytics() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-card-border">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {isCompany ? "Total Spend" : "Total Earnings"}
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Spend</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -721,9 +723,7 @@ export default function Analytics() {
           <CardContent>
             <div className="text-2xl font-bold">{activeOffers}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {isCompany
-                ? `${activeCreators ?? 0} active creators`
-                : "Offers you're approved or active in"}
+              {activeCreators ?? 0} active creators
             </p>
           </CardContent>
         </Card>
@@ -758,52 +758,50 @@ export default function Analytics() {
       </div>
 
       {/* Trend Charts */}
-      <div className={`grid gap-6 ${isCompany ? "lg:grid-cols-2" : ""}`}>
-        {isCompany && (
-          <Card className="border-card-border">
-            <CardHeader>
-              <CardTitle>Applications Over Time</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {applicationsTimeline.length > 0 ? (
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={applicationsTimeline}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                      <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--popover))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '6px',
-                        }}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Applications Over Time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {applicationsTimeline.length > 0 ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={applicationsTimeline}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px',
+                      }}
+                    />
+                    {TIMELINE_SERIES.map((series) => (
+                      <Area
+                        key={series.key}
+                        type="monotone"
+                        dataKey={series.key}
+                        stackId="1"
+                        name={series.label}
+                        stroke={series.color}
+                        fill={series.color}
+                        fillOpacity={0.35}
                       />
-                      {TIMELINE_SERIES.map((series) => (
-                        <Area
-                          key={series.key}
-                          type="monotone"
-                          dataKey={series.key}
-                          stackId="1"
-                          name={series.label}
-                          stroke={series.color}
-                          fill={series.color}
-                          fillOpacity={0.35}
-                        />
-                      ))}
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No application data in this range</p>
-                  <p className="text-sm text-muted-foreground mt-1">Adjust the date range to see application trends.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+                    ))}
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No application data in this range</p>
+                <p className="text-sm text-muted-foreground mt-1">Adjust the date range to see application trends.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card className="border-card-border">
           <CardHeader>
@@ -840,108 +838,106 @@ export default function Analytics() {
         </Card>
       </div>
 
-      {isCompany && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="border-card-border">
-            <CardHeader>
-              <CardTitle>Conversion Funnel</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {funnelChartData.length > 0 ? (
-                <div className="h-80">
+      {/* Conversion & Acquisition */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Conversion Funnel</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {funnelChartData.length > 0 ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <FunnelChart>
+                    <Tooltip />
+                    <Funnel dataKey="value" data={funnelChartData} isAnimationActive={false}>
+                      <LabelList position="right" fill="#111827" stroke="none" dataKey="name" />
+                    </Funnel>
+                  </FunnelChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Target className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No funnel data yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Approve applications to populate the funnel.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Creator Acquisition by Source</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {acquisitionSources.length > 0 ? (
+              <div className="h-80 flex flex-col">
+                <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
-                    <FunnelChart>
+                    <PieChart>
                       <Tooltip />
-                      <Funnel dataKey="value" data={funnelChartData} isAnimationActive={false}>
-                        <LabelList position="right" fill="#111827" stroke="none" dataKey="name" />
-                      </Funnel>
-                    </FunnelChart>
+                      <Pie data={acquisitionSources} dataKey="creators" nameKey="source" innerRadius={60} outerRadius={100}>
+                        {acquisitionSources.map((entry: any, index: number) => (
+                          <Cell key={entry.source} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                    </PieChart>
                   </ResponsiveContainer>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Target className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No funnel data yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">Approve applications to populate the funnel.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-card-border">
-            <CardHeader>
-              <CardTitle>Creator Acquisition by Source</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {acquisitionSources.length > 0 ? (
-                <div className="h-80 flex flex-col">
-                  <div className="h-56">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Tooltip />
-                        <Pie data={acquisitionSources} dataKey="creators" nameKey="source" innerRadius={60} outerRadius={100}>
-                          {acquisitionSources.map((entry: any, index: number) => (
-                            <Cell key={entry.source} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="space-y-2 pt-4 text-sm">
-                    {acquisitionSources.map((entry: { source: string; creators: number }) => (
-                      <div key={entry.source} className="flex items-center justify-between">
-                        <span>{entry.source}</span>
-                        <span className="text-muted-foreground">{entry.creators} creators</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No acquisition data yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">UTM tags will populate this view automatically.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      <div className={`grid gap-6 ${isCompany && !applicationId ? "lg:grid-cols-2" : ""}`}>
-        {isCompany && (
-          <Card className="border-card-border">
-            <CardHeader>
-              <CardTitle>Geographic Heatmap</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {geography.length > 0 ? (
-                <div className="space-y-3">
-                  {geography.map((entry: { country: string; count: number }) => (
-                    <div key={entry.country} className="flex items-center gap-3">
-                      <div className="w-32 text-sm font-medium truncate" title={entry.country}>
-                        {entry.country}
-                      </div>
-                      <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-primary/30 to-primary"
-                          style={{ width: maxGeoCount ? `${(entry.count / maxGeoCount) * 100}%` : '4px' }}
-                        />
-                      </div>
-                      <div className="w-10 text-xs text-muted-foreground text-right">{entry.count}</div>
+                <div className="space-y-2 pt-4 text-sm">
+                  {acquisitionSources.map((entry: { source: string; creators: number }) => (
+                    <div key={entry.source} className="flex items-center justify-between">
+                      <span>{entry.source}</span>
+                      <span className="text-muted-foreground">{entry.creators} creators</span>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Globe2 className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No geographic data yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">Clicks with location data will appear here.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No acquisition data yet</p>
+                <p className="text-sm text-muted-foreground mt-1">UTM tags will populate this view automatically.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Geography & Offer Breakdown */}
+      <div className={`grid gap-6 ${!applicationId ? "lg:grid-cols-2" : ""}`}>
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Geographic Heatmap</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {geography.length > 0 ? (
+              <div className="space-y-3">
+                {geography.map((entry: { country: string; count: number }) => (
+                  <div key={entry.country} className="flex items-center gap-3">
+                    <div className="w-32 text-sm font-medium truncate" title={entry.country}>
+                      {entry.country}
+                    </div>
+                    <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-primary/30 to-primary"
+                        style={{ width: maxGeoCount ? `${(entry.count / maxGeoCount) * 100}%` : '4px' }}
+                      />
+                    </div>
+                    <div className="w-10 text-xs text-muted-foreground text-right">{entry.count}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Globe2 className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No geographic data yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Clicks with location data will appear here.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {!applicationId && (
           <Card className="border-card-border">
@@ -967,7 +963,7 @@ export default function Analytics() {
                           <div className="font-semibold">{offer.conversions || 0}</div>
                         </div>
                         <div>
-                          <div className="text-xs text-muted-foreground">{isCompany ? 'Spent' : 'Earned'}</div>
+                          <div className="text-xs text-muted-foreground">Spent</div>
                           <div className="font-semibold font-mono">${Number(offer.earnings || 0).toFixed(2)}</div>
                         </div>
                       </div>
@@ -985,8 +981,6 @@ export default function Analytics() {
           </Card>
         )}
       </div>
-
-      {/* End sections */}
     </div>
   );
 }

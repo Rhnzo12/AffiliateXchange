@@ -214,7 +214,6 @@ export function AppSidebar() {
       url: "/admin/platform-settings",
       icon: Sliders,
     },
-    // Removed admin 'Account Settings' to avoid duplication with global Settings
   ];
 
   const getMenuItems = () => {
@@ -245,7 +244,12 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild isActive={location === item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}>
+                  <SidebarMenuButton 
+                        asChild 
+                        isActive={location === item.url} 
+                        className="hover:bg-primary/15 hover:text-primary hover:font-bold hover:scale-105 transition-all duration-200"
+                        data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                      >
                     <Link href={item.url} onClick={handleNavClick}>
                       {item.title === "Messages" ? (
                         <div className="relative inline-flex">
@@ -270,15 +274,22 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-4">
-        <div className="rounded-md border border-dashed border-primary/30 bg-muted/40 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Credits</p>
-          <p className="mt-1 text-sm font-medium text-foreground">AffiliateXchange Platform</p>
-          <p className="text-xs text-muted-foreground">© {currentYear} All rights reserved.</p>
-          <p className="text-xs text-muted-foreground">Crafted with care for our creators and partners.</p>
+      <SidebarFooter className="p-4">
+        <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <p className="text-xs font-semibold tracking-wide text-primary">AFFILIATEXCHANGE</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Professional affiliate marketing platform
+            </p>
+            <p className="text-[10px] text-muted-foreground/80">
+              © {currentYear} AffiliateXchange. All rights reserved.
+            </p>
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>
