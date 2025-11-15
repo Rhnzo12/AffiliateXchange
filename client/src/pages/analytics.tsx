@@ -82,7 +82,7 @@ type ApplicationTimelinePoint = {
 
 export default function Analytics() {
   const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [dateRange, setDateRange] = useState("30d");
   const [, params] = useRoute("/analytics/:id");
   const applicationId = params?.id;
@@ -93,7 +93,9 @@ export default function Analytics() {
     }
   }, [isAuthenticated, isLoading]);
 
-  const { data: analytics, isLoading: analyticsLoading, error } = useQuery<any>({
+  const isCompany = user?.role === 'company';
+
+  const { data: analytics, isLoading: analyticsLoading } = useQuery<any>({
     queryKey: ["/api/analytics", { range: dateRange, applicationId }],
     queryFn: async () => {
       const url = applicationId
@@ -131,7 +133,7 @@ export default function Analytics() {
     completed: Number(item.completed || 0),
   }));
 
-  const conversionFunnel = analytics?.conversionFunnel as
+  const conversionFunnel = (isCompany ? analytics?.conversionFunnel : undefined) as
     | { applied: number; approved: number; active: number; paused: number; completed: number; conversions: number }
     | undefined;
 
@@ -146,26 +148,39 @@ export default function Analytics() {
       ]
     : [];
 
-  const acquisitionSources: { source: string; creators: number }[] = (analytics?.acquisitionSources || []).map((item: any) => ({
-    source: item.source || "Direct/Other",
-    creators: Number(item.creators || 0),
-  }));
+  const acquisitionSources: { source: string; creators: number }[] = isCompany
+    ? (analytics?.acquisitionSources || []).map((item: any) => ({
+        source: item.source || "Direct/Other",
+        creators: Number(item.creators || 0),
+      }))
+    : [];
 
-  const geography: { country: string; count: number }[] = (analytics?.geography || []).map((item: any) => ({
-    country: item.country || "Unknown",
-    count: Number(item.count || 0),
-  }));
+  const geography: { country: string; count: number }[] = isCompany
+    ? (analytics?.geography || []).map((item: any) => ({
+        country: item.country || "Unknown",
+        count: Number(item.count || 0),
+      }))
+    : [];
 
   const conversionRate = Number(analytics?.conversionRate ?? 0);
   const maxGeoCount = geography.reduce((max: number, item) => Math.max(max, item.count), 0);
-  const totalEarningsDisplay = Number(analytics?.totalEarnings ?? analytics?.totalSpent ?? 0);
-  const affiliateSpent = Number(analytics?.affiliateSpent || 0);
-  const retainerSpent = Number(analytics?.retainerSpent || 0);
+
+  const totalSpend = Number(analytics?.totalSpent ?? 0);
+  const totalEarnings = Number(analytics?.totalEarnings ?? 0);
+  const primaryTotal = isCompany ? (totalSpend || totalEarnings) : totalEarnings;
+
+  const affiliateBreakdown = isCompany
+    ? Number(analytics?.affiliateSpent || 0)
+    : Number(analytics?.affiliateEarnings || 0);
+  const retainerBreakdown = isCompany
+    ? Number(analytics?.retainerSpent || 0)
+    : Number(analytics?.retainerEarnings || 0);
+
   const totalClicks = Number(analytics?.totalClicks || 0);
   const uniqueClicks = Number(analytics?.uniqueClicks || 0);
   const conversions = Number(analytics?.conversions || 0);
   const activeOffers = Number(analytics?.activeOffers || 0);
-  const activeCreators = Number(analytics?.activeCreators || 0);
+  const activeCreators = isCompany ? Number(analytics?.activeCreators || 0) : undefined;
 
   const exportData = () => {
     if (!analytics) {
@@ -226,16 +241,27 @@ export default function Analytics() {
     }
 
     const now = new Date().toLocaleString();
-    const summaryRows: Array<[string, string]> = [
-      ["Total Spend", `$${Number(analytics.totalSpent || 0).toFixed(2)}`],
-      ["Affiliate Spend", `$${Number(analytics.affiliateSpent || 0).toFixed(2)}`],
-      ["Retainer Spend", `$${Number(analytics.retainerSpent || 0).toFixed(2)}`],
-      ["Total Clicks", `${Number(analytics.totalClicks || 0).toLocaleString()}`],
-      ["Conversions", `${Number(analytics.conversions || 0).toLocaleString()}`],
-      ["Conversion Rate", `${conversionRate.toFixed(1)}%`],
-      ["Active Offers", `${Number(analytics.activeOffers || 0)}`],
-      ["Active Creators", `${Number(analytics.activeCreators || 0)}`],
-    ];
+
+    const summaryRows: Array<[string, string]> = isCompany
+      ? [
+          ["Total Spend", `$${Number(analytics.totalSpent || analytics.totalEarnings || 0).toFixed(2)}`],
+          ["Affiliate Spend", `$${Number(analytics.affiliateSpent || 0).toFixed(2)}`],
+          ["Retainer Spend", `$${Number(analytics.retainerSpent || 0).toFixed(2)}`],
+          ["Total Clicks", `${Number(analytics.totalClicks || 0).toLocaleString()}`],
+          ["Conversions", `${Number(analytics.conversions || 0).toLocaleString()}`],
+          ["Conversion Rate", `${conversionRate.toFixed(1)}%`],
+          ["Active Offers", `${Number(analytics.activeOffers || 0)}`],
+          ["Active Creators", `${Number(analytics.activeCreators || 0)}`],
+        ]
+      : [
+          ["Total Earnings", `$${Number(analytics.totalEarnings || 0).toFixed(2)}`],
+          ["Affiliate Earnings", `$${Number(analytics.affiliateEarnings || 0).toFixed(2)}`],
+          ["Retainer Earnings", `$${Number(analytics.retainerEarnings || 0).toFixed(2)}`],
+          ["Total Clicks", `${Number(analytics.totalClicks || 0).toLocaleString()}`],
+          ["Conversions", `${Number(analytics.conversions || 0).toLocaleString()}`],
+          ["Conversion Rate", `${conversionRate.toFixed(1)}%`],
+          ["Active Offers", `${Number(analytics.activeOffers || 0)}`],
+        ];
 
     const timelineSummary = chartData
       .map(
@@ -266,7 +292,13 @@ export default function Analytics() {
           </style>
         </head>
         <body>
-          <h1>${applicationId ? "Application Analytics Report" : "Company Analytics Report"}</h1>
+          <h1>${applicationId
+            ? isCompany
+              ? "Application Analytics Report"
+              : "Application Performance Report"
+            : isCompany
+              ? "Company Analytics Report"
+              : "Creator Analytics Report"}</h1>
           <div class="muted">Generated ${now}</div>
           <h2>Summary</h2>
           <table>
@@ -378,9 +410,223 @@ export default function Analytics() {
     );
   }
 
+  const renderCreatorAnalytics = () => (
+    <div className="space-y-8">
+      <TopNavBar />
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div>
+          {applicationId && (
+            <Link href="/applications">
+              <Button variant="ghost" size="sm" className="mb-2 gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Applications
+              </Button>
+            </Link>
+          )}
+          <h1 className="text-3xl font-bold">
+            {applicationId ? "Application Analytics" : "Analytics Dashboard"}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {applicationId
+              ? "Track performance for this specific application"
+              : "Track your performance across all offers"}
+          </p>
+          {analytics?.offerTitle && applicationId && (
+            <p className="text-sm font-medium text-primary mt-2">
+              {analytics.offerTitle}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="w-40" data-testid="select-date-range">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_RANGES.map((range) => (
+                <SelectItem key={range.value} value={range.value}>
+                  {range.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            data-testid="button-export"
+            className="gap-2"
+            onClick={exportData}
+            disabled={!analytics || chartData.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={exportPdf}
+            disabled={!analytics}
+          >
+            <FileText className="h-4 w-4" />
+            PDF Report
+          </Button>
+          {!applicationId && (
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={sendToZapier}
+              disabled={!analytics}
+            >
+              <Share2 className="h-4 w-4" />
+              Zapier Webhook
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-card-border">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold font-mono">
+              ${primaryTotal.toFixed(2)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Affiliate ${affiliateBreakdown.toFixed(2)} • Retainer ${retainerBreakdown.toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Offers</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeOffers}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Offers you're approved or active in
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
+            <MousePointerClick className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalClicks}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {uniqueClicks} unique visitors
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {conversionRate.toFixed(1)}%
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {conversions} conversions
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-card-border">
+        <CardHeader>
+          <CardTitle>Clicks & Conversions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {chartData.length > 0 ? (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="date" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                    }}
+                  />
+                  <Line type="monotone" dataKey="clicks" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="conversions" stroke="#f97316" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <MousePointerClick className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+              <p className="text-muted-foreground">No tracking data yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Your click data will appear once traffic flows in.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {!applicationId && (
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Performance by Offer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {analytics?.offerBreakdown && analytics.offerBreakdown.length > 0 ? (
+              <div className="space-y-4">
+                {analytics.offerBreakdown.map((offer: any) => (
+                  <div key={offer.offerId} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{offer.offerTitle}</h4>
+                      <p className="text-sm text-muted-foreground">{offer.companyName}</p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-6 text-center">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Clicks</div>
+                        <div className="font-semibold">{offer.clicks || 0}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Conv.</div>
+                        <div className="font-semibold">{offer.conversions || 0}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Earned</div>
+                        <div className="font-semibold font-mono">${Number(offer.earnings || 0).toFixed(2)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <TrendingUp className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No active offers yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Apply to offers to start tracking performance</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
+  if (!isCompany) {
+    return renderCreatorAnalytics();
+  }
+
   return (
     <div className="space-y-8">
       <TopNavBar />
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
@@ -456,15 +702,15 @@ export default function Analytics() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-card-border">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Spend</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">
-              ${totalEarningsDisplay.toFixed(2)}
+              ${primaryTotal.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Affiliate ${affiliateSpent.toFixed(2)} • Retainer ${retainerSpent.toFixed(2)}
+              Affiliate ${affiliateBreakdown.toFixed(2)} • Retainer ${retainerBreakdown.toFixed(2)}
             </p>
           </CardContent>
         </Card>
@@ -477,7 +723,7 @@ export default function Analytics() {
           <CardContent>
             <div className="text-2xl font-bold">{activeOffers}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {activeCreators} active creators
+              {activeCreators ?? 0} active creators
             </p>
           </CardContent>
         </Card>
@@ -660,7 +906,7 @@ export default function Analytics() {
       </div>
 
       {/* Geography & Offer Breakdown */}
-      <div className={`grid gap-6 ${applicationId ? "" : "lg:grid-cols-2"}`}>
+      <div className={`grid gap-6 ${!applicationId ? "lg:grid-cols-2" : ""}`}>
         <Card className="border-card-border">
           <CardHeader>
             <CardTitle>Geographic Heatmap</CardTitle>
@@ -717,7 +963,7 @@ export default function Analytics() {
                           <div className="font-semibold">{offer.conversions || 0}</div>
                         </div>
                         <div>
-                          <div className="text-xs text-muted-foreground">Earned</div>
+                          <div className="text-xs text-muted-foreground">Spent</div>
                           <div className="font-semibold font-mono">${Number(offer.earnings || 0).toFixed(2)}</div>
                         </div>
                       </div>
@@ -735,8 +981,6 @@ export default function Analytics() {
           </Card>
         )}
       </div>
-
-      {/* End sections */}
     </div>
   );
 }
