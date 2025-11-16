@@ -810,7 +810,7 @@ export async function setupAuth(app: Express) {
         // Check for active retainer contracts where creator is assigned
         const creatorContracts = await storage.getRetainerContractsByCreator(userId);
         const activeContracts = creatorContracts.filter(contract =>
-          contract.status === 'in_progress' || contract.status === 'open'
+          contract.status === 'in_progress'
         );
         activeItems.retainerContracts = activeContracts;
 
@@ -869,7 +869,7 @@ export async function setupAuth(app: Express) {
           // Check for active retainer contracts
           const companyContracts = await storage.getRetainerContractsByCompany(profile.id);
           const activeContracts = companyContracts.filter(contract =>
-            contract.status === 'in_progress' || contract.status === 'open'
+            contract.status === 'in_progress' && !!contract.assignedCreatorId
           );
           activeItems.retainerContracts = activeContracts;
 
