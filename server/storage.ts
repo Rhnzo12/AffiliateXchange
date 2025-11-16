@@ -731,6 +731,7 @@ export interface IStorage {
   approveRetainerDeliverable(id: string, reviewNotes?: string): Promise<any>;
   rejectRetainerDeliverable(id: string, reviewNotes: string): Promise<any>;
   requestRevision(id: string, reviewNotes: string): Promise<any>;
+  deleteRetainerDeliverable(id: string): Promise<void>;
 
   // Retainer Payments
   createRetainerPayment(payment: InsertRetainerPayment): Promise<RetainerPayment>;
@@ -1139,7 +1140,6 @@ export class DatabaseStorage implements IStorage {
     // If a limit is provided, respect it. If not provided, return all matching offers.
     const filters = _filters || {};
 
-    // ✅ ADD: JOIN with companyProfiles
     let query: any = db
       .select({
         offer: offers,
@@ -1391,6 +1391,13 @@ export class DatabaseStorage implements IStorage {
         const activeCreatorsCount = await this.getActiveCreatorsCountForOffer(row.offer.id);
         const clickStats = await this.getOfferClickStats(row.offer.id);
 
+        const applicationsResult = await db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(applications)
+          .where(eq(applications.offerId, row.offer.id));
+        
+        const applicationCount = Number(applicationsResult[0]?.count || 0);
+
         return {
           ...row.offer,
           company: row.company,
@@ -1398,6 +1405,7 @@ export class DatabaseStorage implements IStorage {
           activeCreatorsCount,
           totalClicks: clickStats.totalClicks,
           uniqueClicks: clickStats.uniqueClicks,
+          applicationCount, 
         };
       })
     );
@@ -1827,7 +1835,7 @@ export class DatabaseStorage implements IStorage {
 
   async createApplication(application: InsertApplication): Promise<Application> {
     const autoApprovalTime = new Date();
-    autoApprovalTime.setMinutes(autoApprovalTime.getMinutes() + 7); // why: business rule
+    autoApprovalTime.setMinutes(autoApprovalTime.getMinutes() + 7);
 
     const result = await db
       .insert(applications)
@@ -1839,6 +1847,15 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date(),
       })
       .returning();
+
+    await db
+      .update(offers)
+      .set({
+        applicationCount: sql`COALESCE(${offers.applicationCount}, 0) + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(offers.id, application.offerId));
+
     return result[0];
   }
 
@@ -3696,6 +3713,11 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return result[0];
   }
+
+  async deleteRetainerDeliverable(id: string): Promise<void> {
+  await db.delete(retainerDeliverables).where(eq(retainerDeliverables.id, id));
+  console.log(`[Storage] Deleted retainer deliverable ${id}`);
+}
 
   async createRetainerPayment(payment: InsertRetainerPayment): Promise<RetainerPayment> {
     try {

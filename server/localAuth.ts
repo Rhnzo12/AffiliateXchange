@@ -766,158 +766,284 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  // GDPR/CCPA: Delete account
-  app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
-    try {
-      const userId = (req.user as any).id;
-      const { password } = req.body;
-      const user = await storage.getUser(userId);
+// GDPR/CCPA: Delete account
+app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
+  try {
+    const userId = (req.user as any).id;
+    const { password } = req.body;
+    const user = await storage.getUser(userId);
 
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Verify password for non-OAuth users
+    if (user.password && !user.googleId) {
+      if (!password) {
+        return res.status(400).json({ error: "Password is required to delete your account" });
       }
 
-      // Verify password for non-OAuth users
-      if (user.password && !user.googleId) {
-        if (!password) {
-          return res.status(400).json({ error: "Password is required to delete your account" });
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-          return res.status(401).json({ error: "Incorrect password" });
-        }
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Incorrect password" });
       }
+    }
 
-      // Check for active applications/contracts/retainers
-      let applications = [];
-      let activeItems: any = {
-        applications: [],
-        retainerContracts: [],
-        retainerApplications: [],
-        offers: [],
-        pendingPayments: []
-      };
+    // Check for active applications/contracts/retainers
+    let applications = [];
+    let activeItems: any = {
+      applications: [],
+      retainerContracts: [],
+      retainerApplications: [],
+      offers: [],
+      pendingPayments: []
+    };
 
-      if (user.role === 'creator') {
-        // Check for active applications
-        applications = await storage.getApplicationsByCreator(userId);
-        const activeApps = applications.filter(app =>
-          app.status === 'active' || app.status === 'approved'
-        );
-        activeItems.applications = activeApps;
-
-        // Check for active retainer contracts where creator is assigned
-        const creatorContracts = await storage.getRetainerContractsByCreator(userId);
-        const activeContracts = creatorContracts.filter(contract =>
-          contract.status === 'in_progress' || contract.status === 'open'
-        );
-        activeItems.retainerContracts = activeContracts;
-
-        // Check for pending retainer applications
-        const retainerApplications = await storage.getRetainerApplicationsByCreator(userId);
-        const pendingRetainerApps = retainerApplications.filter(app =>
-          app.status === 'pending'
-        );
-        activeItems.retainerApplications = pendingRetainerApps;
-
-        // Check for pending payments
-        const payments = await storage.getPaymentsByCreator(userId);
-        const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'processing');
-        activeItems.pendingPayments = pendingPayments;
-
-        // If there are any active items, return error with details
-        const hasActiveItems = activeApps.length > 0 || activeContracts.length > 0 ||
-                               pendingRetainerApps.length > 0 || pendingPayments.length > 0;
-
-        if (hasActiveItems) {
-          return res.status(400).json({
-            error: "Cannot delete account with active activities",
-            details: {
-              applications: activeApps.length,
-              retainerContracts: activeContracts.length,
-              retainerApplications: pendingRetainerApps.length,
-              pendingPayments: pendingPayments.length
-            },
-            activeItems: activeItems
-          });
-        }
-      } else if (user.role === 'company') {
-        const profile = await storage.getCompanyProfile(userId);
-        if (profile) {
+        if (user.role === 'creator') {
           // Check for active applications
-          applications = await storage.getApplicationsByCompany(profile.id);
+          applications = await storage.getApplicationsByCreator(userId);
           const activeApps = applications.filter(app =>
             app.status === 'active' || app.status === 'approved'
           );
           activeItems.applications = activeApps;
 
-          // Check for active offers with applications
-          const offers = await storage.getOffersByCompany(profile.id);
-          const offersWithApps = [];
-          for (const offer of offers) {
-            const offerApps = applications.filter(app => app.offerId === offer.id);
-            if (offerApps.length > 0 && offer.status === 'approved') {
-              offersWithApps.push({
-                ...offer,
-                applicationCount: offerApps.length
-              });
-            }
-          }
-          activeItems.offers = offersWithApps;
-
-          // Check for active retainer contracts
-          const companyContracts = await storage.getRetainerContractsByCompany(profile.id);
-          const activeContracts = companyContracts.filter(contract =>
-            contract.status === 'in_progress' || contract.status === 'open'
+          // Check for active retainer contracts where creator is assigned
+          const creatorContracts = await storage.getRetainerContractsByCreator(userId);
+          const activeContracts = creatorContracts.filter(contract =>
+            contract.status === 'in_progress' 
           );
           activeItems.retainerContracts = activeContracts;
 
+          // Check for pending retainer applications
+          const retainerApplications = await storage.getRetainerApplicationsByCreator(userId);
+          const pendingRetainerApps = retainerApplications.filter(app =>
+            app.status === 'pending'
+          );
+          activeItems.retainerApplications = pendingRetainerApps;
+
+          // ADD THIS: Check for pending deliverables (not yet approved/rejected)
+          const deliverables = await storage.getRetainerDeliverablesByCreator(userId);
+          const pendingDeliverables = deliverables.filter(d =>
+            d.status === 'pending_review' || d.status === 'revision_requested'
+          );
+          activeItems.pendingDeliverables = pendingDeliverables;
+
           // Check for pending payments
-          const { db } = await import('./db');
-          const { retainerPayments } = await import('../shared/schema');
-          const { eq } = await import('drizzle-orm');
-          const payments = await db.select().from(retainerPayments).where(eq(retainerPayments.companyId, profile.id));
+          const payments = await storage.getPaymentsByCreator(userId);
           const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'processing');
           activeItems.pendingPayments = pendingPayments;
 
           // If there are any active items, return error with details
-          const hasActiveItems = activeApps.length > 0 || offersWithApps.length > 0 ||
-                               activeContracts.length > 0 || pendingPayments.length > 0;
+          const hasActiveItems = activeApps.length > 0 || activeContracts.length > 0 ||
+                                pendingRetainerApps.length > 0 || pendingDeliverables.length > 0 || 
+                                pendingPayments.length > 0;
 
           if (hasActiveItems) {
             return res.status(400).json({
               error: "Cannot delete account with active activities",
               details: {
                 applications: activeApps.length,
-                offersWithApplications: offersWithApps.length,
                 retainerContracts: activeContracts.length,
+                retainerApplications: pendingRetainerApps.length,
+                pendingDeliverables: pendingDeliverables.length, // ADD THIS
                 pendingPayments: pendingPayments.length
               },
               activeItems: activeItems
             });
           }
+        } else if (user.role === 'company') {
+      const profile = await storage.getCompanyProfile(userId);
+      if (profile) {
+        // Check for active applications
+        applications = await storage.getApplicationsByCompany(profile.id);
+        const activeApps = applications.filter(app =>
+          app.status === 'active' || app.status === 'approved'
+        );
+        activeItems.applications = activeApps;
+
+        // Check for active offers with applications
+        const offers = await storage.getOffersByCompany(profile.id);
+        const offersWithApps = [];
+        for (const offer of offers) {
+          const offerApps = applications.filter(app => app.offerId === offer.id);
+          if (offerApps.length > 0 && offer.status === 'approved') {
+            offersWithApps.push({
+              ...offer,
+              applicationCount: offerApps.length
+            });
+          }
+        }
+        activeItems.offers = offersWithApps;
+
+        // Check for active retainer contracts
+        const companyContracts = await storage.getRetainerContractsByCompany(profile.id);
+        const activeContracts = companyContracts.filter(contract =>
+          contract.status === 'in_progress' || contract.status === 'open'
+        );
+        activeItems.retainerContracts = activeContracts;
+
+        // Check for pending payments
+        const { db } = await import('./db');
+        const { retainerPayments } = await import('../shared/schema');
+        const { eq } = await import('drizzle-orm');
+        const payments = await db.select().from(retainerPayments).where(eq(retainerPayments.companyId, profile.id));
+        const pendingPayments = payments.filter(p => p.status === 'pending' || p.status === 'processing');
+        activeItems.pendingPayments = pendingPayments;
+
+        // If there are any active items, return error with details
+        const hasActiveItems = activeApps.length > 0 || offersWithApps.length > 0 ||
+                             activeContracts.length > 0 || pendingPayments.length > 0;
+
+        if (hasActiveItems) {
+          return res.status(400).json({
+            error: "Cannot delete account with active activities",
+            details: {
+              applications: activeApps.length,
+              offersWithApplications: offersWithApps.length,
+              retainerContracts: activeContracts.length,
+              pendingPayments: pendingPayments.length
+            },
+            activeItems: activeItems
+          });
         }
       }
+    }
 
-      // Start account deletion process
-      console.log(`[Account Deletion] Starting deletion for user ${userId} (${user.email})`);
+    // Start account deletion process
+    console.log(`[Account Deletion] Starting deletion for user ${userId} (${user.email})`);
 
-      // Import ObjectStorageService to delete Cloudinary files
-      const { ObjectStorageService } = await import('./objectStorage');
-      const objectStorage = new ObjectStorageService();
+    // Import ObjectStorageService to delete Cloudinary files
+    const { ObjectStorageService } = await import('./objectStorage');
+    const objectStorage = new ObjectStorageService();
 
-      // 1. Delete ALL Cloudinary files/folders for this user
-      console.log(`[Account Deletion] Deleting all Cloudinary files for user ${userId}`);
+    // Track Cloudinary deletion errors
+    const cloudinaryErrors: string[] = [];
 
+    // 1A. Delete specific files first (profile images, logos, documents)
+    console.log(`[Account Deletion] Deleting specific user files`);
+
+    // Delete user profile image if exists
+    if (user.profileImageUrl) {
       try {
-        // Delete user profile folder (contains profile images)
-        await objectStorage.deleteFolder(`affiliatexchange/user-profiles/${userId}`);
-        console.log(`[Account Deletion] Deleted user profile folder`);
+        const publicId = objectStorage.extractPublicIdFromUrl(user.profileImageUrl);
+        if (publicId) {
+          await objectStorage.deleteResource(publicId, 'image');
+          console.log(`[Account Deletion] Deleted user profile image: ${publicId}`);
+        }
       } catch (error: any) {
-        console.error(`[Account Deletion] Error deleting user profile folder:`, error.message);
+        const errorMsg = `Failed to delete profile image: ${error.message}`;
+        console.error(`[Account Deletion] ${errorMsg}`);
+        cloudinaryErrors.push(errorMsg);
       }
+    }
 
+    if (user.role === 'company') {
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (companyProfile) {
+        // Delete company logo
+        if (companyProfile.logoUrl) {
+          try {
+            const logoPublicId = objectStorage.extractPublicIdFromUrl(companyProfile.logoUrl);
+            if (logoPublicId) {
+              await objectStorage.deleteResource(logoPublicId, 'image');
+              console.log(`[Account Deletion] Deleted company logo: ${logoPublicId}`);
+            }
+          } catch (error: any) {
+            const errorMsg = `Failed to delete logo: ${error.message}`;
+            console.error(`[Account Deletion] ${errorMsg}`);
+            cloudinaryErrors.push(errorMsg);
+          }
+        }
+
+        // Delete verification document
+        if (companyProfile.verificationDocumentUrl) {
+          try {
+            const docPublicId = objectStorage.extractPublicIdFromUrl(companyProfile.verificationDocumentUrl);
+            if (docPublicId) {
+              const docType = companyProfile.verificationDocumentUrl.endsWith('.pdf') ? 'raw' : 'image';
+              await objectStorage.deleteResource(docPublicId, docType);
+              console.log(`[Account Deletion] Deleted verification document: ${docPublicId}`);
+            }
+          } catch (error: any) {
+            const errorMsg = `Failed to delete verification document: ${error.message}`;
+            console.error(`[Account Deletion] ${errorMsg}`);
+            cloudinaryErrors.push(errorMsg);
+          }
+        }
+
+        // Delete offer images/videos for all company offers
+        try {
+          const offers = await storage.getOffersByCompany(companyProfile.id);
+          console.log(`[Account Deletion] Deleting media from ${offers.length} offers`);
+          
+          for (const offer of offers) {
+            // Delete featured image
+            if (offer.featuredImageUrl) {
+              try {
+                const publicId = objectStorage.extractPublicIdFromUrl(offer.featuredImageUrl);
+                if (publicId) {
+                  await objectStorage.deleteResource(publicId, 'image');
+                  console.log(`[Account Deletion] Deleted offer featured image: ${publicId}`);
+                }
+              } catch (error: any) {
+                console.error(`[Account Deletion] Error deleting offer image:`, error.message);
+              }
+            }
+
+            // Delete offer videos
+            const { db } = await import('./db');
+            const { offerVideos } = await import('../shared/schema');
+            const { eq } = await import('drizzle-orm');
+            
+            const videos = await db.select().from(offerVideos).where(eq(offerVideos.offerId, offer.id));
+            
+            for (const video of videos) {
+              if (video.videoUrl) {
+                try {
+                  const publicId = objectStorage.extractPublicIdFromUrl(video.videoUrl);
+                  if (publicId) {
+                    await objectStorage.deleteResource(publicId, 'video');
+                    console.log(`[Account Deletion] Deleted offer video: ${publicId}`);
+                  }
+                } catch (error: any) {
+                  console.error(`[Account Deletion] Error deleting video:`, error.message);
+                }
+              }
+              if (video.thumbnailUrl) {
+                try {
+                  const thumbId = objectStorage.extractPublicIdFromUrl(video.thumbnailUrl);
+                  if (thumbId) {
+                    await objectStorage.deleteResource(thumbId, 'image');
+                    console.log(`[Account Deletion] Deleted video thumbnail: ${thumbId}`);
+                  }
+                } catch (error: any) {
+                  console.error(`[Account Deletion] Error deleting thumbnail:`, error.message);
+                }
+              }
+            }
+          }
+        } catch (error: any) {
+          const errorMsg = `Failed to delete offer media: ${error.message}`;
+          console.error(`[Account Deletion] ${errorMsg}`);
+          cloudinaryErrors.push(errorMsg);
+        }
+      }
+    }
+
+    // 1B. Delete ALL Cloudinary folders for this user
+    console.log(`[Account Deletion] Deleting all Cloudinary folders for user ${userId}`);
+
+    try {
+      // Delete user profile folder (contains profile images)
+      await objectStorage.deleteFolder(`affiliatexchange/user-profiles/${userId}`);
+      console.log(`[Account Deletion] Deleted user profile folder`);
+    } catch (error: any) {
+      const errorMsg = `Failed to delete user profile folder: ${error.message}`;
+      console.error(`[Account Deletion] ${errorMsg}`);
+      cloudinaryErrors.push(errorMsg);
+    }
+
+    // After deleting creator retainer deliverables folder (around line 450)
       if (user.role === 'creator') {
         try {
           // Delete creator-specific folders
@@ -932,154 +1058,137 @@ export async function setupAuth(app: Express) {
             console.log(`[Account Deletion] Deleted creator content folder`);
           }
         } catch (error: any) {
-          console.error(`[Account Deletion] Error deleting creator folders:`, error.message);
+          const errorMsg = `Failed to delete creator folders: ${error.message}`;
+          console.error(`[Account Deletion] ${errorMsg}`);
+          cloudinaryErrors.push(errorMsg);
         }
 
-        // Delete message attachments for creator conversations
+        // ADD THIS: Delete retainer deliverables from database before deleting account
         try {
-          const { db } = await import('./db');
-          const { conversations, messages } = await import('../shared/schema');
-          const { eq } = await import('drizzle-orm');
-
-          const creatorConversations = await db.select().from(conversations).where(eq(conversations.creatorId, userId));
-
-          for (const conversation of creatorConversations) {
-            await objectStorage.deleteFolder(`affiliatexchange/messages/${conversation.id}`);
-          }
-          console.log(`[Account Deletion] Deleted creator message attachments`);
-        } catch (error: any) {
-          console.error(`[Account Deletion] Error deleting creator message folders:`, error.message);
-        }
-
-      } else if (user.role === 'company') {
-        const companyProfile = await storage.getCompanyProfile(userId);
-        if (companyProfile) {
-          try {
-            // Delete company-specific folders
-            await objectStorage.deleteFolder(`affiliatexchange/company-logos/${companyProfile.id}`);
-            console.log(`[Account Deletion] Deleted company logo folder`);
-
-            await objectStorage.deleteFolder(`affiliatexchange/verification-documents/${userId}`);
-            console.log(`[Account Deletion] Deleted verification documents folder`);
-
-            await objectStorage.deleteFolder(`affiliatexchange/offers/${companyProfile.id}`);
-            console.log(`[Account Deletion] Deleted company offers folder`);
-
-            await objectStorage.deleteFolder(`affiliatexchange/retainer-contracts/${companyProfile.id}`);
-            console.log(`[Account Deletion] Deleted retainer contracts folder`);
-          } catch (error: any) {
-            console.error(`[Account Deletion] Error deleting company folders:`, error.message);
-          }
-
-          // Delete message attachments for company conversations
-          try {
-            const { db } = await import('./db');
-            const { conversations } = await import('../shared/schema');
-            const { eq } = await import('drizzle-orm');
-
-            const companyConversations = await db.select().from(conversations).where(eq(conversations.companyId, companyProfile.id));
-
-            for (const conversation of companyConversations) {
-              await objectStorage.deleteFolder(`affiliatexchange/messages/${conversation.id}`);
+          const deliverables = await storage.getRetainerDeliverablesByCreator(userId);
+          console.log(`[Account Deletion] Found ${deliverables.length} retainer deliverables to delete`);
+          
+          for (const deliverable of deliverables) {
+            // Delete the video file from Cloudinary
+            if (deliverable.videoUrl) {
+              try {
+                const publicId = objectStorage.extractPublicIdFromUrl(deliverable.videoUrl);
+                if (publicId) {
+                  await objectStorage.deleteResource(publicId, 'video');
+                  console.log(`[Account Deletion] Deleted deliverable video: ${publicId}`);
+                }
+              } catch (error: any) {
+                const errorMsg = `Failed to delete deliverable video: ${error.message}`;
+                console.error(`[Account Deletion] ${errorMsg}`);
+                cloudinaryErrors.push(errorMsg);
+              }
             }
-            console.log(`[Account Deletion] Deleted company message attachments`);
-          } catch (error: any) {
-            console.error(`[Account Deletion] Error deleting company message folders:`, error.message);
+
+            // Delete the deliverable record from database
+            await storage.deleteRetainerDeliverable(deliverable.id);
           }
+          console.log(`[Account Deletion] Deleted ${deliverables.length} deliverable records`);
+        } catch (error: any) {
+          const errorMsg = `Failed to delete retainer deliverables: ${error.message}`;
+          console.error(`[Account Deletion] ${errorMsg}`);
+          cloudinaryErrors.push(errorMsg);
         }
       }
 
-      // Delete any other user-related folders
-      try {
-        await objectStorage.deleteFolder(`affiliatexchange/users/${userId}`);
-        console.log(`[Account Deletion] Deleted general user folder`);
-      } catch (error: any) {
-        console.error(`[Account Deletion] Error deleting general user folder:`, error.message);
-      }
-
-      // 2. Anonymize reviews (keep review content but anonymize author)
-      const reviews = user.role === 'creator'
-        ? await storage.getReviewsByCreator(userId)
-        : [];
-
-      console.log(`[Account Deletion] Anonymizing ${reviews.length} reviews`);
-      // Reviews will be cascade deleted or anonymized through foreign key constraints
-
-      // 3. Anonymize messages (keep messages but anonymize sender)
-      // Messages will be handled through cascade delete on conversations
-
-      // 4. Delete personal information from user table
-      await storage.updateUser(userId, {
-        email: `deleted-${userId}@deleted.user`,
-        firstName: null,
-        lastName: null,
-        profileImageUrl: null,
-        password: null,
-        googleId: null,
-        emailVerificationToken: null,
-        emailVerificationTokenExpiry: null,
-        passwordResetToken: null,
-        passwordResetTokenExpiry: null,
-        accountStatus: 'banned', // Mark as banned to prevent re-activation
-      });
-
-      // 5. Delete payment settings (cascade will handle)
-      const paymentSettings = await storage.getPaymentSettings(userId);
-      for (const setting of paymentSettings) {
-        await storage.deletePaymentSetting(setting.id);
-      }
-
-      // 6. Delete favorites (cascade will handle)
-      if (user.role === 'creator') {
-        const favorites = await storage.getFavoritesByCreator(userId);
-        for (const fav of favorites) {
-          await storage.deleteFavorite(userId, fav.offerId);
-        }
-      }
-
-      // 7. Delete applications (if no active ones)
-      // These will be cascade deleted through database constraints
-
-      // 8. Delete notifications
-      const notifications = await storage.getNotifications(userId);
-      for (const notif of notifications) {
-        await storage.deleteNotification(notif.id);
-      }
-
-      // 9. Send confirmation email before final deletion
-      try {
-        const notificationService = new NotificationService(storage);
-        await notificationService.sendEmailNotification(
-          user.email, // Send to original email before it's deleted
-          'system_announcement' as any,
-          {
-            userName: user.firstName || user.username,
-            announcementTitle: 'Account Deletion Confirmation',
-            announcementMessage: 'Your account has been successfully deleted. All your personal data has been removed from our systems in compliance with GDPR/CCPA regulations. If you did not request this deletion, please contact support immediately.',
-          }
-        );
-        console.log(`[Account Deletion] Confirmation email sent to ${user.email}`);
-      } catch (emailError) {
-        console.error('[Account Deletion] Failed to send confirmation email:', emailError);
-        // Don't fail the deletion if email fails
-      }
-
-      // 10. Logout user
-      req.logout((err) => {
-        if (err) {
-          console.error("Logout error during account deletion:", err);
-        }
-      });
-
-      console.log(`[Account Deletion] Successfully deleted account for user ${userId}`);
-
-      res.json({
-        success: true,
-        message: "Your account has been successfully deleted. All personal data has been removed."
-      });
+    // Delete any other user-related folders
+    try {
+      await objectStorage.deleteFolder(`affiliatexchange/users/${userId}`);
+      console.log(`[Account Deletion] Deleted general user folder`);
     } catch (error: any) {
-      console.error("Delete account error:", error);
-      res.status(500).json({ error: error.message || "Failed to delete account" });
+      const errorMsg = `Failed to delete general user folder: ${error.message}`;
+      console.error(`[Account Deletion] ${errorMsg}`);
+      cloudinaryErrors.push(errorMsg);
     }
-  });
+
+    // Log summary of Cloudinary deletion issues
+    if (cloudinaryErrors.length > 0) {
+      console.warn(`[Account Deletion] Cloudinary deletion completed with ${cloudinaryErrors.length} error(s):`);
+      cloudinaryErrors.forEach((err, idx) => console.warn(`  ${idx + 1}. ${err}`));
+    }
+
+    // 2. Delete payment settings
+    const paymentSettings = await storage.getPaymentSettings(userId);
+    for (const setting of paymentSettings) {
+      await storage.deletePaymentSetting(setting.id);
+    }
+    console.log(`[Account Deletion] Deleted ${paymentSettings.length} payment settings`);
+
+    // 3. Delete favorites
+    if (user.role === 'creator') {
+      const favorites = await storage.getFavoritesByCreator(userId);
+      for (const fav of favorites) {
+        await storage.deleteFavorite(userId, fav.offerId);
+      }
+      console.log(`[Account Deletion] Deleted ${favorites.length} favorites`);
+    }
+
+    // 4. Delete notifications
+    const notifications = await storage.getNotifications(userId);
+    for (const notif of notifications) {
+      await storage.deleteNotification(notif.id);
+    }
+    console.log(`[Account Deletion] Deleted ${notifications.length} notifications`);
+
+    // 5. Send confirmation email before final deletion
+    try {
+      const notificationService = new NotificationService(storage);
+      await notificationService.sendEmailNotification(
+        user.email, // Send to original email before it's deleted
+        'system_announcement' as any,
+        {
+          userName: user.firstName || user.username,
+          announcementTitle: 'Account Deletion Confirmation',
+          announcementMessage: 'Your account has been successfully deleted. All your personal data has been removed from our systems in compliance with GDPR/CCPA regulations. If you did not request this deletion, please contact support immediately.',
+        }
+      );
+      console.log(`[Account Deletion] Confirmation email sent to ${user.email}`);
+    } catch (emailError) {
+      console.error('[Account Deletion] Failed to send confirmation email:', emailError);
+      // Don't fail the deletion if email fails
+    }
+
+    // 6. Anonymize user data (reviews and messages will be kept but anonymized through cascade)
+    await storage.updateUser(userId, {
+      email: `deleted-${userId}@deleted.user`,
+      firstName: null,
+      lastName: null,
+      profileImageUrl: null,
+      password: null,
+      googleId: null,
+      emailVerificationToken: null,
+      emailVerificationTokenExpiry: null,
+      passwordResetToken: null,
+      passwordResetTokenExpiry: null,
+      accountStatus: 'banned', // Mark as banned to prevent re-activation
+    });
+    console.log(`[Account Deletion] User data anonymized`);
+
+    // 7. Logout user
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error during account deletion:", err);
+      }
+    });
+
+    console.log(`[Account Deletion] Successfully deleted account for user ${userId}`);
+
+    const responseMessage = cloudinaryErrors.length > 0
+      ? `Your account has been successfully deleted. All personal data has been removed. Note: Some file deletions encountered issues but your account data is fully deleted.`
+      : `Your account has been successfully deleted. All personal data has been removed.`;
+
+    res.json({
+      success: true,
+      message: responseMessage,
+      warnings: cloudinaryErrors.length > 0 ? cloudinaryErrors : undefined
+    });
+  } catch (error: any) {
+    console.error("Delete account error:", error);
+    res.status(500).json({ error: error.message || "Failed to delete account" });
+  }
+});
 }
