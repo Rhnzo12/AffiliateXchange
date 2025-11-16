@@ -809,17 +809,11 @@ export async function setupAuth(app: Express) {
 
         // Check for active retainer contracts where creator is assigned
         const creatorContracts = await storage.getRetainerContractsByCreator(userId);
+        const isInProgressRetainer = (status?: string) => status?.toLowerCase() === 'in_progress';
         const activeContracts = creatorContracts.filter(contract =>
-          contract.status === 'in_progress' || contract.status === 'open'
+          isInProgressRetainer(contract.status)
         );
         activeItems.retainerContracts = activeContracts;
-
-        // Check for pending retainer applications
-        const retainerApplications = await storage.getRetainerApplicationsByCreator(userId);
-        const pendingRetainerApps = retainerApplications.filter(app =>
-          app.status === 'pending'
-        );
-        activeItems.retainerApplications = pendingRetainerApps;
 
         // Check for pending payments
         const payments = await storage.getPaymentsByCreator(userId);
@@ -827,8 +821,7 @@ export async function setupAuth(app: Express) {
         activeItems.pendingPayments = pendingPayments;
 
         // If there are any active items, return error with details
-        const hasActiveItems = activeApps.length > 0 || activeContracts.length > 0 ||
-                               pendingRetainerApps.length > 0 || pendingPayments.length > 0;
+        const hasActiveItems = activeApps.length > 0 || activeContracts.length > 0 || pendingPayments.length > 0;
 
         if (hasActiveItems) {
           return res.status(400).json({
@@ -836,7 +829,7 @@ export async function setupAuth(app: Express) {
             details: {
               applications: activeApps.length,
               retainerContracts: activeContracts.length,
-              retainerApplications: pendingRetainerApps.length,
+              retainerApplications: 0,
               pendingPayments: pendingPayments.length
             },
             activeItems: activeItems
@@ -868,8 +861,9 @@ export async function setupAuth(app: Express) {
 
           // Check for active retainer contracts
           const companyContracts = await storage.getRetainerContractsByCompany(profile.id);
+          const isInProgressRetainer = (status?: string) => status?.toLowerCase() === 'in_progress';
           const activeContracts = companyContracts.filter(contract =>
-            contract.status === 'in_progress' || contract.status === 'open'
+            isInProgressRetainer(contract.status) && !!contract.assignedCreatorId
           );
           activeItems.retainerContracts = activeContracts;
 
