@@ -30,6 +30,7 @@ import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
 import { VideoPlayer } from "../components/VideoPlayer";
+import { Progress } from "../components/ui/progress";
 
 // Helper function to generate thumbnail from video
 const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
@@ -138,6 +139,10 @@ export default function CompanyOfferCreate() {
   const [selectedVideoUrl, setSelectedVideoUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+  const [currentUploadVideoIndex, setCurrentUploadVideoIndex] = useState<number | null>(null);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [offerUploadProgress, setOfferUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState("");
 
   // Store thumbnail file for upload after offer creation
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -182,9 +187,48 @@ export default function CompanyOfferCreate() {
     queryKey: ["/api/niches"],
   });
 
+  const uploadWithProgress = (
+    uploadUrl: string,
+    formData: FormData,
+    onProgress: (progress: number) => void,
+  ) => {
+    return new Promise<any>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", uploadUrl);
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          onProgress(progress);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch (error) {
+            reject(error);
+          }
+        } else {
+          reject(new Error("Upload failed"));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Upload failed"));
+
+      xhr.send(formData);
+    });
+  };
+
   const createOfferMutation = useMutation({
     mutationFn: async (data: typeof formData & { videos: VideoData[] }) => {
       // Step 1: Create the offer as DRAFT first (not pending_review yet)
+      setUploadStatus("Creating draft offer...");
+      setOfferUploadProgress(5);
+      setCurrentUploadVideoIndex(null);
+      setVideoUploadProgress(0);
+
       const offerPayload = {
         title: data.title,
         productName: data.productName,
@@ -299,10 +343,18 @@ export default function CompanyOfferCreate() {
       // Step 2: Upload each video to Cloudinary with company ID and offer ID folder structure
       if (data.videos && data.videos.length > 0) {
         console.log(`Uploading ${data.videos.length} videos to offer ${offerId}`);
+        setUploadStatus("Preparing video uploads...");
+        setOfferUploadProgress(20);
+
+        const totalVideos = data.videos.length;
+        const perVideoPortion = totalVideos > 0 ? 70 / totalVideos : 0;
 
         for (let i = 0; i < data.videos.length; i++) {
           const video = data.videos[i];
           console.log(`Uploading video ${i + 1}/${data.videos.length}:`, video.title);
+          setCurrentUploadVideoIndex(i);
+          setVideoUploadProgress(0);
+          setUploadStatus(`Uploading video ${i + 1} of ${totalVideos}: ${video.title}`);
 
           try {
             // Upload video to Cloudinary with company ID and offer ID in path
@@ -330,17 +382,19 @@ export default function CompanyOfferCreate() {
               formData.append('folder', uploadData.folder);
             }
 
-            const uploadResult = await fetch(uploadData.uploadUrl, {
-              method: "POST",
-              body: formData,
-            });
-
-            if (!uploadResult.ok) {
-              throw new Error("Video upload to Cloudinary failed");
-            }
-
-            const cloudinaryResponse = await uploadResult.json();
+            const cloudinaryResponse = await uploadWithProgress(
+              uploadData.uploadUrl,
+              formData,
+              (progress) => {
+                setVideoUploadProgress(progress);
+                const progressValue = 20 + perVideoPortion * i + (perVideoPortion * progress) / 100;
+                setOfferUploadProgress(Math.min(95, Math.round(progressValue)));
+              },
+            );
             const uploadedVideoUrl = cloudinaryResponse.secure_url;
+
+            setVideoUploadProgress(100);
+            setOfferUploadProgress(Math.min(95, Math.round(20 + perVideoPortion * (i + 1))));
 
             // Generate and upload thumbnail
             let uploadedThumbnailUrl = null;
@@ -424,6 +478,8 @@ export default function CompanyOfferCreate() {
 
       // Step 3: Submit offer for review (validates 6-12 video requirement on server)
       console.log(`Submitting offer ${offerId} for review...`);
+      setUploadStatus("Submitting offer for review...");
+      setOfferUploadProgress(97);
       const submitResponse = await fetch(`/api/offers/${offerId}/submit-for-review`, {
         method: "POST",
         headers: {
@@ -439,6 +495,8 @@ export default function CompanyOfferCreate() {
 
       const submitData = await submitResponse.json();
       console.log("Offer submitted for review:", submitData);
+      setOfferUploadProgress(100);
+      setUploadStatus("Offer submitted for review");
 
       return submitData;
     },
@@ -448,6 +506,10 @@ export default function CompanyOfferCreate() {
         title: "Offer Submitted for Review",
         description: `Your offer has been submitted for admin review with ${data.videoCount || videos.length} video(s)`,
       });
+      setOfferUploadProgress(0);
+      setUploadStatus("");
+      setCurrentUploadVideoIndex(null);
+      setVideoUploadProgress(0);
       setLocation("/company/offers");
     },
     onError: (error: any) => {
@@ -457,6 +519,10 @@ export default function CompanyOfferCreate() {
         description: error.message || "Failed to create offer",
         variant: "destructive",
       });
+      setOfferUploadProgress(0);
+      setUploadStatus("");
+      setCurrentUploadVideoIndex(null);
+      setVideoUploadProgress(0);
     },
   });
 
@@ -526,6 +592,10 @@ export default function CompanyOfferCreate() {
 
     // Store file for later upload with offer ID
     // Create temporary preview URL
+    if (currentVideo.videoUrl) {
+      URL.revokeObjectURL(currentVideo.videoUrl);
+    }
+
     const previewUrl = URL.createObjectURL(file);
 
     setCurrentVideo(prev => ({
@@ -535,6 +605,7 @@ export default function CompanyOfferCreate() {
     }));
 
     setIsUploading(false);
+    setVideoUploadProgress(0);
 
     toast({
       title: "Video Selected",
@@ -1204,6 +1275,13 @@ export default function CompanyOfferCreate() {
                                   <Play className="h-12 w-12 text-white" />
                                 </div>
                               </>
+                            ) : video.videoUrl ? (
+                              <video
+                                src={video.videoUrl}
+                                className="w-full h-full object-cover"
+                                muted
+                                controls
+                              />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <Video className="h-8 w-8 text-muted-foreground" />
@@ -1238,13 +1316,30 @@ export default function CompanyOfferCreate() {
               </CardContent>
             </Card>
 
+            {(createOfferMutation.isPending || offerUploadProgress > 0) && (
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+                <div className="flex items-center justify-between text-sm font-medium">
+                  <span>{uploadStatus || "Uploading offer..."}</span>
+                  <span>{Math.round(offerUploadProgress)}%</span>
+                </div>
+                <Progress value={offerUploadProgress || 5} />
+                {currentUploadVideoIndex !== null && (
+                  <div className="text-xs text-muted-foreground">
+                    Video {currentUploadVideoIndex + 1} of {videos.length} • {videoUploadProgress}%
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3 pt-4">
               <Button
                 type="submit"
                 disabled={createOfferMutation.isPending || videos.length < 6}
                 data-testid="button-create-offer"
               >
-                {createOfferMutation.isPending ? "Creating..." : "Create Offer"}
+                {createOfferMutation.isPending
+                  ? `Creating...${offerUploadProgress ? ` ${offerUploadProgress}%` : ""}`
+                  : "Create Offer"}
               </Button>
               <Link href="/company/offers">
                 <Button type="button" variant="outline" data-testid="button-cancel">
@@ -1318,6 +1413,23 @@ export default function CompanyOfferCreate() {
                 </label>
               </div>
             </div>
+
+            {currentVideo.videoUrl && (
+              <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+                <div className="flex items-center justify-between text-sm font-medium">
+                  <span>Video Preview</span>
+                  {createOfferMutation.isPending && (
+                    <span className="text-xs text-muted-foreground">{videoUploadProgress}% uploaded</span>
+                  )}
+                </div>
+                <video
+                  src={currentVideo.videoUrl}
+                  controls
+                  muted
+                  className="w-full rounded-md aspect-video bg-black object-cover"
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="video-title">Video Title *</Label>
