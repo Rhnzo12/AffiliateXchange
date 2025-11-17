@@ -239,7 +239,9 @@ export class ObjectStorageService {
       } catch (folderError: any) {
         const message = folderError?.message || folderError?.error?.message || '';
         // Cloudinary returns a not-found/does-not-exist message when the folder is already removed.
-        if (!/not\s+found|does not exist/i.test(message)) {
+        if (/not\s+found|does not exist|can't find folder/i.test(message)) {
+          console.info(`[ObjectStorage] Folder ${folderPath} does not exist; skipping deletion.`);
+        } else {
           throw folderError;
         }
       }
