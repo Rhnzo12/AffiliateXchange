@@ -2105,35 +2105,12 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
     }
 
-    // 6. Anonymize user data (reviews and messages will be kept but anonymized through cascade)
+    // 6. Remove user and all related records (offers, applications, etc.) via cascading deletes
+    console.log(`[Account Deletion] Deleting database records for user ${userId}`);
 
-    await storage.updateUser(userId, {
+    await storage.deleteUser(userId);
 
-      email: `deleted-${userId}@deleted.user`,
-
-      firstName: null,
-
-      lastName: null,
-
-      profileImageUrl: null,
-
-      password: null,
-
-      googleId: null,
-
-      emailVerificationToken: null,
-
-      emailVerificationTokenExpiry: null,
-
-      passwordResetToken: null,
-
-      passwordResetTokenExpiry: null,
-
-      accountStatus: 'banned', // Mark as banned to prevent re-activation
-
-    });
-
-    console.log(`[Account Deletion] User data anonymized`);
+    console.log(`[Account Deletion] User and related records deleted`);
 
     // 7. Logout user
 
