@@ -50,6 +50,13 @@ const tierSchema = z.object({
   durationMonths: z.string().min(1, "Duration is required"),
 });
 
+const tierSchema = z.object({
+  name: z.string().min(1, "Tier name is required"),
+  monthlyAmount: z.string().min(1, "Monthly amount is required"),
+  videosPerMonth: z.string().min(1, "Videos per month is required"),
+  durationMonths: z.string().min(1, "Duration is required"),
+});
+
 const createRetainerSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   description: z.string().min(20, "Description must be at least 20 characters"),
@@ -599,6 +606,7 @@ export default function CompanyRetainers() {
                   </div>
 
                   <div className="grid gap-3">
+
                     <div className="grid md:grid-cols-5 gap-3 text-xs font-semibold text-muted-foreground px-1 uppercase tracking-wide">
                       <span>Tier name</span>
                       <span>Monthly amount</span>
