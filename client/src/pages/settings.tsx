@@ -40,6 +40,7 @@ export default function Settings() {
   
   // Creator profile states
   const [bio, setBio] = useState("");
+  const [profileImageUrl, setProfileImageUrl] = useState("");
   const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [tiktokUrl, setTiktokUrl] = useState("");
@@ -68,6 +69,7 @@ export default function Settings() {
   const [verificationDocumentUrl, setVerificationDocumentUrl] = useState("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+  const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
 
   // Account info states
   const [username, setUsername] = useState("");
@@ -116,6 +118,7 @@ export default function Settings() {
         const data = JSON.parse(savedFormData);
         // Restore creator profile fields
         if (data.bio !== undefined) setBio(data.bio);
+        if (data.profileImageUrl !== undefined) setProfileImageUrl(data.profileImageUrl);
         if (data.selectedNiches !== undefined) setSelectedNiches(data.selectedNiches);
         if (data.youtubeUrl !== undefined) setYoutubeUrl(data.youtubeUrl);
         if (data.tiktokUrl !== undefined) setTiktokUrl(data.tiktokUrl);
@@ -163,6 +166,7 @@ export default function Settings() {
       // Load creator profile data
       if (user?.role === 'creator') {
         setBio(profile.bio || "");
+        setProfileImageUrl(profile.profileImageUrl || "");
         setSelectedNiches(profile.niches || []);
         setYoutubeUrl(profile.youtubeUrl || "");
         setTiktokUrl(profile.tiktokUrl || "");
@@ -203,6 +207,7 @@ export default function Settings() {
     const formData = {
       // Creator profile fields
       bio,
+      profileImageUrl,
       selectedNiches,
       youtubeUrl,
       tiktokUrl,
@@ -232,7 +237,7 @@ export default function Settings() {
 
     localStorage.setItem('settings-form-data', JSON.stringify(formData));
   }, [
-    isAuthenticated, bio, selectedNiches, youtubeUrl, tiktokUrl, instagramUrl,
+    isAuthenticated, bio, profileImageUrl, selectedNiches, youtubeUrl, tiktokUrl, instagramUrl,
     youtubeFollowers, tiktokFollowers, instagramFollowers, tradeName, legalName,
     logoUrl, industry, websiteUrl, companyDescription, contactName, contactJobTitle,
     phoneNumber, businessAddress, companySize, yearFounded, linkedinUrl, twitterUrl,
@@ -337,6 +342,96 @@ export default function Settings() {
       });
     } finally {
       setIsUploadingLogo(false);
+    }
+  };
+
+  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const isImage = imageExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+    if (!isImage) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload an image file (JPG, PNG, GIF, WebP)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5242880) {
+      toast({
+        title: "File Too Large",
+        description: "Image file must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingProfileImage(true);
+
+    try {
+      const folder = user?.id
+        ? `creatorprofile/${user.id}`
+        : "creatorprofile";
+
+      const uploadResponse = await fetch("/api/objects/upload", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ folder, resourceType: "image" }),
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const uploadData = await uploadResponse.json();
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      if (uploadData.uploadPreset) {
+        formData.append('upload_preset', uploadData.uploadPreset);
+      } else if (uploadData.signature) {
+        formData.append('signature', uploadData.signature);
+        formData.append('timestamp', uploadData.timestamp.toString());
+        formData.append('api_key', uploadData.apiKey);
+      }
+
+      if (uploadData.folder) {
+        formData.append('folder', uploadData.folder);
+      }
+
+      const uploadResult = await fetch(uploadData.uploadUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      const cloudinaryResponse = await uploadResult.json();
+      setProfileImageUrl(cloudinaryResponse.secure_url);
+
+      toast({
+        title: "Success!",
+        description: "Profile image uploaded successfully. Don't forget to save your changes.",
+      });
+    } catch (error) {
+      console.error("Profile image upload error:", error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload profile image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingProfileImage(false);
     }
   };
 
@@ -669,6 +764,7 @@ export default function Settings() {
 
         payload = {
           bio,
+          profileImageUrl: profileImageUrl || null,
           niches: selectedNiches,
           youtubeUrl,
           tiktokUrl,
@@ -710,6 +806,7 @@ export default function Settings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       // Clear saved form data from localStorage since changes are now persisted
       localStorage.removeItem('settings-form-data');
       toast({
@@ -762,7 +859,7 @@ export default function Settings() {
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
               <AvatarImage
-                src={user?.profileImageUrl || ''}
+                src={profileImageUrl || user?.profileImageUrl || ''}
                 alt={user?.firstName || 'User'}
                 referrerPolicy="no-referrer"
               />
@@ -1169,6 +1266,77 @@ export default function Settings() {
           {/* CREATOR PROFILE SECTION */}
           {user?.role === 'creator' && (
             <>
+              <div className="space-y-2">
+                <Label htmlFor="profileImage">Profile Image</Label>
+                <p className="text-sm text-muted-foreground">
+                  Upload a profile picture to personalize your account.
+                </p>
+
+                {profileImageUrl ? (
+                  <div className="relative inline-block">
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <Avatar className="h-24 w-24">
+                        <AvatarImage src={profileImageUrl} alt={user?.firstName || 'Creator profile'} />
+                        <AvatarFallback className="text-2xl">
+                          {user?.firstName?.[0] || user?.username?.[0] || 'C'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">Current Profile Image</p>
+                        <p className="text-sm text-muted-foreground">This image will appear on your creator profile.</p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2"
+                      onClick={() => setProfileImageUrl("")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfileImageUpload}
+                      disabled={isUploadingProfileImage}
+                      className="hidden"
+                      id="profile-image-upload"
+                    />
+                    <label
+                      htmlFor="profile-image-upload"
+                      className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block ${
+                        isUploadingProfileImage ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        {isUploadingProfileImage ? (
+                          <>
+                            <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
+                            <div className="text-sm font-medium text-blue-600">
+                              Uploading Image...
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-8 w-8 text-primary" />
+                            <div className="text-sm font-medium">
+                              Click to upload profile image
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              JPG, PNG, GIF, WebP (max 5MB)
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="bio">Bio</Label>
                 <Textarea
