@@ -11,6 +11,7 @@ export async function runAutoMigrations() {
   const client = await pool.connect();
 
   try {
+    // --- Offer management columns ---
     // Check if new columns exist
     const result = await client.query(`
       SELECT column_name
@@ -38,36 +39,35 @@ export async function runAutoMigrations() {
 
     if (missingColumns.length === 0) {
       console.log('✓ All offer management columns exist');
-      return;
-    }
+    } else {
+      console.log(`⚠️  Missing columns: ${missingColumns.join(', ')}`);
+      console.log('🔧 Adding missing columns...');
 
-    console.log(`⚠️  Missing columns: ${missingColumns.join(', ')}`);
-    console.log('🔧 Adding missing columns...');
+      // Add missing columns
+      if (!existingColumns.includes('rejected_at')) {
+        await client.query('ALTER TABLE offers ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMP;');
+        console.log('  ✓ Added rejected_at');
+      }
 
-    // Add missing columns
-    if (!existingColumns.includes('rejected_at')) {
-      await client.query('ALTER TABLE offers ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMP;');
-      console.log('  ✓ Added rejected_at');
-    }
+      if (!existingColumns.includes('rejection_reason')) {
+        await client.query('ALTER TABLE offers ADD COLUMN IF NOT EXISTS rejection_reason TEXT;');
+        console.log('  ✓ Added rejection_reason');
+      }
 
-    if (!existingColumns.includes('rejection_reason')) {
-      await client.query('ALTER TABLE offers ADD COLUMN IF NOT EXISTS rejection_reason TEXT;');
-      console.log('  ✓ Added rejection_reason');
-    }
+      if (!existingColumns.includes('featured_on_homepage')) {
+        await client.query('ALTER TABLE offers ADD COLUMN IF NOT EXISTS featured_on_homepage BOOLEAN DEFAULT false;');
+        console.log('  ✓ Added featured_on_homepage');
+      }
 
-    if (!existingColumns.includes('featured_on_homepage')) {
-      await client.query('ALTER TABLE offers ADD COLUMN IF NOT EXISTS featured_on_homepage BOOLEAN DEFAULT false;');
-      console.log('  ✓ Added featured_on_homepage');
-    }
+      if (!existingColumns.includes('listing_fee')) {
+        await client.query('ALTER TABLE offers ADD COLUMN IF NOT EXISTS listing_fee NUMERIC(10, 2) DEFAULT 0;');
+        console.log('  ✓ Added listing_fee');
+      }
 
-    if (!existingColumns.includes('listing_fee')) {
-      await client.query('ALTER TABLE offers ADD COLUMN IF NOT EXISTS listing_fee NUMERIC(10, 2) DEFAULT 0;');
-      console.log('  ✓ Added listing_fee');
-    }
-
-    if (!existingColumns.includes('edit_requests')) {
-      await client.query(`ALTER TABLE offers ADD COLUMN IF NOT EXISTS edit_requests JSONB DEFAULT '[]'::jsonb;`);
-      console.log('  ✓ Added edit_requests');
+      if (!existingColumns.includes('edit_requests')) {
+        await client.query(`ALTER TABLE offers ADD COLUMN IF NOT EXISTS edit_requests JSONB DEFAULT '[]'::jsonb;`);
+        console.log('  ✓ Added edit_requests');
+      }
     }
 
     // Check if notification types need updating
@@ -95,6 +95,67 @@ export async function runAutoMigrations() {
       }
     } else {
       console.log('✓ All notification types exist');
+    }
+
+    // --- Retainer contract tiering/support columns ---
+    // Ensure the new retainer contract fields (tiers, approvals, scheduling) exist so retainer
+    // creation doesn't fail with missing-column errors.
+    console.log('🔄 Checking retainer contract columns...');
+    const retainerColumnsResult = await client.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'retainer_contracts'
+        AND column_name IN (
+          'content_approval_required',
+          'exclusivity_required',
+          'minimum_video_length_seconds',
+          'posting_schedule',
+          'retainer_tiers'
+        );
+    `);
+
+    const existingRetainerColumns = retainerColumnsResult.rows.map((row) => row.column_name);
+    const requiredRetainerColumns = [
+      'content_approval_required',
+      'exclusivity_required',
+      'minimum_video_length_seconds',
+      'posting_schedule',
+      'retainer_tiers',
+    ];
+
+    const missingRetainerColumns = requiredRetainerColumns.filter(
+      (column) => !existingRetainerColumns.includes(column),
+    );
+
+    if (missingRetainerColumns.length === 0) {
+      console.log('✓ All retainer contract columns exist');
+    } else {
+      console.log(`⚠️  Missing retainer columns: ${missingRetainerColumns.join(', ')}`);
+      console.log('🔧 Adding missing retainer columns...');
+
+      await client.query(`
+        ALTER TABLE retainer_contracts
+          ADD COLUMN IF NOT EXISTS content_approval_required BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS exclusivity_required BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS minimum_video_length_seconds INTEGER,
+          ADD COLUMN IF NOT EXISTS posting_schedule TEXT,
+          ADD COLUMN IF NOT EXISTS retainer_tiers JSONB DEFAULT '[]'::jsonb;
+      `);
+
+      await client.query(`
+        UPDATE retainer_contracts
+        SET content_approval_required = COALESCE(content_approval_required, false),
+            exclusivity_required = COALESCE(exclusivity_required, false)
+        WHERE content_approval_required IS NULL OR exclusivity_required IS NULL;
+      `);
+
+      await client.query(`
+        ALTER TABLE retainer_contracts
+          ALTER COLUMN content_approval_required SET NOT NULL,
+          ALTER COLUMN exclusivity_required SET NOT NULL;
+      `);
+
+      console.log('✓ Retainer contract columns added/updated');
     }
 
     console.log('✅ Database migrations completed successfully!');
