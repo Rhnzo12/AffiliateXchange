@@ -563,6 +563,7 @@ export interface AdminCreatorSummary {
   profileImageUrl: string | null;
   accountStatus: User["accountStatus"];
   createdAt: Date | null;
+  isDeleted: boolean;
   profile:
     | {
         bio: string | null;
@@ -1049,6 +1050,9 @@ export class DatabaseStorage implements IStorage {
     return results.map((row: any) => ({
       ...row.company,
       user: row.user,
+      isDeletedUser:
+        !!row.user?.email &&
+        (row.user.email.startsWith("deleted-") || row.user.email.includes("@deleted.user")),
     }));
   }
 
@@ -1070,6 +1074,10 @@ export class DatabaseStorage implements IStorage {
     const company = {
       ...result[0].company,
       user: result[0].user,
+      isDeletedUser:
+        !!result[0].user?.email &&
+        (result[0].user.email.startsWith("deleted-") ||
+          result[0].user.email.includes("@deleted.user")),
     };
     console.log(`[Storage] Found company: ${company.legalName} with ID: ${company.id}`);
     return company;
@@ -4191,6 +4199,7 @@ export class DatabaseStorage implements IStorage {
         profileImageUrl: row.profileImageUrl ?? null,
         accountStatus: row.accountStatus,
         createdAt: row.createdAt ?? null,
+        isDeleted: row.email.startsWith("deleted-") || row.email.includes("@deleted.user"),
         profile: row.creatorProfile
           ? {
               bio: row.creatorProfile.bio ?? null,

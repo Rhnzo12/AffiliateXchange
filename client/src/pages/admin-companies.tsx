@@ -270,10 +270,13 @@ export default function AdminCompanies() {
                       <div className="text-sm">{company.industry || "—"}</div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
-                        <div>{company.user?.email || "—"}</div>
-                        <div className="text-xs text-muted-foreground">
-                          @{company.user?.username}
+                      <div className="text-sm space-y-1">
+                        <div className={company.isDeletedUser ? "line-through text-muted-foreground" : undefined}>
+                          {company.user?.email || "—"}
+                        </div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                          <span>@{company.user?.username}</span>
+                          {company.isDeletedUser && <Badge variant="outline" className="text-[10px]">Deleted</Badge>}
                         </div>
                       </div>
                     </TableCell>
