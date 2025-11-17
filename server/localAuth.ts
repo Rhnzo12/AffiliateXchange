@@ -1594,6 +1594,17 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
     const cloudinaryErrors: string[] = [];
 
+    const deleteFolderWithTracking = async (folderPath: string, description: string) => {
+      try {
+        await objectStorage.deleteFolder(folderPath);
+        console.log(`[Account Deletion] Deleted ${description} folder`);
+      } catch (error: any) {
+        const errorMsg = `Failed to delete ${description} folder: ${error.message}`;
+        console.error(`[Account Deletion] ${errorMsg}`);
+        cloudinaryErrors.push(errorMsg);
+      }
+    };
+
     // 1A. Delete specific files first (profile images, logos, documents)
 
     console.log(`[Account Deletion] Deleting specific user files`);
@@ -1839,14 +1850,10 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
           // ✅ DELETE CREATOR-SPECIFIC FOLDERS BY ID
           
           // 1. Delete creatorprofile/{creator_id} folder
-          try {
-            await objectStorage.deleteFolder(`affiliatexchange/creatorprofile/${userId}`);
-            console.log(`[Account Deletion] Deleted creatorprofile/${userId} folder`);
-          } catch (error: any) {
-            const errorMsg = `Failed to delete creatorprofile/${userId} folder: ${error.message}`;
-            console.error(`[Account Deletion] ${errorMsg}`);
-            cloudinaryErrors.push(errorMsg);
-          }
+          await deleteFolderWithTracking(
+            `affiliatexchange/creatorprofile/${creatorProfile.id}`,
+            `creatorprofile/${creatorProfile.id}`
+          );
 
           // 2. Delete retainer deliverables folder (retainer-deliverables/{creator_id})
           try {
@@ -1862,13 +1869,15 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
           try {
             const retainerContracts = await storage.getRetainerContractsByCreator(userId);
             console.log(`[Account Deletion] Deleting ${retainerContracts.length} retainer contract folders`);
-            
+
             for (const contract of retainerContracts) {
               try {
                 await objectStorage.deleteFolder(`affiliatexchange/creatorlink/retainer/${contract.id}`);
                 console.log(`[Account Deletion] Deleted creatorlink/retainer/${contract.id} folder`);
               } catch (error: any) {
-                console.error(`[Account Deletion] Error deleting retainer folder ${contract.id}:`, error.message);
+                const errorMsg = `Failed to delete creatorlink/retainer/${contract.id} folder: ${error.message}`;
+                console.error(`[Account Deletion] ${errorMsg}`);
+                cloudinaryErrors.push(errorMsg);
               }
             }
           } catch (error: any) {
@@ -1881,13 +1890,15 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
           try {
             const conversations = await storage.getConversationsByUser(userId, 'creator');
             console.log(`[Account Deletion] Deleting ${conversations.length} conversation attachment folders`);
-            
+
             for (const conversation of conversations) {
               try {
                 await objectStorage.deleteFolder(`affiliatexchange/creatorlink/attachments/${conversation.id}`);
                 console.log(`[Account Deletion] Deleted creatorlink/attachments/${conversation.id} folder`);
               } catch (error: any) {
-                console.error(`[Account Deletion] Error deleting conversation attachments folder ${conversation.id}:`, error.message);
+                const errorMsg = `Failed to delete creatorlink/attachments/${conversation.id} folder: ${error.message}`;
+                console.error(`[Account Deletion] ${errorMsg}`);
+                cloudinaryErrors.push(errorMsg);
               }
             }
           } catch (error: any) {
@@ -1923,15 +1934,11 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
             cloudinaryErrors.push(errorMsg);
           }
 
-          // 2. Delete verification-documents/{user_id} folder
-          try {
-            await objectStorage.deleteFolder(`affiliatexchange/verification-documents/${userId}`);
-            console.log(`[Account Deletion] Deleted verification-documents/${userId} folder`);
-          } catch (error: any) {
-            const errorMsg = `Failed to delete verification-documents/${userId} folder: ${error.message}`;
-            console.error(`[Account Deletion] ${errorMsg}`);
-            cloudinaryErrors.push(errorMsg);
-          }
+          // 2. Delete verification-documents/{company_profile_id} folder
+          await deleteFolderWithTracking(
+            `affiliatexchange/verification-documents/${companyProfile.id}`,
+            `verification-documents/${companyProfile.id}`
+          );
 
           // 3. Delete creatorlink/videos/{company_profile_id} folder
           try {
@@ -1957,13 +1964,15 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
           try {
             const retainerContracts = await storage.getRetainerContractsByCompany(companyProfile.id);
             console.log(`[Account Deletion] Deleting ${retainerContracts.length} retainer contract folders`);
-            
+
             for (const contract of retainerContracts) {
               try {
                 await objectStorage.deleteFolder(`affiliatexchange/creatorlink/retainer/${contract.id}`);
                 console.log(`[Account Deletion] Deleted creatorlink/retainer/${contract.id} folder`);
               } catch (error: any) {
-                console.error(`[Account Deletion] Error deleting retainer folder ${contract.id}:`, error.message);
+                const errorMsg = `Failed to delete creatorlink/retainer/${contract.id} folder: ${error.message}`;
+                console.error(`[Account Deletion] ${errorMsg}`);
+                cloudinaryErrors.push(errorMsg);
               }
             }
           } catch (error: any) {
@@ -1976,13 +1985,15 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
           try {
             const conversations = await storage.getConversationsByUser(userId, 'company');
             console.log(`[Account Deletion] Deleting ${conversations.length} conversation attachment folders`);
-            
+
             for (const conversation of conversations) {
               try {
                 await objectStorage.deleteFolder(`affiliatexchange/creatorlink/attachments/${conversation.id}`);
                 console.log(`[Account Deletion] Deleted creatorlink/attachments/${conversation.id} folder`);
               } catch (error: any) {
-                console.error(`[Account Deletion] Error deleting conversation attachments folder ${conversation.id}:`, error.message);
+                const errorMsg = `Failed to delete creatorlink/attachments/${conversation.id} folder: ${error.message}`;
+                console.error(`[Account Deletion] ${errorMsg}`);
+                cloudinaryErrors.push(errorMsg);
               }
             }
           } catch (error: any) {
@@ -2094,35 +2105,12 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
     }
 
-    // 6. Anonymize user data (reviews and messages will be kept but anonymized through cascade)
+    // 6. Remove user and all related records (offers, applications, etc.) via cascading deletes
+    console.log(`[Account Deletion] Deleting database records for user ${userId}`);
 
-    await storage.updateUser(userId, {
+    await storage.deleteUser(userId);
 
-      email: `deleted-${userId}@deleted.user`,
-
-      firstName: null,
-
-      lastName: null,
-
-      profileImageUrl: null,
-
-      password: null,
-
-      googleId: null,
-
-      emailVerificationToken: null,
-
-      emailVerificationTokenExpiry: null,
-
-      passwordResetToken: null,
-
-      passwordResetTokenExpiry: null,
-
-      accountStatus: 'banned', // Mark as banned to prevent re-activation
-
-    });
-
-    console.log(`[Account Deletion] User data anonymized`);
+    console.log(`[Account Deletion] User and related records deleted`);
 
     // 7. Logout user
 
