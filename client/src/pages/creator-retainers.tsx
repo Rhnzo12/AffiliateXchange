@@ -984,7 +984,7 @@ export default function CreatorRetainers() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-5xl">
+        <DialogContent className="max-w-5xl sm:max-w-5xl lg:max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Review details & apply</DialogTitle>
             <DialogDescription>
@@ -1207,7 +1207,7 @@ export default function CreatorRetainers() {
 
                   <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
                     <div className="flex items-center gap-2 font-semibold">
-                      <Info className="h-4 w-4" /> 7-minute auto-approval
+                      <Info className="h-4 w-4" /> Fast auto-approval
                     </div>
                     <p className="text-xs mt-1">
                       Applications auto-approve in minutes when you meet the requirements. You'll get a sticky CTA in the dashboard to upload your first video right away.
@@ -1216,7 +1216,7 @@ export default function CreatorRetainers() {
                 </div>
               </div>
 
-              <div className="sticky bottom-0 bg-background pt-4 border-t flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="sticky bottom-0 bg-background/95 pt-4 border-t flex flex-col gap-3 md:flex-row md:items-center md:justify-between backdrop-blur supports-[backdrop-filter]:bg-background/80">
                 <div className="space-y-1 text-sm">
                   <p className="font-semibold flex items-center gap-2">
                     Selected tier {activeTier?.name || "Standard"}
