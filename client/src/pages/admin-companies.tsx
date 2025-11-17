@@ -21,6 +21,7 @@ type Company = {
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   createdAt: string;
   approvedAt?: string;
+  isDeletedUser?: boolean;
   user?: {
     email: string;
     username: string;
