@@ -3425,66 +3425,96 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRetainerContractsByCompany(companyId: string): Promise<any[]> {
-    const results = await db
-      .select()
-      .from(retainerContracts)
-      .where(eq(retainerContracts.companyId, companyId))
-      .orderBy(desc(retainerContracts.createdAt));
+    try {
+      const results = await db
+        .select()
+        .from(retainerContracts)
+        .where(eq(retainerContracts.companyId, companyId))
+        .orderBy(desc(retainerContracts.createdAt));
 
-    // Fetch assigned creator for each contract
-    const contractsWithCreators = await Promise.all(
-      results.map(async (contract) => {
-        const baseContract = {
-          ...contract,
-          activeCreators: await this.getActiveRetainerCreatorsCount(contract.id),
-        };
+      // Fetch assigned creator for each contract
+      const contractsWithCreators = await Promise.all(
+        results.map(async (contract) => {
+          const baseContract = {
+            ...contract,
+            activeCreators: await this.getActiveRetainerCreatorsCount(contract.id),
+          };
 
-        if (contract.assignedCreatorId) {
-          const creator = await this.getUserById(contract.assignedCreatorId);
-          return { ...baseContract, assignedCreator: creator };
-        }
+          if (contract.assignedCreatorId) {
+            const creator = await this.getUserById(contract.assignedCreatorId);
+            return { ...baseContract, assignedCreator: creator };
+          }
 
-        return baseContract;
-      })
-    );
+          return baseContract;
+        })
+      );
 
-    return contractsWithCreators;
+      return contractsWithCreators;
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_contracts")) {
+        console.warn(
+          "[Storage] retainer_contracts relation missing while fetching company retainer contracts - returning empty array.",
+        );
+        return [];
+      }
+      throw error;
+    }
   }
 
   async getRetainerContractsByCreator(creatorId: string): Promise<any[]> {
-    const results = await db
-      .select()
-      .from(retainerContracts)
-      .leftJoin(companyProfiles, eq(retainerContracts.companyId, companyProfiles.id))
-      .where(eq(retainerContracts.assignedCreatorId, creatorId))
-      .orderBy(desc(retainerContracts.createdAt));
+    try {
+      const results = await db
+        .select()
+        .from(retainerContracts)
+        .leftJoin(companyProfiles, eq(retainerContracts.companyId, companyProfiles.id))
+        .where(eq(retainerContracts.assignedCreatorId, creatorId))
+        .orderBy(desc(retainerContracts.createdAt));
 
-    return Promise.all(
-      results.map(async (r: any) => ({
-        ...r.retainer_contracts,
-        company: r.company_profiles,
-        activeCreators: await this.getActiveRetainerCreatorsCount(r.retainer_contracts.id),
-      }))
-    );
+      return Promise.all(
+        results.map(async (r: any) => ({
+          ...r.retainer_contracts,
+          company: r.company_profiles,
+          activeCreators: await this.getActiveRetainerCreatorsCount(r.retainer_contracts.id),
+        }))
+      );
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_contracts")) {
+        console.warn(
+          "[Storage] retainer_contracts relation missing while fetching creator retainer contracts - returning empty array.",
+        );
+        return [];
+      }
+      throw error;
+    }
   }
 
   async getOpenRetainerContracts(): Promise<any[]> {
-    const results = await db
-      .select()
-      .from(retainerContracts)
-      .leftJoin(companyProfiles, eq(retainerContracts.companyId, companyProfiles.id))
-      .leftJoin(users, eq(companyProfiles.userId, users.id))
-      .where(eq(retainerContracts.status, "open"))
-      .orderBy(desc(retainerContracts.createdAt));
+    try {
+      const results = await db
+        .select()
+        .from(retainerContracts)
+        .leftJoin(companyProfiles, eq(retainerContracts.companyId, companyProfiles.id))
+        .leftJoin(users, eq(companyProfiles.userId, users.id))
+        .where(eq(retainerContracts.status, "open"))
+        .orderBy(desc(retainerContracts.createdAt));
 
-    return Promise.all(
-      results.map(async (r: any) => ({
-        ...r.retainer_contracts,
-        company: r.company_profiles,
-        companyUser: r.users,
-        activeCreators: await this.getActiveRetainerCreatorsCount(r.retainer_contracts.id),
-      }))
-    );
+      return Promise.all(
+        results.map(async (r: any) => ({
+          ...r.retainer_contracts,
+          company: r.company_profiles,
+          companyUser: r.users,
+          activeCreators: await this.getActiveRetainerCreatorsCount(r.retainer_contracts.id),
+        }))
+      );
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_contracts")) {
+        console.warn(
+          "[Storage] retainer_contracts relation missing while fetching open retainer contracts - returning empty array.",
+        );
+        return [];
+      }
+      throw error;
+    }
   }
 
   async createRetainerContract(contract: InsertRetainerContract): Promise<RetainerContract> {
