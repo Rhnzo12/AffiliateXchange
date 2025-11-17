@@ -50,20 +50,6 @@ const retainerTierSchema = z.object({
   durationMonths: z.string().min(1, "Duration is required"),
 });
 
-const retainerTierSchema = z.object({
-const tierSchema = z.object({
-
-  name: z.string().min(1, "Tier name is required"),
-  monthlyAmount: z.string().min(1, "Monthly amount is required"),
-  videosPerMonth: z.string().min(1, "Videos per month is required"),
-  durationMonths: z.string().min(1, "Duration is required"),
-});
-const tierSchema = z.object({
-  name: z.string().min(1, "Tiaer name is required"),
-  monthlyAmount: z.string().min(1, "Monthly amount is required"),
-  videosPerMonth: z.string().min(1, "Videos per month is required"),
-  durationMonths: z.string().min(1, "Duration is required"),
-});
 const createRetainerSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   description: z.string().min(20, "Description must be at least 20 characters"),
@@ -81,7 +67,6 @@ const createRetainerSchema = z.object({
   minimumVideoLengthSeconds: z.string().optional(),
   postingSchedule: z.string().optional(),
   retainerTiers: z.array(retainerTierSchema).max(5).default([]),
-  retainerTiers: z.array(tierSchema).max(5).default([]),>>>>>>> main
 });
 
 type CreateRetainerForm = z.infer<typeof createRetainerSchema>;
