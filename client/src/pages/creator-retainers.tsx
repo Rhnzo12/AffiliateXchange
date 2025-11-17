@@ -1207,10 +1207,9 @@ export default function CreatorRetainers() {
 
                   <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
                     <div className="flex items-center gap-2 font-semibold">
-                      <Info className="h-4 w-4" /> Fast auto-approval
+                      <Info className="h-4 w-4" />  We’ll review your application right away.
                     </div>
                     <p className="text-xs mt-1">
-                      Applications auto-approve in minutes when you meet the requirements. You'll get a sticky CTA in the dashboard to upload your first video right away.
                     </p>
                   </div>
                 </div>
