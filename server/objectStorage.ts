@@ -219,25 +219,37 @@ export class ObjectStorageService {
   }
 
   async deleteFolder(folderPath: string): Promise<any> {
-    // Delete all resources in the folder
-    const result = await cloudinary.api.delete_resources_by_prefix(folderPath, {
-      resource_type: 'image',
-    });
+    try {
+      // Delete all resources in the folder for each resource type we store
+      const deleteByType = async (resourceType: 'image' | 'video' | 'raw') =>
+        cloudinary.api.delete_resources_by_prefix(folderPath, {
+          resource_type: resourceType,
+          type: 'upload'
+        });
 
-    // Also try to delete videos
-    await cloudinary.api.delete_resources_by_prefix(folderPath, {
-      resource_type: 'video',
-    });
+      const [imageResult] = await Promise.all([
+        deleteByType('image'),
+        deleteByType('video'),
+        deleteByType('raw')
+      ]);
 
-    // Also try to delete raw files
-    await cloudinary.api.delete_resources_by_prefix(folderPath, {
-      resource_type: 'raw',
-    });
+      // Finally delete the folder itself. If it's already gone, ignore the error.
+      try {
+        await cloudinary.api.delete_folder(folderPath);
+      } catch (folderError: any) {
+        const message = folderError?.message || folderError?.error?.message || '';
+        // Cloudinary returns a not-found/does-not-exist message when the folder is already removed.
+        if (!/not\s+found|does not exist/i.test(message)) {
+          throw folderError;
+        }
+      }
 
-    // Finally delete the folder itself
-    await cloudinary.api.delete_folder(folderPath);
-
-    return result;
+      return imageResult;
+    } catch (error) {
+      // Surface richer error details to the caller so the logs are actionable.
+      const message = (error as any)?.message || (error as any)?.error?.message || JSON.stringify(error);
+      throw new Error(message);
+    }
   }
 
   async getVideoInfo(publicId: string): Promise<any> {
