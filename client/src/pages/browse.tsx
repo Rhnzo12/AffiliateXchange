@@ -1081,6 +1081,13 @@ export default function Browse() {
                           </div>
                         </div>
 
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <Users className="h-4 w-4" />
+                            <span>{offer.activeCreatorsCount || 0} active</span>
+                          </div>
+                        </div>
+
                         {/* Application Status */}
                         {hasApplied && application && (
                           <div className="pt-3 border-t">
