@@ -879,7 +879,127 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: string): Promise<void> {
-    await db.delete(users).where(eq(users.id, id));
+    await db.transaction(async (tx) => {
+      // Fetch potential role-specific records first
+      const [companyProfile] = await tx
+        .select({ id: companyProfiles.id })
+        .from(companyProfiles)
+        .where(eq(companyProfiles.userId, id))
+        .limit(1);
+
+      if (companyProfile) {
+        const companyId = companyProfile.id;
+
+        // Clean up offers and related entities
+        const offerRows = await tx
+          .select({ id: offers.id })
+          .from(offers)
+          .where(eq(offers.companyId, companyId));
+        const offerIds = offerRows.map((offer) => offer.id);
+
+        if (offerIds.length > 0) {
+          const applicationRows = await tx
+            .select({ id: applications.id })
+            .from(applications)
+            .where(inArray(applications.offerId, offerIds));
+          const applicationIds = applicationRows.map((app) => app.id);
+
+          if (applicationIds.length > 0) {
+            const conversationRows = await tx
+              .select({ id: conversations.id })
+              .from(conversations)
+              .where(inArray(conversations.applicationId, applicationIds));
+            const conversationIds = conversationRows.map((conv) => conv.id);
+
+            if (conversationIds.length > 0) {
+              await tx.delete(messages).where(inArray(messages.conversationId, conversationIds));
+              await tx.delete(conversations).where(inArray(conversations.id, conversationIds));
+            }
+
+            await tx.delete(analytics).where(inArray(analytics.applicationId, applicationIds));
+            await tx.delete(reviews).where(inArray(reviews.applicationId, applicationIds));
+            await tx.delete(applications).where(inArray(applications.id, applicationIds));
+          }
+
+          await tx.delete(analytics).where(inArray(analytics.offerId, offerIds));
+          await tx.delete(favorites).where(inArray(favorites.offerId, offerIds));
+          await tx.delete(clickEvents).where(inArray(clickEvents.offerId, offerIds));
+          await tx.delete(offerVideos).where(inArray(offerVideos.offerId, offerIds));
+          await tx.delete(offers).where(inArray(offers.id, offerIds));
+        }
+
+        // Clean up company retainer data
+        const contractRows = await tx
+          .select({ id: retainerContracts.id })
+          .from(retainerContracts)
+          .where(eq(retainerContracts.companyId, companyId));
+        const contractIds = contractRows.map((contract) => contract.id);
+
+        if (contractIds.length > 0) {
+          await tx.delete(retainerDeliverables).where(inArray(retainerDeliverables.contractId, contractIds));
+          await tx.delete(retainerApplications).where(inArray(retainerApplications.contractId, contractIds));
+          await tx.delete(retainerPayments).where(inArray(retainerPayments.contractId, contractIds));
+          await tx.delete(retainerContracts).where(inArray(retainerContracts.id, contractIds));
+        }
+
+        // Remove stray retainer payments tied to this company
+        await tx.delete(retainerPayments).where(eq(retainerPayments.companyId, companyId));
+
+        // Remove the company profile itself
+        await tx.delete(companyProfiles).where(eq(companyProfiles.id, companyId));
+      }
+
+      const [creatorProfile] = await tx
+        .select({ id: creatorProfiles.id })
+        .from(creatorProfiles)
+        .where(eq(creatorProfiles.userId, id))
+        .limit(1);
+
+      if (creatorProfile) {
+        // Clean up creator applications and related data
+        const creatorApplications = await tx
+          .select({ id: applications.id })
+          .from(applications)
+          .where(eq(applications.creatorId, id));
+        const applicationIds = creatorApplications.map((app) => app.id);
+
+        if (applicationIds.length > 0) {
+          const conversationRows = await tx
+            .select({ id: conversations.id })
+            .from(conversations)
+            .where(inArray(conversations.applicationId, applicationIds));
+          const conversationIds = conversationRows.map((conv) => conv.id);
+
+          if (conversationIds.length > 0) {
+            await tx.delete(messages).where(inArray(messages.conversationId, conversationIds));
+            await tx.delete(conversations).where(inArray(conversations.id, conversationIds));
+          }
+
+          await tx.delete(analytics).where(inArray(analytics.applicationId, applicationIds));
+          await tx.delete(reviews).where(inArray(reviews.applicationId, applicationIds));
+          await tx.delete(clickEvents).where(inArray(clickEvents.applicationId, applicationIds));
+          await tx.delete(applications).where(inArray(applications.id, applicationIds));
+        }
+
+        await tx.delete(analytics).where(eq(analytics.creatorId, id));
+        await tx.delete(favorites).where(eq(favorites.creatorId, id));
+        await tx.delete(retainerApplications).where(eq(retainerApplications.creatorId, id));
+        await tx.delete(retainerDeliverables).where(eq(retainerDeliverables.creatorId, id));
+        await tx.delete(retainerPayments).where(eq(retainerPayments.creatorId, id));
+        await tx.delete(creatorProfiles).where(eq(creatorProfiles.id, creatorProfile.id));
+      }
+
+      // Remove notifications and preferences
+      await tx.delete(notifications).where(eq(notifications.userId, id));
+      await tx.delete(userNotificationPreferences).where(eq(userNotificationPreferences.userId, id));
+
+      // Remove payment settings and payments initiated by this user
+      await tx.delete(paymentSettings).where(eq(paymentSettings.userId, id));
+      await tx.delete(payments).where(eq(payments.creatorId, id));
+
+      // Finally remove the user record
+      await tx.delete(users).where(eq(users.id, id));
+    });
   }
 
   // Creator Profiles
