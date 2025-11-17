@@ -75,55 +75,63 @@ export default function CreatorDashboard() {
         <StatsGridSkeleton />
       ) : (
         <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
-          <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-              <CardTitle className="text-xs sm:text-sm font-medium">Total Earnings</CardTitle>
-              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-            </CardHeader>
-            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-xl sm:text-2xl font-bold font-mono">${stats?.totalEarnings || '0.00'}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                +${stats?.monthlyEarnings || '0.00'} this month
-              </p>
-            </CardContent>
-          </Card>
+          <Link href="/creator/payment-settings" className="block">
+            <Card className="border-card-border hover-elevate cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+                <CardTitle className="text-xs sm:text-sm font-medium">Total Earnings</CardTitle>
+                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+                <div className="text-xl sm:text-2xl font-bold font-mono">${stats?.totalEarnings || '0.00'}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  +${stats?.monthlyEarnings || '0.00'} this month
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-              <CardTitle className="text-xs sm:text-sm font-medium">Active Offers</CardTitle>
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-            </CardHeader>
-            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-xl sm:text-2xl font-bold">{stats?.activeOffers || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats?.pendingApplications || 0} pending
-              </p>
-            </CardContent>
-          </Card>
+          <Link href="/applications" className="block">
+            <Card className="border-card-border hover-elevate cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+                <CardTitle className="text-xs sm:text-sm font-medium">Active Offers</CardTitle>
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+                <div className="text-xl sm:text-2xl font-bold">{stats?.activeOffers || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats?.pendingApplications || 0} pending
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-              <CardTitle className="text-xs sm:text-sm font-medium">Total Clicks</CardTitle>
-              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-            </CardHeader>
-            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-xl sm:text-2xl font-bold">{stats?.totalClicks || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats?.monthlyClicks || 0} this month
-              </p>
-            </CardContent>
-          </Card>
+          <Link href="/analytics" className="block">
+            <Card className="border-card-border hover-elevate cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+                <CardTitle className="text-xs sm:text-sm font-medium">Total Clicks</CardTitle>
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+                <div className="text-xl sm:text-2xl font-bold">{stats?.totalClicks || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats?.monthlyClicks || 0} this month
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-              <CardTitle className="text-xs sm:text-sm font-medium">Messages</CardTitle>
-              <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-            </CardHeader>
-            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-xl sm:text-2xl font-bold">{stats?.unreadMessages || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">Unread</p>
-            </CardContent>
-          </Card>
+          <Link href="/messages" className="block">
+            <Card className="border-card-border hover-elevate cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
+                <CardTitle className="text-xs sm:text-sm font-medium">Messages</CardTitle>
+                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
+              </CardHeader>
+              <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+                <div className="text-xl sm:text-2xl font-bold">{stats?.unreadMessages || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">Unread</p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       )}
 
