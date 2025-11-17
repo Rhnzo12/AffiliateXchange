@@ -1925,14 +1925,10 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
           // ✅ DELETE COMPANY-SPECIFIC FOLDERS BY ID
 
           // 1. Delete company-logos/{company_id} folder
-          try {
-            await objectStorage.deleteFolder(`company-logos/${companyProfile.id}`);
-            console.log(`[Account Deletion] Deleted company-logos/${companyProfile.id} folder`);
-          } catch (error: any) {
-            const errorMsg = `Failed to delete company-logos/${companyProfile.id} folder: ${error.message}`;
-            console.error(`[Account Deletion] ${errorMsg}`);
-            cloudinaryErrors.push(errorMsg);
-          }
+          await deleteFolderWithTracking(
+            `company-logos/${companyProfile.id}`,
+            `company-logos/${companyProfile.id}`
+          );
 
           // 2. Delete verification-documents/{company_profile_id} folder
           await deleteFolderWithTracking(
@@ -1941,24 +1937,16 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
           );
 
           // 3. Delete creatorlink/videos/{company_profile_id} folder
-          try {
-            await objectStorage.deleteFolder(`creatorlink/videos/${companyProfile.id}`);
-            console.log(`[Account Deletion] Deleted creatorlink/videos/${companyProfile.id} folder`);
-          } catch (error: any) {
-            const errorMsg = `Failed to delete creatorlink/videos/${companyProfile.id} folder: ${error.message}`;
-            console.error(`[Account Deletion] ${errorMsg}`);
-            cloudinaryErrors.push(errorMsg);
-          }
+          await deleteFolderWithTracking(
+            `creatorlink/videos/${companyProfile.id}`,
+            `creatorlink/videos/${companyProfile.id}`
+          );
 
-          // 4. Delete company offers folder (offers/{company_profile_id})
-          try {
-            await objectStorage.deleteFolder(`offers/${companyProfile.id}`);
-            console.log(`[Account Deletion] Deleted offers/${companyProfile.id} folder`);
-          } catch (error: any) {
-            const errorMsg = `Failed to delete offers/${companyProfile.id} folder: ${error.message}`;
-            console.error(`[Account Deletion] ${errorMsg}`);
-            cloudinaryErrors.push(errorMsg);
-          }
+          // 4. Delete creatorlink/videos/thumbnails/{company_profile_id} folder
+          await deleteFolderWithTracking(
+            `creatorlink/videos/thumbnails/${companyProfile.id}`,
+            `creatorlink/videos/thumbnails/${companyProfile.id}`
+          );
 
           // 5. Delete creatorlink/retainer/{retainer_id} folders for all retainer contracts
           try {
@@ -2002,26 +1990,6 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
             cloudinaryErrors.push(errorMsg);
           }
         }
-      }
-
-      // Delete user profile folder (user-profiles/{user_id})
-      try {
-        await objectStorage.deleteFolder(`user-profiles/${userId}`);
-        console.log(`[Account Deletion] Deleted user-profiles/${userId} folder`);
-      } catch (error: any) {
-        const errorMsg = `Failed to delete user-profiles/${userId} folder: ${error.message}`;
-        console.error(`[Account Deletion] ${errorMsg}`);
-        cloudinaryErrors.push(errorMsg);
-      }
-
-      // Delete any other user-related folders
-      try {
-        await objectStorage.deleteFolder(`users/${userId}`);
-        console.log(`[Account Deletion] Deleted users/${userId} folder`);
-      } catch (error: any) {
-        const errorMsg = `Failed to delete users/${userId} folder: ${error.message}`;
-        console.error(`[Account Deletion] ${errorMsg}`);
-        cloudinaryErrors.push(errorMsg);
       }
 
       // Log summary of Cloudinary deletion issues
