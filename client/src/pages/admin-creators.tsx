@@ -244,17 +244,23 @@ export default function AdminCreators() {
                         </h3>
                         <Badge
                           variant={
-                            creator.accountStatus === 'active' ? 'default' :
-                            creator.accountStatus === 'suspended' ? 'secondary' :
-                            'destructive'
+                            creator.isDeleted
+                              ? 'outline'
+                              : creator.accountStatus === 'active'
+                                ? 'default'
+                                : creator.accountStatus === 'suspended'
+                                  ? 'secondary'
+                                  : 'destructive'
                           }
                           data-testid={`badge-status-${creator.id}`}
                         >
-                          {creator.accountStatus}
+                          {creator.isDeleted ? 'deleted' : creator.accountStatus}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">@{creator.username}</p>
-                      <p className="text-sm text-tertiary-foreground">{creator.email}</p>
+                      <p className={`text-sm ${creator.isDeleted ? 'text-muted-foreground line-through' : 'text-tertiary-foreground'}`}>
+                        {creator.email}
+                      </p>
                       
                       {creator.profile && (
                         <div className="flex gap-4 mt-3 text-sm">
