@@ -30,10 +30,33 @@ import {
   FormMessage,
   FormDescription,
 } from "../components/ui/form";
+import { Checkbox } from "../components/ui/checkbox";
 import { Input } from "../components/ui/input";
+import { Slider } from "../components/ui/slider";
 import { Textarea } from "../components/ui/textarea";
-import { DollarSign, Video, Calendar, Briefcase, Send, CheckCircle, Clock, Eye, AlertTriangle, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Progress } from "../components/ui/progress";
+import {
+  DollarSign,
+  Video,
+  Calendar,
+  Briefcase,
+  Send,
+  CheckCircle,
+  Clock,
+  Eye,
+  AlertTriangle,
+  Search,
+  Flame,
+  Sparkles,
+  Heart,
+  Star,
+  ShieldCheck,
+  Info,
+  MessageCircle,
+  Upload,
+  Users as UsersIcon,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -47,11 +70,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 
 const applyRetainerSchema = z.object({
-  message: z.string().min(20, "Message must be at least 20 characters"),
+  message: z
+    .string()
+    .min(20, "Tell us why you're interested (at least 20 characters)")
+    .max(500, "Keep your note under 500 characters"),
   portfolioLinks: z.string().optional(),
   proposedStartDate: z.string().optional(),
+  selectedTierId: z.string().optional(),
+  acceptTerms: z
+    .boolean()
+    .refine((val) => val === true, { message: "You need to accept the expectations before applying" })
+    .default(false),
 });
 
 type ApplyRetainerForm = z.infer<typeof applyRetainerSchema>;
@@ -66,6 +98,46 @@ export default function CreatorRetainers() {
   const [platformFilter, setPlatformFilter] = useState("all");
   const [budgetFilter, setBudgetFilter] = useState("all");
   const [nicheFilter, setNicheFilter] = useState("all");
+  const [durationFilter, setDurationFilter] = useState("all");
+  const [preferenceFilter, setPreferenceFilter] = useState<string[]>([]);
+  const [amountRange, setAmountRange] = useState<number[]>([0, 10000]);
+  const [favoriteContracts, setFavoriteContracts] = useState<Set<string>>(new Set());
+
+  const handlePreferenceToggle = (preference: string) => {
+    setPreferenceFilter((prev) =>
+      prev.includes(preference) ? prev.filter((item) => item !== preference) : [...prev, preference]
+    );
+  };
+
+  const toggleFavorite = (contractId: string) => {
+    setFavoriteContracts((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(contractId)) {
+        updated.delete(contractId);
+      } else {
+        updated.add(contractId);
+      }
+      return updated;
+    });
+  };
+
+  const buildTierOptions = (contract?: any) => {
+    if (!contract) return [];
+    const monthlyAmount = Number(contract.monthlyAmount || 0);
+
+    if (Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0) {
+      return contract.retainerTiers;
+    }
+
+    return [
+      {
+        name: "Standard",
+        monthlyAmount: monthlyAmount,
+        videosPerMonth: contract.videosPerMonth,
+        durationMonths: contract.durationMonths,
+      },
+    ];
+  };
 
   const { data: contracts, isLoading } = useQuery<any[]>({
     queryKey: ["/api/retainer-contracts"],
@@ -81,6 +153,8 @@ export default function CreatorRetainers() {
       message: "",
       portfolioLinks: "",
       proposedStartDate: "",
+      selectedTierId: "",
+      acceptTerms: false,
     },
   });
 
@@ -92,6 +166,7 @@ export default function CreatorRetainers() {
           ? data.portfolioLinks.split(",").map((link) => link.trim()).filter(Boolean)
           : [],
         proposedStartDate: data.proposedStartDate || undefined,
+        selectedTierId: data.selectedTierId || undefined,
       };
       return await apiRequest("POST", `/api/creator/retainer-contracts/${selectedContract.id}/apply`, payload);
     },
@@ -226,15 +301,111 @@ export default function CreatorRetainers() {
       const matchesBudget =
         budgetFilter === "all" || monthlyAmount >= Number(budgetFilter);
 
+      const matchesAmountRange = monthlyAmount >= amountRange[0] && monthlyAmount <= amountRange[1];
+
       const matchesNiche =
         nicheFilter === "all" || (Array.isArray(contract.niches) && contract.niches.some((n: string) => n === nicheFilter));
 
-      return matchesSearch && matchesPlatform && matchesBudget && matchesNiche;
+      const matchesDuration =
+        durationFilter === "all" || Number(contract.durationMonths || 0) === Number(durationFilter);
+
+      const matchesPreferences = preferenceFilter.every((preference) => {
+        if (preference === "exclusivity") return contract.exclusivityRequired;
+        if (preference === "approval_required") return contract.contentApprovalRequired;
+        if (preference === "no_approval") return !contract.contentApprovalRequired;
+        return true;
+      });
+
+      return (
+        matchesSearch &&
+        matchesPlatform &&
+        matchesBudget &&
+        matchesAmountRange &&
+        matchesNiche &&
+        matchesDuration &&
+        matchesPreferences
+      );
     });
-  }, [contracts, searchTerm, platformFilter, budgetFilter, nicheFilter]);
+  }, [contracts, searchTerm, platformFilter, budgetFilter, amountRange, nicheFilter, durationFilter, preferenceFilter]);
 
   const filtersApplied =
-    searchTerm.trim() !== "" || platformFilter !== "all" || budgetFilter !== "all" || nicheFilter !== "all";
+    searchTerm.trim() !== "" ||
+    platformFilter !== "all" ||
+    budgetFilter !== "all" ||
+    nicheFilter !== "all" ||
+    durationFilter !== "all" ||
+    preferenceFilter.length > 0 ||
+    amountRange[0] !== 0 ||
+    amountRange[1] !== 10000;
+
+  const contractMap = useMemo(() => {
+    const map = new Map();
+    contracts?.forEach((contract: any) => {
+      map.set(contract.id, contract);
+    });
+    return map;
+  }, [contracts]);
+
+  const approvedApplications = useMemo(
+    () => myApplications?.filter((app: any) => app.status === "approved") || [],
+    [myApplications]
+  );
+
+  const completedApplications = useMemo(
+    () => myApplications?.filter((app: any) => app.status === "completed") || [],
+    [myApplications]
+  );
+
+  const activeContracts = useMemo(
+    () =>
+      approvedApplications
+        .map((application: any) => ({
+          application,
+          contract: contractMap.get(application.contractId),
+        }))
+        .filter((item) => item.contract),
+    [approvedApplications, contractMap]
+  );
+
+  const completedContracts = useMemo(
+    () =>
+      completedApplications
+        .map((application: any) => ({
+          application,
+          contract: contractMap.get(application.contractId),
+        }))
+        .filter((item) => item.contract),
+    [completedApplications, contractMap]
+  );
+
+  const totalMonthlyRetainer = activeContracts.reduce((sum, item) => {
+    const amount = Number(item.contract?.monthlyAmount || 0);
+    return sum + amount;
+  }, 0);
+
+  const totalVideosPerMonth = activeContracts.reduce((sum, item) => {
+    const videos = Number(item.contract?.videosPerMonth || 0);
+    return sum + videos;
+  }, 0);
+
+  const estimatedNetMonthly = totalMonthlyRetainer * 0.93;
+
+  const messageValue = form.watch("message");
+  const messageChars = messageValue?.length || 0;
+  const selectedTierOptions = useMemo(() => buildTierOptions(selectedContract), [selectedContract]);
+  const selectedTierId = form.watch("selectedTierId");
+  const activeTier =
+    selectedTierOptions.find((tier: any) => (tier.name || tier.id)?.toString() === selectedTierId) || selectedTierOptions[0];
+  const selectedTierNet = Number(activeTier?.monthlyAmount || 0) * 0.93;
+  const selectedTierPerVideo =
+    Number(activeTier?.monthlyAmount || 0) / Math.max(1, Number(activeTier?.videosPerMonth || 1));
+
+  useEffect(() => {
+    if (selectedTierOptions.length > 0) {
+      const defaultId = (selectedTierOptions[0].name || selectedTierOptions[0].id || "standard").toString();
+      form.setValue("selectedTierId", defaultId);
+    }
+  }, [selectedTierOptions, form]);
 
   if (isLoading) {
     return (
@@ -261,6 +432,151 @@ export default function CreatorRetainers() {
         </p>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card className="border-card-border">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-muted-foreground">Total gross monthly</div>
+              <DollarSign className="h-4 w-4 text-primary" />
+            </div>
+            <p className="text-2xl font-bold">${totalMonthlyRetainer.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">Before 7% platform fee</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-muted-foreground">Estimated net</div>
+              <ShieldCheck className="h-4 w-4 text-primary" />
+            </div>
+            <p className="text-2xl font-bold">${estimatedNetMonthly.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+            <p className="text-xs text-muted-foreground">After 7% platform fee</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-muted-foreground">Active contracts</div>
+              <Sparkles className="h-4 w-4 text-primary" />
+            </div>
+            <p className="text-2xl font-bold">{activeContracts.length}</p>
+            <p className="text-xs text-muted-foreground">With predictable monthly payouts</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-muted-foreground">Videos due / month</div>
+              <Video className="h-4 w-4 text-primary" />
+            </div>
+            <p className="text-2xl font-bold">{totalVideosPerMonth}</p>
+            <p className="text-xs text-muted-foreground">Track your monthly commitments</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-card-border">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">My Retainers Dashboard</CardTitle>
+          <p className="text-sm text-muted-foreground">See your active and completed retainers at a glance</p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-green-500" />
+              <p className="text-sm font-semibold">Active contracts</p>
+            </div>
+            {activeContracts.length === 0 ? (
+              <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                Once you're approved, your retainers will appear here with progress trackers and quick actions.
+              </div>
+            ) : (
+              <div className="grid gap-3 lg:grid-cols-2">
+                {activeContracts.map(({ contract }) => {
+                  const delivered = Number(contract?.submittedVideos || 0);
+                  const totalVideos = Number(contract?.videosPerMonth || 1);
+                  const progressValue = Math.min(100, Math.round((delivered / totalVideos) * 100));
+                  const netAmount = Number(contract?.monthlyAmount || 0) * 0.93;
+
+                  return (
+                    <Card key={`active-${contract.id}`} className="border-card-border">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold">{contract.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {contract.videosPerMonth} videos/mo • {contract.durationMonths} month term
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="bg-primary/10 text-primary">
+                            Net ${netAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Progress</span>
+                            <span>
+                              {delivered}/{totalVideos} videos
+                            </span>
+                          </div>
+                          <Progress value={progressValue} />
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Calendar className="h-3.5 w-3.5" />
+                          <span>Next payout expected in {Math.max(1, (contract.durationMonths || 1) * 4)} weeks</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="secondary" size="sm" onClick={() => setLocation(`/retainers/${contract.id}`)}>
+                            <Upload className="h-3.5 w-3.5 mr-1" />
+                            Upload video
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => setLocation(`/messages`)}>
+                            <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                            Message company
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-muted" />
+              <p className="text-sm font-semibold">Completed contracts</p>
+            </div>
+            {completedContracts.length === 0 ? (
+              <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                Track historical performance and earnings once you finish a retainer.
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {completedContracts.map(({ contract }) => (
+                  <Card key={`completed-${contract.id}`} className="border-card-border">
+                    <CardContent className="p-4 space-y-2">
+                      <p className="text-sm font-semibold">{contract.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Earned ${Number(contract.monthlyAmount || 0).toLocaleString()} per month over {contract.durationMonths}{" "}
+                        month{contract.durationMonths === 1 ? "" : "s"}
+                      </p>
+                      <Button variant="ghost" size="sm" className="px-0 justify-start">
+                        Leave a review
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {contracts && contracts.length === 0 ? (
         <Card className="border-card-border">
           <CardContent className="p-12 text-center">
@@ -276,8 +592,9 @@ export default function CreatorRetainers() {
           <Card className="border-card-border">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg">Search & Filter</CardTitle>
+              <p className="text-sm text-muted-foreground">Find retainers that match your pricing, cadence, and preferences.</p>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">Search</p>
@@ -311,19 +628,62 @@ export default function CreatorRetainers() {
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Minimum Monthly Budget</p>
-                  <Select value={budgetFilter} onValueChange={setBudgetFilter}>
-                    <SelectTrigger data-testid="select-budget-filter">
-                      <SelectValue placeholder="All budgets" />
+                  <p className="text-sm font-medium text-muted-foreground">Contract length</p>
+                  <Select value={durationFilter} onValueChange={setDurationFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All lengths" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All budgets</SelectItem>
-                      <SelectItem value="500">$500+</SelectItem>
-                      <SelectItem value="1000">$1,000+</SelectItem>
-                      <SelectItem value="2500">$2,500+</SelectItem>
-                      <SelectItem value="5000">$5,000+</SelectItem>
+                      <SelectItem value="all">Any duration</SelectItem>
+                      <SelectItem value="3">3 months</SelectItem>
+                      <SelectItem value="6">6 months</SelectItem>
+                      <SelectItem value="12">12 months</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Preferences</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={preferenceFilter.includes("approval_required")}
+                        onCheckedChange={() => handlePreferenceToggle("approval_required")}
+                      />
+                      <span>Approval required</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={preferenceFilter.includes("no_approval")}
+                        onCheckedChange={() => handlePreferenceToggle("no_approval")}
+                      />
+                      <span>No approval needed</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={preferenceFilter.includes("exclusivity")}
+                        onCheckedChange={() => handlePreferenceToggle("exclusivity")}
+                      />
+                      <span>Exclusivity allowed</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-muted-foreground">Monthly amount range</p>
+                    <Badge variant="outline">${amountRange[0].toLocaleString()} - ${amountRange[1].toLocaleString()}</Badge>
+                  </div>
+                  <Slider
+                    value={amountRange}
+                    min={0}
+                    max={10000}
+                    step={250}
+                    onValueChange={(value) => setAmountRange(value as number[])}
+                  />
+                  <p className="text-xs text-muted-foreground">Transparent pricing shows gross amounts before fees.</p>
                 </div>
 
                 <div className="space-y-2">
@@ -341,6 +701,20 @@ export default function CreatorRetainers() {
                       ))}
                     </SelectContent>
                   </Select>
+
+                  <p className="text-sm font-medium text-muted-foreground pt-2">Quick minimum budget</p>
+                  <Select value={budgetFilter} onValueChange={setBudgetFilter}>
+                    <SelectTrigger data-testid="select-budget-filter">
+                      <SelectValue placeholder="All budgets" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All budgets</SelectItem>
+                      <SelectItem value="500">$500+</SelectItem>
+                      <SelectItem value="1000">$1,000+</SelectItem>
+                      <SelectItem value="2500">$2,500+</SelectItem>
+                      <SelectItem value="5000">$5,000+</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -353,6 +727,9 @@ export default function CreatorRetainers() {
                       setPlatformFilter("all");
                       setBudgetFilter("all");
                       setNicheFilter("all");
+                      setDurationFilter("all");
+                      setPreferenceFilter([]);
+                      setAmountRange([0, 10000]);
                     }}
                     data-testid="button-clear-retainer-filters"
                   >
@@ -376,192 +753,230 @@ export default function CreatorRetainers() {
               {filteredContracts.map((contract: any) => {
                 const applicationStatus = getApplicationStatus(contract.id);
                 const StatusIcon = applicationStatus.icon;
+                const monthlyAmount = Number(contract.monthlyAmount || 0);
+                const perVideo = contract.videosPerMonth ? monthlyAmount / Number(contract.videosPerMonth) : monthlyAmount;
+                const tierOptions = Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0
+                  ? contract.retainerTiers
+                  : [
+                      {
+                        name: "Standard",
+                        monthlyAmount: monthlyAmount,
+                        videosPerMonth: contract.videosPerMonth,
+                        durationMonths: contract.durationMonths,
+                      },
+                    ];
+                const bestValueTier = tierOptions.reduce((prev: any, current: any) => {
+                  const prevRate = Number(prev.monthlyAmount || 0) / Math.max(1, Number(prev.videosPerMonth || 1));
+                  const currentRate = Number(current.monthlyAmount || 0) / Math.max(1, Number(current.videosPerMonth || 1));
+                  return currentRate < prevRate ? current : prev;
+                }, tierOptions[0]);
+                const isPriority = monthlyAmount >= 5000 || contract.exclusivityRequired;
+                const isTrending = (contract.retainerTiers?.length || 0) >= 3 || monthlyAmount >= 3000;
 
                 return (
-              <Card
-                key={contract.id}
-                className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-primary/30 hover:ring-primary/50 hover:shadow-primary/20"
-                data-testid={`retainer-card-${contract.id}`}
-              >
-                <CardHeader className="pb-4">
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <CardTitle className="text-xl" data-testid={`text-retainer-title-${contract.id}`}>
-                            {contract.title}
-                          </CardTitle>
-                          {applicationStatus.badge && (
-                            <Badge
-                              variant={
-                                applicationStatus.variant === 'default' && applicationStatus.badge.includes('Approved')
-                                  ? 'default'
-                                  : applicationStatus.variant === 'destructive'
-                                  ? 'destructive'
-                                  : 'secondary'
-                              }
-                              className={
-                                applicationStatus.badge.includes('Approved')
-                                  ? 'bg-green-500 hover:bg-green-600'
-                                  : ''
-                              }
-                            >
-                              {applicationStatus.badge}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          by {contract.company?.tradeName || contract.company?.legalName || "Company"}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-muted-foreground line-clamp-2 leading-relaxed">
-                      {contract.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {contract.contentApprovalRequired && (
-                        <Badge variant="secondary">Approval required</Badge>
-                      )}
-                      {contract.exclusivityRequired && (
-                        <Badge className="bg-primary/10 text-primary" variant="outline">
-                          Exclusivity
-                        </Badge>
-                      )}
-                      {contract.minimumVideoLengthSeconds && (
-                        <Badge variant="outline">
-                          Min length: {contract.minimumVideoLengthSeconds}s
-                        </Badge>
-                      )}
-                      {contract.postingSchedule && (
-                        <Badge variant="outline">{contract.postingSchedule}</Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
-                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                        <DollarSign className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Monthly Payment</p>
-                        <p className="font-semibold">
-                          ${parseFloat(contract.monthlyAmount).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
-                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                        <Video className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Videos/Month</p>
-                        <p className="font-semibold">{contract.videosPerMonth}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
-                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                        <Calendar className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Duration</p>
-                        <p className="font-semibold">{contract.durationMonths} months</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
-                      <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                        <Briefcase className="h-5 w-5 text-primary" />
-                      </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Platform</p>
-                      <p className="font-semibold">{contract.requiredPlatform}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0 && (
-                  <div className="pt-4 border-t space-y-3">
-                    <p className="text-sm font-semibold">Tiered packages</p>
-                    <div className="grid md:grid-cols-3 gap-3">
-                      {contract.retainerTiers.map((tier: any, tierIndex: number) => (
-                        <div
-                          key={`${contract.id}-tier-${tierIndex}`}
-                          className="rounded-lg border p-3 bg-muted/30"
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-semibold">{tier.name}</span>
-                            <Badge variant="outline">${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
+                  <Card
+                    key={contract.id}
+                    className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer"
+                    data-testid={`retainer-card-${contract.id}`}
+                  >
+                    <CardHeader className="pb-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <CardTitle className="text-xl" data-testid={`text-retainer-title-${contract.id}`}>
+                              {contract.title}
+                            </CardTitle>
+                            {isTrending && (
+                              <Badge className="bg-amber-100 text-amber-800" variant="outline">
+                                <Sparkles className="h-3 w-3 mr-1" /> Trending
+                              </Badge>
+                            )}
+                            {isPriority && (
+                              <Badge className="bg-red-100 text-red-800" variant="outline">
+                                <Flame className="h-3 w-3 mr-1" /> Priority
+                              </Badge>
+                            )}
+                            {applicationStatus.badge && (
+                              <Badge
+                                variant={
+                                  applicationStatus.variant === "default" && applicationStatus.badge.includes("Approved")
+                                    ? "default"
+                                    : applicationStatus.variant === "destructive"
+                                    ? "destructive"
+                                    : "secondary"
+                                }
+                                className={applicationStatus.badge.includes("Approved") ? "bg-green-500 hover:bg-green-600" : ""}
+                              >
+                                {applicationStatus.badge}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Star className="h-4 w-4 text-yellow-500" />
+                              <span>{contract.company?.rating || "New"}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <UsersIcon className="h-4 w-4" />
+                              <span>{contract.activeCreators || 0} active creators</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              <span>{contract.durationMonths} month term</span>
+                            </div>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {tier.videosPerMonth} videos / {tier.durationMonths} month{tier.durationMonths === 1 ? "" : "s"}
+                            by {contract.company?.tradeName || contract.company?.legalName || "Company"}
                           </p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleFavorite(contract.id)}
+                          className={favoriteContracts.has(contract.id) ? "text-red-500" : "text-muted-foreground"}
+                          aria-label="favorite contract"
+                        >
+                          <Heart className={`h-5 w-5 ${favoriteContracts.has(contract.id) ? "fill-red-500" : ""}`} />
+                        </Button>
+                      </div>
+                      <p className="text-muted-foreground line-clamp-2 leading-relaxed">{contract.description}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {contract.contentApprovalRequired && <Badge variant="secondary">Approval required</Badge>}
+                        {contract.exclusivityRequired && (
+                          <Badge className="bg-primary/10 text-primary" variant="outline">
+                            Exclusivity
+                          </Badge>
+                        )}
+                        {contract.minimumVideoLengthSeconds && (
+                          <Badge variant="outline">Min length: {contract.minimumVideoLengthSeconds}s</Badge>
+                        )}
+                        {contract.postingSchedule && <Badge variant="outline">{contract.postingSchedule}</Badge>}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                            <DollarSign className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Monthly</p>
+                            <p className="font-semibold">${monthlyAmount.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">Net ${Math.round(monthlyAmount * 0.93).toLocaleString()} after fee</p>
+                          </div>
+                        </div>
 
-                {contract.contentGuidelines && (
-                  <div className="pt-4 border-t">
-                      <h4 className="font-semibold text-sm mb-2">Content Guidelines</h4>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {contract.contentGuidelines}
-                      </p>
-                    </div>
-                  )}
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                            <Video className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Videos/Month</p>
+                            <p className="font-semibold">{contract.videosPerMonth}</p>
+                            <p className="text-xs text-muted-foreground">${perVideo.toFixed(2)} per video</p>
+                          </div>
+                        </div>
 
-                  {contract.niches && contract.niches.length > 0 && (
-                    <div className="flex gap-2 flex-wrap">
-                      {contract.niches.map((niche: string, index: number) => (
-                        <Badge key={index} variant="outline">
-                          {niche}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                            <Calendar className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Duration</p>
+                            <p className="font-semibold">{contract.durationMonths} months</p>
+                            <p className="text-xs text-muted-foreground">Consistent payout timeline</p>
+                          </div>
+                        </div>
 
-                  <div className="flex gap-3 pt-2">
-                    <Link href={`/retainers/${contract.id}`} className="flex-1">
-                      <Button
-                        variant="outline"
-                        className="w-full group/btn hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200 font-medium"
-                        data-testid={`button-view-details-${contract.id}`}
-                      >
-                        <Eye className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200" />
-                        View Details
-                      </Button>
-                    </Link>
-                    <Button
-                      onClick={() => {
-                        setSelectedContract(contract);
-                        setOpen(true);
-                      }}
-                      variant={
-                        applicationStatus.badge?.includes('Approved')
-                          ? 'default'
-                          : applicationStatus.variant === 'destructive'
-                          ? 'destructive'
-                          : 'default'
-                      }
-                      className={`flex-1 font-medium ${
-                        applicationStatus.badge?.includes('Approved')
-                          ? 'bg-green-500 hover:bg-green-600'
-                          : ''
-                      }`}
-                      disabled={applicationStatus.disabled}
-                      data-testid={`button-apply-${contract.id}`}
-                    >
-                      <StatusIcon className="h-4 w-4 mr-2" />
-                      {applicationStatus.buttonText}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                            <Briefcase className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Platform</p>
+                            <p className="font-semibold">{contract.requiredPlatform}</p>
+                            <p className="text-xs text-muted-foreground">Aligned with your audience</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t space-y-3">
+                        <p className="text-sm font-semibold">Tiered packages</p>
+                        <div className="grid md:grid-cols-3 gap-3">
+                          {tierOptions.map((tier: any, tierIndex: number) => {
+                            const tierNet = Number(tier.monthlyAmount || 0) * 0.93;
+                            const tierPerVideo = Number(tier.monthlyAmount || 0) / Math.max(1, Number(tier.videosPerMonth || 1));
+                            const isBestValue = bestValueTier?.name === tier.name;
+
+                            return (
+                              <div
+                                key={`${contract.id}-tier-${tierIndex}`}
+                                className={`rounded-lg border p-3 bg-muted/30 space-y-2 ${isBestValue ? "ring-2 ring-primary/40" : ""}`}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-semibold">{tier.name}</span>
+                                  <Badge variant="outline">${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {tier.videosPerMonth} videos / {tier.durationMonths} month{tier.durationMonths === 1 ? "" : "s"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">${tierPerVideo.toFixed(2)} per video • Net ${tierNet.toLocaleString()}</p>
+                                {isBestValue && (
+                                  <Badge className="bg-primary/10 text-primary" variant="outline">
+                                    Best value
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {contract.contentGuidelines && (
+                        <div className="pt-2 border-t">
+                          <h4 className="font-semibold text-sm mb-2">Content Guidelines</h4>
+                          <p className="text-sm text-muted-foreground line-clamp-2">{contract.contentGuidelines}</p>
+                        </div>
+                      )}
+
+                      {contract.niches && contract.niches.length > 0 && (
+                        <div className="flex gap-2 flex-wrap">
+                          {contract.niches.map((niche: string, index: number) => (
+                            <Badge key={index} variant="outline">
+                              {niche}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <Link href={`/retainers/${contract.id}`} className="flex-1">
+                          <Button
+                            variant="outline"
+                            className="w-full group/btn hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200 font-medium"
+                            data-testid={`button-view-details-${contract.id}`}
+                          >
+                            <Eye className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200" />
+                            View Details
+                          </Button>
+                        </Link>
+                        <Button
+                          className="flex-1"
+                          variant={applicationStatus.variant}
+                          disabled={applicationStatus.disabled}
+                          onClick={() => {
+                            setSelectedContract(contract);
+                            setOpen(true);
+                          }}
+                          data-testid={`button-apply-retainer-${contract.id}`}
+                        >
+                          <StatusIcon className="h-4 w-4 mr-2" />
+                          {applicationStatus.buttonText}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
               })}
             </div>
           )}
@@ -569,92 +984,264 @@ export default function CreatorRetainers() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-5xl">
           <DialogHeader>
-            <DialogTitle>Apply for Retainer Contract</DialogTitle>
+            <DialogTitle>Review details & apply</DialogTitle>
             <DialogDescription>
-              Submit your application for: {selectedContract?.title}
+              Transparent pricing, clear commitments, and quick approvals for {selectedContract?.title}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="message"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cover Message</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Introduce yourself and explain why you're a great fit for this retainer..."
-                        rows={6}
-                        data-testid="input-application-message"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Rating</p>
+                      <p className="font-semibold flex items-center gap-1"><Star className="h-4 w-4 text-yellow-500" />
+                        {selectedContract?.company?.rating || "New"}
+                      </p>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Active creators</p>
+                      <p className="font-semibold">{selectedContract?.activeCreators || 0}</p>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Contract length</p>
+                      <p className="font-semibold">{selectedContract?.durationMonths} months</p>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Approvals</p>
+                      <p className="font-semibold">{selectedContract?.contentApprovalRequired ? "Required" : "Auto-post"}</p>
+                    </div>
+                  </div>
 
-              <FormField
-                control={form.control}
-                name="portfolioLinks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Portfolio Links (Optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="https://tiktok.com/@yourprofile, https://instagram.com/yourprofile"
-                        data-testid="input-portfolio-links"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs">
-                      Comma-separated URLs to your social profiles
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">Choose your tier</p>
+                      <Badge variant="outline">Transparent pricing</Badge>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="selectedTierId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RadioGroup
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              className="grid gap-3 md:grid-cols-2"
+                            >
+                              {selectedTierOptions.map((tier: any, index: number) => {
+                                const tierNet = Number(tier.monthlyAmount || 0) * 0.93;
+                                const tierPerVideo =
+                                  Number(tier.monthlyAmount || 0) / Math.max(1, Number(tier.videosPerMonth || 1));
+                                const tierId = (tier.name || tier.id || index).toString();
 
-              <FormField
-                control={form.control}
-                name="proposedStartDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Proposed Start Date (Optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        data-testid="input-start-date"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                                return (
+                                  <label
+                                    key={tierId}
+                                    className="flex gap-3 rounded-lg border bg-muted/40 p-3 hover:border-primary cursor-pointer"
+                                  >
+                                    <RadioGroupItem value={tierId} />
+                                    <div className="space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-semibold">{tier.name || `Tier ${index + 1}`}</p>
+                                        {tier.name === activeTier?.name && (
+                                          <Badge className="bg-primary/10 text-primary" variant="outline">
+                                            Selected
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">
+                                        ${Number(tier.monthlyAmount || 0).toLocaleString()} / mo • {tier.videosPerMonth} videos • {tier.durationMonths} months
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        ${tierPerVideo.toFixed(2)} per video • Net ${tierNet.toLocaleString()} after 7% fee
+                                      </p>
+                                    </div>
+                                  </label>
+                                );
+                              })}
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setOpen(false);
-                    setSelectedContract(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={applyMutation.isPending}
-                  data-testid="button-submit-application"
-                >
-                  {applyMutation.isPending ? "Submitting..." : "Submit Application"}
-                </Button>
-              </DialogFooter>
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold">Requirements</p>
+                    <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-md border p-3 space-y-1">
+                        <p className="font-semibold">Video length</p>
+                        <p className="text-muted-foreground">
+                          {selectedContract?.minimumVideoLengthSeconds
+                            ? `${selectedContract.minimumVideoLengthSeconds}s minimum`
+                            : "Short-form friendly"}
+                        </p>
+                      </div>
+                      <div className="rounded-md border p-3 space-y-1">
+                        <p className="font-semibold">Posting cadence</p>
+                        <p className="text-muted-foreground">{selectedContract?.postingSchedule || "Flexible schedule"}</p>
+                      </div>
+                      <div className="rounded-md border p-3 space-y-1">
+                        <p className="font-semibold">Approvals</p>
+                        <p className="text-muted-foreground">
+                          {selectedContract?.contentApprovalRequired
+                            ? "Company approves before posting"
+                            : "Auto-approval after 7 minutes"}
+                        </p>
+                      </div>
+                      <div className="rounded-md border p-3 space-y-1">
+                        <p className="font-semibold">Exclusivity</p>
+                        <p className="text-muted-foreground">
+                          {selectedContract?.exclusivityRequired ? "Exclusivity expected" : "You can work with others"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold">Example videos</p>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {(selectedContract?.exampleVideos?.length
+                        ? selectedContract.exampleVideos
+                        : Array.from({ length: 6 }, (_, index) => ({
+                            title: `Example video ${index + 1}`,
+                            platform: selectedContract?.requiredPlatform || "Preferred platform",
+                          }))
+                      ).map((example: any, index: number) => (
+                        <div key={`example-${index}`} className="rounded-lg border bg-muted/30 p-3 space-y-1">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{example.platform}</span>
+                            <span>{selectedContract?.minimumVideoLengthSeconds || 45}s</span>
+                          </div>
+                          <p className="font-semibold text-sm">{example.title || "Creator example"}</p>
+                          <p className="text-xs text-muted-foreground">Demonstrates tone and pacing the company loves.</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 rounded-lg border bg-muted/40 p-4">
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-base">Why are you interested?</FormLabel>
+                    <span className={`text-xs ${messageChars > 500 ? "text-red-500" : "text-muted-foreground"}`}>
+                      {messageChars}/500
+                    </span>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Share your niche, experience, and why this brand is a great fit."
+                            rows={5}
+                            data-testid="input-application-message"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="portfolioLinks"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Portfolio Links (Optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="https://tiktok.com/@yourprofile, https://instagram.com/yourprofile"
+                            data-testid="input-portfolio-links"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Comma-separated URLs to your social profiles
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="proposedStartDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Proposed Start Date (Optional)</FormLabel>
+                        <FormControl>
+                          <Input type="date" data-testid="input-start-date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="acceptTerms"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2">
+                        <div className="flex items-start gap-2 rounded-md border bg-background p-3">
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                          <div className="space-y-1 text-sm">
+                            <FormLabel className="text-sm">I understand the deliverables</FormLabel>
+                            <p className="text-muted-foreground text-xs">
+                              {selectedContract?.videosPerMonth} videos per month for {selectedContract?.durationMonths} months, following the posted schedule and approval requirements.
+                            </p>
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <Info className="h-4 w-4" /> 7-minute auto-approval
+                    </div>
+                    <p className="text-xs mt-1">
+                      Applications auto-approve in minutes when you meet the requirements. You'll get a sticky CTA in the dashboard to upload your first video right away.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="sticky bottom-0 bg-background pt-4 border-t flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1 text-sm">
+                  <p className="font-semibold flex items-center gap-2">
+                    Selected tier {activeTier?.name || "Standard"}
+                    <Badge variant="secondary">${Number(activeTier?.monthlyAmount || 0).toLocaleString()} / mo</Badge>
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    ${selectedTierPerVideo.toFixed(2)} per video • Net ${selectedTierNet.toLocaleString()} after fees
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setOpen(false);
+                      setSelectedContract(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={applyMutation.isPending} data-testid="button-submit-application">
+                    {applyMutation.isPending ? "Submitting..." : "Submit application"}
+                  </Button>
+                </div>
+              </div>
             </form>
           </Form>
         </DialogContent>
