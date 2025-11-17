@@ -418,6 +418,24 @@ export default function CreatorRetainers() {
                     <p className="text-muted-foreground line-clamp-2 leading-relaxed">
                       {contract.description}
                     </p>
+                    <div className="flex flex-wrap gap-2">
+                      {contract.contentApprovalRequired && (
+                        <Badge variant="secondary">Approval required</Badge>
+                      )}
+                      {contract.exclusivityRequired && (
+                        <Badge className="bg-primary/10 text-primary" variant="outline">
+                          Exclusivity
+                        </Badge>
+                      )}
+                      {contract.minimumVideoLengthSeconds && (
+                        <Badge variant="outline">
+                          Min length: {contract.minimumVideoLengthSeconds}s
+                        </Badge>
+                      )}
+                      {contract.postingSchedule && (
+                        <Badge variant="outline">{contract.postingSchedule}</Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -458,15 +476,37 @@ export default function CreatorRetainers() {
                       <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
                         <Briefcase className="h-5 w-5 text-primary" />
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Platform</p>
-                        <p className="font-semibold">{contract.requiredPlatform}</p>
-                      </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Platform</p>
+                      <p className="font-semibold">{contract.requiredPlatform}</p>
                     </div>
                   </div>
+                </div>
 
-                  {contract.contentGuidelines && (
-                    <div className="pt-4 border-t">
+                {Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0 && (
+                  <div className="pt-4 border-t space-y-3">
+                    <p className="text-sm font-semibold">Tiered packages</p>
+                    <div className="grid md:grid-cols-3 gap-3">
+                      {contract.retainerTiers.map((tier: any, tierIndex: number) => (
+                        <div
+                          key={`${contract.id}-tier-${tierIndex}`}
+                          className="rounded-lg border p-3 bg-muted/30"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold">{tier.name}</span>
+                            <Badge variant="outline">${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {tier.videosPerMonth} videos / {tier.durationMonths} month{tier.durationMonths === 1 ? "" : "s"}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {contract.contentGuidelines && (
+                  <div className="pt-4 border-t">
                       <h4 className="font-semibold text-sm mb-2">Content Guidelines</h4>
                       <p className="text-sm text-muted-foreground line-clamp-2">
                         {contract.contentGuidelines}
