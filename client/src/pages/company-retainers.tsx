@@ -41,6 +41,14 @@ import { z } from "zod";
 import { Link } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
+import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+
+const tierSchema = z.object({
+  name: z.string().min(1, "Tier name is required"),
+  monthlyAmount: z.string().min(1, "Monthly amount is required"),
+  videosPerMonth: z.string().min(1, "Videos per month is required"),
+  durationMonths: z.string().min(1, "Duration is required"),
+});
 
 const tierSchema = z.object({
   name: z.string().min(1, "Tier name is required"),
@@ -123,7 +131,7 @@ export default function CompanyRetainers() {
       description: "",
       monthlyAmount: "",
       videosPerMonth: "",
-      durationMonths: "",
+      durationMonths: "3",
       requiredPlatform: "",
       platformAccountDetails: "",
       contentGuidelines: "",
@@ -149,7 +157,7 @@ export default function CompanyRetainers() {
     mutationFn: async (data: CreateRetainerForm) => {
       const payload = {
         ...data,
-        monthlyAmount: data.monthlyAmount,
+        monthlyAmount: parseFloat(data.monthlyAmount),
         videosPerMonth: parseInt(data.videosPerMonth),
         durationMonths: parseInt(data.durationMonths),
         minimumFollowers: data.minimumFollowers ? parseInt(data.minimumFollowers) : undefined,
@@ -335,12 +343,24 @@ export default function CompanyRetainers() {
                       <FormItem>
                         <FormLabel>Contract Duration (Months)</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="3"
-                            data-testid="input-retainer-duration"
-                            {...field}
-                          />
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value || "3"}
+                            className="grid grid-cols-2 gap-2"
+                          >
+                            {["1", "3", "6", "12"].map((value) => (
+                              <label
+                                key={value}
+                                className="flex items-center justify-between gap-2 rounded-md border p-3 hover:border-primary cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <RadioGroupItem value={value} />
+                                  <span className="font-medium">{value} month{value === "1" ? "" : "s"}</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">Contract length</span>
+                              </label>
+                            ))}
+                          </RadioGroup>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -586,6 +606,14 @@ export default function CompanyRetainers() {
                   </div>
 
                   <div className="grid gap-3">
+
+                    <div className="grid md:grid-cols-5 gap-3 text-xs font-semibold text-muted-foreground px-1 uppercase tracking-wide">
+                      <span>Tier name</span>
+                      <span>Monthly amount</span>
+                      <span>Videos per month</span>
+                      <span>Duration</span>
+                      <span className="text-right">$ / video</span>
+                    </div>
                     {fields.map((field, index) => {
                       const monthly = Number(form.watch(`retainerTiers.${index}.monthlyAmount`) || 0);
                       const videos = Math.max(1, Number(form.watch(`retainerTiers.${index}.videosPerMonth`) || 1));
