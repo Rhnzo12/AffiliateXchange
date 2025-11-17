@@ -235,14 +235,31 @@ export class ObjectStorageService {
         resource_type: 'raw',
       });
 
+      // Recursively delete any nested subfolders to allow parent deletion
+      const subFoldersResponse = await cloudinary.api.sub_folders(folderPath).catch(() => ({ folders: [] }));
+      if (Array.isArray(subFoldersResponse.folders)) {
+        for (const subFolder of subFoldersResponse.folders) {
+          if (subFolder.path) {
+            await this.deleteFolder(subFolder.path);
+          }
+        }
+      }
+
       // Finally delete the folder itself
       await cloudinary.api.delete_folder(folderPath);
 
       return result;
     } catch (error: any) {
-      console.error(`[deleteFolder] Error deleting folder ${folderPath}:`, error);
-      // Don't throw error, just log it - folder might be empty or already deleted
-      return { deleted: {} };
+      const httpCode = error?.http_code || error?.error?.http_code;
+
+      // Treat missing folders as a no-op to avoid noisy logs when folders never existed
+      if (httpCode === 404) {
+        return { skipped: true };
+      }
+
+      const message = error?.message || error?.error?.message || JSON.stringify(error);
+
+      throw new Error(message);
     }
   }
 
