@@ -3551,10 +3551,7 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`COUNT(DISTINCT ${retainerApplications.creatorId})` })
       .from(retainerApplications)
       .where(
-        and(
-          eq(retainerApplications.contractId, contractId),
-          or(eq(retainerApplications.status, "approved"), eq(retainerApplications.status, "active"))
-        )
+        and(eq(retainerApplications.contractId, contractId), eq(retainerApplications.status, "approved"))
       );
 
     return Number(result[0]?.count || 0);
