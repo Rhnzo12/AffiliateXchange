@@ -815,8 +815,65 @@ export const insertFavoriteSchema = createInsertSchema(favorites).omit({ id: tru
 export const insertPaymentSettingSchema = createInsertSchema(paymentSettings).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true, updatedAt: true, initiatedAt: true, completedAt: true, failedAt: true, refundedAt: true });
 export const insertSystemSettingSchema = createInsertSchema(systemSettings).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertRetainerContractSchema = createInsertSchema(retainerContracts).omit({ id: true, createdAt: true, updatedAt: true, assignedCreatorId: true, startDate: true, endDate: true });
-export const createRetainerContractSchema = createInsertSchema(retainerContracts).omit({ id: true, companyId: true, createdAt: true, updatedAt: true, assignedCreatorId: true, startDate: true, endDate: true, status: true });
+const decimalInput = z.union([z.string(), z.number()]).transform((val, ctx) => {
+  const parsed = typeof val === "number" ? val : parseFloat(val);
+  if (Number.isNaN(parsed)) {
+    ctx.addIssue({ code: "custom", message: "Invalid number" });
+    return z.NEVER;
+  }
+  return parsed.toString();
+});
+
+const numericInput = z.union([z.string(), z.number()]).transform((val, ctx) => {
+  const parsed = typeof val === "number" ? val : parseFloat(val);
+  if (Number.isNaN(parsed)) {
+    ctx.addIssue({ code: "custom", message: "Invalid number" });
+    return z.NEVER;
+  }
+  return parsed;
+});
+
+const integerInput = z.union([z.string(), z.number()]).transform((val, ctx) => {
+  const parsed = typeof val === "number" ? val : parseInt(val, 10);
+  if (!Number.isInteger(parsed)) {
+    ctx.addIssue({ code: "custom", message: "Invalid whole number" });
+    return z.NEVER;
+  }
+  return parsed;
+});
+
+const retainerTierInputSchema = z
+  .object({
+    name: z.string().min(1, "Tier name is required"),
+    monthlyAmount: numericInput,
+    videosPerMonth: integerInput,
+    durationMonths: integerInput,
+  })
+  .strict();
+
+export const insertRetainerContractSchema = createInsertSchema(retainerContracts)
+  .omit({ id: true, createdAt: true, updatedAt: true, assignedCreatorId: true, startDate: true, endDate: true })
+  .extend({
+    monthlyAmount: decimalInput,
+    videosPerMonth: integerInput,
+    durationMonths: integerInput,
+    minimumFollowers: integerInput.optional(),
+    minimumVideoLengthSeconds: integerInput.optional(),
+    retainerTiers: z.array(retainerTierInputSchema).max(5).default([]),
+    niches: z
+      .union([z.array(z.string()), z.string()])
+      .optional()
+      .transform((val) => {
+        if (!val) return [] as string[];
+        if (Array.isArray(val)) return val.filter(Boolean);
+        return val
+          .split(",")
+          .map((n) => n.trim())
+          .filter(Boolean);
+      }),
+  });
+
+export const createRetainerContractSchema = insertRetainerContractSchema.omit({ companyId: true, status: true });
 export const insertRetainerApplicationSchema = createInsertSchema(retainerApplications).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertRetainerDeliverableSchema = createInsertSchema(retainerDeliverables).omit({ id: true, createdAt: true, submittedAt: true, reviewedAt: true });
 export const insertRetainerPaymentSchema = createInsertSchema(retainerPayments).omit({ id: true, createdAt: true, updatedAt: true });
