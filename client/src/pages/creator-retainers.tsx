@@ -399,6 +399,10 @@ export default function CreatorRetainers() {
   const selectedTierNet = Number(activeTier?.monthlyAmount || 0) * 0.93;
   const selectedTierPerVideo =
     Number(activeTier?.monthlyAmount || 0) / Math.max(1, Number(activeTier?.videosPerMonth || 1));
+  const selectedTierAmounts = selectedTierOptions.map((tier: any) => Number(tier?.monthlyAmount || 0)).filter(Boolean);
+  const selectedMinMonthly = selectedTierAmounts.length > 0 ? Math.min(...selectedTierAmounts) : 0;
+  const selectedMaxMonthly = selectedTierAmounts.length > 0 ? Math.max(...selectedTierAmounts) : 0;
+  const hasSelectedRange = selectedTierAmounts.length > 1 && selectedMinMonthly !== selectedMaxMonthly;
 
   useEffect(() => {
     if (selectedTierOptions.length > 0) {
@@ -772,6 +776,10 @@ export default function CreatorRetainers() {
                 }, tierOptions[0]);
                 const isPriority = monthlyAmount >= 5000 || contract.exclusivityRequired;
                 const isTrending = (contract.retainerTiers?.length || 0) >= 3 || monthlyAmount >= 3000;
+                const tierAmounts = tierOptions.map((tier: any) => Number(tier?.monthlyAmount || 0)).filter(Boolean);
+                const minMonthly = tierAmounts.length > 0 ? Math.min(...tierAmounts) : 0;
+                const maxMonthly = tierAmounts.length > 0 ? Math.max(...tierAmounts) : 0;
+                const hasRange = tierAmounts.length > 1 && minMonthly !== maxMonthly;
 
                 return (
                   <Card
@@ -863,6 +871,11 @@ export default function CreatorRetainers() {
                             <p className="text-sm text-muted-foreground">Monthly</p>
                             <p className="font-semibold">${monthlyAmount.toLocaleString()}</p>
                             <p className="text-xs text-muted-foreground">Net ${Math.round(monthlyAmount * 0.93).toLocaleString()} after fee</p>
+                            {hasRange && (
+                              <p className="text-xs text-muted-foreground">
+                                Range ${minMonthly.toLocaleString()} - ${maxMonthly.toLocaleString()} per month
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -995,7 +1008,7 @@ export default function CreatorRetainers() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6">
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
                     <div className="rounded-md border p-3">
                       <p className="text-muted-foreground">Rating</p>
                       <p className="font-semibold flex items-center gap-1"><Star className="h-4 w-4 text-yellow-500" />
@@ -1013,6 +1026,14 @@ export default function CreatorRetainers() {
                     <div className="rounded-md border p-3">
                       <p className="text-muted-foreground">Approvals</p>
                       <p className="font-semibold">{selectedContract?.contentApprovalRequired ? "Required" : "Auto-post"}</p>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Commission range</p>
+                      <p className="font-semibold">
+                        {hasSelectedRange
+                          ? `$${selectedMinMonthly.toLocaleString()} - $${selectedMaxMonthly.toLocaleString()}`
+                          : `$${(selectedMinMonthly || selectedMaxMonthly).toLocaleString()}`}
+                      </p>
                     </div>
                   </div>
 

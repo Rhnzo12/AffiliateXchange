@@ -708,6 +708,7 @@ export interface IStorage {
   getRetainerContractsByCompany(companyId: string): Promise<any[]>;
   getRetainerContractsByCreator(creatorId: string): Promise<any[]>;
   getOpenRetainerContracts(): Promise<any[]>;
+  getActiveRetainerCreatorsCount(contractId: string): Promise<number>;
   createRetainerContract(contract: any): Promise<any>;
   updateRetainerContract(id: string, updates: any): Promise<any>;
   deleteRetainerContract(id: string): Promise<void>;
@@ -3389,6 +3390,8 @@ export class DatabaseStorage implements IStorage {
       companyUser: result[0].users,
     };
 
+    contract.activeCreators = await this.getActiveRetainerCreatorsCount(contract.id);
+
     // Fetch assigned creator if exists
     if (contract.assignedCreatorId) {
       const creator = await this.getUserById(contract.assignedCreatorId);
@@ -3411,11 +3414,14 @@ export class DatabaseStorage implements IStorage {
 
     const results = await query.orderBy(desc(retainerContracts.createdAt));
 
-    return results.map((r: any) => ({
-      ...r.retainer_contracts,
-      company: r.company_profiles,
-      companyUser: r.users,
-    }));
+    return Promise.all(
+      results.map(async (r: any) => ({
+        ...r.retainer_contracts,
+        company: r.company_profiles,
+        companyUser: r.users,
+        activeCreators: await this.getActiveRetainerCreatorsCount(r.retainer_contracts.id),
+      }))
+    );
   }
 
   async getRetainerContractsByCompany(companyId: string): Promise<any[]> {
@@ -3428,11 +3434,17 @@ export class DatabaseStorage implements IStorage {
     // Fetch assigned creator for each contract
     const contractsWithCreators = await Promise.all(
       results.map(async (contract) => {
+        const baseContract = {
+          ...contract,
+          activeCreators: await this.getActiveRetainerCreatorsCount(contract.id),
+        };
+
         if (contract.assignedCreatorId) {
           const creator = await this.getUserById(contract.assignedCreatorId);
-          return { ...contract, assignedCreator: creator };
+          return { ...baseContract, assignedCreator: creator };
         }
-        return contract;
+
+        return baseContract;
       })
     );
 
@@ -3447,10 +3459,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(retainerContracts.assignedCreatorId, creatorId))
       .orderBy(desc(retainerContracts.createdAt));
 
-    return results.map((r: any) => ({
-      ...r.retainer_contracts,
-      company: r.company_profiles,
-    }));
+    return Promise.all(
+      results.map(async (r: any) => ({
+        ...r.retainer_contracts,
+        company: r.company_profiles,
+        activeCreators: await this.getActiveRetainerCreatorsCount(r.retainer_contracts.id),
+      }))
+    );
   }
 
   async getOpenRetainerContracts(): Promise<any[]> {
@@ -3462,11 +3477,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(retainerContracts.status, "open"))
       .orderBy(desc(retainerContracts.createdAt));
 
-    return results.map((r: any) => ({
-      ...r.retainer_contracts,
-      company: r.company_profiles,
-      companyUser: r.users,
-    }));
+    return Promise.all(
+      results.map(async (r: any) => ({
+        ...r.retainer_contracts,
+        company: r.company_profiles,
+        companyUser: r.users,
+        activeCreators: await this.getActiveRetainerCreatorsCount(r.retainer_contracts.id),
+      }))
+    );
   }
 
   async createRetainerContract(contract: InsertRetainerContract): Promise<RetainerContract> {
@@ -3496,6 +3514,20 @@ export class DatabaseStorage implements IStorage {
 
   async deleteRetainerContract(id: string): Promise<void> {
     await db.delete(retainerContracts).where(eq(retainerContracts.id, id));
+  }
+
+  async getActiveRetainerCreatorsCount(contractId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`COUNT(DISTINCT ${retainerApplications.creatorId})` })
+      .from(retainerApplications)
+      .where(
+        and(
+          eq(retainerApplications.contractId, contractId),
+          or(eq(retainerApplications.status, "approved"), eq(retainerApplications.status, "active"))
+        )
+      );
+
+    return Number(result[0]?.count || 0);
   }
 
   // Retainer Applications
