@@ -24,6 +24,8 @@ import {
 } from "../components/ui/form";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
+import { Switch } from "../components/ui/switch";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -33,12 +35,20 @@ import {
 } from "../components/ui/select";
 import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
+import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+
+const tierSchema = z.object({
+  name: z.string().min(1, "Tier name is required"),
+  monthlyAmount: z.string().min(1, "Monthly amount is required"),
+  videosPerMonth: z.string().min(1, "Videos per month is required"),
+  durationMonths: z.string().min(1, "Duration is required"),
+});
 
 const createRetainerSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
@@ -52,6 +62,11 @@ const createRetainerSchema = z.object({
   brandSafetyRequirements: z.string().optional(),
   minimumFollowers: z.string().optional(),
   niches: z.string().optional(),
+  contentApprovalRequired: z.boolean().default(false),
+  exclusivityRequired: z.boolean().default(false),
+  minimumVideoLengthSeconds: z.string().optional(),
+  postingSchedule: z.string().optional(),
+  retainerTiers: z.array(tierSchema).max(5).default([]),
 });
 
 type CreateRetainerForm = z.infer<typeof createRetainerSchema>;
@@ -109,25 +124,46 @@ export default function CompanyRetainers() {
       description: "",
       monthlyAmount: "",
       videosPerMonth: "",
-      durationMonths: "",
+      durationMonths: "3",
       requiredPlatform: "",
       platformAccountDetails: "",
       contentGuidelines: "",
       brandSafetyRequirements: "",
       minimumFollowers: "",
       niches: "",
+      contentApprovalRequired: false,
+      exclusivityRequired: false,
+      minimumVideoLengthSeconds: "",
+      postingSchedule: "",
+      retainerTiers: [
+        { name: "Bronze", monthlyAmount: "500", videosPerMonth: "12", durationMonths: "3" },
+      ],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "retainerTiers",
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateRetainerForm) => {
       const payload = {
         ...data,
-        monthlyAmount: data.monthlyAmount,
+        monthlyAmount: parseFloat(data.monthlyAmount),
         videosPerMonth: parseInt(data.videosPerMonth),
         durationMonths: parseInt(data.durationMonths),
         minimumFollowers: data.minimumFollowers ? parseInt(data.minimumFollowers) : undefined,
         niches: data.niches ? data.niches.split(",").map((n) => n.trim()).filter(Boolean) : [],
+        minimumVideoLengthSeconds: data.minimumVideoLengthSeconds
+          ? parseInt(data.minimumVideoLengthSeconds)
+          : undefined,
+        retainerTiers: (data.retainerTiers || []).map((tier) => ({
+          ...tier,
+          monthlyAmount: parseFloat(tier.monthlyAmount),
+          videosPerMonth: parseInt(tier.videosPerMonth),
+          durationMonths: parseInt(tier.durationMonths),
+        })),
       };
       return await apiRequest("POST", "/api/company/retainer-contracts", payload);
     },
@@ -300,12 +336,24 @@ export default function CompanyRetainers() {
                       <FormItem>
                         <FormLabel>Contract Duration (Months)</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="3"
-                            data-testid="input-retainer-duration"
-                            {...field}
-                          />
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value || "3"}
+                            className="grid grid-cols-2 gap-2"
+                          >
+                            {["1", "3", "6", "12"].map((value) => (
+                              <label
+                                key={value}
+                                className="flex items-center justify-between gap-2 rounded-md border p-3 hover:border-primary cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <RadioGroupItem value={value} />
+                                  <span className="font-medium">{value} month{value === "1" ? "" : "s"}</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">Contract length</span>
+                              </label>
+                            ))}
+                          </RadioGroup>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -372,8 +420,8 @@ export default function CompanyRetainers() {
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                    )}
+                  />
 
                 <FormField
                   control={form.control}
@@ -391,8 +439,95 @@ export default function CompanyRetainers() {
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
+                    )}
+                  />
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="minimumVideoLengthSeconds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Minimum Video Length (seconds)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="45"
+                            data-testid="input-minimum-video-length"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Set expectations like 45-60 seconds per video
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="postingSchedule"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Posting Schedule</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., 1 video every weekday"
+                            data-testid="input-posting-schedule"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Outline cadence expectations for creators
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="contentApprovalRequired"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-1">
+                          <FormLabel className="text-base">Content approval required</FormLabel>
+                          <FormDescription>Review videos before they go live</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="switch-content-approval"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="exclusivityRequired"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-1">
+                          <FormLabel className="text-base">Exclusivity</FormLabel>
+                          <FormDescription>Prevent creators from working with competitors</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="switch-exclusivity"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <FormField
@@ -434,6 +569,95 @@ export default function CompanyRetainers() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <FormLabel className="text-base">Tiered Retainer Packages (up to 5)</FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Offer creators predictable options like Bronze/Silver/Gold with clear deliverables.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        append({
+                          name: `Tier ${fields.length + 1}`,
+                          monthlyAmount: "1000",
+                          videosPerMonth: "20",
+                          durationMonths: form.getValues("durationMonths") || "3",
+                        })
+                      }
+                      disabled={fields.length >= 5}
+                      data-testid="button-add-tier"
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Add tier
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <div className="grid md:grid-cols-5 gap-3 text-xs font-semibold text-muted-foreground px-1 uppercase tracking-wide">
+                      <span>Tier name</span>
+                      <span>Monthly amount</span>
+                      <span>Videos per month</span>
+                      <span>Duration</span>
+                      <span className="text-right">$ / video</span>
+                    </div>
+                    {fields.map((field, index) => {
+                      const monthly = Number(form.watch(`retainerTiers.${index}.monthlyAmount`) || 0);
+                      const videos = Math.max(1, Number(form.watch(`retainerTiers.${index}.videosPerMonth`) || 1));
+                      const perVideo = (monthly / videos).toFixed(2);
+
+                      return (
+                        <div
+                          key={field.id}
+                          className="grid md:grid-cols-5 gap-3 items-center rounded-md border bg-background p-3"
+                        >
+                          <Input
+                            placeholder="Tier name"
+                            {...form.register(`retainerTiers.${index}.name` as const)}
+                          />
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Monthly $"
+                            {...form.register(`retainerTiers.${index}.monthlyAmount` as const)}
+                          />
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="Videos/mo"
+                            {...form.register(`retainerTiers.${index}.videosPerMonth` as const)}
+                          />
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="Months"
+                            {...form.register(`retainerTiers.${index}.durationMonths` as const)}
+                          />
+                          <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+                            <div className="rounded-md bg-primary/5 px-3 py-2 text-primary font-semibold">
+                              ${perVideo}/video
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => remove(index)}
+                              disabled={fields.length === 1}
+                              data-testid={`button-remove-tier-${index}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <DialogFooter>
@@ -579,6 +803,24 @@ export default function CompanyRetainers() {
                   <p className="text-muted-foreground line-clamp-2 leading-relaxed">
                     {contract.description}
                   </p>
+                  <div className="flex flex-wrap gap-2">
+                    {contract.contentApprovalRequired && (
+                      <Badge variant="secondary">Approval required</Badge>
+                    )}
+                    {contract.exclusivityRequired && (
+                      <Badge className="bg-primary/10 text-primary" variant="outline">
+                        Exclusivity
+                      </Badge>
+                    )}
+                    {contract.minimumVideoLengthSeconds && (
+                      <Badge variant="outline">
+                        Min length: {contract.minimumVideoLengthSeconds}s
+                      </Badge>
+                    )}
+                    {contract.postingSchedule && (
+                      <Badge variant="outline">{contract.postingSchedule}</Badge>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -623,6 +865,28 @@ export default function CompanyRetainers() {
                     </div>
                   </div>
                 </div>
+
+                {Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0 && (
+                  <div className="mt-4 pt-4 border-t space-y-3">
+                    <p className="text-sm font-semibold">Tiered packages</p>
+                    <div className="grid md:grid-cols-3 gap-3">
+                      {contract.retainerTiers.map((tier: any, tierIndex: number) => (
+                        <div
+                          key={`${contract.id}-tier-${tierIndex}`}
+                          className="rounded-lg border p-3 bg-muted/30"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold">{tier.name}</span>
+                            <Badge variant="outline">${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {tier.videosPerMonth} videos / {tier.durationMonths} month{tier.durationMonths === 1 ? "" : "s"}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {contract.applicationCount > 0 && (
                   <div className="mt-4 pt-4 border-t">
