@@ -1924,17 +1924,24 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
         if (companyProfile) {
           // ✅ DELETE COMPANY-SPECIFIC FOLDERS BY ID
 
-          // 1. Delete company-logos/{company_id} folder
-          await deleteFolderWithTracking(
-            `company-logos/${companyProfile.id}`,
-            `company-logos/${companyProfile.id}`
-          );
+          // 1. Delete company-logos/{company_id|user_id} folder(s)
+          const companyFolderIds = Array.from(new Set([
+            companyProfile.id,
+            companyProfile.userId
+          ]));
 
-          // 2. Delete verification-documents/{company_profile_id} folder
-          await deleteFolderWithTracking(
-            `verification-documents/${companyProfile.id}`,
-            `verification-documents/${companyProfile.id}`
-          );
+          for (const folderId of companyFolderIds) {
+            await deleteFolderWithTracking(
+              `company-logos/${folderId}`,
+              `company-logos/${folderId}`
+            );
+
+            // 2. Delete verification-documents/{company_id|user_id} folder(s)
+            await deleteFolderWithTracking(
+              `verification-documents/${folderId}`,
+              `verification-documents/${folderId}`
+            );
+          }
 
           // 3. Delete creatorlink/videos/{company_profile_id} folder
           await deleteFolderWithTracking(
