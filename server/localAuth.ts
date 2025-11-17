@@ -1851,13 +1851,13 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
           
           // 1. Delete creatorprofile/{creator_id} folder
           await deleteFolderWithTracking(
-            `affiliatexchange/creatorprofile/${creatorProfile.id}`,
+            `creatorprofile/${creatorProfile.id}`,
             `creatorprofile/${creatorProfile.id}`
           );
 
           // 2. Delete retainer deliverables folder (retainer-deliverables/{creator_id})
           try {
-            await objectStorage.deleteFolder(`affiliatexchange/retainer-deliverables/${userId}`);
+            await objectStorage.deleteFolder(`retainer-deliverables/${userId}`);
             console.log(`[Account Deletion] Deleted retainer-deliverables/${userId} folder`);
           } catch (error: any) {
             const errorMsg = `Failed to delete retainer-deliverables/${userId} folder: ${error.message}`;
@@ -1872,7 +1872,7 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
             for (const contract of retainerContracts) {
               try {
-                await objectStorage.deleteFolder(`affiliatexchange/creatorlink/retainer/${contract.id}`);
+                await objectStorage.deleteFolder(`creatorlink/retainer/${contract.id}`);
                 console.log(`[Account Deletion] Deleted creatorlink/retainer/${contract.id} folder`);
               } catch (error: any) {
                 const errorMsg = `Failed to delete creatorlink/retainer/${contract.id} folder: ${error.message}`;
@@ -1893,7 +1893,7 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
             for (const conversation of conversations) {
               try {
-                await objectStorage.deleteFolder(`affiliatexchange/creatorlink/attachments/${conversation.id}`);
+                await objectStorage.deleteFolder(`creatorlink/attachments/${conversation.id}`);
                 console.log(`[Account Deletion] Deleted creatorlink/attachments/${conversation.id} folder`);
               } catch (error: any) {
                 const errorMsg = `Failed to delete creatorlink/attachments/${conversation.id} folder: ${error.message}`;
@@ -1909,7 +1909,7 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
           // Delete any other creator-specific content
           try {
-            await objectStorage.deleteFolder(`affiliatexchange/creator-content/${userId}`);
+            await objectStorage.deleteFolder(`creator-content/${userId}`);
             console.log(`[Account Deletion] Deleted creator-content/${userId} folder`);
           } catch (error: any) {
             const errorMsg = `Failed to delete creator content folder: ${error.message}`;
@@ -1926,7 +1926,7 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
           // 1. Delete company-logos/{company_id} folder
           try {
-            await objectStorage.deleteFolder(`affiliatexchange/company-logos/${companyProfile.id}`);
+            await objectStorage.deleteFolder(`company-logos/${companyProfile.id}`);
             console.log(`[Account Deletion] Deleted company-logos/${companyProfile.id} folder`);
           } catch (error: any) {
             const errorMsg = `Failed to delete company-logos/${companyProfile.id} folder: ${error.message}`;
@@ -1936,13 +1936,13 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
           // 2. Delete verification-documents/{company_profile_id} folder
           await deleteFolderWithTracking(
-            `affiliatexchange/verification-documents/${companyProfile.id}`,
+            `verification-documents/${companyProfile.id}`,
             `verification-documents/${companyProfile.id}`
           );
 
           // 3. Delete creatorlink/videos/{company_profile_id} folder
           try {
-            await objectStorage.deleteFolder(`affiliatexchange/creatorlink/videos/${companyProfile.id}`);
+            await objectStorage.deleteFolder(`creatorlink/videos/${companyProfile.id}`);
             console.log(`[Account Deletion] Deleted creatorlink/videos/${companyProfile.id} folder`);
           } catch (error: any) {
             const errorMsg = `Failed to delete creatorlink/videos/${companyProfile.id} folder: ${error.message}`;
@@ -1952,7 +1952,7 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
           // 4. Delete company offers folder (offers/{company_profile_id})
           try {
-            await objectStorage.deleteFolder(`affiliatexchange/offers/${companyProfile.id}`);
+            await objectStorage.deleteFolder(`offers/${companyProfile.id}`);
             console.log(`[Account Deletion] Deleted offers/${companyProfile.id} folder`);
           } catch (error: any) {
             const errorMsg = `Failed to delete offers/${companyProfile.id} folder: ${error.message}`;
@@ -1967,7 +1967,7 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
             for (const contract of retainerContracts) {
               try {
-                await objectStorage.deleteFolder(`affiliatexchange/creatorlink/retainer/${contract.id}`);
+                await objectStorage.deleteFolder(`creatorlink/retainer/${contract.id}`);
                 console.log(`[Account Deletion] Deleted creatorlink/retainer/${contract.id} folder`);
               } catch (error: any) {
                 const errorMsg = `Failed to delete creatorlink/retainer/${contract.id} folder: ${error.message}`;
@@ -1988,7 +1988,7 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
             for (const conversation of conversations) {
               try {
-                await objectStorage.deleteFolder(`affiliatexchange/creatorlink/attachments/${conversation.id}`);
+                await objectStorage.deleteFolder(`creatorlink/attachments/${conversation.id}`);
                 console.log(`[Account Deletion] Deleted creatorlink/attachments/${conversation.id} folder`);
               } catch (error: any) {
                 const errorMsg = `Failed to delete creatorlink/attachments/${conversation.id} folder: ${error.message}`;
@@ -2006,7 +2006,7 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
       // Delete user profile folder (user-profiles/{user_id})
       try {
-        await objectStorage.deleteFolder(`affiliatexchange/user-profiles/${userId}`);
+        await objectStorage.deleteFolder(`user-profiles/${userId}`);
         console.log(`[Account Deletion] Deleted user-profiles/${userId} folder`);
       } catch (error: any) {
         const errorMsg = `Failed to delete user-profiles/${userId} folder: ${error.message}`;
@@ -2016,7 +2016,7 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
       // Delete any other user-related folders
       try {
-        await objectStorage.deleteFolder(`affiliatexchange/users/${userId}`);
+        await objectStorage.deleteFolder(`users/${userId}`);
         console.log(`[Account Deletion] Deleted users/${userId} folder`);
       } catch (error: any) {
         const errorMsg = `Failed to delete users/${userId} folder: ${error.message}`;
