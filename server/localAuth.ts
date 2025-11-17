@@ -1599,7 +1599,8 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
         await objectStorage.deleteFolder(folderPath);
         console.log(`[Account Deletion] Deleted ${description} folder`);
       } catch (error: any) {
-        const errorMsg = `Failed to delete ${description} folder: ${error.message}`;
+        const errorDetails = error?.message || error?.error?.message || JSON.stringify(error);
+        const errorMsg = `Failed to delete ${description} folder: ${errorDetails}`;
         console.error(`[Account Deletion] ${errorMsg}`);
         cloudinaryErrors.push(errorMsg);
       }
