@@ -159,7 +159,7 @@ export default function CompanyRetainers() {
           ? parseInt(data.minimumVideoLengthSeconds)
           : undefined,
         retainerTiers: (data.retainerTiers || []).map((tier) => ({
-          ...tier,
+          name: tier.name,
           monthlyAmount: parseFloat(tier.monthlyAmount),
           videosPerMonth: parseInt(tier.videosPerMonth),
           durationMonths: parseInt(tier.durationMonths),
