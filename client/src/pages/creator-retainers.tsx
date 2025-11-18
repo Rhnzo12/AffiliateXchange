@@ -753,7 +753,7 @@ export default function CreatorRetainers() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-6">
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {filteredContracts.map((contract: any) => {
                 const applicationStatus = getApplicationStatus(contract.id);
                 const StatusIcon = applicationStatus.icon;
@@ -784,7 +784,7 @@ export default function CreatorRetainers() {
                 return (
                   <Card
                     key={contract.id}
-                    className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer"
+                    className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer h-full"
                     data-testid={`retainer-card-${contract.id}`}
                   >
                     <CardHeader className="pb-4 space-y-3">
@@ -861,7 +861,7 @@ export default function CreatorRetainers() {
                         {contract.postingSchedule && <Badge variant="outline">{contract.postingSchedule}</Badge>}
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 flex flex-col h-full">
                       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                           <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
@@ -962,7 +962,7 @@ export default function CreatorRetainers() {
                         </div>
                       )}
 
-                      <div className="flex gap-3 pt-2">
+                      <div className="flex gap-3 pt-2 mt-auto">
                         <Link href={`/retainers/${contract.id}`} className="flex-1">
                           <Button
                             variant="outline"
