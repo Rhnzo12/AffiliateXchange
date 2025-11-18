@@ -45,17 +45,6 @@ interface EnhancedMessage {
   tempId?: string;
 }
 
-const getRoleLabel = (role?: string | null) => {
-  switch (role) {
-    case "company":
-      return "Company";
-    case "creator":
-      return "Creator";
-    default:
-      return null;
-  }
-};
-
 export default function Messages() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -832,12 +821,6 @@ export default function Messages() {
                         ? "Received new messages"
                         : conversation.lastMessage;
 
-                    const lastSenderRoleLabel = getRoleLabel(
-                      conversation.lastMessageSenderId === user?.id
-                        ? user?.role
-                        : conversation.otherUser?.role
-                    );
-
                     const previewClassName = `text-sm truncate ${
                       isUnread ? 'font-semibold text-foreground' : 'text-muted-foreground'
                     }`;
@@ -873,23 +856,6 @@ export default function Messages() {
                             </div>
                             {conversation.lastMessage && (
                               <div className="flex items-center gap-1.5 mt-1">
-                                {conversation.lastMessageSenderId === user?.id ? (
-                                  <Badge
-                                    variant="secondary"
-                                    className="shrink-0 h-4 px-1 text-[9px] font-semibold"
-                                  >
-                                    You
-                                  </Badge>
-                                ) : (
-                                  lastSenderRoleLabel && (
-                                    <Badge
-                                      variant="outline"
-                                      className="shrink-0 h-4 px-1 text-[9px] font-semibold"
-                                    >
-                                      {lastSenderRoleLabel}
-                                    </Badge>
-                                  )
-                                )}
                                 <div className={previewClassName}>
                                   {lastMessagePreview}
                                 </div>
@@ -982,8 +948,6 @@ export default function Messages() {
                     const showDateSeparator = shouldShowDateSeparator(message, previousMessage);
                     const groupWithPrevious = shouldGroupMessage(message, previousMessage);
                     const isOwnMessage = message.senderId === user?.id;
-                    const senderRoleLabel = getRoleLabel(isOwnMessage ? user?.role : otherUser?.role);
-
                     return (
                       <div key={message.id}>
                         {showDateSeparator && (
@@ -1014,14 +978,6 @@ export default function Messages() {
                                 : 'bg-muted rounded-bl-md'
                             }`}
                           >
-                            {senderRoleLabel && (
-                              <div className="flex items-center justify-between gap-2 mb-1 text-[11px] font-semibold tracking-wide uppercase opacity-80">
-                                <Badge variant={isOwnMessage ? 'secondary' : 'outline'} className="h-5 px-2 text-[10px]">
-                                  {senderRoleLabel}
-                                </Badge>
-                              </div>
-                            )}
-
                             {message.attachments && message.attachments.length > 0 && (
                               <div className="mb-2 space-y-2">
                                 {message.attachments.map((url, idx) => (
