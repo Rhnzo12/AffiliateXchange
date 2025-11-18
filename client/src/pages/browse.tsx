@@ -97,12 +97,12 @@ const getCommissionDisplay = (offer: any) => {
     return { value: `${wholePercentage}%`, isCurrency: false };
   }
   if (offer?.commissionAmount) {
-    return { value: `$${offer.commissionAmount}`, isCurrency: true };
+    return { value: offer.commissionAmount, isCurrency: true };
   }
   if (offer?.commissionRate) {
-    return { value: `$${offer.commissionRate}`, isCurrency: true };
+    return { value: offer.commissionRate, isCurrency: true };
   }
-  return { value: "$0", isCurrency: true };
+  return { value: 0, isCurrency: true };
 };
 
 // Helper function to get commission type label
@@ -913,7 +913,9 @@ export default function Browse() {
                             <div className={`text-2xl font-bold ${
                               isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-green-600'
                             } transition-colors`}>
-                              {commissionDisplay.value}
+                              {commissionDisplay.isCurrency
+                                ? `$${commissionDisplay.value}`
+                                : commissionDisplay.value}
                             </div>
                             <div className={`text-xs ${
                               isRetainer ? 'text-purple-600/70 font-medium' : 'text-muted-foreground'
