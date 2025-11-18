@@ -82,6 +82,7 @@ export default function Messages() {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const selectedConversationRef = useRef<string | null>(selectedConversation);
   const userIdRef = useRef<string | undefined>(user?.id);
+  const userRoleRef = useRef<string | undefined>(user?.role);
 
   // Image viewer functions
   const openImageViewer = (images: string[], startIndex: number = 0) => {
@@ -183,6 +184,10 @@ export default function Messages() {
     userIdRef.current = user?.id;
   }, [user?.id]);
 
+  useEffect(() => {
+    userRoleRef.current = user?.role;
+  }, [user?.role]);
+
   const getDisplayName = (user: any) => {
     if (!user) return 'User';
     const companyName = user.tradeName || user.legalName || user.companyName || user.company_name || user.businessName;
@@ -243,15 +248,39 @@ export default function Messages() {
         socket.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            
+
             if (data.type === 'new_message') {
               if (data.message?.conversationId) {
-                queryClient.invalidateQueries({ 
-                  queryKey: ["/api/messages", data.message.conversationId] 
+                queryClient.invalidateQueries({
+                  queryKey: ["/api/messages", data.message.conversationId]
+                });
+
+                queryClient.setQueryData<any[]>(["/api/conversations"], (prev) => {
+                  if (!prev) return prev;
+
+                  return prev.map((conv) => {
+                    if (conv.id !== data.message.conversationId) return conv;
+
+                    const isFromSelf = data.message.senderId === userIdRef.current;
+                    const isCompanyUser = userRoleRef.current === 'company';
+                    const unreadUpdates = isFromSelf
+                      ? {}
+                      : isCompanyUser
+                        ? { companyUnreadCount: (conv.companyUnreadCount || 0) + 1 }
+                        : { creatorUnreadCount: (conv.creatorUnreadCount || 0) + 1 };
+
+                    return {
+                      ...conv,
+                      lastMessage: data.message.content,
+                      lastMessageSenderId: data.message.senderId,
+                      lastMessageAt: data.message.createdAt,
+                      ...unreadUpdates,
+                    };
+                  });
                 });
               }
               queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
-              
+
               const currentSoundEnabled = localStorage.getItem('messageSoundEnabled');
               const shouldPlaySound = currentSoundEnabled === null ? true : currentSoundEnabled === 'true';
               if (shouldPlaySound && data.message?.senderId !== userIdRef.current && audioRef.current) {
@@ -357,7 +386,24 @@ export default function Messages() {
         userId: user.id,
       }));
     }
-  }, [selectedConversation, isConnected, user?.id, messages.length]);
+
+    if (selectedConversation && user?.role) {
+      queryClient.setQueryData<any[]>(["/api/conversations"], (prev) => {
+        if (!prev) return prev;
+
+        return prev.map((conv) =>
+          conv.id === selectedConversation
+            ? {
+                ...conv,
+                ...(user.role === 'company'
+                  ? { companyUnreadCount: 0 }
+                  : { creatorUnreadCount: 0 }),
+              }
+            : conv
+        );
+      });
+    }
+  }, [selectedConversation, isConnected, user?.id, user?.role, messages.length]);
 
   const handleTyping = useCallback(() => {
     if (!selectedConversation || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
@@ -765,66 +811,76 @@ export default function Messages() {
                 </div>
               ) : (
                 <div className="divide-y">
-                  {conversations.map((conversation: any) => (
-                    <button
-                      key={conversation.id}
-                      onClick={() => setSelectedConversation(conversation.id)}
-                      className={`w-full p-4 sm:p-3 text-left hover-elevate transition-colors min-h-[80px] sm:min-h-0 ${
-                        selectedConversation === conversation.id ? 'bg-accent' : 'hover:bg-accent/50'
-                      }`}
-                      data-testid={`conversation-${conversation.id}`}
-                    >
-                      <div className="flex gap-3 items-start">
-                        <Avatar className="h-12 w-12 sm:h-10 sm:w-10 shrink-0">
-                          <AvatarImage src={conversation.otherUser?.profileImageUrl || conversation.otherUser?.logoUrl} />
-                          <AvatarFallback>
-                            {getAvatarFallback(conversation.otherUser)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <div className="font-semibold truncate text-base sm:text-sm">
-                              {getDisplayName(conversation.otherUser)}
-                            </div>
-                            <div className="text-xs text-muted-foreground shrink-0">
-                              {conversation.lastMessageAt &&
-                                formatMessageDate(conversation.lastMessageAt)}
-                            </div>
-                          </div>
-                          <div className="text-sm text-muted-foreground truncate font-medium">
-                            {conversation.offerTitle}
-                          </div>
-                          {conversation.lastMessage && (
-                            <div className="flex items-center gap-1.5 mt-1">
-                              {conversation.lastMessageSenderId === user?.id && (
-                                <Badge
-                                  variant="secondary"
-                                  className="shrink-0 h-4 px-1 text-[9px] font-semibold"
-                                >
-                                  You
-                                </Badge>
-                              )}
-                              <div className="text-sm text-muted-foreground truncate">
-                                {conversation.lastMessageSenderId !== user?.id &&
-                                 ((user?.role === 'company' && conversation.companyUnreadCount > 0) ||
-                                  (user?.role !== 'company' && conversation.creatorUnreadCount > 0))
-                                  ? "Received new messages"
-                                  : conversation.lastMessage}
+                  {conversations.map((conversation: any) => {
+                    const isUnread = user?.role === 'company'
+                      ? conversation.companyUnreadCount > 0
+                      : conversation.creatorUnreadCount > 0;
+
+                    const lastMessagePreview =
+                      conversation.lastMessageSenderId !== user?.id && isUnread
+                        ? "Received new messages"
+                        : conversation.lastMessage;
+
+                    const previewClassName = `text-sm truncate ${
+                      isUnread ? 'font-semibold text-foreground' : 'text-muted-foreground'
+                    }`;
+
+                    return (
+                      <button
+                        key={conversation.id}
+                        onClick={() => setSelectedConversation(conversation.id)}
+                        className={`w-full p-4 sm:p-3 text-left hover-elevate transition-colors min-h-[80px] sm:min-h-0 ${
+                          selectedConversation === conversation.id ? 'bg-accent' : 'hover:bg-accent/50'
+                        }`}
+                        data-testid={`conversation-${conversation.id}`}
+                      >
+                        <div className="flex gap-3 items-start">
+                          <Avatar className="h-12 w-12 sm:h-10 sm:w-10 shrink-0">
+                            <AvatarImage src={conversation.otherUser?.profileImageUrl || conversation.otherUser?.logoUrl} />
+                            <AvatarFallback>
+                              {getAvatarFallback(conversation.otherUser)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <div className="font-semibold truncate text-base sm:text-sm">
+                                {getDisplayName(conversation.otherUser)}
+                              </div>
+                              <div className="text-xs text-muted-foreground shrink-0">
+                                {conversation.lastMessageAt &&
+                                  formatMessageDate(conversation.lastMessageAt)}
                               </div>
                             </div>
+                            <div className="text-sm text-muted-foreground truncate font-medium">
+                              {conversation.offerTitle}
+                            </div>
+                            {conversation.lastMessage && (
+                              <div className="flex items-center gap-1.5 mt-1">
+                                {conversation.lastMessageSenderId === user?.id && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="shrink-0 h-4 px-1 text-[9px] font-semibold"
+                                  >
+                                    You
+                                  </Badge>
+                                )}
+                                <div className={previewClassName}>
+                                  {lastMessagePreview}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          {isUnread && (
+                            <Badge variant="destructive" className="h-5 min-w-5 px-1.5">
+                              {user?.role === 'company'
+                                ? conversation.companyUnreadCount
+                                : conversation.creatorUnreadCount}
+                            </Badge>
                           )}
                         </div>
-                        {((user?.role === 'company' && conversation.companyUnreadCount > 0) ||
-                          (user?.role !== 'company' && conversation.creatorUnreadCount > 0)) && (
-                          <Badge variant="destructive" className="h-5 min-w-5 px-1.5">
-                            {user?.role === 'company'
-                              ? conversation.companyUnreadCount
-                              : conversation.creatorUnreadCount}
-                          </Badge>
-                        )}
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
