@@ -229,6 +229,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const applications = await storage.getApplicationsByCreator(userId);
       const analyticsData = await storage.getAnalyticsByCreator(userId);
+      const unreadMessages = await storage.getUnreadMessageCountForCreator(userId);
 
       const formatCurrency = (value: number) => Number(value || 0).toFixed(2);
 
@@ -239,7 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pendingApplications: applications.filter(a => a.status === 'pending').length,
         totalClicks: analyticsData?.totalClicks || 0,
         monthlyClicks: analyticsData?.monthlyClicks || 0,
-        unreadMessages: 0, // TODO: Calculate from messages
+        unreadMessages,
       };
 
       res.json(stats);
