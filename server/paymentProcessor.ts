@@ -3,6 +3,23 @@
 
 import { storage } from "./storage";
 import paypalSdk from '@paypal/payouts-sdk';
+import Stripe from 'stripe';
+
+let stripeClient: Stripe | null = null;
+
+function getStripeClient() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!secretKey) {
+    throw new Error('Stripe credentials not configured. Please set STRIPE_SECRET_KEY in your .env file');
+  }
+
+  if (!stripeClient) {
+    stripeClient = new Stripe(secretKey);
+  }
+
+  return stripeClient;
+}
 
 export interface PaymentResult {
   success: boolean;
@@ -289,28 +306,51 @@ export class PaymentProcessorService {
     try {
       console.log(`[E-Transfer] Sending $${amount} CAD to ${email}`);
 
-      // In production, integrate with your bank's e-Transfer API
-      // Most Canadian banks provide APIs for sending Interac e-Transfers programmatically
+      let stripe: Stripe;
+      try {
+        stripe = getStripeClient();
+      } catch (error: any) {
+        console.error('[E-Transfer] Stripe initialization failed:', error?.message || error);
+        return {
+          success: false,
+          error: error?.message || 'Stripe configuration error'
+        };
+      }
 
-      const mockTransactionId = `ET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const payout = await stripe.payouts.create({
+        amount: Math.round(amount * 100),
+        currency: 'cad',
+        method: 'standard',
+        description: description,
+        statement_descriptor: 'AffiliateXchange',
+        metadata: {
+          payment_id: paymentId,
+          payout_method: 'etransfer',
+          payout_email: email
+        }
+      });
 
-      console.log(`[E-Transfer] SUCCESS - Transaction ID: ${mockTransactionId}`);
+      console.log(`[E-Transfer] SUCCESS - Stripe Payout ID: ${payout.id}`);
 
       return {
         success: true,
-        transactionId: mockTransactionId,
+        transactionId: payout.id,
         providerResponse: {
           method: 'etransfer',
           email: email,
           amount: amount,
+          payoutId: payout.id,
+          arrivalDate: payout.arrival_date,
+          status: payout.status,
           timestamp: new Date().toISOString(),
-          note: 'SIMULATED - In production, this would use bank e-Transfer API'
+          note: 'Processed via Stripe payouts API'
         }
       };
 
     } catch (error: any) {
-      console.error('[E-Transfer] Error:', error);
-      return { success: false, error: error.message };
+      const errorMessage = error?.message || 'Unknown error while processing e-transfer payout';
+      console.error('[E-Transfer] Error:', errorMessage);
+      return { success: false, error: errorMessage };
     }
   }
 
