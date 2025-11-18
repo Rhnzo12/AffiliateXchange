@@ -86,15 +86,23 @@ const getOfferNicheValues = (offer: any): string[] => {
 // Helper function to format commission display
 const getCommissionDisplay = (offer: any) => {
   if (offer?.commissionPercentage) {
-    return { value: `${offer.commissionPercentage}%`, isCurrency: false };
+    const numericPercentage = typeof offer.commissionPercentage === "string"
+      ? parseFloat(offer.commissionPercentage.replace(/%/g, ""))
+      : offer.commissionPercentage;
+
+    const wholePercentage = Number.isFinite(numericPercentage)
+      ? Math.round(numericPercentage)
+      : offer.commissionPercentage;
+
+    return { value: `${wholePercentage}%`, isCurrency: false };
   }
   if (offer?.commissionAmount) {
-    return { value: `$${offer.commissionAmount}`, isCurrency: true };
+    return { value: offer.commissionAmount, isCurrency: true };
   }
   if (offer?.commissionRate) {
-    return { value: `$${offer.commissionRate}`, isCurrency: true };
+    return { value: offer.commissionRate, isCurrency: true };
   }
-  return { value: "$0", isCurrency: true };
+  return { value: 0, isCurrency: true };
 };
 
 // Helper function to get commission type label
@@ -905,7 +913,9 @@ export default function Browse() {
                             <div className={`text-2xl font-bold ${
                               isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-green-600'
                             } transition-colors`}>
-                              {commissionDisplay.value}
+                              {commissionDisplay.isCurrency
+                                ? `$${commissionDisplay.value}`
+                                : commissionDisplay.value}
                             </div>
                             <div className={`text-xs ${
                               isRetainer ? 'text-purple-600/70 font-medium' : 'text-muted-foreground'
@@ -1081,11 +1091,7 @@ export default function Browse() {
                           <div className={`flex items-center gap-1 font-mono font-bold ${
                             isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-primary'
                           } transition-colors`}>
-                            {commissionDisplay.isCurrency ? (
-                              <DollarSign className="h-4 w-4" />
-                            ) : (
-                              <Percent className="h-4 w-4" />
-                            )}
+                            {commissionDisplay.isCurrency && <DollarSign className="h-4 w-4" />}
                             {commissionDisplay.value}
                           </div>
                         </div>
