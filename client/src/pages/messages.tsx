@@ -251,6 +251,15 @@ export default function Messages() {
 
             if (data.type === 'new_message') {
               if (data.message?.conversationId) {
+                queryClient.setQueryData<EnhancedMessage[] | undefined>(
+                  ["/api/messages", data.message.conversationId],
+                  (prev) => {
+                    if (!prev) return [data.message];
+                    const hasMessage = prev.some((msg) => msg.id === data.message.id);
+                    return hasMessage ? prev : [...prev, data.message];
+                  }
+                );
+
                 queryClient.invalidateQueries({
                   queryKey: ["/api/messages", data.message.conversationId]
                 });
