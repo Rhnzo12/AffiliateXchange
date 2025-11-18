@@ -5175,9 +5175,12 @@ res.json(approved);
 
           // Find all participants in the conversation
           const conversation = await storage.getConversation(message.conversationId);
-          
-          // Send to all participants
-          const recipientIds = [conversation.creatorId, conversation.companyId];
+          const companyProfile = conversation?.companyId
+            ? await storage.getCompanyProfileById(conversation.companyId)
+            : null;
+
+          // Send to all participants (company profile -> user account)
+          const recipientIds = [conversation.creatorId, companyProfile?.userId || conversation.companyId];
           for (const recipientId of recipientIds) {
             const recipientWs = clients.get(recipientId);
             if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
@@ -5190,7 +5193,10 @@ res.json(approved);
         } else if (message.type === 'typing_start') {
           // Broadcast typing indicator to other participants
           const conversation = await storage.getConversation(message.conversationId);
-          const recipientIds = [conversation.creatorId, conversation.companyId].filter(id => id !== userId);
+          const companyProfile = conversation?.companyId
+            ? await storage.getCompanyProfileById(conversation.companyId)
+            : null;
+          const recipientIds = [conversation.creatorId, companyProfile?.userId || conversation.companyId].filter(id => id !== userId);
           
           for (const recipientId of recipientIds) {
             const recipientWs = clients.get(recipientId);
@@ -5205,7 +5211,10 @@ res.json(approved);
         } else if (message.type === 'typing_stop') {
           // Broadcast stop typing indicator
           const conversation = await storage.getConversation(message.conversationId);
-          const recipientIds = [conversation.creatorId, conversation.companyId].filter(id => id !== userId);
+          const companyProfile = conversation?.companyId
+            ? await storage.getCompanyProfileById(conversation.companyId)
+            : null;
+          const recipientIds = [conversation.creatorId, companyProfile?.userId || conversation.companyId].filter(id => id !== userId);
           
           for (const recipientId of recipientIds) {
             const recipientWs = clients.get(recipientId);
@@ -5223,7 +5232,10 @@ res.json(approved);
           
           // Notify the sender that messages have been read
           const conversation = await storage.getConversation(message.conversationId);
-          const recipientIds = [conversation.creatorId, conversation.companyId].filter(id => id !== userId);
+          const companyProfile = conversation?.companyId
+            ? await storage.getCompanyProfileById(conversation.companyId)
+            : null;
+          const recipientIds = [conversation.creatorId, companyProfile?.userId || conversation.companyId].filter(id => id !== userId);
           
           for (const recipientId of recipientIds) {
             const recipientWs = clients.get(recipientId);
