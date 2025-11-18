@@ -9,6 +9,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Badge } from "../components/ui/badge";
 import { Progress } from "../components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
@@ -22,14 +23,16 @@ import {
   X,
   FileText,
   Globe,
-  Shield
+  Shield,
+  CreditCard
 } from "lucide-react";
 
 const STEPS = [
   { id: 1, title: "Company Information", description: "Tell us about your business" },
   { id: 2, title: "Contact Information", description: "How can we reach you" },
   { id: 3, title: "Verification", description: "Verify your business" },
-  { id: 4, title: "Review", description: "Review and submit" },
+  { id: 4, title: "Payment Method", description: "How you'll pay creators" },
+  { id: 5, title: "Review", description: "Review and submit" },
 ];
 
 const COMPANY_SIZES = [
@@ -90,6 +93,15 @@ export default function CompanyOnboarding() {
   const [twitterUrl, setTwitterUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
+
+  // Step 4: Payment Method
+  const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [payoutEmail, setPayoutEmail] = useState("");
+  const [bankRoutingNumber, setBankRoutingNumber] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [paypalEmail, setPaypalEmail] = useState("");
+  const [cryptoWalletAddress, setCryptoWalletAddress] = useState("");
+  const [cryptoNetwork, setCryptoNetwork] = useState("");
 
   // Load user data
   useEffect(() => {
@@ -372,9 +384,66 @@ export default function CompanyOnboarding() {
         }
         return true;
 
+      case 4:
+        if (!paymentMethod) {
+          toast({
+            title: "Payment Method",
+            description: "Please select how you'll pay creators or choose to set it up later.",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        if (paymentMethod === "setup_later") {
+          return true;
+        }
+
+        if (paymentMethod === "etransfer" && !payoutEmail) {
+          toast({
+            title: "Payment details required",
+            description: "Please add an e-transfer email to continue.",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        if (paymentMethod === "wire" && (!bankRoutingNumber || !bankAccountNumber)) {
+          toast({
+            title: "Payment details required",
+            description: "Please add your bank routing and account number to continue.",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        if (paymentMethod === "paypal" && !paypalEmail) {
+          toast({
+            title: "Payment details required",
+            description: "Please add your PayPal email to continue.",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        if (paymentMethod === "crypto" && (!cryptoWalletAddress || !cryptoNetwork)) {
+          toast({
+            title: "Payment details required",
+            description: "Please add your wallet address and network to continue.",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        return true;
+
       default:
         return true;
     }
+  };
+
+  const handleSetUpLater = () => {
+    setPaymentMethod("setup_later");
+    setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
   };
 
   const handleNext = () => {
@@ -858,6 +927,141 @@ export default function CompanyOnboarding() {
       case 4:
         return (
           <div className="space-y-6">
+            <div className="rounded-lg border p-4 bg-muted/30">
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-blue-100 p-2">
+                  <CreditCard className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-semibold">Choose how you'll pay creators</h3>
+                  <p className="text-sm text-muted-foreground">
+                    This funding method is used when you release payments to creators for their campaigns.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {["etransfer", "wire", "paypal", "crypto"].map((method) => (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => setPaymentMethod(method)}
+                  className={`rounded-lg border p-4 text-left transition hover:border-primary ${
+                    paymentMethod === method ? "border-primary ring-2 ring-primary/40" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold capitalize">{method === "wire" ? "Wire / ACH" : method}</div>
+                    {paymentMethod === method && <Badge>Selected</Badge>}
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {method === "etransfer" && "Send creator payouts via business e-transfer."}
+                    {method === "wire" && "Use your bank account for ACH or wire transfers."}
+                    {method === "paypal" && "Fund payouts directly from your PayPal account."}
+                    {method === "crypto" && "Send payouts using your preferred crypto network."}
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            {paymentMethod && paymentMethod !== "setup_later" && (
+              <div className="space-y-4">
+                {paymentMethod === "etransfer" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="payoutEmail">Payout Email</Label>
+                    <Input
+                      id="payoutEmail"
+                      type="email"
+                      placeholder="accounts@company.com"
+                      value={payoutEmail}
+                      onChange={(e) => setPayoutEmail(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {paymentMethod === "wire" && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="routingNumber">Bank Routing Number</Label>
+                      <Input
+                        id="routingNumber"
+                        placeholder="123456789"
+                        value={bankRoutingNumber}
+                        onChange={(e) => setBankRoutingNumber(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="accountNumber">Bank Account Number</Label>
+                      <Input
+                        id="accountNumber"
+                        placeholder="000123456789"
+                        value={bankAccountNumber}
+                        onChange={(e) => setBankAccountNumber(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === "paypal" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="paypalEmail">PayPal Email</Label>
+                    <Input
+                      id="paypalEmail"
+                      type="email"
+                      placeholder="billing@company.com"
+                      value={paypalEmail}
+                      onChange={(e) => setPaypalEmail(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {paymentMethod === "crypto" && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="walletAddress">Wallet Address</Label>
+                      <Input
+                        id="walletAddress"
+                        placeholder="0x..."
+                        value={cryptoWalletAddress}
+                        onChange={(e) => setCryptoWalletAddress(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="network">Network</Label>
+                      <Select value={cryptoNetwork} onValueChange={setCryptoNetwork}>
+                        <SelectTrigger id="network">
+                          <SelectValue placeholder="Select network" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ethereum">Ethereum (ERC-20)</SelectItem>
+                          <SelectItem value="bsc">Binance Smart Chain (BEP-20)</SelectItem>
+                          <SelectItem value="polygon">Polygon (MATIC)</SelectItem>
+                          <SelectItem value="bitcoin">Bitcoin</SelectItem>
+                          <SelectItem value="tron">Tron (TRC-20)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-muted/20 p-4">
+              <div>
+                <p className="font-semibold">Prefer to decide later?</p>
+                <p className="text-sm text-muted-foreground">You can continue onboarding and finish setup in Payment Settings.</p>
+              </div>
+              <Button variant="outline" onClick={handleSetUpLater}>
+                Set up later
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6">
             <Alert>
               <CheckCircle2 className="h-4 w-4" />
               <AlertTitle>Ready to Submit</AlertTitle>
@@ -958,6 +1162,55 @@ export default function CompanyOnboarding() {
                       {instagramUrl && <div>• Instagram</div>}
                     </div>
                   </div>
+                )}
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Payment Method
+                </h3>
+                {paymentMethod === "setup_later" || !paymentMethod ? (
+                  <p className="text-sm text-muted-foreground">
+                    You'll finish setting up your payment method later in Payment Settings.
+                  </p>
+                ) : (
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <dt className="text-muted-foreground">Method:</dt>
+                    <dd className="font-medium capitalize">{paymentMethod === "wire" ? "Wire / ACH" : paymentMethod}</dd>
+
+                    {paymentMethod === "etransfer" && (
+                      <>
+                        <dt className="text-muted-foreground">Payout Email:</dt>
+                        <dd className="font-medium">{payoutEmail}</dd>
+                      </>
+                    )}
+
+                    {paymentMethod === "wire" && (
+                      <>
+                        <dt className="text-muted-foreground">Routing Number:</dt>
+                        <dd className="font-medium">{bankRoutingNumber || "-"}</dd>
+                        <dt className="text-muted-foreground">Account Number:</dt>
+                        <dd className="font-medium">{bankAccountNumber ? `****${bankAccountNumber.slice(-4)}` : "-"}</dd>
+                      </>
+                    )}
+
+                    {paymentMethod === "paypal" && (
+                      <>
+                        <dt className="text-muted-foreground">PayPal:</dt>
+                        <dd className="font-medium">{paypalEmail}</dd>
+                      </>
+                    )}
+
+                    {paymentMethod === "crypto" && (
+                      <>
+                        <dt className="text-muted-foreground">Wallet:</dt>
+                        <dd className="font-medium">{cryptoWalletAddress}</dd>
+                        <dt className="text-muted-foreground">Network:</dt>
+                        <dd className="font-medium capitalize">{cryptoNetwork}</dd>
+                      </>
+                    )}
+                  </dl>
                 )}
               </div>
             </div>

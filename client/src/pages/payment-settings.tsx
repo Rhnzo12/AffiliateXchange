@@ -300,7 +300,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
   );
 }
 
-function CreatorPaymentSettings({
+function PaymentMethodSettings({
   paymentMethods,
   payoutMethod,
   setPayoutMethod,
@@ -318,6 +318,9 @@ function CreatorPaymentSettings({
   setCryptoNetwork,
   onAddPaymentMethod,
   isSubmitting,
+  title = "Payment Methods",
+  emptyDescription = "Add a payment method to receive payouts",
+  showFeeBreakdown = true,
 }: {
   paymentMethods?: PaymentMethod[];
   payoutMethod: string;
@@ -336,6 +339,9 @@ function CreatorPaymentSettings({
   setCryptoNetwork: (value: string) => void;
   onAddPaymentMethod: () => void;
   isSubmitting: boolean;
+  title?: string;
+  emptyDescription?: string;
+  showFeeBreakdown?: boolean;
 }) {
   const isAddDisabled =
     isSubmitting ||
@@ -355,12 +361,12 @@ function CreatorPaymentSettings({
   return (
     <div className="space-y-6">
       <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
-        <h3 className="text-lg font-bold text-gray-900">Payment Methods</h3>
+        <h3 className="text-lg font-bold text-gray-900">{title}</h3>
         {!paymentMethods || paymentMethods.length === 0 ? (
           <div className="mt-6 text-center">
             <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-400" />
             <p className="text-gray-600">No payment methods yet</p>
-            <p className="mt-1 text-sm text-gray-500">Add a payment method to receive payouts</p>
+            <p className="mt-1 text-sm text-gray-500">{emptyDescription}</p>
           </div>
         ) : (
           <div className="mt-6 space-y-4">
@@ -493,23 +499,25 @@ function CreatorPaymentSettings({
         </div>
       </div>
 
-      <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
-        <h4 className="mb-2 font-bold text-blue-900">Payment Fee Breakdown</h4>
-        <div className="space-y-2 text-sm text-blue-800">
-          <div className="flex justify-between">
-            <span>Platform Fee:</span>
-            <span className="font-medium">4% of gross earnings</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Processing Fee:</span>
-            <span className="font-medium">3% of gross earnings</span>
-          </div>
-          <div className="mt-2 flex justify-between border-t-2 border-blue-300 pt-2 font-bold">
-            <span>Total Deduction:</span>
-            <span>7% of gross earnings</span>
+      {showFeeBreakdown && (
+        <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
+          <h4 className="mb-2 font-bold text-blue-900">Payment Fee Breakdown</h4>
+          <div className="space-y-2 text-sm text-blue-800">
+            <div className="flex justify-between">
+              <span>Platform Fee:</span>
+              <span className="font-medium">4% of gross earnings</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Processing Fee:</span>
+              <span className="font-medium">3% of gross earnings</span>
+            </div>
+            <div className="mt-2 flex justify-between border-t-2 border-blue-300 pt-2 font-bold">
+              <span>Total Deduction:</span>
+              <span>7% of gross earnings</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -2178,32 +2186,32 @@ export default function PaymentSettings() {
                 >
                   Payment Methods
                 </button>
-              </div>
             </div>
-            {activeTab === "overview" && <CreatorOverview payments={creatorPayments} />}
-            {activeTab === "settings" && (
-              <CreatorPaymentSettings
-                paymentMethods={paymentMethods}
-                payoutMethod={payoutMethod}
-                setPayoutMethod={setPayoutMethod}
-                payoutEmail={payoutEmail}
-                setPayoutEmail={setPayoutEmail}
+          </div>
+          {activeTab === "overview" && <CreatorOverview payments={creatorPayments} />}
+          {activeTab === "settings" && (
+            <PaymentMethodSettings
+              paymentMethods={paymentMethods}
+              payoutMethod={payoutMethod}
+              setPayoutMethod={setPayoutMethod}
+              payoutEmail={payoutEmail}
+              setPayoutEmail={setPayoutEmail}
                 bankRoutingNumber={bankRoutingNumber}
                 setBankRoutingNumber={setBankRoutingNumber}
                 bankAccountNumber={bankAccountNumber}
                 setBankAccountNumber={setBankAccountNumber}
                 paypalEmail={paypalEmail}
                 setPaypalEmail={setPaypalEmail}
-                cryptoWalletAddress={cryptoWalletAddress}
-                setCryptoWalletAddress={setCryptoWalletAddress}
-                cryptoNetwork={cryptoNetwork}
-                setCryptoNetwork={setCryptoNetwork}
-                onAddPaymentMethod={() => addPaymentMethodMutation.mutate()}
-                isSubmitting={addPaymentMethodMutation.isPending}
-              />
-            )}
-          </>
-        )}
+              cryptoWalletAddress={cryptoWalletAddress}
+              setCryptoWalletAddress={setCryptoWalletAddress}
+              cryptoNetwork={cryptoNetwork}
+              setCryptoNetwork={setCryptoNetwork}
+              onAddPaymentMethod={() => addPaymentMethodMutation.mutate()}
+              isSubmitting={addPaymentMethodMutation.isPending}
+            />
+          )}
+        </>
+      )}
 
         {role === "company" && (
           <>
@@ -2218,6 +2226,16 @@ export default function PaymentSettings() {
                   }`}
                 >
                   Overview
+                </button>
+                <button
+                  onClick={() => setActiveTab("settings")}
+                  className={`px-6 py-4 text-sm font-medium transition-colors ${
+                    activeTab === "settings"
+                      ? "border-b-2 border-blue-600 text-blue-600"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Payment Methods
                 </button>
                 <button
                   onClick={() => setActiveTab("approvals")}
@@ -2237,6 +2255,29 @@ export default function PaymentSettings() {
               </div>
             </div>
             {activeTab === "overview" && <CompanyOverview payouts={companyPayments} />}
+            {activeTab === "settings" && (
+              <PaymentMethodSettings
+                paymentMethods={paymentMethods}
+                payoutMethod={payoutMethod}
+                setPayoutMethod={setPayoutMethod}
+                payoutEmail={payoutEmail}
+                setPayoutEmail={setPayoutEmail}
+                bankRoutingNumber={bankRoutingNumber}
+                setBankRoutingNumber={setBankRoutingNumber}
+                bankAccountNumber={bankAccountNumber}
+                setBankAccountNumber={setBankAccountNumber}
+                paypalEmail={paypalEmail}
+                setPaypalEmail={setPaypalEmail}
+                cryptoWalletAddress={cryptoWalletAddress}
+                setCryptoWalletAddress={setCryptoWalletAddress}
+                cryptoNetwork={cryptoNetwork}
+                setCryptoNetwork={setCryptoNetwork}
+                onAddPaymentMethod={() => addPaymentMethodMutation.mutate()}
+                isSubmitting={addPaymentMethodMutation.isPending}
+                emptyDescription="Add a payment method to fund creator payouts"
+                showFeeBreakdown={false}
+              />
+            )}
             {activeTab === "approvals" && <CompanyPayoutApproval payouts={companyPayments} />}
           </>
         )}
