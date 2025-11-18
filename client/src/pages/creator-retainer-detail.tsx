@@ -399,6 +399,43 @@ export default function CreatorRetainerDetail() {
       currency: "USD",
     });
 
+  const activeTier = hasRetainerTiers && bestValueTier
+    ? bestValueTier
+    : {
+        name: "Base tier",
+        monthlyAmount: contractMonthlyAmount,
+        videosPerMonth: contractVideosPerMonth,
+        perVideoCost: basePerVideo,
+        durationMonths: contract.durationMonths,
+      };
+
+  const metrics = [
+    {
+      label: "Monthly Retainer",
+      value: formatCurrency(contractMonthlyAmount, { maximumFractionDigits: 0 }),
+      icon: DollarSign,
+      hint: "Guaranteed per month",
+    },
+    {
+      label: "Videos per Month",
+      value: `${contractVideosPerMonth} videos`,
+      icon: Video,
+      hint: "Consistent cadence",
+    },
+    {
+      label: "Value per Video",
+      value: formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      icon: Play,
+      hint: "Auto-calculated",
+    },
+    {
+      label: "Contract Length",
+      value: `${contract.durationMonths} months`,
+      icon: Calendar,
+      hint: "Fixed term",
+    },
+  ];
+
   const formatSecondsToMinutes = (seconds?: number) => {
     if (!seconds) return undefined;
     const minutes = Math.ceil(seconds / 60);
@@ -451,6 +488,11 @@ export default function CreatorRetainerDetail() {
       default:
         return "secondary";
     }
+  };
+
+  const scrollToDeliverables = () => {
+    const section = document.getElementById("deliverables-section");
+    section?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -786,134 +828,178 @@ export default function CreatorRetainerDetail() {
               </DialogFooter>
             </form>
           </Form>
-        </DialogContent>
-      </Dialog>
+      </DialogContent>
+    </Dialog>
 
-      <div className="grid gap-4 xl:grid-cols-[1.8fr_1.1fr]">
-        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-500 text-white rounded-2xl p-6 shadow-lg space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="grid gap-4 xl:grid-cols-[1.8fr_1.1fr] items-stretch">
+      <Card className="bg-gradient-to-r from-indigo-700 via-purple-700 to-sky-600 text-white border-none shadow-xl h-full">
+        <CardContent className="p-6 space-y-6 h-full flex flex-col">
+          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-4">
             <div className="space-y-1">
-              <p className="uppercase text-xs tracking-[0.2em] text-white/70">Monthly Retainer</p>
-              <div className="text-4xl font-bold">
-                {formatCurrency(bestValueTier?.monthlyAmount ?? contractMonthlyAmount)}
+              <p className="uppercase text-xs tracking-[0.25em] text-white/70">Monthly Retainer</p>
+              <div className="text-4xl font-bold leading-tight" data-testid="heading-contract-title">
+                {contract.title}
               </div>
-              <p className="text-sm text-white/80">
-                {bestValueTier?.videosPerMonth ?? contractVideosPerMonth} videos / month ·
-                {" "}
-                {formatCurrency(
-                  calculatePerVideoCost(
-                    bestValueTier?.monthlyAmount ?? contractMonthlyAmount,
-                    bestValueTier?.videosPerMonth ?? contractVideosPerMonth
-                  ),
-                  { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-                )} per video
-              </p>
+              <p className="text-sm text-white/80">by {contract.company?.tradeName || contract.company?.legalName || "Company"}</p>
             </div>
 
             <div className="flex flex-col items-end gap-2 text-sm">
-              <Badge variant="outline" className="bg-white/10 text-white border-white/30">
-                <Calendar className="h-3.5 w-3.5 mr-1" /> {contract.durationMonths} month contract
-              </Badge>
-              {hasRetainerTiers && bestValueTier && (
-                <Badge className="bg-emerald-500 text-white border-none">
-                  <Sparkles className="h-3.5 w-3.5 mr-1" /> Best value: {bestValueTier.name}
+              <div className="flex flex-wrap gap-2 justify-end">
+                <Badge
+                  className={`uppercase tracking-wide ${isApproved ? "bg-emerald-500 text-white" : "bg-white/15 text-white"}`}
+                  variant="outline"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5 mr-1" /> {currentApplication?.status || "not applied"}
                 </Badge>
-              )}
+                <Badge variant="outline" className="bg-white/10 text-white border-white/20">
+                  <Sparkles className="h-3.5 w-3.5 mr-1" /> Trending offer
+                </Badge>
+              </div>
+              <Badge variant="outline" className="bg-white/10 text-white border-white/20">
+                <Calendar className="h-3.5 w-3.5 mr-1" /> {contract.durationMonths} month term
+              </Badge>
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-3">
-            <div className="bg-white/10 rounded-xl p-3 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <DollarSign className="h-4 w-4" /> Platform fee
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3.5 w-3.5" />
-                    </TooltipTrigger>
-                    <TooltipContent>AffiliateXchange charges a 7% platform fee.</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr] items-start flex-1">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                {metrics.map((metric) => (
+                  <div
+                    key={metric.label}
+                    className="rounded-xl border border-white/10 bg-white/10 backdrop-blur p-3 flex items-start gap-3 shadow-sm hover:border-white/25 transition-colors h-full"
+                  >
+                    <div className="p-2 rounded-lg bg-white/15 text-white">
+                      <metric.icon className="h-4 w-4" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs text-white/70">{metric.label}</p>
+                      <p className="text-lg font-semibold leading-tight">{metric.value}</p>
+                      <p className="text-[11px] text-white/60">{metric.hint}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <p className="text-lg font-semibold">{formatCurrency(platformFee, { maximumFractionDigits: 0 })}</p>
-              <p className="text-xs text-white/70">You take home {formatCurrency(creatorTakeHome, { maximumFractionDigits: 0 })}</p>
-            </div>
 
-            <div className="bg-white/10 rounded-xl p-3 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <Video className="h-4 w-4" /> Deliverables
-              </div>
-              <p className="text-lg font-semibold">
-                {contractVideosPerMonth} / month
-              </p>
-              <p className="text-xs text-white/70">Minimum length {formatSecondsToMinutes(contract.minimumVideoLengthSeconds) || "per brief"}</p>
-            </div>
-
-            <div className="bg-white/10 rounded-xl p-3 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <ShieldCheck className="h-4 w-4" /> Terms
-              </div>
-              <p className="text-lg font-semibold flex items-center gap-2">
-                {contract.contentApprovalRequired ? "Approval required" : "Self-approve"}
-              </p>
-              <p className="text-xs text-white/70">
-                {contract.exclusivityRequired ? "Exclusivity applies" : "Open to multiple brands"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {getValidationBadge("Content approval", !!contract.contentApprovalRequired)}
-            {getValidationBadge("Exclusivity", !!contract.exclusivityRequired)}
-            {getValidationBadge("Posting schedule", !!contract.postingSchedule)}
-            {getValidationBadge("Min video length", !!contract.minimumVideoLengthSeconds)}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <Card className="border-card-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Timeline & Fees</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock3 className="h-4 w-4" /> Contract length
+              <div className="rounded-xl border border-white/10 bg-white/10 backdrop-blur p-4 space-y-3 h-full">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-white/70">Pricing focus</p>
+                    <p className="text-2xl font-bold leading-tight">{formatCurrency(activeTier.monthlyAmount)}</p>
+                    <p className="text-xs text-white/70">
+                      {activeTier.videosPerMonth} videos / month · {formatCurrency(activeTier.perVideoCost, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per video
+                    </p>
+                  </div>
+                  {hasRetainerTiers && bestValueTier && (
+                    <Badge className="bg-emerald-500 text-white border-none shadow-sm">
+                      <Sparkles className="h-3.5 w-3.5 mr-1" /> Best Value
+                    </Badge>
+                  )}
                 </div>
-                <span className="font-semibold">{contract.durationMonths} months</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <DollarSign className="h-4 w-4" /> Monthly retainer
+
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-white/10 p-3 border border-white/10 h-full flex flex-col justify-between">
+                    <div className="flex items-center gap-2 text-sm text-white/80">
+                      <Info className="h-4 w-4" /> Platform fee
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold">{formatCurrency(platformFee, { maximumFractionDigits: 0 })}</p>
+                      <p className="text-xs text-white/70">You take home {formatCurrency(creatorTakeHome, { maximumFractionDigits: 0 })}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg bg-white/10 p-3 border border-white/10 h-full flex flex-col justify-between">
+                    <div className="flex items-center gap-2 text-sm text-white/80">
+                      <ShieldCheck className="h-4 w-4" /> Terms snapshot
+                    </div>
+                    <div className="space-y-1 text-xs text-white/70">
+                      <p className="flex items-center gap-2">{contract.contentApprovalRequired ? "Approval required" : "Self-approve"}</p>
+                      <p className="flex items-center gap-2">{contract.exclusivityRequired ? "Exclusivity applies" : "Open to multiple brands"}</p>
+                      <p className="flex items-center gap-2">Min length {formatSecondsToMinutes(contract.minimumVideoLengthSeconds) || "per brief"}</p>
+                    </div>
+                  </div>
                 </div>
-                <span className="font-semibold">
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4 h-full">
+              <div className="space-y-2">
+                <p className="text-sm text-white/80">Ready to deliver?</p>
+                <p className="text-3xl font-bold">
                   {formatCurrency(contractMonthlyAmount, { maximumFractionDigits: 0 })}
-                </span>
+                  <span className="text-sm font-normal text-white/70"> / month</span>
+                </p>
+                <p className="text-xs text-white/70">Direct access and creative freedom within guardrails.</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Video className="h-4 w-4" /> Value per video
-                </div>
-                <span className="font-semibold">
-                  {formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className="border-card-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Posting Schedule</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>{contract.postingSchedule || "No custom posting schedule provided."}</p>
-              {contract.minimumVideoLengthSeconds && (
-                <p className="text-xs text-foreground/80">Minimum length: {formatSecondsToMinutes(contract.minimumVideoLengthSeconds)}</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  className="shadow-lg"
+                  onClick={() => (isApproved ? setOpen(true) : scrollToDeliverables())}
+                  data-testid="button-submit-deliverable"
+                >
+                  <Upload className="h-4 w-4 mr-2" /> {isApproved ? "Submit Deliverable" : "Review Requirements"}
+                </Button>
+                <Button variant="secondary" className="bg-white/10 text-white border-white/30" onClick={scrollToDeliverables}>
+                  <ExternalLink className="h-4 w-4 mr-2" /> View details
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-2 text-xs text-white/70">
+                {getValidationBadge("Content approval", !!contract.contentApprovalRequired)}
+                {getValidationBadge("Exclusivity", !!contract.exclusivityRequired)}
+                {getValidationBadge("Posting schedule", !!contract.postingSchedule)}
+                {getValidationBadge("Min video length", !!contract.minimumVideoLengthSeconds)}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-4 h-full">
+        <Card className="border-card-border h-full">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Timeline & Fees</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock3 className="h-4 w-4" /> Contract length
+              </div>
+              <span className="font-semibold">{contract.durationMonths} months</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <DollarSign className="h-4 w-4" /> Monthly retainer
+              </div>
+              <span className="font-semibold">
+                {formatCurrency(contractMonthlyAmount, { maximumFractionDigits: 0 })}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Video className="h-4 w-4" /> Value per video
+              </div>
+              <span className="font-semibold">
+                {formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Posting Schedule</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>{contract.postingSchedule || "No custom posting schedule provided."}</p>
+            {contract.minimumVideoLengthSeconds && (
+              <p className="text-xs text-foreground/80">Minimum length: {formatSecondsToMinutes(contract.minimumVideoLengthSeconds)}</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
+    </div>
 
       <Tabs defaultValue="details" className="space-y-6">
         <TabsList>
@@ -1146,7 +1232,7 @@ export default function CreatorRetainerDetail() {
         </TabsContent>
 
         {isApproved && (
-          <TabsContent value="deliverables" className="space-y-6">
+          <TabsContent value="deliverables" className="space-y-6" id="deliverables-section">
             {deliverables && deliverables.length > 0 ? (
               <div className="grid gap-4">
                 {deliverables.map((deliverable: any) => (
