@@ -88,12 +88,28 @@ function formatDuration(seconds: number | string): string {
 const formatCommission = (offer: any) => {
   if (!offer) return "$0";
   
-  if (offer.commissionAmount) {
-    return `$${offer.commissionAmount.toFixed(2)}`;
-  } else if (offer.commissionPercentage) {
+  if (offer.commissionAmount !== undefined && offer.commissionAmount !== null) {
+    const amount = typeof offer.commissionAmount === "string"
+      ? parseFloat(offer.commissionAmount)
+      : offer.commissionAmount;
+
+    if (!isNaN(amount)) {
+      return `$${Number(amount).toFixed(2)}`;
+    }
+  }
+
+  if (offer.commissionPercentage !== undefined && offer.commissionPercentage !== null) {
     return `${offer.commissionPercentage}%`; // Just percentage, no $ sign
-  } else if (offer.commissionRate) {
-    return `$${offer.commissionRate.toFixed(2)}`;
+  }
+
+  if (offer.commissionRate !== undefined && offer.commissionRate !== null) {
+    const rate = typeof offer.commissionRate === "string"
+      ? parseFloat(offer.commissionRate)
+      : offer.commissionRate;
+
+    if (!isNaN(rate)) {
+      return `$${Number(rate).toFixed(2)}`;
+    }
   }
   return "$0";
 };
