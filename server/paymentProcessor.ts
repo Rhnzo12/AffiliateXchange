@@ -1,6 +1,5 @@
 // Payment Processor Service
 // Handles actual money transfers to creators via various payment methods
-
 import { storage } from "./storage";
 import paypalSdk from '@paypal/payouts-sdk';
 import Stripe from 'stripe';
@@ -9,15 +8,12 @@ let stripeClient: Stripe | null = null;
 
 function getStripeClient() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
-
   if (!secretKey) {
     throw new Error('Stripe credentials not configured. Please set STRIPE_SECRET_KEY in your .env file');
   }
-
   if (!stripeClient) {
     stripeClient = new Stripe(secretKey);
   }
-
   return stripeClient;
 }
 
@@ -60,7 +56,6 @@ export class PaymentProcessorService {
 
       // Get creator's payment settings to determine where to send money
       const paymentSettings = await storage.getPaymentSettings(payment.creatorId);
-
       if (!paymentSettings || paymentSettings.length === 0) {
         return {
           success: false,
@@ -70,7 +65,6 @@ export class PaymentProcessorService {
 
       // Use the default payment method (or first one if no default)
       const defaultPaymentMethod = paymentSettings.find(ps => ps.isDefault) || paymentSettings[0];
-
       const amount = parseFloat(payment.netAmount);
 
       // Process payment based on method type
@@ -134,7 +128,6 @@ export class PaymentProcessorService {
 
       // Get creator's payment settings
       const paymentSettings = await storage.getPaymentSettings(retainerPayment.creatorId);
-
       if (!paymentSettings || paymentSettings.length === 0) {
         return {
           success: false,
@@ -144,7 +137,6 @@ export class PaymentProcessorService {
 
       // Use the default payment method
       const defaultPaymentMethod = paymentSettings.find(ps => ps.isDefault) || paymentSettings[0];
-
       const amount = parseFloat(retainerPayment.netAmount);
 
       // Process payment based on method type
@@ -259,7 +251,6 @@ export class PaymentProcessorService {
           timestamp: new Date().toISOString()
         }
       };
-
     } catch (error: any) {
       // Enhanced error handling for PayPal API errors
       let errorMessage = error.message;
@@ -289,7 +280,6 @@ export class PaymentProcessorService {
 
       // Log clean error message instead of full error object
       console.error('[PayPal Payout] Failed:', errorDetails);
-
       return { success: false, error: errorMessage };
     }
   }
@@ -361,7 +351,6 @@ export class PaymentProcessorService {
           note: 'Processed via Stripe payouts API'
         }
       };
-
     } catch (error: any) {
       const errorMessage = error?.message || 'Unknown error while processing e-transfer payout';
       console.error('[E-Transfer] Error:', errorMessage);
@@ -401,7 +390,6 @@ export class PaymentProcessorService {
       // };
 
       const mockTransactionId = `WIRE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
       console.log(`[Bank Transfer] SUCCESS - Transaction ID: ${mockTransactionId}`);
 
       return {
@@ -416,7 +404,6 @@ export class PaymentProcessorService {
           note: 'SIMULATED - In production, this would use Stripe Payouts or bank API'
         }
       };
-
     } catch (error: any) {
       console.error('[Bank Transfer] Error:', error);
       return { success: false, error: error.message };
@@ -474,7 +461,6 @@ export class PaymentProcessorService {
           note: 'SIMULATED - In production, this would send real crypto transaction'
         }
       };
-
     } catch (error: any) {
       console.error('[Crypto Payout] Error:', error);
       return { success: false, error: error.message };
