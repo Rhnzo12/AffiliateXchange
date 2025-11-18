@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Progress } from "../components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
@@ -22,13 +23,16 @@ import {
   ArrowRight,
   X,
   ChevronsUpDown,
-  Video
+  Video,
+  CreditCard
 } from "lucide-react";
 
 const STEPS = [
   { id: 1, title: "Profile Image", description: "Upload your profile picture" },
   { id: 2, title: "Content Niches", description: "Select your content categories" },
   { id: 3, title: "Video Platforms", description: "Connect your social channels" },
+  { id: 4, title: "Payment Method", description: "How you'll get paid" },
+  { id: 5, title: "Review", description: "Confirm and submit" },
 ];
 
 export default function CreatorOnboarding() {
@@ -53,6 +57,15 @@ export default function CreatorOnboarding() {
   const [tiktokFollowers, setTiktokFollowers] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [instagramFollowers, setInstagramFollowers] = useState("");
+
+  // Step 4: Payment Method
+  const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [payoutEmail, setPayoutEmail] = useState("");
+  const [bankRoutingNumber, setBankRoutingNumber] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [paypalEmail, setPaypalEmail] = useState("");
+  const [cryptoWalletAddress, setCryptoWalletAddress] = useState("");
+  const [cryptoNetwork, setCryptoNetwork] = useState("");
 
   // Check if user should be here
   useEffect(() => {
@@ -179,18 +192,98 @@ export default function CreatorOnboarding() {
     setSelectedNiches(prev => prev.filter(n => n !== niche));
   };
 
-  const handleNext = () => {
-    if (currentStep === 2 && selectedNiches.length === 0) {
-      toast({
-        title: "Please Select Niches",
-        description: "Select at least one content niche to help us recommend relevant offers.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const validateStep = (step: number) => {
+    switch (step) {
+      case 2:
+        if (selectedNiches.length === 0) {
+          toast({
+            title: "Please Select Niches",
+            description: "Select at least one content niche to help us recommend relevant offers.",
+            variant: "destructive",
+          });
+          return false;
+        }
+        return true;
 
-    if (currentStep === 3) {
-      // On last step, go to complete
+      case 3: {
+        const hasVideoPlatform = youtubeUrl || tiktokUrl || instagramUrl;
+        if (!hasVideoPlatform) {
+          toast({
+            title: "Video Platform Required",
+            description: "Add at least one video platform (YouTube, TikTok, or Instagram) to continue.",
+            variant: "destructive",
+          });
+          return false;
+        }
+        return true;
+      }
+
+      case 4:
+        if (!paymentMethod) {
+          toast({
+            title: "Payment Method",
+            description: "Select how you'd like to get paid or choose to set it up later.",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        if (paymentMethod === "setup_later") {
+          return true;
+        }
+
+        if (paymentMethod === "etransfer" && !payoutEmail) {
+          toast({
+            title: "Payment details required",
+            description: "Add an e-transfer email to continue.",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        if (paymentMethod === "wire" && (!bankRoutingNumber || !bankAccountNumber)) {
+          toast({
+            title: "Payment details required",
+            description: "Add your bank routing and account number to continue.",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        if (paymentMethod === "paypal" && !paypalEmail) {
+          toast({
+            title: "Payment details required",
+            description: "Add your PayPal email to continue.",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        if (paymentMethod === "crypto" && (!cryptoWalletAddress || !cryptoNetwork)) {
+          toast({
+            title: "Payment details required",
+            description: "Add your wallet address and network to continue.",
+            variant: "destructive",
+          });
+          return false;
+        }
+
+        return true;
+
+      default:
+        return true;
+    }
+  };
+
+  const handleSetUpLater = () => {
+    setPaymentMethod("setup_later");
+    setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+  };
+
+  const handleNext = () => {
+    if (!validateStep(currentStep)) return;
+
+    if (currentStep === STEPS.length) {
       handleComplete();
     } else {
       setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
@@ -203,14 +296,11 @@ export default function CreatorOnboarding() {
   };
 
   const handleComplete = async () => {
-    // Validate at least one video platform
-    const hasVideoPlatform = youtubeUrl || tiktokUrl || instagramUrl;
-    if (!hasVideoPlatform) {
-      toast({
-        title: "Video Platform Required",
-        description: "Please add at least one video platform (YouTube, TikTok, or Instagram) to continue.",
-        variant: "destructive",
-      });
+    const videoValid = validateStep(3);
+    const paymentValid = validateStep(4);
+
+    if (!videoValid || !paymentValid) {
+      setCurrentStep(!videoValid ? 3 : 4);
       return;
     }
 
@@ -516,6 +606,264 @@ export default function CreatorOnboarding() {
                   value={instagramFollowers}
                   onChange={(e) => setInstagramFollowers(e.target.value)}
                 />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <Alert>
+              <CreditCard className="h-4 w-4" />
+              <AlertTitle>Choose how you want to get paid</AlertTitle>
+              <AlertDescription>
+                Select a primary payout method now or set it up later in Payment Settings.
+              </AlertDescription>
+            </Alert>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("paypal")}
+                className={`rounded-lg border p-4 text-left transition hover:border-primary ${paymentMethod === 'paypal' ? 'border-primary shadow-sm ring-2 ring-primary/20' : 'border-border'}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">PayPal</p>
+                    <p className="text-sm text-muted-foreground">Fast payouts to your PayPal email</p>
+                  </div>
+                  <Badge variant={paymentMethod === 'paypal' ? 'default' : 'outline'}>
+                    {paymentMethod === 'paypal' ? 'Selected' : 'Choose'}
+                  </Badge>
+                </div>
+                {paymentMethod === "paypal" && (
+                  <div className="mt-4 space-y-2">
+                    <Label className="text-xs text-muted-foreground">PayPal Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      value={paypalEmail}
+                      onChange={(e) => setPaypalEmail(e.target.value)}
+                    />
+                  </div>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("etransfer")}
+                className={`rounded-lg border p-4 text-left transition hover:border-primary ${paymentMethod === 'etransfer' ? 'border-primary shadow-sm ring-2 ring-primary/20' : 'border-border'}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">E-transfer</p>
+                    <p className="text-sm text-muted-foreground">Send payouts to your email</p>
+                  </div>
+                  <Badge variant={paymentMethod === 'etransfer' ? 'default' : 'outline'}>
+                    {paymentMethod === 'etransfer' ? 'Selected' : 'Choose'}
+                  </Badge>
+                </div>
+                {paymentMethod === "etransfer" && (
+                  <div className="mt-4 space-y-2">
+                    <Label className="text-xs text-muted-foreground">Payout Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="payments@you.com"
+                      value={payoutEmail}
+                      onChange={(e) => setPayoutEmail(e.target.value)}
+                    />
+                  </div>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("wire")}
+                className={`rounded-lg border p-4 text-left transition hover:border-primary ${paymentMethod === 'wire' ? 'border-primary shadow-sm ring-2 ring-primary/20' : 'border-border'}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">Bank Wire / ACH</p>
+                    <p className="text-sm text-muted-foreground">Deposit directly to your bank</p>
+                  </div>
+                  <Badge variant={paymentMethod === 'wire' ? 'default' : 'outline'}>
+                    {paymentMethod === 'wire' ? 'Selected' : 'Choose'}
+                  </Badge>
+                </div>
+                {paymentMethod === "wire" && (
+                  <div className="mt-4 space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Routing Number</Label>
+                      <Input
+                        placeholder="123456789"
+                        value={bankRoutingNumber}
+                        onChange={(e) => setBankRoutingNumber(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Account Number</Label>
+                      <Input
+                        placeholder="000123456789"
+                        value={bankAccountNumber}
+                        onChange={(e) => setBankAccountNumber(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("crypto")}
+                className={`rounded-lg border p-4 text-left transition hover:border-primary ${paymentMethod === 'crypto' ? 'border-primary shadow-sm ring-2 ring-primary/20' : 'border-border'}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">Crypto</p>
+                    <p className="text-sm text-muted-foreground">USDT/USDC on your preferred chain</p>
+                  </div>
+                  <Badge variant={paymentMethod === 'crypto' ? 'default' : 'outline'}>
+                    {paymentMethod === 'crypto' ? 'Selected' : 'Choose'}
+                  </Badge>
+                </div>
+                {paymentMethod === "crypto" && (
+                  <div className="mt-4 space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Wallet Address</Label>
+                      <Input
+                        placeholder="0xabc..."
+                        value={cryptoWalletAddress}
+                        onChange={(e) => setCryptoWalletAddress(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Network</Label>
+                      <Select value={cryptoNetwork} onValueChange={setCryptoNetwork}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select network" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ethereum">Ethereum</SelectItem>
+                          <SelectItem value="polygon">Polygon</SelectItem>
+                          <SelectItem value="solana">Solana</SelectItem>
+                          <SelectItem value="bitcoin">Bitcoin</SelectItem>
+                          <SelectItem value="tron">Tron (TRC-20)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-muted/20 p-4">
+              <div>
+                <p className="font-semibold">Prefer to decide later?</p>
+                <p className="text-sm text-muted-foreground">You can finish payout setup any time in Payment Settings.</p>
+              </div>
+              <Button variant="outline" onClick={handleSetUpLater}>
+                Set up later
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6">
+            <Alert>
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertTitle>Ready to submit</AlertTitle>
+              <AlertDescription>Review your details before completing setup.</AlertDescription>
+            </Alert>
+
+            <div className="space-y-4">
+              <div className="rounded-lg border p-4">
+                <h3 className="font-semibold mb-3">Profile</h3>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-14 w-14">
+                    {profileImageUrl ? (
+                      <AvatarImage src={profileImageUrl} alt="Profile" />
+                    ) : (
+                      <AvatarFallback>{user?.firstName?.[0] || user?.username?.[0] || 'C'}</AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{user?.firstName} {user?.lastName || ''}</p>
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4">
+                <h3 className="font-semibold mb-3">Content Niches</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedNiches.map(nicheValue => {
+                    const niche = AVAILABLE_NICHES.find(n => n.value === nicheValue);
+                    return (
+                      <Badge key={nicheValue} variant="secondary">
+                        {niche?.label || nicheValue}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4 space-y-2">
+                <h3 className="font-semibold">Video Platforms</h3>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  {youtubeUrl && <div>• YouTube ({youtubeFollowers || 'followers not set'})</div>}
+                  {tiktokUrl && <div>• TikTok ({tiktokFollowers || 'followers not set'})</div>}
+                  {instagramUrl && <div>• Instagram ({instagramFollowers || 'followers not set'})</div>}
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Payment Method
+                </h3>
+                {paymentMethod === "setup_later" || !paymentMethod ? (
+                  <p className="text-sm text-muted-foreground">You'll finish payout setup later in Payment Settings.</p>
+                ) : (
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <dt className="text-muted-foreground">Method:</dt>
+                    <dd className="font-medium capitalize">{paymentMethod === "wire" ? "Wire / ACH" : paymentMethod}</dd>
+
+                    {paymentMethod === "etransfer" && (
+                      <>
+                        <dt className="text-muted-foreground">Payout Email:</dt>
+                        <dd className="font-medium">{payoutEmail}</dd>
+                      </>
+                    )}
+
+                    {paymentMethod === "wire" && (
+                      <>
+                        <dt className="text-muted-foreground">Routing Number:</dt>
+                        <dd className="font-medium">{bankRoutingNumber || "-"}</dd>
+                        <dt className="text-muted-foreground">Account Number:</dt>
+                        <dd className="font-medium">{bankAccountNumber ? `****${bankAccountNumber.slice(-4)}` : "-"}</dd>
+                      </>
+                    )}
+
+                    {paymentMethod === "paypal" && (
+                      <>
+                        <dt className="text-muted-foreground">PayPal:</dt>
+                        <dd className="font-medium">{paypalEmail}</dd>
+                      </>
+                    )}
+
+                    {paymentMethod === "crypto" && (
+                      <>
+                        <dt className="text-muted-foreground">Wallet:</dt>
+                        <dd className="font-medium">{cryptoWalletAddress}</dd>
+                        <dt className="text-muted-foreground">Network:</dt>
+                        <dd className="font-medium capitalize">{cryptoNetwork}</dd>
+                      </>
+                    )}
+                  </dl>
+                )}
               </div>
             </div>
           </div>
