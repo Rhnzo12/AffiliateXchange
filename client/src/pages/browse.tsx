@@ -27,7 +27,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../components/ui/sheet";
-import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, ArrowRight, Users, Sparkles, Award } from "lucide-react";
+import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, ArrowRight, Users, Sparkles, Award, Percent } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { proxiedSrc } from "../lib/image";
@@ -84,15 +84,17 @@ const getOfferNicheValues = (offer: any): string[] => {
 };
 
 // Helper function to format commission display
-const formatCommission = (offer: any) => {
-  if (offer.commissionAmount) {
-    return `$${offer.commissionAmount}`;
-  } else if (offer.commissionPercentage) {
-    return `${offer.commissionPercentage}%`;
-  } else if (offer.commissionRate) {
-    return `$${offer.commissionRate}`;
+const getCommissionDisplay = (offer: any) => {
+  if (offer?.commissionPercentage) {
+    return { value: `${offer.commissionPercentage}%`, isCurrency: false };
   }
-  return "$0";
+  if (offer?.commissionAmount) {
+    return { value: `$${offer.commissionAmount}`, isCurrency: true };
+  }
+  if (offer?.commissionRate) {
+    return { value: `$${offer.commissionRate}`, isCurrency: true };
+  }
+  return { value: "$0", isCurrency: true };
 };
 
 // Helper function to get commission type label
@@ -103,8 +105,8 @@ const getCommissionTypeLabel = (offer: any) => {
 
 // Helper function to get commission value for sorting
 const getCommissionValue = (offer: any): number => {
-  if (offer.commissionAmount) return offer.commissionAmount;
   if (offer.commissionPercentage) return offer.commissionPercentage;
+  if (offer.commissionAmount) return offer.commissionAmount;
   if (offer.commissionRate) return offer.commissionRate;
   return 0;
 };
@@ -802,6 +804,7 @@ export default function Browse() {
                 // Check if creator has applied to this offer
                 const application = applications.find((app: any) => app.offerId === offer.id);
                 const hasApplied = !!application;
+                const commissionDisplay = getCommissionDisplay(offer);
 
                 return (
                   <Link key={offer.id} href={`/offers/${offer.id}`}>
@@ -902,7 +905,7 @@ export default function Browse() {
                             <div className={`text-2xl font-bold ${
                               isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-green-600'
                             } transition-colors`}>
-                              {formatCommission(offer)}
+                              {commissionDisplay.value}
                             </div>
                             <div className={`text-xs ${
                               isRetainer ? 'text-purple-600/70 font-medium' : 'text-muted-foreground'
@@ -1076,8 +1079,12 @@ export default function Browse() {
                           <div className={`flex items-center gap-1 font-mono font-bold ${
                             isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-primary'
                           } transition-colors`}>
-                            <DollarSign className="h-4 w-4" />
-                            {formatCommission(offer)}
+                            {commissionDisplay.isCurrency ? (
+                              <DollarSign className="h-4 w-4" />
+                            ) : (
+                              <Percent className="h-4 w-4" />
+                            )}
+                            {commissionDisplay.value}
                           </div>
                         </div>
 
