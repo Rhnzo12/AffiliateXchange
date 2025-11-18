@@ -120,6 +120,14 @@ const getCommissionTypeLabel = (offer: any) => {
   return offer.commissionType.replace(/_/g, " ");
 };
 
+// Helper to format response time for display
+const formatResponseTime = (hours: number | null | undefined) => {
+  if (hours === null || hours === undefined) return "No responses yet";
+  if (hours < 1) return "Responds < 1hr";
+  if (hours < 24) return `Responds in ${hours}hrs`;
+  return `Responds in ${Math.round(hours / 24)}d`;
+};
+
 export default function OfferDetail() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
@@ -604,7 +612,7 @@ export default function OfferDetail() {
                       </div>
                       
                       {/* Additional Commission Details - IMPROVED: Pill style */}
-                      {(offer.cookieDuration || offer.averageOrderValue || responseTimeData?.responseTimeHours) && (
+                      {(offer.cookieDuration || offer.averageOrderValue || responseTimeData) && (
                         <div className="flex items-center gap-4 flex-wrap text-sm text-gray-600">
                           {offer.cookieDuration && (
                             <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
@@ -618,16 +626,10 @@ export default function OfferDetail() {
                               <span className="font-medium">Avg: ${offer.averageOrderValue}</span>
                             </div>
                           )}
-                          {responseTimeData?.responseTimeHours !== null && responseTimeData?.responseTimeHours !== undefined && (
+                          {responseTimeData && (
                             <div className="flex items-center gap-2 bg-blue-100 px-3 py-1.5 rounded-lg">
                               <Clock className="h-4 w-4 text-blue-600" />
-                              <span className="font-medium text-blue-700">
-                                {responseTimeData.responseTimeHours < 1
-                                  ? "Responds < 1hr"
-                                  : responseTimeData.responseTimeHours < 24
-                                    ? `Responds in ${responseTimeData.responseTimeHours}hrs`
-                                    : `Responds in ${Math.round(responseTimeData.responseTimeHours / 24)}d`}
-                              </span>
+                              <span className="font-medium text-blue-700">{formatResponseTime(responseTimeData.responseTimeHours)}</span>
                             </div>
                           )}
                         </div>
@@ -719,7 +721,7 @@ export default function OfferDetail() {
                 )}
 
                 {/* IMPROVED Stats Row - White background with outlined icons */}
-                <div className="grid grid-cols-3 gap-4 sm:gap-6 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
                   <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
                       <Users className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
@@ -748,6 +750,16 @@ export default function OfferDetail() {
                       ${offer.minimumPayout || 50}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600 font-medium">Min Payout</div>
+                  </div>
+
+                  <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
+                      <Clock className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
+                    </div>
+                    <div className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
+                      {formatResponseTime(responseTimeData?.responseTimeHours)}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Company Response Time</div>
                   </div>
                 </div>
 
