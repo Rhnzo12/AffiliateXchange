@@ -755,6 +755,7 @@ export interface IStorage {
   getNotifications(userId: string, limit?: number): Promise<Notification[]>;
   getUnreadNotifications(userId: string): Promise<Notification[]>;
   getUnreadNotificationCount(userId: string): Promise<number>;
+  getUnreadMessageCountForCreator(creatorId: string): Promise<number>;
   markNotificationAsRead(id: string): Promise<Notification | undefined>;
   markAllNotificationsAsRead(userId: string): Promise<void>;
   deleteNotification(id: string): Promise<void>;
@@ -2364,6 +2365,17 @@ export class DatabaseStorage implements IStorage {
       console.error("[createMessage] Error:", error);
       throw error;
     }
+  }
+
+  async getUnreadMessageCountForCreator(creatorId: string): Promise<number> {
+    const result = await db
+      .select({
+        unreadCount: sql<number>`COALESCE(SUM(${conversations.creatorUnreadCount}), 0)`,
+      })
+      .from(conversations)
+      .where(eq(conversations.creatorId, creatorId));
+
+    return result[0]?.unreadCount ?? 0;
   }
 
   async getMessages(conversationId: string): Promise<Message[]> {
