@@ -1089,11 +1089,7 @@ export default function Browse() {
                           <div className={`flex items-center gap-1 font-mono font-bold ${
                             isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-primary'
                           } transition-colors`}>
-                            {commissionDisplay.isCurrency ? (
-                              <DollarSign className="h-4 w-4" />
-                            ) : (
-                              <Percent className="h-4 w-4" />
-                            )}
+                            {commissionDisplay.isCurrency && <DollarSign className="h-4 w-4" />}
                             {commissionDisplay.value}
                           </div>
                         </div>
