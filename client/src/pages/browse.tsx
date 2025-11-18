@@ -86,7 +86,15 @@ const getOfferNicheValues = (offer: any): string[] => {
 // Helper function to format commission display
 const getCommissionDisplay = (offer: any) => {
   if (offer?.commissionPercentage) {
-    return { value: `${offer.commissionPercentage}%`, isCurrency: false };
+    const numericPercentage = typeof offer.commissionPercentage === "string"
+      ? parseFloat(offer.commissionPercentage.replace(/%/g, ""))
+      : offer.commissionPercentage;
+
+    const wholePercentage = Number.isFinite(numericPercentage)
+      ? Math.round(numericPercentage)
+      : offer.commissionPercentage;
+
+    return { value: `${wholePercentage}%`, isCurrency: false };
   }
   if (offer?.commissionAmount) {
     return { value: `$${offer.commissionAmount}`, isCurrency: true };
