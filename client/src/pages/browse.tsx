@@ -984,6 +984,8 @@ export default function Browse() {
                 const category = getOfferCategory(offer);
                 const isRetainer = offer.commissionType === 'monthly_retainer';
 
+                const commissionDisplay = getCommissionDisplay(offer);
+
                 // Check if creator has applied to this offer
                 const application = applications.find((app: any) => app.offerId === offer.id);
                 const hasApplied = !!application;
