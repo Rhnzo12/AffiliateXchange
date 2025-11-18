@@ -82,6 +82,7 @@ export default function Messages() {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const selectedConversationRef = useRef<string | null>(selectedConversation);
   const userIdRef = useRef<string | undefined>(user?.id);
+  const userRoleRef = useRef<string | undefined>(user?.role);
 
   // Image viewer functions
   const openImageViewer = (images: string[], startIndex: number = 0) => {
@@ -183,6 +184,10 @@ export default function Messages() {
     userIdRef.current = user?.id;
   }, [user?.id]);
 
+  useEffect(() => {
+    userRoleRef.current = user?.role;
+  }, [user?.role]);
+
   const getDisplayName = (user: any) => {
     if (!user) return 'User';
     const companyName = user.tradeName || user.legalName || user.companyName || user.company_name || user.businessName;
@@ -243,15 +248,39 @@ export default function Messages() {
         socket.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            
+
             if (data.type === 'new_message') {
               if (data.message?.conversationId) {
-                queryClient.invalidateQueries({ 
-                  queryKey: ["/api/messages", data.message.conversationId] 
+                queryClient.invalidateQueries({
+                  queryKey: ["/api/messages", data.message.conversationId]
+                });
+
+                queryClient.setQueryData<any[]>(["/api/conversations"], (prev) => {
+                  if (!prev) return prev;
+
+                  return prev.map((conv) => {
+                    if (conv.id !== data.message.conversationId) return conv;
+
+                    const isFromSelf = data.message.senderId === userIdRef.current;
+                    const isCompanyUser = userRoleRef.current === 'company';
+                    const unreadUpdates = isFromSelf
+                      ? {}
+                      : isCompanyUser
+                        ? { companyUnreadCount: (conv.companyUnreadCount || 0) + 1 }
+                        : { creatorUnreadCount: (conv.creatorUnreadCount || 0) + 1 };
+
+                    return {
+                      ...conv,
+                      lastMessage: data.message.content,
+                      lastMessageSenderId: data.message.senderId,
+                      lastMessageAt: data.message.createdAt,
+                      ...unreadUpdates,
+                    };
+                  });
                 });
               }
               queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
-              
+
               const currentSoundEnabled = localStorage.getItem('messageSoundEnabled');
               const shouldPlaySound = currentSoundEnabled === null ? true : currentSoundEnabled === 'true';
               if (shouldPlaySound && data.message?.senderId !== userIdRef.current && audioRef.current) {
@@ -357,7 +386,24 @@ export default function Messages() {
         userId: user.id,
       }));
     }
-  }, [selectedConversation, isConnected, user?.id, messages.length]);
+
+    if (selectedConversation && user?.role) {
+      queryClient.setQueryData<any[]>(["/api/conversations"], (prev) => {
+        if (!prev) return prev;
+
+        return prev.map((conv) =>
+          conv.id === selectedConversation
+            ? {
+                ...conv,
+                ...(user.role === 'company'
+                  ? { companyUnreadCount: 0 }
+                  : { creatorUnreadCount: 0 }),
+              }
+            : conv
+        );
+      });
+    }
+  }, [selectedConversation, isConnected, user?.id, user?.role, messages.length]);
 
   const handleTyping = useCallback(() => {
     if (!selectedConversation || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
