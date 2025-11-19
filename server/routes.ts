@@ -4540,12 +4540,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Diagnostic endpoint to check Cloudinary configuration
   app.get("/api/cloudinary/status", requireAuth, (req, res) => {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || '';
+    const apiKey = process.env.CLOUDINARY_API_KEY || '';
+    const apiSecret = process.env.CLOUDINARY_API_SECRET || '';
+
     const status = {
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME ? 'configured' : 'missing',
-      apiKey: process.env.CLOUDINARY_API_KEY ? 'configured' : 'missing',
-      apiSecret: process.env.CLOUDINARY_API_SECRET ? 'configured' : 'missing',
+      cloudName: cloudName ? `${cloudName.substring(0, 5)}...` : 'missing',
+      apiKey: apiKey ? `${apiKey.substring(0, 5)}...` : 'missing',
+      apiSecret: apiSecret ? `${apiSecret.substring(0, 5)}...${apiSecret.substring(apiSecret.length - 3)}` : 'missing',
       folder: process.env.CLOUDINARY_FOLDER || 'default (affiliatexchange/videos)',
       uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET || 'not set',
+
+      // Verify against expected values (partial)
+      cloudNameMatches: cloudName === 'dny4qcihn',
+      apiKeyMatches: apiKey === '167124276676481',
+      apiSecretMatches: apiSecret === 'BWaaOtS7sZ_ellwAV-zE-eyxanU',
     };
     res.json(status);
   });
