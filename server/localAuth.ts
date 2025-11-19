@@ -1850,10 +1850,10 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
           // ✅ DELETE CREATOR-SPECIFIC FOLDERS BY ID
 
-          // 1. Delete affiliateprofile/{creator_id} folder
+          // 1. Delete creatorprofile/{creator_id} folder
           await deleteFolderWithTracking(
-            `affiliateprofile/${userId}`,
-            `affiliateprofile/${userId}`
+            `creatorprofile/${userId}`,
+            `creatorprofile/${userId}`
           );
 
           // 2. Delete retainer deliverables folder (retainer-deliverables/{creator_id})
