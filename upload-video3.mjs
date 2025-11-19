@@ -2,8 +2,8 @@ import { v2 as cloudinary } from 'cloudinary';
 
 cloudinary.config({
   cloud_name: 'dny4qcihn',
-  api_key: '167124276676481',
-  api_secret: 'BWaaOtS7sZ_ellwAV-zE-eyxanU',
+  api_key: '691441898462561',
+  api_secret: '6VSAxx9pBWmAJhKWbpHgA3KAFxwU',
 });
 
 const videoPath = 'C:\\Users\\harol\\Downloads\\Ill_fill_out_202510230100_9x5p8.mp4';
