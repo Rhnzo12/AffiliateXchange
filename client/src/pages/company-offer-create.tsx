@@ -291,7 +291,7 @@ export default function CompanyOfferCreate() {
       if (thumbnailFile) {
         console.log("Uploading offer thumbnail...");
         try {
-          const thumbnailFolder = `creatorlink/videos/thumbnails/${companyId}/${offerId}`;
+          const thumbnailFolder = `affiliate/videos/thumbnails/${companyId}/${offerId}`;
           const thumbUploadResponse = await fetch("/api/objects/upload", {
             method: "POST",
             credentials: "include",
@@ -358,7 +358,7 @@ export default function CompanyOfferCreate() {
 
           try {
             // Upload video to Cloudinary with company ID and offer ID in path
-            const videoFolder = `creatorlink/videos/${companyId}/${offerId}`;
+            const videoFolder = `affiliate/videos/${companyId}/${offerId}`;
             const uploadResponse = await fetch("/api/objects/upload", {
               method: "POST",
               credentials: "include",
@@ -400,7 +400,7 @@ export default function CompanyOfferCreate() {
             let uploadedThumbnailUrl = null;
             try {
               const thumbnailBlob = await generateThumbnail(uploadedVideoUrl);
-              const thumbnailFolder = `creatorlink/videos/thumbnails/${companyId}/${offerId}`;
+              const thumbnailFolder = `affiliate/videos/thumbnails/${companyId}/${offerId}`;
 
               const thumbUploadResponse = await fetch("/api/objects/upload", {
                 method: "POST",
