@@ -4489,9 +4489,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('[Upload API] Requested folder:', req.body.folder);
     console.log('[Upload API] Requested resourceType:', req.body.resourceType);
     console.log('[Upload API] Folder parameter passed to service:', folder);
+
+    // Diagnostic: Check if Cloudinary credentials are configured
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.error('[Upload API] ERROR: Cloudinary credentials not configured!');
+      console.error('[Upload API] CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING');
+      console.error('[Upload API] CLOUDINARY_API_KEY:', process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING');
+      console.error('[Upload API] CLOUDINARY_API_SECRET:', process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING');
+      return res.status(500).json({
+        error: 'Cloudinary credentials not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file and restart the server.'
+      });
+    }
+
     const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType);
     console.log('[Upload API] Upload params returned:', uploadParams);
     res.json(uploadParams);
+  });
+
+  // Diagnostic endpoint to check Cloudinary configuration
+  app.get("/api/cloudinary/status", requireAuth, (req, res) => {
+    const status = {
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME ? 'configured' : 'missing',
+      apiKey: process.env.CLOUDINARY_API_KEY ? 'configured' : 'missing',
+      apiSecret: process.env.CLOUDINARY_API_SECRET ? 'configured' : 'missing',
+      folder: process.env.CLOUDINARY_FOLDER || 'default (affiliatexchange/videos)',
+      uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET || 'not set',
+    };
+    res.json(status);
   });
 
   app.put("/api/company-logos", requireAuth, requireRole('company'), async (req, res) => {
