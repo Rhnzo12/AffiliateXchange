@@ -282,6 +282,8 @@ export default function Settings() {
         ? `company-logos/${user.id}`
         : "company-logos";
 
+      console.log('[Settings] Starting logo upload to folder:', folder);
+
       // Get upload URL from backend
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
@@ -291,12 +293,23 @@ export default function Settings() {
         },
         body: JSON.stringify({ folder, resourceType: "image" }),
       });
-      
+
+      console.log('[Settings] Upload params response status:', uploadResponse.status);
+
       if (!uploadResponse.ok) {
-        throw new Error("Failed to get upload URL");
+        const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[Settings] Failed to get upload params:', errorData);
+        throw new Error(errorData.error || errorData.details || "Failed to get upload URL");
       }
-      
+
       const uploadData = await uploadResponse.json();
+      console.log('[Settings] Upload params received:', {
+        hasSignature: !!uploadData.signature,
+        hasPreset: !!uploadData.uploadPreset,
+        uploadUrl: uploadData.uploadUrl,
+        folder: uploadData.folder,
+        apiKey: uploadData.apiKey?.substring(0, 5) + '...'
+      });
 
       // Upload file to Cloudinary
       const formData = new FormData();
@@ -304,26 +317,46 @@ export default function Settings() {
 
       if (uploadData.uploadPreset) {
         formData.append('upload_preset', uploadData.uploadPreset);
+        console.log('[Settings] Using upload preset:', uploadData.uploadPreset);
       } else if (uploadData.signature) {
         formData.append('signature', uploadData.signature);
         formData.append('timestamp', uploadData.timestamp.toString());
         formData.append('api_key', uploadData.apiKey);
+        console.log('[Settings] Using signed upload with timestamp:', uploadData.timestamp);
       }
 
       if (uploadData.folder) {
         formData.append('folder', uploadData.folder);
       }
 
+      console.log('[Settings] Uploading logo to Cloudinary...');
       const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "POST",
         body: formData,
       });
 
+      console.log('[Settings] Cloudinary response status:', uploadResult.status);
+
       if (!uploadResult.ok) {
-        throw new Error("Failed to upload file");
+        const errorText = await uploadResult.text();
+        console.error('[Settings] ========== CLOUDINARY ERROR ==========');
+        console.error('[Settings] Status:', uploadResult.status, uploadResult.statusText);
+        console.error('[Settings] Response:', errorText);
+
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+          console.error('[Settings] Error details:', errorData);
+        } catch (e) {
+          console.error('[Settings] Could not parse error as JSON');
+        }
+        console.error('[Settings] ========== ERROR END ==========');
+
+        throw new Error(errorData?.error?.message || `Upload failed with status ${uploadResult.status}: ${errorText}`);
       }
 
       const cloudinaryResponse = await uploadResult.json();
+      console.log('[Settings] Upload successful! URL:', cloudinaryResponse.secure_url);
       const uploadedUrl = cloudinaryResponse.secure_url;
       
       // Set the logo URL
