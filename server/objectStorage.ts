@@ -43,62 +43,109 @@ export class ObjectStorageService {
     apiKey?: string;
     folder?: string;
   }> {
-    const timestamp = Math.round(Date.now() / 1000);
-    const folder = customFolder || this.getCloudinaryFolder();
-    const uploadPreset = this.getCloudinaryUploadPreset();
+    try {
+      console.log('[ObjectStorage] ========== GENERATING UPLOAD PARAMS ==========');
+      console.log('[ObjectStorage] Custom folder:', customFolder);
+      console.log('[ObjectStorage] Resource type:', resourceType);
 
-    // Construct the upload URL with the correct resource type
-    const baseUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}`;
-    const uploadUrl = `${baseUrl}/${resourceType}/upload`;
+      // Validate credentials
+      if (!process.env.CLOUDINARY_CLOUD_NAME) {
+        throw new Error('CLOUDINARY_CLOUD_NAME is not set in environment variables');
+      }
+      if (!process.env.CLOUDINARY_API_KEY) {
+        throw new Error('CLOUDINARY_API_KEY is not set in environment variables');
+      }
+      if (!process.env.CLOUDINARY_API_SECRET) {
+        throw new Error('CLOUDINARY_API_SECRET is not set in environment variables');
+      }
 
-    // Build params to sign - do NOT include resource_type when it's in the URL path
-    const paramsToSign: any = {
-      timestamp,
-      folder,
-    };
+      const timestamp = Math.round(Date.now() / 1000);
+      const folder = customFolder || this.getCloudinaryFolder();
+      const uploadPreset = this.getCloudinaryUploadPreset();
 
-    // If a custom folder is specified, use signed upload instead of preset
-    // This ensures the folder parameter is respected and not overridden by preset config
-    if (customFolder) {
-      const signature = cloudinary.utils.api_sign_request(
-        paramsToSign,
-        process.env.CLOUDINARY_API_SECRET || ""
-      );
+      console.log('[ObjectStorage] Final folder:', folder);
+      console.log('[ObjectStorage] Upload preset:', uploadPreset || 'none');
+      console.log('[ObjectStorage] Timestamp:', timestamp);
 
-      console.log('[ObjectStorage] Using SIGNED upload for custom folder:', folder, 'resourceType:', resourceType);
-      return {
-        uploadUrl,
-        signature,
+      // Construct the upload URL with the correct resource type
+      const baseUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}`;
+      const uploadUrl = `${baseUrl}/${resourceType}/upload`;
+      console.log('[ObjectStorage] Upload URL:', uploadUrl);
+
+      // Build params to sign - do NOT include resource_type when it's in the URL path
+      const paramsToSign: any = {
         timestamp,
-        apiKey: process.env.CLOUDINARY_API_KEY,
         folder,
       };
+
+      // If a custom folder is specified, use signed upload instead of preset
+      // This ensures the folder parameter is respected and not overridden by preset config
+      if (customFolder) {
+        console.log('[ObjectStorage] Generating signature for custom folder...');
+        try {
+          const signature = cloudinary.utils.api_sign_request(
+            paramsToSign,
+            process.env.CLOUDINARY_API_SECRET || ""
+          );
+
+          console.log('[ObjectStorage] ✓ Using SIGNED upload for custom folder:', folder, 'resourceType:', resourceType);
+          console.log('[ObjectStorage] Signature generated:', signature.substring(0, 10) + '...');
+          console.log('[ObjectStorage] ========== PARAMS GENERATED SUCCESSFULLY ==========');
+
+          return {
+            uploadUrl,
+            signature,
+            timestamp,
+            apiKey: process.env.CLOUDINARY_API_KEY,
+            folder,
+          };
+        } catch (signError: any) {
+          console.error('[ObjectStorage] Failed to generate signature:', signError.message);
+          throw new Error(`Failed to generate Cloudinary signature: ${signError.message}`);
+        }
+      }
+
+      // Use upload preset for default uploads (offers)
+      if (uploadPreset) {
+        console.log('[ObjectStorage] ✓ Using PRESET upload for default folder:', folder, 'resourceType:', resourceType);
+        console.log('[ObjectStorage] ========== PARAMS GENERATED SUCCESSFULLY ==========');
+        return {
+          uploadUrl,
+          uploadPreset,
+          folder,
+        };
+      }
+
+      // Fallback to signed upload if no preset is configured
+      console.log('[ObjectStorage] No preset configured, using signed upload...');
+      try {
+        const signature = cloudinary.utils.api_sign_request(
+          paramsToSign,
+          process.env.CLOUDINARY_API_SECRET || ""
+        );
+
+        console.log('[ObjectStorage] ✓ Using SIGNED upload (no preset):', folder, 'resourceType:', resourceType);
+        console.log('[ObjectStorage] Signature generated:', signature.substring(0, 10) + '...');
+        console.log('[ObjectStorage] ========== PARAMS GENERATED SUCCESSFULLY ==========');
+
+        return {
+          uploadUrl,
+          signature,
+          timestamp,
+          apiKey: process.env.CLOUDINARY_API_KEY,
+          folder,
+        };
+      } catch (signError: any) {
+        console.error('[ObjectStorage] Failed to generate signature:', signError.message);
+        throw new Error(`Failed to generate Cloudinary signature: ${signError.message}`);
+      }
+    } catch (error: any) {
+      console.error('[ObjectStorage] ========== ERROR GENERATING PARAMS ==========');
+      console.error('[ObjectStorage] Error:', error.message);
+      console.error('[ObjectStorage] Stack:', error.stack);
+      console.error('[ObjectStorage] ========== ERROR END ==========');
+      throw error;
     }
-
-    // Use upload preset for default uploads (offers)
-    if (uploadPreset) {
-      console.log('[ObjectStorage] Using PRESET upload for default folder:', folder, 'resourceType:', resourceType);
-      return {
-        uploadUrl,
-        uploadPreset,
-        folder,
-      };
-    }
-
-    // Fallback to signed upload if no preset is configured
-    const signature = cloudinary.utils.api_sign_request(
-      paramsToSign,
-      process.env.CLOUDINARY_API_SECRET || ""
-    );
-
-    console.log('[ObjectStorage] Using SIGNED upload (no preset):', folder, 'resourceType:', resourceType);
-    return {
-      uploadUrl,
-      signature,
-      timestamp,
-      apiKey: process.env.CLOUDINARY_API_KEY,
-      folder,
-    };
   }
 
   async uploadFile(
