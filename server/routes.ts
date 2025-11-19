@@ -4483,27 +4483,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
-    const objectStorageService = new ObjectStorageService();
-    const folder = req.body.folder || undefined; // Optional folder parameter
-    const resourceType = req.body.resourceType || 'auto'; // Optional resource type (image, video, auto)
-    console.log('[Upload API] Requested folder:', req.body.folder);
-    console.log('[Upload API] Requested resourceType:', req.body.resourceType);
-    console.log('[Upload API] Folder parameter passed to service:', folder);
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const folder = req.body.folder || undefined; // Optional folder parameter
+      const resourceType = req.body.resourceType || 'auto'; // Optional resource type (image, video, auto)
+      console.log('[Upload API] ========== UPLOAD REQUEST START ==========');
+      console.log('[Upload API] Requested folder:', req.body.folder);
+      console.log('[Upload API] Requested resourceType:', req.body.resourceType);
+      console.log('[Upload API] Folder parameter passed to service:', folder);
+      console.log('[Upload API] User:', (req.user as any)?.email || 'unknown');
 
-    // Diagnostic: Check if Cloudinary credentials are configured
-    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      console.error('[Upload API] ERROR: Cloudinary credentials not configured!');
-      console.error('[Upload API] CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING');
-      console.error('[Upload API] CLOUDINARY_API_KEY:', process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING');
-      console.error('[Upload API] CLOUDINARY_API_SECRET:', process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING');
-      return res.status(500).json({
-        error: 'Cloudinary credentials not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file and restart the server.'
+      // Diagnostic: Check if Cloudinary credentials are configured
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        console.error('[Upload API] ERROR: Cloudinary credentials not configured!');
+        console.error('[Upload API] CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING');
+        console.error('[Upload API] CLOUDINARY_API_KEY:', process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING');
+        console.error('[Upload API] CLOUDINARY_API_SECRET:', process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING');
+        return res.status(500).json({
+          error: 'Cloudinary credentials not configured',
+          details: 'Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file and restart the server.',
+          missingVars: {
+            cloudName: !process.env.CLOUDINARY_CLOUD_NAME,
+            apiKey: !process.env.CLOUDINARY_API_KEY,
+            apiSecret: !process.env.CLOUDINARY_API_SECRET
+          }
+        });
+      }
+
+      console.log('[Upload API] Cloudinary credentials check passed');
+      console.log('[Upload API] Cloud name:', process.env.CLOUDINARY_CLOUD_NAME);
+
+      const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType);
+      console.log('[Upload API] Upload params generated successfully');
+      console.log('[Upload API] Upload URL:', uploadParams.uploadUrl);
+      console.log('[Upload API] Folder:', uploadParams.folder);
+      console.log('[Upload API] Has signature:', !!uploadParams.signature);
+      console.log('[Upload API] Has upload preset:', !!uploadParams.uploadPreset);
+      console.log('[Upload API] ========== UPLOAD REQUEST END ==========');
+
+      res.json(uploadParams);
+    } catch (error: any) {
+      console.error('[Upload API] ========== UPLOAD REQUEST ERROR ==========');
+      console.error('[Upload API] Error type:', error.constructor.name);
+      console.error('[Upload API] Error message:', error.message);
+      console.error('[Upload API] Error stack:', error.stack);
+      console.error('[Upload API] ========== ERROR END ==========');
+
+      res.status(500).json({
+        error: 'Failed to generate upload parameters',
+        details: error.message,
+        errorType: error.constructor.name,
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME || 'not set'
       });
     }
-
-    const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType);
-    console.log('[Upload API] Upload params returned:', uploadParams);
-    res.json(uploadParams);
   });
 
   // Diagnostic endpoint to check Cloudinary configuration
