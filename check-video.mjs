@@ -1,9 +1,9 @@
 import { v2 as cloudinary } from 'cloudinary';
 
 cloudinary.config({
-  cloud_name: 'dny4qcihn',
-  api_key: '691441898462561',
-  api_secret: '6VSAxx9pBWmAJhKWbpHgA3KAFxwU',
+  cloud_name: 'dilp6tuin',
+  api_key: '167124276676481',
+  api_secret: 'BWaaOtS7sZ_ellwAV-zE-eyxanU',
 });
 
 cloudinary.api.resource('atpvv1z6vyft1guhekdj', { resource_type: 'video' })

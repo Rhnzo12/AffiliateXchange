@@ -4244,7 +4244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // FALLBACK: Try to serve from Cloudinary directly
         // This handles legacy normalized URLs that haven't been migrated yet
         const publicId = req.path.replace("/objects/", "");
-        const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dny4qcihn";
+        const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dilp6tuin";
 
         console.log(`[Objects Fallback] Trying Cloudinary URLs for ${publicId}`);
 
@@ -4266,8 +4266,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Try the nested folder structure where videos are actually stored
             const specificFolders = [
-              `affiliate/videos/${offer.companyId}/${offer.id}`,
-              `affiliate/videos/${offer.companyId}`,
+              `creatorlink/videos/${offer.companyId}/${offer.id}`,
+              `creatorlink/videos/${offer.companyId}`,
             ];
 
             for (const folder of specificFolders) {
@@ -4335,9 +4335,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // FALLBACK: Try common folder patterns if database lookup didn't find it
         const folderPatterns = [
-          'affiliate/videos/thumbnails',
-          'affiliate/videos',
-          'affiliate/retainer',
+          'creatorlink/videos/thumbnails',
+          'creatorlink/videos',
+          'creatorlink/retainer',
           'company-logos',
           'profile-images',
           'verification-documents',
@@ -4483,80 +4483,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
-    try {
-      const objectStorageService = new ObjectStorageService();
-      const folder = req.body.folder || undefined; // Optional folder parameter
-      const resourceType = req.body.resourceType || 'auto'; // Optional resource type (image, video, auto)
-      console.log('[Upload API] ========== UPLOAD REQUEST START ==========');
-      console.log('[Upload API] Requested folder:', req.body.folder);
-      console.log('[Upload API] Requested resourceType:', req.body.resourceType);
-      console.log('[Upload API] Folder parameter passed to service:', folder);
-      console.log('[Upload API] User:', (req.user as any)?.email || 'unknown');
-
-      // Diagnostic: Check if Cloudinary credentials are configured
-      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-        console.error('[Upload API] ERROR: Cloudinary credentials not configured!');
-        console.error('[Upload API] CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING');
-        console.error('[Upload API] CLOUDINARY_API_KEY:', process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING');
-        console.error('[Upload API] CLOUDINARY_API_SECRET:', process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING');
-        return res.status(500).json({
-          error: 'Cloudinary credentials not configured',
-          details: 'Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file and restart the server.',
-          missingVars: {
-            cloudName: !process.env.CLOUDINARY_CLOUD_NAME,
-            apiKey: !process.env.CLOUDINARY_API_KEY,
-            apiSecret: !process.env.CLOUDINARY_API_SECRET
-          }
-        });
-      }
-
-      console.log('[Upload API] Cloudinary credentials check passed');
-      console.log('[Upload API] Cloud name:', process.env.CLOUDINARY_CLOUD_NAME);
-
-      const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType);
-      console.log('[Upload API] Upload params generated successfully');
-      console.log('[Upload API] Upload URL:', uploadParams.uploadUrl);
-      console.log('[Upload API] Folder:', uploadParams.folder);
-      console.log('[Upload API] Has signature:', !!uploadParams.signature);
-      console.log('[Upload API] Has upload preset:', !!uploadParams.uploadPreset);
-      console.log('[Upload API] ========== UPLOAD REQUEST END ==========');
-
-      res.json(uploadParams);
-    } catch (error: any) {
-      console.error('[Upload API] ========== UPLOAD REQUEST ERROR ==========');
-      console.error('[Upload API] Error type:', error.constructor.name);
-      console.error('[Upload API] Error message:', error.message);
-      console.error('[Upload API] Error stack:', error.stack);
-      console.error('[Upload API] ========== ERROR END ==========');
-
-      res.status(500).json({
-        error: 'Failed to generate upload parameters',
-        details: error.message,
-        errorType: error.constructor.name,
-        cloudName: process.env.CLOUDINARY_CLOUD_NAME || 'not set'
-      });
-    }
-  });
-
-  // Diagnostic endpoint to check Cloudinary configuration
-  app.get("/api/cloudinary/status", requireAuth, (req, res) => {
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || '';
-    const apiKey = process.env.CLOUDINARY_API_KEY || '';
-    const apiSecret = process.env.CLOUDINARY_API_SECRET || '';
-
-    const status = {
-      cloudName: cloudName ? `${cloudName.substring(0, 5)}...` : 'missing',
-      apiKey: apiKey ? `${apiKey.substring(0, 5)}...` : 'missing',
-      apiSecret: apiSecret ? `${apiSecret.substring(0, 5)}...${apiSecret.substring(apiSecret.length - 3)}` : 'missing',
-      folder: process.env.CLOUDINARY_FOLDER || 'default (affiliatexchange/videos)',
-      uploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET || 'not set',
-
-      // Verify against expected values (partial)
-      cloudNameMatches: cloudName === 'dny4qcihn',
-      apiKeyMatches: apiKey === '167124276676481',
-      apiSecretMatches: apiSecret === 'BWaaOtS7sZ_ellwAV-zE-eyxanU',
-    };
-    res.json(status);
+    const objectStorageService = new ObjectStorageService();
+    const folder = req.body.folder || undefined; // Optional folder parameter
+    const resourceType = req.body.resourceType || 'auto'; // Optional resource type (image, video, auto)
+    console.log('[Upload API] Requested folder:', req.body.folder);
+    console.log('[Upload API] Requested resourceType:', req.body.resourceType);
+    console.log('[Upload API] Folder parameter passed to service:', folder);
+    const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType);
+    console.log('[Upload API] Upload params returned:', uploadParams);
+    res.json(uploadParams);
   });
 
   app.put("/api/company-logos", requireAuth, requireRole('company'), async (req, res) => {
@@ -4617,7 +4552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Don't normalize video or thumbnail URLs - keep the full Cloudinary URLs for proper display
-      // This is especially important for videos in nested folders (e.g., affiliate/videos/{companyId}/{offerId}/)
+      // This is especially important for videos in nested folders (e.g., creatorlink/videos/{companyId}/{offerId}/)
 
       // Create video record in database
       const video = await storage.createOfferVideo({
@@ -5445,7 +5380,7 @@ res.json(approved);
 
       console.log('[Migration] Starting Cloudinary URL fix...');
 
-      const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dny4qcihn";
+      const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dilp6tuin";
       let totalFixed = 0;
 
       // Function to denormalize paths

@@ -282,8 +282,6 @@ export default function Settings() {
         ? `company-logos/${user.id}`
         : "company-logos";
 
-      console.log('[Settings] Starting logo upload to folder:', folder);
-
       // Get upload URL from backend
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
@@ -293,23 +291,12 @@ export default function Settings() {
         },
         body: JSON.stringify({ folder, resourceType: "image" }),
       });
-
-      console.log('[Settings] Upload params response status:', uploadResponse.status);
-
+      
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('[Settings] Failed to get upload params:', errorData);
-        throw new Error(errorData.error || errorData.details || "Failed to get upload URL");
+        throw new Error("Failed to get upload URL");
       }
-
+      
       const uploadData = await uploadResponse.json();
-      console.log('[Settings] Upload params received:', {
-        hasSignature: !!uploadData.signature,
-        hasPreset: !!uploadData.uploadPreset,
-        uploadUrl: uploadData.uploadUrl,
-        folder: uploadData.folder,
-        apiKey: uploadData.apiKey?.substring(0, 5) + '...'
-      });
 
       // Upload file to Cloudinary
       const formData = new FormData();
@@ -317,64 +304,26 @@ export default function Settings() {
 
       if (uploadData.uploadPreset) {
         formData.append('upload_preset', uploadData.uploadPreset);
-        console.log('[Settings] Using upload preset:', uploadData.uploadPreset);
       } else if (uploadData.signature) {
         formData.append('signature', uploadData.signature);
         formData.append('timestamp', uploadData.timestamp.toString());
         formData.append('api_key', uploadData.apiKey);
-        console.log('[Settings] Using signed upload');
-        console.log('[Settings] Signature:', uploadData.signature);
-        console.log('[Settings] Timestamp:', uploadData.timestamp);
-        console.log('[Settings] API Key:', uploadData.apiKey?.substring(0, 5) + '...');
       }
 
       if (uploadData.folder) {
         formData.append('folder', uploadData.folder);
-        console.log('[Settings] Folder:', uploadData.folder);
       }
 
-      // Log all FormData entries for debugging
-      console.log('[Settings] FormData entries being sent to Cloudinary:');
-      for (const [key, value] of formData.entries()) {
-        if (key === 'file') {
-          console.log(`  ${key}: [File object]`);
-        } else if (key === 'signature') {
-          console.log(`  ${key}: ${value}`);
-        } else if (key === 'api_key') {
-          console.log(`  ${key}: ${typeof value === 'string' ? value.substring(0, 5) + '...' : value}`);
-        } else {
-          console.log(`  ${key}: ${value}`);
-        }
-      }
-
-      console.log('[Settings] Uploading logo to Cloudinary...');
       const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "POST",
         body: formData,
       });
 
-      console.log('[Settings] Cloudinary response status:', uploadResult.status);
-
       if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        console.error('[Settings] ========== CLOUDINARY ERROR ==========');
-        console.error('[Settings] Status:', uploadResult.status, uploadResult.statusText);
-        console.error('[Settings] Response:', errorText);
-
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-          console.error('[Settings] Error details:', errorData);
-        } catch (e) {
-          console.error('[Settings] Could not parse error as JSON');
-        }
-        console.error('[Settings] ========== ERROR END ==========');
-
-        throw new Error(errorData?.error?.message || `Upload failed with status ${uploadResult.status}: ${errorText}`);
+        throw new Error("Failed to upload file");
       }
 
       const cloudinaryResponse = await uploadResult.json();
-      console.log('[Settings] Upload successful! URL:', cloudinaryResponse.secure_url);
       const uploadedUrl = cloudinaryResponse.secure_url;
       
       // Set the logo URL
@@ -428,8 +377,6 @@ export default function Settings() {
         ? `creatorprofile/${user.id}`
         : "creatorprofile";
 
-      console.log('[Settings] Starting profile image upload to folder:', folder);
-
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
         credentials: "include",
@@ -439,21 +386,11 @@ export default function Settings() {
         body: JSON.stringify({ folder, resourceType: "image" }),
       });
 
-      console.log('[Settings] Upload params response status:', uploadResponse.status);
-
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('[Settings] Failed to get upload params:', errorData);
-        throw new Error(errorData.error || errorData.details || "Failed to get upload URL");
+        throw new Error("Failed to get upload URL");
       }
 
       const uploadData = await uploadResponse.json();
-      console.log('[Settings] Upload params received:', {
-        hasSignature: !!uploadData.signature,
-        hasPreset: !!uploadData.uploadPreset,
-        uploadUrl: uploadData.uploadUrl,
-        folder: uploadData.folder
-      });
 
       const formData = new FormData();
       formData.append('file', file);
@@ -470,37 +407,27 @@ export default function Settings() {
         formData.append('folder', uploadData.folder);
       }
 
-      console.log('[Settings] Uploading file to Cloudinary...');
       const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "POST",
         body: formData,
       });
 
-      console.log('[Settings] Cloudinary upload response status:', uploadResult.status);
-
       if (!uploadResult.ok) {
-        const errorData = await uploadResult.json().catch(() => ({}));
-        console.error('[Settings] Cloudinary upload failed:', errorData);
-        throw new Error(errorData.error?.message || `Upload failed with status ${uploadResult.status}`);
+        throw new Error("Failed to upload file");
       }
 
       const cloudinaryResponse = await uploadResult.json();
-      console.log('[Settings] Upload successful! URL:', cloudinaryResponse.secure_url);
       setProfileImageUrl(cloudinaryResponse.secure_url);
 
       toast({
         title: "Success!",
         description: "Profile image uploaded successfully. Don't forget to save your changes.",
       });
-    } catch (error: any) {
-      console.error("========== PROFILE IMAGE UPLOAD ERROR ==========");
-      console.error("Error message:", error.message);
-      console.error("Error stack:", error.stack);
-      console.error("========== ERROR END ==========");
-
+    } catch (error) {
+      console.error("Profile image upload error:", error);
       toast({
         title: "Upload Failed",
-        description: error.message || "Failed to upload profile image. Please try again.",
+        description: "Failed to upload profile image. Please try again.",
         variant: "destructive",
       });
     } finally {

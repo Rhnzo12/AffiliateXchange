@@ -155,9 +155,8 @@ export function CloudinaryUploader({
               meta.folder = params.folder;
             }
 
-            // Note: resource_type is NOT sent as a form parameter because it's
-            // already specified in the upload URL path. Sending it as a parameter
-            // can cause signature validation failures in signed uploads.
+            // Let Cloudinary detect the appropriate resource type (video/image)
+            meta.resource_type = "auto";
 
             uppy.setFileMeta(fileID, meta);
           } catch (error) {

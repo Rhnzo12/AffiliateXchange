@@ -373,8 +373,8 @@ export default function CompanyOfferDetail() {
         return;
       }
 
-      // Always use the nested folder structure: affiliate/videos/{companyId}/{offerId}
-      const folder = `affiliate/videos/${offer.companyId}/${offerId}`;
+      // Always use the nested folder structure: creatorlink/videos/{companyId}/{offerId}
+      const folder = `creatorlink/videos/${offer.companyId}/${offerId}`;
       console.log('[Video Upload] Uploading to folder:', folder);
 
       const uploadResponse = await fetch("/api/objects/upload", {
@@ -418,7 +418,7 @@ export default function CompanyOfferDetail() {
           const thumbnailBlob = await generateThumbnail(uploadedVideoUrl);
 
           // Use the same nested folder structure for thumbnails
-          const thumbnailFolder = `affiliate/videos/thumbnails/${offer.companyId}/${offerId}`;
+          const thumbnailFolder = `creatorlink/videos/thumbnails/${offer.companyId}/${offerId}`;
 
           const thumbUploadResponse = await fetch("/api/objects/upload", {
             method: "POST",

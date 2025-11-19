@@ -125,10 +125,10 @@ export default function CreatorRetainerDetail() {
     try {
       // Use contract ID and creator ID for organized folder structure
       const folder = contractId && user?.id
-        ? `affiliate/retainer/${contractId}/${user.id}`
+        ? `creatorlink/retainer/${contractId}/${user.id}`
         : user?.id
-        ? `affiliate/retainer/${user.id}`
-        : "affiliate/retainer";
+        ? `creatorlink/retainer/${user.id}`
+        : "creatorlink/retainer";
 
       // Get Cloudinary upload parameters
       const uploadResponse = await fetch("/api/objects/upload", {
@@ -248,10 +248,10 @@ export default function CreatorRetainerDetail() {
     try {
       // Use contract ID and creator ID for organized folder structure
       const folder = contractId && user?.id
-        ? `affiliate/retainer/${contractId}/${user.id}`
+        ? `creatorlink/retainer/${contractId}/${user.id}`
         : user?.id
-        ? `affiliate/retainer/${user.id}`
-        : "affiliate/retainer";
+        ? `creatorlink/retainer/${user.id}`
+        : "creatorlink/retainer";
 
       // Get Cloudinary upload parameters
       const uploadResponse = await fetch("/api/objects/upload", {

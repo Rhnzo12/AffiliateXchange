@@ -1866,17 +1866,17 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
             cloudinaryErrors.push(errorMsg);
           }
 
-          // 3. Delete affiliate/retainer/{retainer_id} folders for all retainer contracts
+          // 3. Delete creatorlink/retainer/{retainer_id} folders for all retainer contracts
           try {
             const retainerContracts = await storage.getRetainerContractsByCreator(userId);
             console.log(`[Account Deletion] Deleting ${retainerContracts.length} retainer contract folders`);
 
             for (const contract of retainerContracts) {
               try {
-                await objectStorage.deleteFolder(`affiliate/retainer/${contract.id}`);
-                console.log(`[Account Deletion] Deleted affiliate/retainer/${contract.id} folder`);
+                await objectStorage.deleteFolder(`creatorlink/retainer/${contract.id}`);
+                console.log(`[Account Deletion] Deleted creatorlink/retainer/${contract.id} folder`);
               } catch (error: any) {
-                const errorMsg = `Failed to delete affiliate/retainer/${contract.id} folder: ${error.message}`;
+                const errorMsg = `Failed to delete creatorlink/retainer/${contract.id} folder: ${error.message}`;
                 console.error(`[Account Deletion] ${errorMsg}`);
                 cloudinaryErrors.push(errorMsg);
               }
@@ -1887,17 +1887,17 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
             cloudinaryErrors.push(errorMsg);
           }
 
-          // 4. Delete affiliate/attachments/{conversation_id} folders for all conversations
+          // 4. Delete creatorlink/attachments/{conversation_id} folders for all conversations
           try {
             const conversations = await storage.getConversationsByUser(userId, 'creator');
             console.log(`[Account Deletion] Deleting ${conversations.length} conversation attachment folders`);
 
             for (const conversation of conversations) {
               try {
-                await objectStorage.deleteFolder(`affiliate/attachments/${conversation.id}`);
-                console.log(`[Account Deletion] Deleted affiliate/attachments/${conversation.id} folder`);
+                await objectStorage.deleteFolder(`creatorlink/attachments/${conversation.id}`);
+                console.log(`[Account Deletion] Deleted creatorlink/attachments/${conversation.id} folder`);
               } catch (error: any) {
-                const errorMsg = `Failed to delete affiliate/attachments/${conversation.id} folder: ${error.message}`;
+                const errorMsg = `Failed to delete creatorlink/attachments/${conversation.id} folder: ${error.message}`;
                 console.error(`[Account Deletion] ${errorMsg}`);
                 cloudinaryErrors.push(errorMsg);
               }
@@ -1944,29 +1944,29 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
             );
           }
 
-          // 3. Delete affiliate/videos/{company_profile_id} folder
+          // 3. Delete creatorlink/videos/{company_profile_id} folder
           await deleteFolderWithTracking(
-            `affiliate/videos/${companyProfile.id}`,
-            `affiliate/videos/${companyProfile.id}`
+            `creatorlink/videos/${companyProfile.id}`,
+            `creatorlink/videos/${companyProfile.id}`
           );
 
-          // 4. Delete affiliate/videos/thumbnails/{company_profile_id} folder
+          // 4. Delete creatorlink/videos/thumbnails/{company_profile_id} folder
           await deleteFolderWithTracking(
-            `affiliate/videos/thumbnails/${companyProfile.id}`,
-            `affiliate/videos/thumbnails/${companyProfile.id}`
+            `creatorlink/videos/thumbnails/${companyProfile.id}`,
+            `creatorlink/videos/thumbnails/${companyProfile.id}`
           );
 
-          // 5. Delete affiliate/retainer/{retainer_id} folders for all retainer contracts
+          // 5. Delete creatorlink/retainer/{retainer_id} folders for all retainer contracts
           try {
             const retainerContracts = await storage.getRetainerContractsByCompany(companyProfile.id);
             console.log(`[Account Deletion] Deleting ${retainerContracts.length} retainer contract folders`);
 
             for (const contract of retainerContracts) {
               try {
-                await objectStorage.deleteFolder(`affiliate/retainer/${contract.id}`);
-                console.log(`[Account Deletion] Deleted affiliate/retainer/${contract.id} folder`);
+                await objectStorage.deleteFolder(`creatorlink/retainer/${contract.id}`);
+                console.log(`[Account Deletion] Deleted creatorlink/retainer/${contract.id} folder`);
               } catch (error: any) {
-                const errorMsg = `Failed to delete affiliate/retainer/${contract.id} folder: ${error.message}`;
+                const errorMsg = `Failed to delete creatorlink/retainer/${contract.id} folder: ${error.message}`;
                 console.error(`[Account Deletion] ${errorMsg}`);
                 cloudinaryErrors.push(errorMsg);
               }
@@ -1977,17 +1977,17 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
             cloudinaryErrors.push(errorMsg);
           }
 
-          // 6. Delete affiliate/attachments/{conversation_id} folders for all conversations
+          // 6. Delete creatorlink/attachments/{conversation_id} folders for all conversations
           try {
             const conversations = await storage.getConversationsByUser(userId, 'company');
             console.log(`[Account Deletion] Deleting ${conversations.length} conversation attachment folders`);
 
             for (const conversation of conversations) {
               try {
-                await objectStorage.deleteFolder(`affiliate/attachments/${conversation.id}`);
-                console.log(`[Account Deletion] Deleted affiliate/attachments/${conversation.id} folder`);
+                await objectStorage.deleteFolder(`creatorlink/attachments/${conversation.id}`);
+                console.log(`[Account Deletion] Deleted creatorlink/attachments/${conversation.id} folder`);
               } catch (error: any) {
-                const errorMsg = `Failed to delete affiliate/attachments/${conversation.id} folder: ${error.message}`;
+                const errorMsg = `Failed to delete creatorlink/attachments/${conversation.id} folder: ${error.message}`;
                 console.error(`[Account Deletion] ${errorMsg}`);
                 cloudinaryErrors.push(errorMsg);
               }
