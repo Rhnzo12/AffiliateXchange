@@ -322,11 +322,29 @@ export default function Settings() {
         formData.append('signature', uploadData.signature);
         formData.append('timestamp', uploadData.timestamp.toString());
         formData.append('api_key', uploadData.apiKey);
-        console.log('[Settings] Using signed upload with timestamp:', uploadData.timestamp);
+        console.log('[Settings] Using signed upload');
+        console.log('[Settings] Signature:', uploadData.signature);
+        console.log('[Settings] Timestamp:', uploadData.timestamp);
+        console.log('[Settings] API Key:', uploadData.apiKey?.substring(0, 5) + '...');
       }
 
       if (uploadData.folder) {
         formData.append('folder', uploadData.folder);
+        console.log('[Settings] Folder:', uploadData.folder);
+      }
+
+      // Log all FormData entries for debugging
+      console.log('[Settings] FormData entries being sent to Cloudinary:');
+      for (const [key, value] of formData.entries()) {
+        if (key === 'file') {
+          console.log(`  ${key}: [File object]`);
+        } else if (key === 'signature') {
+          console.log(`  ${key}: ${value}`);
+        } else if (key === 'api_key') {
+          console.log(`  ${key}: ${typeof value === 'string' ? value.substring(0, 5) + '...' : value}`);
+        } else {
+          console.log(`  ${key}: ${value}`);
+        }
       }
 
       console.log('[Settings] Uploading logo to Cloudinary...');

@@ -1,6 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { Response } from "express";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
 import {
   ObjectAclPolicy,
   ObjectPermission,
@@ -33,6 +33,26 @@ export class ObjectStorageService {
 
   getCloudinaryUploadPreset(): string {
     return process.env.CLOUDINARY_UPLOAD_PRESET || "";
+  }
+
+  /**
+   * Manually generate Cloudinary signature
+   * This ensures we have full control over the signing process
+   */
+  private generateSignature(params: Record<string, any>, apiSecret: string): string {
+    // Sort parameters alphabetically by key
+    const sortedKeys = Object.keys(params).sort();
+
+    // Build the string to sign: key1=value1&key2=value2...
+    const paramsString = sortedKeys
+      .map(key => `${key}=${params[key]}`)
+      .join('&');
+
+    // Append API secret and calculate SHA-1 hash
+    const toSign = paramsString + apiSecret;
+    const signature = createHash('sha1').update(toSign).digest('hex');
+
+    return signature;
   }
 
   async getObjectEntityUploadURL(customFolder?: string, resourceType: string = 'auto'): Promise<{
@@ -87,14 +107,29 @@ export class ObjectStorageService {
       // This ensures the folder parameter is respected and not overridden by preset config
       if (customFolder) {
         console.log('[ObjectStorage] Generating signature for custom folder...');
+        console.log('[ObjectStorage] Params to sign:', JSON.stringify(paramsToSign, null, 2));
+        console.log('[ObjectStorage] API Secret (first 5 chars):', process.env.CLOUDINARY_API_SECRET?.substring(0, 5) || 'MISSING');
+        console.log('[ObjectStorage] API Secret (last 3 chars):', process.env.CLOUDINARY_API_SECRET?.substring(process.env.CLOUDINARY_API_SECRET.length - 3) || 'MISSING');
+
         try {
-          const signature = cloudinary.utils.api_sign_request(
-            paramsToSign,
-            process.env.CLOUDINARY_API_SECRET || ""
-          );
+          const apiSecret = process.env.CLOUDINARY_API_SECRET || "";
+
+          // Generate signature using manual method for comparison
+          const manualSignature = this.generateSignature(paramsToSign, apiSecret);
+
+          // Generate signature using SDK method
+          const sdkSignature = cloudinary.utils.api_sign_request(paramsToSign, apiSecret);
+
+          console.log('[ObjectStorage] Manual signature:', manualSignature);
+          console.log('[ObjectStorage] SDK signature:', sdkSignature);
+          console.log('[ObjectStorage] Signatures match:', manualSignature === sdkSignature);
+          console.log('[ObjectStorage] Params being signed (sorted):', Object.keys(paramsToSign).sort().map(k => `${k}=${paramsToSign[k]}`).join('&'));
+
+          // Use manual signature for more reliable results
+          const signature = manualSignature;
 
           console.log('[ObjectStorage] ✓ Using SIGNED upload for custom folder:', folder, 'resourceType:', resourceType);
-          console.log('[ObjectStorage] Signature generated:', signature.substring(0, 10) + '...');
+          console.log('[ObjectStorage] Final signature:', signature);
           console.log('[ObjectStorage] ========== PARAMS GENERATED SUCCESSFULLY ==========');
 
           return {
@@ -124,10 +159,8 @@ export class ObjectStorageService {
       // Fallback to signed upload if no preset is configured
       console.log('[ObjectStorage] No preset configured, using signed upload...');
       try {
-        const signature = cloudinary.utils.api_sign_request(
-          paramsToSign,
-          process.env.CLOUDINARY_API_SECRET || ""
-        );
+        const apiSecret = process.env.CLOUDINARY_API_SECRET || "";
+        const signature = this.generateSignature(paramsToSign, apiSecret);
 
         console.log('[ObjectStorage] ✓ Using SIGNED upload (no preset):', folder, 'resourceType:', resourceType);
         console.log('[ObjectStorage] Signature generated:', signature.substring(0, 10) + '...');
