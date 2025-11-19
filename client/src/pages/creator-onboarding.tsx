@@ -119,8 +119,8 @@ export default function CreatorOnboarding() {
     try {
       // Use user ID for organized folder structure
       const folder = user?.id
-        ? `creatorprofile/${user.id}`
-        : "creatorprofile";
+        ? `affiliateprofile/${user.id}`
+        : "affiliateprofile";
 
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
