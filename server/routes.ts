@@ -4266,8 +4266,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Try the nested folder structure where videos are actually stored
             const specificFolders = [
-              `creatorlink/videos/${offer.companyId}/${offer.id}`,
-              `creatorlink/videos/${offer.companyId}`,
+              `affiliate/videos/${offer.companyId}/${offer.id}`,
+              `affiliate/videos/${offer.companyId}`,
             ];
 
             for (const folder of specificFolders) {
@@ -4335,9 +4335,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // FALLBACK: Try common folder patterns if database lookup didn't find it
         const folderPatterns = [
-          'creatorlink/videos/thumbnails',
-          'creatorlink/videos',
-          'creatorlink/retainer',
+          'affiliate/videos/thumbnails',
+          'affiliate/videos',
+          'affiliate/retainer',
           'company-logos',
           'profile-images',
           'verification-documents',
@@ -4552,7 +4552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Don't normalize video or thumbnail URLs - keep the full Cloudinary URLs for proper display
-      // This is especially important for videos in nested folders (e.g., creatorlink/videos/{companyId}/{offerId}/)
+      // This is especially important for videos in nested folders (e.g., affiliate/videos/{companyId}/{offerId}/)
 
       // Create video record in database
       const video = await storage.createOfferVideo({

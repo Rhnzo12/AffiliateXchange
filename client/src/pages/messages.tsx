@@ -513,7 +513,7 @@ export default function Messages() {
   try {
     // Determine the folder path based on user role - without user_id
     const userType = user.role === 'company' ? 'company' : 'creator';
-    const folderPath = `creatorlink/attachments/${selectedConversation}/${userType}`;
+    const folderPath = `affiliate/attachments/${selectedConversation}/${userType}`;
 
     for (const file of files) {
       const uploadResponse = await fetch("/api/objects/upload", {
