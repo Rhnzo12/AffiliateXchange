@@ -374,8 +374,8 @@ export default function Settings() {
 
     try {
       const folder = user?.id
-        ? `affiliateprofile/${user.id}`
-        : "affiliateprofile";
+        ? `creatorprofile/${user.id}`
+        : "creatorprofile";
 
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
