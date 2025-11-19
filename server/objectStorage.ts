@@ -68,8 +68,13 @@ export class ObjectStorageService {
       console.log('[ObjectStorage] Timestamp:', timestamp);
 
       // Construct the upload URL with the correct resource type
+      // Note: Cloudinary doesn't have an '/auto/upload' endpoint.
+      // For auto-detection, we use '/image/upload' which supports both images and videos
       const baseUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}`;
-      const uploadUrl = `${baseUrl}/${resourceType}/upload`;
+      const actualResourceType = resourceType === 'auto' ? 'image' : resourceType;
+      const uploadUrl = `${baseUrl}/${actualResourceType}/upload`;
+      console.log('[ObjectStorage] Resource type (requested):', resourceType);
+      console.log('[ObjectStorage] Resource type (actual):', actualResourceType);
       console.log('[ObjectStorage] Upload URL:', uploadUrl);
 
       // Build params to sign - do NOT include resource_type when it's in the URL path
