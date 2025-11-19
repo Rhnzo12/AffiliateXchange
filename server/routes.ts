@@ -4244,7 +4244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // FALLBACK: Try to serve from Cloudinary directly
         // This handles legacy normalized URLs that haven't been migrated yet
         const publicId = req.path.replace("/objects/", "");
-        const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dilp6tuin";
+        const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dny4qcihn";
 
         console.log(`[Objects Fallback] Trying Cloudinary URLs for ${publicId}`);
 
@@ -5380,7 +5380,7 @@ res.json(approved);
 
       console.log('[Migration] Starting Cloudinary URL fix...');
 
-      const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dilp6tuin";
+      const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dny4qcihn";
       let totalFixed = 0;
 
       // Function to denormalize paths

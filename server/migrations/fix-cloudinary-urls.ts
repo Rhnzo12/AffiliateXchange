@@ -11,7 +11,7 @@ import { db } from "../db";
 import { offers, offerVideos, companyProfiles } from "../../shared/schema";
 import { eq, like, or } from "drizzle-orm";
 
-const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dilp6tuin";
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dny4qcihn";
 
 // Function to convert normalized path back to Cloudinary URL
 function denormalizeCloudinaryPath(normalizedPath: string, resourceType: 'image' | 'video' = 'image'): string {
