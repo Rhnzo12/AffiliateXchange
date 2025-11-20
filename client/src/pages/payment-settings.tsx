@@ -38,6 +38,7 @@ import {
   Filter,
   Search,
   Send,
+  Trash2,
   TrendingUp,
   Users,
   X,
@@ -317,6 +318,8 @@ function PaymentMethodSettings({
   cryptoNetwork,
   setCryptoNetwork,
   onAddPaymentMethod,
+  onDeletePaymentMethod,
+  onSetPrimary,
   isSubmitting,
   title = "Payment Methods",
   emptyDescription = "Add a payment method to receive payouts",
@@ -338,6 +341,8 @@ function PaymentMethodSettings({
   cryptoNetwork: string;
   setCryptoNetwork: (value: string) => void;
   onAddPaymentMethod: () => void;
+  onDeletePaymentMethod?: (method: PaymentMethod) => void;
+  onSetPrimary?: (method: PaymentMethod) => void;
   isSubmitting: boolean;
   title?: string;
   emptyDescription?: string;
@@ -385,7 +390,30 @@ function PaymentMethodSettings({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {method.isDefault && <Badge>Default</Badge>}
+                  {method.isDefault ? (
+                    <Badge>Default</Badge>
+                  ) : (
+                    onSetPrimary && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onSetPrimary(method)}
+                        className="text-sm"
+                      >
+                        Set as Primary
+                      </Button>
+                    )
+                  )}
+                  {onDeletePaymentMethod && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDeletePaymentMethod(method)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -2041,6 +2069,8 @@ export default function PaymentSettings() {
   const [paypalEmail, setPaypalEmail] = useState("");
   const [cryptoWalletAddress, setCryptoWalletAddress] = useState("");
   const [cryptoNetwork, setCryptoNetwork] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [paymentMethodToDelete, setPaymentMethodToDelete] = useState<PaymentMethod | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -2139,6 +2169,87 @@ export default function PaymentSettings() {
     },
   });
 
+  const deletePaymentMethodMutation = useMutation({
+    mutationFn: async (paymentMethodId: number) => {
+      const res = await apiRequest("DELETE", `/api/payment-settings/${paymentMethodId}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payment-settings"] });
+      toast({
+        title: "Success",
+        description: "Payment method deleted successfully",
+      });
+      setDeleteDialogOpen(false);
+      setPaymentMethodToDelete(null);
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete payment method",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteClick = (method: PaymentMethod) => {
+    setPaymentMethodToDelete(method);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (paymentMethodToDelete) {
+      deletePaymentMethodMutation.mutate(paymentMethodToDelete.id);
+    }
+  };
+
+  const setPrimaryPaymentMethodMutation = useMutation({
+    mutationFn: async (paymentMethodId: number) => {
+      const res = await apiRequest("PUT", `/api/payment-settings/${paymentMethodId}/set-primary`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payment-settings"] });
+      toast({
+        title: "Success",
+        description: "Primary payment method updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to set primary payment method",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSetPrimary = (method: PaymentMethod) => {
+    setPrimaryPaymentMethodMutation.mutate(method.id);
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -2207,6 +2318,8 @@ export default function PaymentSettings() {
               cryptoNetwork={cryptoNetwork}
               setCryptoNetwork={setCryptoNetwork}
               onAddPaymentMethod={() => addPaymentMethodMutation.mutate()}
+              onDeletePaymentMethod={handleDeleteClick}
+              onSetPrimary={handleSetPrimary}
               isSubmitting={addPaymentMethodMutation.isPending}
             />
           )}
@@ -2273,6 +2386,8 @@ export default function PaymentSettings() {
                 cryptoNetwork={cryptoNetwork}
                 setCryptoNetwork={setCryptoNetwork}
                 onAddPaymentMethod={() => addPaymentMethodMutation.mutate()}
+                onDeletePaymentMethod={handleDeleteClick}
+                onSetPrimary={handleSetPrimary}
                 isSubmitting={addPaymentMethodMutation.isPending}
                 emptyDescription="Add a payment method to fund creator payouts"
                 showFeeBreakdown={false}
@@ -2315,6 +2430,31 @@ export default function PaymentSettings() {
           </>
         )}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Payment Method</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this payment method?
+              {paymentMethodToDelete?.isDefault && (
+                <span className="mt-2 block text-yellow-600 font-medium">
+                  This is your primary payment method. Another payment method will be automatically set as primary.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deletePaymentMethodMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
