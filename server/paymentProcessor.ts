@@ -286,6 +286,7 @@ export class PaymentProcessorService {
 
   /**
    * Process E-Transfer (Interac e-Transfer for Canadian payments)
+   * Uses Stripe Connect to transfer funds to creator's connected account
    */
   private async processETransfer(
     email: string,
@@ -296,82 +297,98 @@ export class PaymentProcessorService {
     try {
       console.log(`[E-Transfer] Sending $${amount} CAD to ${email}`);
 
-      let stripe: Stripe;
-      try {
-        stripe = getStripeClient();
-      } catch (error: any) {
-        console.error('[E-Transfer] Stripe initialization failed:', error?.message || error);
+      // Get payment to find creator ID
+      const payment = await storage.getPaymentOrRetainerPayment(paymentId);
+      if (!payment) {
+        return { success: false, error: 'Payment not found' };
+      }
+
+      // Get creator's payment settings to find Stripe account ID
+      const paymentSettings = await storage.getPaymentSettings(payment.creatorId);
+      const eTransferSetting = paymentSettings.find(ps =>
+        ps.payoutMethod === 'etransfer' && ps.payoutEmail === email
+      );
+
+      if (!eTransferSetting?.stripeAccountId) {
         return {
           success: false,
-          error: error?.message || 'Stripe configuration error'
+          error: 'Creator has not connected their Stripe account for e-transfers. Please complete Stripe onboarding first.'
         };
       }
 
-      // Ensure the Stripe account can pay out in CAD before attempting to create a payout
-      // Note: This validation requires Stripe Connect permissions and may not work with all API keys
-      try {
-        const platformAccount = await stripe.accounts.retrieve();
-        const externalAccounts = await stripe.accounts.listExternalAccounts(platformAccount.id, {
-          object: 'bank_account',
-          limit: 100
-        });
+      // Import Stripe Connect service
+      const { stripeConnectService } = await import('./stripeConnectService');
 
-        const hasCadExternalAccount = externalAccounts.data.some((account) => account.currency?.toLowerCase() === 'cad');
+      // Verify connected account is ready
+      const accountStatus = await stripeConnectService.checkAccountStatus(eTransferSetting.stripeAccountId);
 
-        if (!hasCadExternalAccount) {
-          const errorMessage = 'Stripe account has no CAD-enabled external account. Please add a CAD bank account to Stripe to enable e-transfers.';
-          console.error('[E-Transfer] Missing CAD external account for payouts');
-          return { success: false, error: errorMessage };
-        }
-      } catch (validationError: any) {
-        // If validation fails due to permissions, log it and continue
-        // The payout attempt itself will fail with a proper error if there's actually a problem
-        console.warn('[E-Transfer] Could not validate CAD external account (likely due to API key permissions):', validationError.message);
-        console.warn('[E-Transfer] Proceeding with payout attempt - Stripe will return an error if CAD payouts are not supported');
+      if (!accountStatus.success) {
+        return {
+          success: false,
+          error: `Unable to verify Stripe account: ${accountStatus.error}`
+        };
       }
 
-      const payout = await stripe.payouts.create({
-        amount: Math.round(amount * 100),
-        currency: 'cad',
-        method: 'standard',
-        description: description,
-        statement_descriptor: 'AffiliateXchange',
-        metadata: {
+      if (!accountStatus.payoutsEnabled) {
+        return {
+          success: false,
+          error: 'Creator Stripe account is not yet enabled for payouts. Please complete all required onboarding steps.'
+        };
+      }
+
+      if (accountStatus.requirements && accountStatus.requirements.length > 0) {
+        console.warn(`[E-Transfer] Account ${eTransferSetting.stripeAccountId} has pending requirements:`, accountStatus.requirements);
+      }
+
+      // Create transfer to connected account
+      const transferResult = await stripeConnectService.createTransfer(
+        eTransferSetting.stripeAccountId,
+        amount,
+        'cad',
+        description,
+        {
           payment_id: paymentId,
           payout_method: 'etransfer',
           payout_email: email
         }
-      });
+      );
 
-      console.log(`[E-Transfer] SUCCESS - Stripe Payout ID: ${payout.id}`);
+      if (!transferResult.success) {
+        return {
+          success: false,
+          error: transferResult.error || 'Transfer failed'
+        };
+      }
+
+      console.log(`[E-Transfer] SUCCESS - Stripe Transfer ID: ${transferResult.transferId}`);
 
       return {
         success: true,
-        transactionId: payout.id,
+        transactionId: transferResult.transferId!,
         providerResponse: {
           method: 'etransfer',
           email: email,
           amount: amount,
-          payoutId: payout.id,
-          arrivalDate: payout.arrival_date,
-          status: payout.status,
+          transferId: transferResult.transferId,
+          stripeAccountId: eTransferSetting.stripeAccountId,
+          status: 'completed',
           timestamp: new Date().toISOString(),
-          note: 'Processed via Stripe payouts API'
+          note: 'Processed via Stripe Connect transfer'
         }
       };
     } catch (error: any) {
-      // Enhanced error handling for common Stripe payout errors
-      let errorMessage = error?.message || 'Unknown error while processing e-transfer payout';
+      // Enhanced error handling for common Stripe transfer errors
+      let errorMessage = error?.message || 'Unknown error while processing e-transfer';
 
       // Check for specific Stripe error types
       if (error.type === 'StripePermissionError' || errorMessage.includes('does not have the required permissions')) {
-        errorMessage = 'Stripe API key does not have the required permissions. Please check your Stripe account settings and API key permissions.';
+        errorMessage = 'Stripe API key does not have the required permissions. Please ensure you are using a Stripe Connect enabled API key.';
       } else if (errorMessage.includes('minimum') || errorMessage.includes('amount')) {
-        errorMessage = `Payout amount issue: ${errorMessage}. Note: Stripe typically requires minimum payout amounts (usually $1 CAD or more).`;
-      } else if (errorMessage.includes('balance')) {
-        errorMessage = 'Insufficient balance in Stripe account. Please ensure your Stripe account has sufficient funds for payouts.';
-      } else if (errorMessage.includes('external account') || errorMessage.includes('bank account')) {
-        errorMessage = 'Stripe account configuration issue: Please ensure a CAD-enabled bank account is connected to your Stripe account.';
+        errorMessage = `Transfer amount issue: ${errorMessage}. Note: Stripe typically requires minimum transfer amounts (usually $1 CAD or more).`;
+      } else if (errorMessage.includes('balance') || errorMessage.includes('insufficient')) {
+        errorMessage = 'Insufficient balance in platform Stripe account. Please ensure your Stripe account has sufficient funds for transfers.';
+      } else if (errorMessage.includes('account')) {
+        errorMessage = `Stripe Connect account issue: ${errorMessage}. The creator may need to complete their Stripe onboarding.`;
       }
 
       console.error('[E-Transfer] Error:', errorMessage);
