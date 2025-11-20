@@ -24,6 +24,14 @@ export interface PaymentResult {
   error?: string;
 }
 
+/**
+ * Check if payment sandbox mode is enabled
+ * In sandbox mode, payment operations are simulated without calling real APIs
+ */
+function isSandboxMode(): boolean {
+  return process.env.PAYMENT_SANDBOX_MODE === 'true';
+}
+
 // Initialize PayPal Client
 function getPayPalClient() {
   const clientId = process.env.PAYPAL_CLIENT_ID;
@@ -48,6 +56,11 @@ export class PaymentProcessorService {
    */
   async processPayment(paymentId: string): Promise<PaymentResult> {
     try {
+      // Log sandbox mode status
+      if (isSandboxMode()) {
+        console.log('[Payment Processor] 🏖️ SANDBOX MODE ENABLED - Payments will be simulated without real transactions');
+      }
+
       // Get payment details
       const payment = await storage.getPayment(paymentId);
       if (!payment) {
@@ -120,6 +133,11 @@ export class PaymentProcessorService {
    */
   async processRetainerPayment(retainerPaymentId: string): Promise<PaymentResult> {
     try {
+      // Log sandbox mode status
+      if (isSandboxMode()) {
+        console.log('[Payment Processor] 🏖️ SANDBOX MODE ENABLED - Payments will be simulated without real transactions');
+      }
+
       // Get retainer payment details
       const retainerPayment = await storage.getRetainerPayment(retainerPaymentId);
       if (!retainerPayment) {
