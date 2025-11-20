@@ -172,6 +172,23 @@ export class StripeConnectService {
     try {
       const stripe = getStripeClient();
 
+      // Check minimum transfer amount (Stripe typically requires $1.00 minimum)
+      const currencyLower = currency.toLowerCase();
+      const minimumAmounts: Record<string, number> = {
+        'usd': 1.00,
+        'cad': 1.00,
+        'eur': 1.00,
+        'gbp': 1.00,
+      };
+
+      const minimumAmount = minimumAmounts[currencyLower] || 1.00;
+      if (amount < minimumAmount) {
+        return {
+          success: false,
+          error: `Transfer amount $${amount.toFixed(2)} ${currency.toUpperCase()} is below the minimum required amount of $${minimumAmount.toFixed(2)} ${currency.toUpperCase()}. Stripe requires a minimum transfer of at least $${minimumAmount.toFixed(2)} ${currency.toUpperCase()}.`,
+        };
+      }
+
       // Verify account is ready for transfers
       const accountStatus = await this.checkAccountStatus(accountId);
       if (!accountStatus.payoutsEnabled) {
