@@ -2433,6 +2433,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update payment setting (e.g., add stripeAccountId to existing e-transfer)
+  app.put("/api/payment-settings/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const paymentMethodId = req.params.id;
+      const { stripeAccountId } = req.body;
+
+      // Get all payment settings for the user
+      const allSettings = await storage.getPaymentSettings(userId);
+
+      // Find the payment method to update
+      const settingToUpdate = allSettings.find(s => s.id === paymentMethodId);
+
+      if (!settingToUpdate) {
+        return res.status(404).send("Payment method not found");
+      }
+
+      // Verify the payment method belongs to the user
+      if (settingToUpdate.userId !== userId) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Update the payment setting with stripeAccountId
+      await storage.updatePaymentSetting(paymentMethodId, { stripeAccountId });
+
+      res.json({ success: true, message: "Payment method updated successfully" });
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
   // Stripe Connect routes for e-transfer setup
   app.post("/api/stripe-connect/create-account", requireAuth, async (req, res) => {
     try {

@@ -3175,6 +3175,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(paymentSettings.id, paymentMethodId));
   }
 
+  async updatePaymentSetting(paymentMethodId: string, updates: Partial<PaymentSetting>): Promise<void> {
+    await db
+      .update(paymentSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(paymentSettings.id, paymentMethodId));
+  }
+
   // Payments
   async createPayment(payment: InsertPayment): Promise<Payment> {
     const result = await db
