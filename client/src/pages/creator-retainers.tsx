@@ -55,6 +55,8 @@ import {
   MessageCircle,
   Upload,
   Users as UsersIcon,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -102,6 +104,7 @@ export default function CreatorRetainers() {
   const [preferenceFilter, setPreferenceFilter] = useState<string[]>([]);
   const [amountRange, setAmountRange] = useState<number[]>([0, 10000]);
   const [favoriteContracts, setFavoriteContracts] = useState<Set<string>>(new Set());
+  const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
 
   const handlePreferenceToggle = (preference: string) => {
     setPreferenceFilter((prev) =>
@@ -591,9 +594,23 @@ export default function CreatorRetainers() {
         <div className="space-y-6">
           <Card className="border-card-border">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg">Search & Filter</CardTitle>
-              <p className="text-sm text-muted-foreground">Find retainers that match your pricing, cadence, and preferences.</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Search & Filter</CardTitle>
+                  <p className="text-sm text-muted-foreground">Find retainers that match your pricing, cadence, and preferences.</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
+                  aria-label="Toggle filter visibility"
+                  data-testid="button-toggle-filter"
+                >
+                  {isFilterCollapsed ? <ChevronDown className="h-5 w-5" /> : <ChevronUp className="h-5 w-5" />}
+                </Button>
+              </div>
             </CardHeader>
+            {!isFilterCollapsed && (
             <CardContent className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
@@ -738,6 +755,7 @@ export default function CreatorRetainers() {
                 </div>
               )}
             </CardContent>
+            )}
           </Card>
 
           {filteredContracts.length === 0 ? (
