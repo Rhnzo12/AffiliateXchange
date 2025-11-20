@@ -2727,10 +2727,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { paymentProcessor } = await import('./paymentProcessor');
 
         // Validate creator has payment settings configured
+        console.log(`[Payment] Validating payment settings for creator ${payment.creatorId}...`);
         const validation = await paymentProcessor.validateCreatorPaymentSettings(payment.creatorId);
         if (!validation.valid) {
+          console.error(`[Payment] ERROR: Payment validation failed: ${validation.error}`);
           return res.status(400).send(validation.error);
         }
+        console.log(`[Payment] Validation passed, proceeding with payment...`);
 
         // Actually send the money via PayPal/bank/crypto/etc.
         // Use the appropriate processor based on payment type
