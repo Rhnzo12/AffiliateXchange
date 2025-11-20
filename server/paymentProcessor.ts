@@ -519,9 +519,11 @@ export class PaymentProcessorService {
    * Verify that a creator has valid payment settings configured
    */
   async validateCreatorPaymentSettings(creatorId: string): Promise<{ valid: boolean; error?: string }> {
+    console.log(`[Validation] Checking payment settings for creator ${creatorId}...`);
     const paymentSettings = await storage.getPaymentSettings(creatorId);
 
     if (!paymentSettings || paymentSettings.length === 0) {
+      console.error(`[Validation] ERROR: Creator ${creatorId} has no payment settings configured`);
       return {
         valid: false,
         error: 'No payment method configured. Creator must add payment details in Settings > Payment Methods.'
@@ -529,18 +531,27 @@ export class PaymentProcessorService {
     }
 
     const defaultMethod = paymentSettings.find(ps => ps.isDefault) || paymentSettings[0];
+    console.log(`[Validation] Found ${paymentSettings.length} payment method(s), using: ${defaultMethod.payoutMethod}`);
 
     // Validate based on method type
     switch (defaultMethod.payoutMethod) {
       case 'paypal':
         if (!defaultMethod.paypalEmail) {
+          console.error(`[Validation] ERROR: PayPal email is missing`);
           return { valid: false, error: 'PayPal email is missing' };
         }
+        console.log(`[Validation] PayPal email validated: ${defaultMethod.paypalEmail}`);
         break;
       case 'etransfer':
         if (!defaultMethod.payoutEmail) {
+          console.error(`[Validation] ERROR: E-Transfer email is missing`);
           return { valid: false, error: 'E-Transfer email is missing' };
         }
+        if (!defaultMethod.stripeAccountId) {
+          console.error(`[Validation] ERROR: Stripe account not connected for e-transfer`);
+          return { valid: false, error: 'Stripe account not connected. Please complete Stripe Connect onboarding in Payment Settings.' };
+        }
+        console.log(`[Validation] E-Transfer validated: ${defaultMethod.payoutEmail} with Stripe account ${defaultMethod.stripeAccountId}`);
         break;
       case 'wire':
         if (!defaultMethod.bankRoutingNumber || !defaultMethod.bankAccountNumber) {
