@@ -16,6 +16,14 @@ function getStripeClient(): Stripe {
   return stripeClient;
 }
 
+/**
+ * Check if payment sandbox mode is enabled
+ * In sandbox mode, payment operations are simulated without calling real APIs
+ */
+function isSandboxMode(): boolean {
+  return process.env.PAYMENT_SANDBOX_MODE === 'true';
+}
+
 export interface ConnectAccountResult {
   success: boolean;
   accountId?: string;
@@ -139,6 +147,18 @@ export class StripeConnectService {
     error?: string;
   }> {
     try {
+      // Sandbox mode: Return mock success response
+      if (isSandboxMode()) {
+        console.log(`[Stripe Connect] 🏖️ SANDBOX MODE: Simulating successful account status for ${accountId}`);
+        return {
+          success: true,
+          detailsSubmitted: true,
+          chargesEnabled: true,
+          payoutsEnabled: true,
+          requirements: [],
+        };
+      }
+
       const stripe = getStripeClient();
       const account = await stripe.accounts.retrieve(accountId);
 
@@ -203,6 +223,18 @@ export class StripeConnectService {
       }
 
       console.log(`[Stripe Connect] Creating Stripe transfer: ${Math.round(amount * 100)} cents to ${accountId}...`);
+
+      // Sandbox mode: Return mock transfer without calling Stripe API
+      if (isSandboxMode()) {
+        const mockTransferId = `sandbox_tr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log(`[Stripe Connect] 🏖️ SANDBOX MODE: Simulating successful transfer ${mockTransferId} for $${amount} ${currency.toUpperCase()}`);
+        console.log(`[Stripe Connect] 🏖️ SANDBOX MODE: No actual money transferred. This is a test transaction.`);
+
+        return {
+          success: true,
+          transferId: mockTransferId,
+        };
+      }
 
       // Create transfer
       const transfer = await stripe.transfers.create({
