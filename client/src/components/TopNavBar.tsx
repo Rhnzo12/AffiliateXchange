@@ -1,9 +1,11 @@
-import { Settings, ChevronDown, LogOut } from "lucide-react";
+import { Settings, ChevronDown, LogOut, MessageSquare } from "lucide-react";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/useAuth";
 import { Link } from "wouter";
 import { NotificationCenter } from "./NotificationCenter";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Badge } from "./ui/badge";
+import { useQuery } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +20,22 @@ interface TopNavBarProps {
 
 export function TopNavBar({ children }: TopNavBarProps) {
   const { user } = useAuth();
+
+  // Fetch conversations to get unread count
+  const { data: conversations } = useQuery<any[]>({
+    queryKey: ["/api/conversations"],
+    enabled: !!user,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Calculate total unread messages
+  const unreadCount = conversations?.reduce((total, conv) => {
+    if (user?.role === 'company') {
+      return total + (conv.companyUnreadCount || 0);
+    } else {
+      return total + (conv.creatorUnreadCount || 0);
+    }
+  }, 0) || 0;
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -48,6 +66,25 @@ export function TopNavBar({ children }: TopNavBarProps) {
 
           {/* Right Side Icons */}
           <div className="flex items-center gap-2 sm:gap-3 ml-auto flex-shrink-0">
+            {/* Messages Icon */}
+            <Link href={user?.role === 'company' ? '/company/messages' : '/messages'}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-8 w-8 sm:h-9 sm:w-9 hover:bg-primary/10"
+              >
+                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
+                {unreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[9px] font-bold leading-none rounded-full border border-background"
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+
             {/* Notification Center with Dropdown */}
             <NotificationCenter />
 
