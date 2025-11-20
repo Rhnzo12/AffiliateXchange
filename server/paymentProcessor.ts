@@ -308,18 +308,26 @@ export class PaymentProcessorService {
       }
 
       // Ensure the Stripe account can pay out in CAD before attempting to create a payout
-      const platformAccount = await stripe.accounts.retrieve();
-      const externalAccounts = await stripe.accounts.listExternalAccounts(platformAccount.id, {
-        object: 'bank_account',
-        limit: 100
-      });
+      // Note: This validation requires Stripe Connect permissions and may not work with all API keys
+      try {
+        const platformAccount = await stripe.accounts.retrieve();
+        const externalAccounts = await stripe.accounts.listExternalAccounts(platformAccount.id, {
+          object: 'bank_account',
+          limit: 100
+        });
 
-      const hasCadExternalAccount = externalAccounts.data.some((account) => account.currency?.toLowerCase() === 'cad');
+        const hasCadExternalAccount = externalAccounts.data.some((account) => account.currency?.toLowerCase() === 'cad');
 
-      if (!hasCadExternalAccount) {
-        const errorMessage = 'Stripe account has no CAD-enabled external account. Please add a CAD bank account to Stripe to enable e-transfers.';
-        console.error('[E-Transfer] Missing CAD external account for payouts');
-        return { success: false, error: errorMessage };
+        if (!hasCadExternalAccount) {
+          const errorMessage = 'Stripe account has no CAD-enabled external account. Please add a CAD bank account to Stripe to enable e-transfers.';
+          console.error('[E-Transfer] Missing CAD external account for payouts');
+          return { success: false, error: errorMessage };
+        }
+      } catch (validationError: any) {
+        // If validation fails due to permissions, log it and continue
+        // The payout attempt itself will fail with a proper error if there's actually a problem
+        console.warn('[E-Transfer] Could not validate CAD external account (likely due to API key permissions):', validationError.message);
+        console.warn('[E-Transfer] Proceeding with payout attempt - Stripe will return an error if CAD payouts are not supported');
       }
 
       const payout = await stripe.payouts.create({
@@ -352,7 +360,20 @@ export class PaymentProcessorService {
         }
       };
     } catch (error: any) {
-      const errorMessage = error?.message || 'Unknown error while processing e-transfer payout';
+      // Enhanced error handling for common Stripe payout errors
+      let errorMessage = error?.message || 'Unknown error while processing e-transfer payout';
+
+      // Check for specific Stripe error types
+      if (error.type === 'StripePermissionError' || errorMessage.includes('does not have the required permissions')) {
+        errorMessage = 'Stripe API key does not have the required permissions. Please check your Stripe account settings and API key permissions.';
+      } else if (errorMessage.includes('minimum') || errorMessage.includes('amount')) {
+        errorMessage = `Payout amount issue: ${errorMessage}. Note: Stripe typically requires minimum payout amounts (usually $1 CAD or more).`;
+      } else if (errorMessage.includes('balance')) {
+        errorMessage = 'Insufficient balance in Stripe account. Please ensure your Stripe account has sufficient funds for payouts.';
+      } else if (errorMessage.includes('external account') || errorMessage.includes('bank account')) {
+        errorMessage = 'Stripe account configuration issue: Please ensure a CAD-enabled bank account is connected to your Stripe account.';
+      }
+
       console.error('[E-Transfer] Error:', errorMessage);
       return { success: false, error: errorMessage };
     }
