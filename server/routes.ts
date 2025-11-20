@@ -2433,6 +2433,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe Connect routes for e-transfer setup
+  app.post("/api/stripe-connect/create-account", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUserById(userId);
+
+      if (!user) {
+        return res.status(404).send("User not found");
+      }
+
+      const { stripeConnectService } = await import('./stripeConnectService');
+
+      // Create Stripe Connect account
+      const result = await stripeConnectService.createConnectedAccount(
+        userId,
+        user.email,
+        'CA' // Default to Canada for e-transfers
+      );
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        accountId: result.accountId
+      });
+    } catch (error: any) {
+      console.error('[Stripe Connect] Create account error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/stripe-connect/onboarding-link", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { accountId, returnUrl, refreshUrl } = req.body;
+
+      if (!accountId) {
+        return res.status(400).send("accountId is required");
+      }
+
+      // Verify the account belongs to this user
+      const paymentSettings = await storage.getPaymentSettings(userId);
+      const userOwnsAccount = paymentSettings.some(ps => ps.stripeAccountId === accountId);
+
+      if (!userOwnsAccount) {
+        return res.status(403).send("Unauthorized - account does not belong to this user");
+      }
+
+      const { stripeConnectService } = await import('./stripeConnectService');
+
+      const result = await stripeConnectService.createAccountLink(
+        accountId,
+        returnUrl || `${process.env.BASE_URL || 'http://localhost:5000'}/settings/payment?stripe_onboarding=success`,
+        refreshUrl || `${process.env.BASE_URL || 'http://localhost:5000'}/settings/payment?stripe_onboarding=refresh`
+      );
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        url: result.url
+      });
+    } catch (error: any) {
+      console.error('[Stripe Connect] Onboarding link error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.get("/api/stripe-connect/account-status/:accountId", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { accountId } = req.params;
+
+      // Verify the account belongs to this user
+      const paymentSettings = await storage.getPaymentSettings(userId);
+      const userOwnsAccount = paymentSettings.some(ps => ps.stripeAccountId === accountId);
+
+      if (!userOwnsAccount) {
+        return res.status(403).send("Unauthorized - account does not belong to this user");
+      }
+
+      const { stripeConnectService } = await import('./stripeConnectService');
+
+      const result = await stripeConnectService.checkAccountStatus(accountId);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('[Stripe Connect] Account status error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/stripe-connect/dashboard-link", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { accountId } = req.body;
+
+      if (!accountId) {
+        return res.status(400).send("accountId is required");
+      }
+
+      // Verify the account belongs to this user
+      const paymentSettings = await storage.getPaymentSettings(userId);
+      const userOwnsAccount = paymentSettings.some(ps => ps.stripeAccountId === accountId);
+
+      if (!userOwnsAccount) {
+        return res.status(403).send("Unauthorized - account does not belong to this user");
+      }
+
+      const { stripeConnectService } = await import('./stripeConnectService');
+
+      const result = await stripeConnectService.createLoginLink(accountId);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        url: result.url
+      });
+    } catch (error: any) {
+      console.error('[Stripe Connect] Dashboard link error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Payment routes for creators
   app.get("/api/payments/creator", requireAuth, requireRole('creator'), async (req, res) => {
     try {
