@@ -2095,6 +2095,29 @@ export default function PaymentSettings() {
     }
   }, [user?.role]);
 
+  // Handle Stripe Connect onboarding return
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const onboardingStatus = params.get('stripe_onboarding');
+
+    if (onboardingStatus === 'success') {
+      toast({
+        title: "Success",
+        description: "Stripe Connect onboarding completed! Your e-transfer payment method is now active.",
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (onboardingStatus === 'refresh') {
+      toast({
+        title: "Setup Incomplete",
+        description: "Stripe Connect onboarding was not completed. Please try again.",
+        variant: "destructive",
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [toast]);
+
   // Fetch payment methods
   const { data: paymentMethods } = useQuery<PaymentMethod[]>({
     queryKey: ["/api/payment-settings"],
@@ -2121,8 +2144,40 @@ export default function PaymentSettings() {
     mutationFn: async () => {
       const payload: Record<string, string> = { payoutMethod };
 
+      // For e-transfer, we need to set up Stripe Connect first
       if (payoutMethod === "etransfer") {
         payload.payoutEmail = payoutEmail;
+
+        // Step 1: Create Stripe Connect account
+        const accountRes = await apiRequest("POST", "/api/stripe-connect/create-account");
+        const accountData = await accountRes.json();
+
+        if (!accountData.success || !accountData.accountId) {
+          throw new Error(accountData.error || "Failed to create Stripe Connect account");
+        }
+
+        // Step 2: Save the stripeAccountId with payment settings
+        payload.stripeAccountId = accountData.accountId;
+
+        // Save payment settings first
+        const res = await apiRequest("POST", "/api/payment-settings", payload);
+        const result = await res.json();
+
+        // Step 3: Redirect to Stripe onboarding
+        const onboardingRes = await apiRequest("POST", "/api/stripe-connect/onboarding-link", {
+          accountId: accountData.accountId,
+          returnUrl: `${window.location.origin}/settings/payment?stripe_onboarding=success`,
+          refreshUrl: `${window.location.origin}/settings/payment?stripe_onboarding=refresh`,
+        });
+        const onboardingData = await onboardingRes.json();
+
+        if (!onboardingData.success || !onboardingData.url) {
+          throw new Error(onboardingData.error || "Failed to create onboarding link");
+        }
+
+        // Redirect user to Stripe onboarding
+        window.location.href = onboardingData.url;
+        return result;
       } else if (payoutMethod === "wire") {
         payload.bankRoutingNumber = bankRoutingNumber;
         payload.bankAccountNumber = bankAccountNumber;
