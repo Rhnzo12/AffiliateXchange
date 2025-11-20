@@ -2593,11 +2593,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const companyUser = await storage.getUserById(companyProfile.userId);
 
               if (companyUser) {
+                // Get the payment method name from the creator's settings
+                let paymentMethodName = 'payment account';
+                try {
+                  const creatorPaymentSettings = await storage.getPaymentSettings(payment.creatorId);
+                  if (creatorPaymentSettings && creatorPaymentSettings.length > 0) {
+                    const defaultMethod = creatorPaymentSettings.find(ps => ps.isDefault) || creatorPaymentSettings[0];
+                    const methodNames: Record<string, string> = {
+                      'paypal': 'PayPal account',
+                      'etransfer': 'Stripe account',
+                      'wire': 'bank account',
+                      'crypto': 'crypto wallet'
+                    };
+                    paymentMethodName = methodNames[defaultMethod.payoutMethod] || 'payment account';
+                  }
+                } catch (error) {
+                  // If we can't determine the method, use generic message
+                  console.warn('[Payment] Could not determine payment method name:', error);
+                }
+
                 await notificationService.sendNotification(
                   companyUser.id,
                   'payment_failed_insufficient_funds',
                   'Payment Processing Failed - Insufficient Funds',
-                  `The payment request for $${payment.netAmount} could not be processed due to insufficient funds in your PayPal account.`,
+                  `The payment request for $${payment.netAmount} could not be processed due to insufficient funds in your ${paymentMethodName}.`,
                   {
                     userName: companyUser.firstName || companyUser.username,
                     amount: `$${payment.netAmount}`,
@@ -2738,11 +2757,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send("Company user not found");
       }
 
+      // Get the payment method name from the creator's settings
+      let paymentMethodName = 'payment account';
+      try {
+        const creatorPaymentSettings = await storage.getPaymentSettings(payment.creatorId);
+        if (creatorPaymentSettings && creatorPaymentSettings.length > 0) {
+          const defaultMethod = creatorPaymentSettings.find(ps => ps.isDefault) || creatorPaymentSettings[0];
+          const methodNames: Record<string, string> = {
+            'paypal': 'PayPal account',
+            'etransfer': 'Stripe account',
+            'wire': 'bank account',
+            'crypto': 'crypto wallet'
+          };
+          paymentMethodName = methodNames[defaultMethod.payoutMethod] || 'payment account';
+        }
+      } catch (error) {
+        // If we can't determine the method, use generic message
+        console.warn('[Payment] Could not determine payment method name:', error);
+      }
+
       await notificationService.sendNotification(
         companyUser.id,
         'payment_failed_insufficient_funds',
         'Payment Processing Failed - Insufficient Funds',
-        `The payment request for $${payment.netAmount} could not be processed due to insufficient funds in your PayPal account.`,
+        `The payment request for $${payment.netAmount} could not be processed due to insufficient funds in your ${paymentMethodName}.`,
         {
           userName: companyUser.firstName || companyUser.username,
           amount: `$${payment.netAmount}`,
