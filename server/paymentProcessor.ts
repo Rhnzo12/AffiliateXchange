@@ -310,26 +310,34 @@ export class PaymentProcessorService {
       );
 
       if (!eTransferSetting?.stripeAccountId) {
+        console.error(`[E-Transfer] ERROR: Creator ${payment.creatorId} has not connected their Stripe account`);
         return {
           success: false,
           error: 'Creator has not connected their Stripe account for e-transfers. Please complete Stripe onboarding first.'
         };
       }
 
+      console.log(`[E-Transfer] Using Stripe account ${eTransferSetting.stripeAccountId}`);
+
       // Import Stripe Connect service
       const { stripeConnectService } = await import('./stripeConnectService');
 
       // Verify connected account is ready
+      console.log(`[E-Transfer] Checking account status for ${eTransferSetting.stripeAccountId}...`);
       const accountStatus = await stripeConnectService.checkAccountStatus(eTransferSetting.stripeAccountId);
 
       if (!accountStatus.success) {
+        console.error(`[E-Transfer] ERROR: Unable to verify Stripe account: ${accountStatus.error}`);
         return {
           success: false,
           error: `Unable to verify Stripe account: ${accountStatus.error}`
         };
       }
 
+      console.log(`[E-Transfer] Account status: detailsSubmitted=${accountStatus.detailsSubmitted}, payoutsEnabled=${accountStatus.payoutsEnabled}`);
+
       if (!accountStatus.payoutsEnabled) {
+        console.error(`[E-Transfer] ERROR: Account ${eTransferSetting.stripeAccountId} payouts not enabled. Requirements: ${JSON.stringify(accountStatus.requirements)}`);
         return {
           success: false,
           error: 'Creator Stripe account is not yet enabled for payouts. Please complete all required onboarding steps.'
@@ -341,6 +349,7 @@ export class PaymentProcessorService {
       }
 
       // Create transfer to connected account
+      console.log(`[E-Transfer] Creating transfer: $${amount} CAD to account ${eTransferSetting.stripeAccountId}`);
       const transferResult = await stripeConnectService.createTransfer(
         eTransferSetting.stripeAccountId,
         amount,
@@ -354,6 +363,7 @@ export class PaymentProcessorService {
       );
 
       if (!transferResult.success) {
+        console.error(`[E-Transfer] ERROR: Transfer failed: ${transferResult.error}`);
         return {
           success: false,
           error: transferResult.error || 'Transfer failed'

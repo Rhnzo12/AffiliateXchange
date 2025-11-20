@@ -183,20 +183,26 @@ export class StripeConnectService {
 
       const minimumAmount = minimumAmounts[currencyLower] || 1.00;
       if (amount < minimumAmount) {
+        console.error(`[Stripe Connect] ERROR: Transfer amount $${amount.toFixed(2)} ${currency.toUpperCase()} is below minimum $${minimumAmount.toFixed(2)}`);
         return {
           success: false,
           error: `Transfer amount $${amount.toFixed(2)} ${currency.toUpperCase()} is below the minimum required amount of $${minimumAmount.toFixed(2)} ${currency.toUpperCase()}. Stripe requires a minimum transfer of at least $${minimumAmount.toFixed(2)} ${currency.toUpperCase()}.`,
         };
       }
 
+      console.log(`[Stripe Connect] Verifying account ${accountId} for transfer of $${amount} ${currency.toUpperCase()}...`);
+
       // Verify account is ready for transfers
       const accountStatus = await this.checkAccountStatus(accountId);
       if (!accountStatus.payoutsEnabled) {
+        console.error(`[Stripe Connect] ERROR: Account ${accountId} not enabled for payouts`);
         return {
           success: false,
           error: 'Connected account is not yet enabled for payouts. Creator must complete onboarding.',
         };
       }
+
+      console.log(`[Stripe Connect] Creating Stripe transfer: ${Math.round(amount * 100)} cents to ${accountId}...`);
 
       // Create transfer
       const transfer = await stripe.transfers.create({
@@ -214,7 +220,10 @@ export class StripeConnectService {
         transferId: transfer.id,
       };
     } catch (error: any) {
-      console.error('[Stripe Connect] Error creating transfer:', error.message);
+      console.error('[Stripe Connect] Error creating transfer:', error);
+      console.error('[Stripe Connect] Error code:', error.code);
+      console.error('[Stripe Connect] Error type:', error.type);
+      console.error('[Stripe Connect] Error message:', error.message);
 
       // Enhanced error handling
       let errorMessage = error.message;
@@ -226,6 +235,8 @@ export class StripeConnectService {
       } else if (errorMessage.includes('balance')) {
         errorMessage = 'Insufficient balance in Stripe account. Please ensure your Stripe account has sufficient funds for transfers.';
       }
+
+      console.error(`[Stripe Connect] ERROR: Transfer failed with: ${errorMessage}`);
 
       return {
         success: false,
