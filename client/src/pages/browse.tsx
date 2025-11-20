@@ -541,35 +541,41 @@ export default function Browse() {
       </TopNavBar>
 
       {/* Main Content */}
-      <div className="max-w-[1600px] mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 md:space-y-8">
         {/* Header - Left Aligned, Black Text */}
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-foreground">Browse Offers</h1>
-          <p className="text-muted-foreground text-base">Discover exclusive affiliate opportunities from verified brands</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Browse Offers</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">Discover exclusive affiliate opportunities from verified brands</p>
         </div>
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
-            <TabsTrigger value="all" className="flex items-center gap-2 py-3">
-              <Star className="h-4 w-4" />
-              <span>All Offers</span>
+          <TabsList className="grid w-full grid-cols-5 h-auto p-1 gap-1">
+            <TabsTrigger value="all" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4">
+              <Star className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline text-xs sm:text-sm">All Offers</span>
+              <span className="sm:hidden text-xs">All</span>
             </TabsTrigger>
-            <TabsTrigger value="trending" className="flex items-center gap-2 py-3">
-              <TrendingUp className="h-4 w-4" />
-              <span>Trending</span>
+            <TabsTrigger value="trending" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4">
+              <TrendingUp className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden md:inline text-xs sm:text-sm">Trending</span>
+              <span className="md:hidden text-xs">Top</span>
             </TabsTrigger>
-            <TabsTrigger value="highest-commission" className="flex items-center gap-2 py-3">
-              <DollarSign className="h-4 w-4" />
-              <span>Highest Commission</span>
+            <TabsTrigger value="highest-commission" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-1 sm:px-4">
+              <DollarSign className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden lg:inline text-xs sm:text-sm">Highest Commission</span>
+              <span className="hidden md:inline lg:hidden text-xs">High $</span>
+              <span className="md:hidden text-xs">$$$</span>
             </TabsTrigger>
-            <TabsTrigger value="new" className="flex items-center gap-2 py-3">
-              <Clock className="h-4 w-4" />
-              <span>New Listings</span>
+            <TabsTrigger value="new" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4">
+              <Clock className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline text-xs sm:text-sm">New Listings</span>
+              <span className="sm:hidden text-xs">New</span>
             </TabsTrigger>
-            <TabsTrigger value="recommended" className="flex items-center gap-2 py-3">
-              <Sparkles className="h-4 w-4" />
-              <span>For You</span>
+            <TabsTrigger value="recommended" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4">
+              <Sparkles className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline text-xs sm:text-sm">For You</span>
+              <span className="sm:hidden text-xs">You</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -596,9 +602,9 @@ export default function Browse() {
 </ScrollArea>
 
         {/* Filters Row */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap sm:flex-nowrap">
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-52" data-testid="select-sort">
+            <SelectTrigger className="w-full sm:w-52" data-testid="select-sort">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -612,11 +618,11 @@ export default function Browse() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" data-testid="button-filters" className="gap-2">
+              <Button variant="outline" data-testid="button-filters" className="gap-1 sm:gap-2 flex-shrink-0">
                 <SlidersHorizontal className="h-4 w-4" />
-                Filters
+                <span className="hidden xs:inline">Filters</span>
                 {(selectedNiches.length > 0 || commissionType || minimumPayout[0] > 0 || minRating > 0 || showTrending || showPriority) && (
-                  <Badge variant="secondary" className="ml-1">
+                  <Badge variant="secondary" className="ml-0.5 sm:ml-1 h-5 min-w-[20px] flex items-center justify-center px-1.5">
                     {selectedNiches.length + (commissionType ? 1 : 0) + (minimumPayout[0] > 0 ? 1 : 0) + (minRating > 0 ? 1 : 0) + (showTrending ? 1 : 0) + (showPriority ? 1 : 0)}
                   </Badge>
                 )}
@@ -793,17 +799,17 @@ export default function Browse() {
             {/* Trending Offers Section - Only on "all" tab */}
             {activeTab === "all" && trendingOffers.length > 0 && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-orange-500" />
-                <h2 className="text-2xl font-bold text-foreground">Trending Offers</h2>
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>
               </div>
-              <Button variant="ghost" className="gap-1 text-primary hover:gap-2 transition-all">
-                See All <ArrowRight className="h-4 w-4" />
+              <Button variant="ghost" className="gap-1 text-primary hover:gap-2 transition-all text-sm sm:text-base">
+                See All <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {trendingOffers.map((offer) => {
                 const isFavorite = favorites.some(f => f.offerId === offer.id);
                 const category = getOfferCategory(offer);
@@ -870,7 +876,7 @@ export default function Browse() {
 
                         {/* Company Logo - Positioned outside thumbnail but inside wrapper */}
                         {!isRetainer && offer.company?.logoUrl && (
-                          <div className="absolute -bottom-7 left-4 h-14 w-14 rounded-xl overflow-hidden bg-white shadow-lg border-2 border-background z-20">
+                          <div className="absolute -bottom-6 sm:-bottom-7 left-3 sm:left-4 h-12 w-12 sm:h-14 sm:w-14 rounded-lg sm:rounded-xl overflow-hidden bg-white shadow-lg border-2 border-background z-20">
                             <img
                               src={offer.company.logoUrl}
                               alt={offer.company.tradeName}
@@ -880,44 +886,44 @@ export default function Browse() {
                         )}
                       </div>
 
-                      <CardContent className="p-5 pt-8 space-y-3">
+                      <CardContent className="p-4 sm:p-5 pt-7 sm:pt-8 space-y-2 sm:space-y-3">
                         {/* Title */}
-                        <h3 className="font-semibold text-base line-clamp-2 text-foreground leading-snug">
+                        <h3 className="font-semibold text-sm sm:text-base line-clamp-2 text-foreground leading-snug">
                           {offer.title}
                         </h3>
 
                         {/* Company Name */}
                         {offer.company?.tradeName && (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
                             {offer.company.tradeName}
                           </p>
                         )}
 
                         {/* Hashtag Badges */}
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1 sm:gap-1.5">
                           {offer.primaryNiche && (
-                            <Badge variant="secondary" className="text-xs font-normal">
+                            <Badge variant="secondary" className="text-[10px] sm:text-xs font-normal">
                               #{offer.primaryNiche}
                             </Badge>
                           )}
                           {offer.secondaryNiche && (
-                            <Badge variant="secondary" className="text-xs font-normal">
+                            <Badge variant="secondary" className="text-[10px] sm:text-xs font-normal">
                               #{offer.secondaryNiche}
                             </Badge>
                           )}
                         </div>
 
                         {/* Commission and Stats */}
-                        <div className="flex items-end justify-between pt-2">
+                        <div className="flex items-end justify-between pt-1 sm:pt-2">
                           <div>
-                            <div className={`text-2xl font-bold ${
+                            <div className={`text-xl sm:text-2xl font-bold ${
                               isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-green-600'
                             } transition-colors`}>
                               {commissionDisplay.isCurrency
                                 ? `$${commissionDisplay.value}`
                                 : commissionDisplay.value}
                             </div>
-                            <div className={`text-xs ${
+                            <div className={`text-[10px] sm:text-xs ${
                               isRetainer ? 'text-purple-600/70 font-medium' : 'text-muted-foreground'
                             }`}>
                               {getCommissionTypeLabel(offer)}
@@ -925,23 +931,24 @@ export default function Browse() {
                           </div>
 
                           {/* Active creators */}
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Users className="h-4 w-4" />
-                            <span>{offer.activeCreatorsCount || 0} active</span>
+                          <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span className="hidden xs:inline">{offer.activeCreatorsCount || 0} active</span>
+                            <span className="xs:hidden">{offer.activeCreatorsCount || 0}</span>
                           </div>
                         </div>
 
                         {/* Application Status */}
                         {hasApplied && application && (
-                          <div className="pt-3 border-t mt-3">
-                            <div className="flex items-center justify-between">
+                          <div className="pt-2 sm:pt-3 border-t mt-2 sm:mt-3">
+                            <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                               <div className="flex items-center gap-2">
-                                <Badge variant={getApplicationStatusBadge(application.status).variant}>
+                                <Badge variant={getApplicationStatusBadge(application.status).variant} className="text-xs">
                                   {getApplicationStatusBadge(application.status).label}
                                 </Badge>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                Applied: {formatApplicationDate(application.createdAt)}
+                              <div className="text-[10px] sm:text-xs text-muted-foreground">
+                                <span className="hidden sm:inline">Applied: </span>{formatApplicationDate(application.createdAt)}
                               </div>
                             </div>
                           </div>
@@ -959,36 +966,36 @@ export default function Browse() {
             <div className="space-y-4">
               {/* Tab-specific headers */}
               {activeTab === "all" && regularOffers.length > 0 && trendingOffers.length > 0 && (
-                <h2 className="text-2xl font-bold text-foreground">All Offers</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">All Offers</h2>
               )}
               {activeTab === "trending" && regularOffers.length > 0 && (
-                <h2 className="text-2xl font-bold text-foreground">Trending Offers</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>
               )}
               {activeTab === "highest-commission" && regularOffers.length > 0 && (
-                <h2 className="text-2xl font-bold text-foreground">Highest Commission</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">Highest Commission</h2>
               )}
               {activeTab === "new" && regularOffers.length > 0 && (
-                <h2 className="text-2xl font-bold text-foreground">New Listings</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">New Listings</h2>
               )}
               {activeTab === "recommended" && regularOffers.length > 0 && (
-                <h2 className="text-2xl font-bold text-foreground">Recommended For You</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">Recommended For You</h2>
               )}
 
               {!regularOffers || regularOffers.length === 0 ? (
             <Card className="border-dashed border-2">
-              <CardContent className="p-16 text-center">
-                <div className="mx-auto w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-6">
-                  <TrendingUp className="h-10 w-10 text-muted-foreground/50" />
+              <CardContent className="p-8 sm:p-12 md:p-16 text-center">
+                <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted/50 flex items-center justify-center mb-4 sm:mb-6">
+                  <TrendingUp className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground/50" />
                 </div>
-                <h3 className="font-semibold text-xl mb-2">No offers found</h3>
-                <p className="text-muted-foreground mb-6">Try adjusting your filters or search terms</p>
-                <Button onClick={clearFilters} variant="outline">
+                <h3 className="font-semibold text-lg sm:text-xl mb-2">No offers found</h3>
+                <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">Try adjusting your filters or search terms</p>
+                <Button onClick={clearFilters} variant="outline" className="text-sm sm:text-base">
                   Clear Filters
                 </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
               {regularOffers.map((offer) => {
                 const isFavorite = favorites.some(f => f.offerId === offer.id);
                 const category = getOfferCategory(offer);
@@ -1065,55 +1072,56 @@ export default function Browse() {
                         )}
                       </div>
 
-                      <CardContent className="p-5 space-y-3">
+                      <CardContent className="p-4 sm:p-5 space-y-2 sm:space-y-3">
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-semibold text-base line-clamp-1 flex-1">{offer.title}</h3>
+                          <h3 className="font-semibold text-sm sm:text-base line-clamp-1 flex-1">{offer.title}</h3>
                           {!isRetainer && offer.company?.logoUrl && (
-                            <img src={offer.company.logoUrl} alt={offer.company.tradeName} className="h-9 w-9 rounded-full object-cover ring-2 ring-border" />
+                            <img src={offer.company.logoUrl} alt={offer.company.tradeName} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover ring-2 ring-border flex-shrink-0" />
                           )}
                         </div>
 
-                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{offer.shortDescription}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">{offer.shortDescription}</p>
 
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1 sm:gap-1.5">
                           {offer.primaryNiche && (
-                            <Badge variant="outline" className={`text-xs border ${NICHE_COLORS[offer.primaryNiche] || 'bg-secondary'}`}>
+                            <Badge variant="outline" className={`text-[10px] sm:text-xs border ${NICHE_COLORS[offer.primaryNiche] || 'bg-secondary'}`}>
                               {offer.primaryNiche}
                             </Badge>
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between pt-3 border-t">
-                          <div className="flex items-center gap-1.5 text-sm">
-                            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                        <div className="flex items-center justify-between pt-2 sm:pt-3 border-t">
+                          <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+                            <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-amber-400 text-amber-400" />
                             <span className="font-medium text-foreground">{offer.company?.averageRating?.toFixed(1) || '5.0'}</span>
                           </div>
-                          <div className={`flex items-center gap-1 font-mono font-bold ${
+                          <div className={`flex items-center gap-0.5 sm:gap-1 font-mono font-bold text-sm sm:text-base ${
                             isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-primary'
                           } transition-colors`}>
-                            {commissionDisplay.isCurrency && <DollarSign className="h-4 w-4" />}
+                            {commissionDisplay.isCurrency && <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />}
                             {commissionDisplay.value}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <Users className="h-4 w-4" />
-                            <span>{offer.activeCreatorsCount || 0} active</span>
+                        <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1 sm:gap-1.5">
+                            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span className="hidden xs:inline">{offer.activeCreatorsCount || 0} active</span>
+                            <span className="xs:hidden">{offer.activeCreatorsCount || 0}</span>
                           </div>
                         </div>
 
                         {/* Application Status */}
                         {hasApplied && application && (
-                          <div className="pt-3 border-t">
-                            <div className="flex items-center justify-between">
+                          <div className="pt-2 sm:pt-3 border-t">
+                            <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                               <div className="flex items-center gap-2">
-                                <Badge variant={getApplicationStatusBadge(application.status).variant}>
+                                <Badge variant={getApplicationStatusBadge(application.status).variant} className="text-xs">
                                   {getApplicationStatusBadge(application.status).label}
                                 </Badge>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                Applied: {formatApplicationDate(application.createdAt)}
+                              <div className="text-[10px] sm:text-xs text-muted-foreground">
+                                <span className="hidden sm:inline">Applied: </span>{formatApplicationDate(application.createdAt)}
                               </div>
                             </div>
                           </div>
