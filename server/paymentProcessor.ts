@@ -338,9 +338,30 @@ export class PaymentProcessorService {
 
       if (!accountStatus.payoutsEnabled) {
         console.error(`[E-Transfer] ERROR: Account ${eTransferSetting.stripeAccountId} payouts not enabled. Requirements: ${JSON.stringify(accountStatus.requirements)}`);
+
+        // Build a helpful error message with specific requirements
+        let errorMessage = 'Creator Stripe account is not yet enabled for payouts.';
+        if (accountStatus.requirements && accountStatus.requirements.length > 0) {
+          const requirementDescriptions: Record<string, string> = {
+            'individual.verification.proof_of_liveness': 'identity verification (photo/video)',
+            'individual.verification.document': 'identity document upload',
+            'individual.verification.additional_document': 'additional identity document',
+            'business_profile.url': 'business website',
+            'tos_acceptance.date': 'terms of service acceptance',
+          };
+
+          const readableReqs = accountStatus.requirements.map(req =>
+            requirementDescriptions[req] || req.replace(/[._]/g, ' ')
+          ).join(', ');
+
+          errorMessage += ` Missing: ${readableReqs}. Please return to Payment Settings and complete Stripe Connect onboarding.`;
+        } else {
+          errorMessage += ' Please complete all required onboarding steps in Payment Settings.';
+        }
+
         return {
           success: false,
-          error: 'Creator Stripe account is not yet enabled for payouts. Please complete all required onboarding steps.'
+          error: errorMessage
         };
       }
 
