@@ -79,6 +79,7 @@ type PaymentMethod = {
   paypalEmail?: string;
   cryptoWalletAddress?: string;
   cryptoNetwork?: string;
+  stripeAccountId?: string;
   isDefault?: boolean;
 };
 
@@ -320,6 +321,7 @@ function PaymentMethodSettings({
   onAddPaymentMethod,
   onDeletePaymentMethod,
   onSetPrimary,
+  onUpgradeETransfer,
   isSubmitting,
   title = "Payment Methods",
   emptyDescription = "Add a payment method to receive payouts",
@@ -343,6 +345,7 @@ function PaymentMethodSettings({
   onAddPaymentMethod: () => void;
   onDeletePaymentMethod?: (method: PaymentMethod) => void;
   onSetPrimary?: (method: PaymentMethod) => void;
+  onUpgradeETransfer?: (method: PaymentMethod) => void;
   isSubmitting: boolean;
   title?: string;
   emptyDescription?: string;
@@ -375,48 +378,76 @@ function PaymentMethodSettings({
           </div>
         ) : (
           <div className="mt-6 space-y-4">
-            {paymentMethods.map((method) => (
-              <div
-                key={method.id}
-                className="flex items-center justify-between rounded-lg border-2 border-gray-200 p-4"
-              >
-                <div className="flex items-center gap-4">
-                  <CreditCard className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <div className="font-medium capitalize text-gray-900">
-                      {method.payoutMethod.replace("_", " ")}
+            {paymentMethods.map((method) => {
+              const needsStripeSetup = method.payoutMethod === 'etransfer' && !method.stripeAccountId;
+
+              return (
+                <div
+                  key={method.id}
+                  className={`flex flex-col rounded-lg border-2 p-4 ${
+                    needsStripeSetup ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <CreditCard className={`h-5 w-5 ${needsStripeSetup ? 'text-yellow-600' : 'text-gray-400'}`} />
+                      <div>
+                        <div className="font-medium capitalize text-gray-900 flex items-center gap-2">
+                          {method.payoutMethod.replace("_", " ")}
+                          {needsStripeSetup && (
+                            <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                              Setup Required
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600">{getDisplayValue(method)}</div>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600">{getDisplayValue(method)}</div>
+                    <div className="flex items-center gap-2">
+                      {method.isDefault ? (
+                        <Badge>Default</Badge>
+                      ) : (
+                        onSetPrimary && !needsStripeSetup && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onSetPrimary(method)}
+                            className="text-sm"
+                          >
+                            Set as Primary
+                          </Button>
+                        )
+                      )}
+                      {onDeletePaymentMethod && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDeletePaymentMethod(method)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {method.isDefault ? (
-                    <Badge>Default</Badge>
-                  ) : (
-                    onSetPrimary && (
+                  {needsStripeSetup && (
+                    <div className="mt-3 pt-3 border-t border-yellow-200 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-yellow-800">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span>Stripe Connect setup required to process payments</span>
+                      </div>
                       <Button
-                        variant="outline"
                         size="sm"
-                        onClick={() => onSetPrimary(method)}
-                        className="text-sm"
+                        onClick={() => onUpgradeETransfer && onUpgradeETransfer(method)}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white"
                       >
-                        Set as Primary
+                        Complete Setup
                       </Button>
-                    )
-                  )}
-                  {onDeletePaymentMethod && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDeletePaymentMethod(method)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -2305,6 +2336,62 @@ export default function PaymentSettings() {
     setPrimaryPaymentMethodMutation.mutate(method.id);
   };
 
+  // Upgrade existing e-transfer payment method with Stripe Connect
+  const upgradeETransferMutation = useMutation({
+    mutationFn: async (paymentMethod: PaymentMethod) => {
+      // Step 1: Create Stripe Connect account
+      const accountRes = await apiRequest("POST", "/api/stripe-connect/create-account");
+      const accountData = await accountRes.json();
+
+      if (!accountData.success || !accountData.accountId) {
+        throw new Error(accountData.error || "Failed to create Stripe Connect account");
+      }
+
+      // Step 2: Update the existing payment setting with stripeAccountId
+      const updateRes = await apiRequest("PUT", `/api/payment-settings/${paymentMethod.id}`, {
+        stripeAccountId: accountData.accountId,
+      });
+      await updateRes.json();
+
+      // Step 3: Get onboarding link and redirect
+      const onboardingRes = await apiRequest("POST", "/api/stripe-connect/onboarding-link", {
+        accountId: accountData.accountId,
+        returnUrl: `${window.location.origin}/settings/payment?stripe_onboarding=success`,
+        refreshUrl: `${window.location.origin}/settings/payment?stripe_onboarding=refresh`,
+      });
+      const onboardingData = await onboardingRes.json();
+
+      if (!onboardingData.success || !onboardingData.url) {
+        throw new Error(onboardingData.error || "Failed to create onboarding link");
+      }
+
+      // Redirect to Stripe onboarding
+      window.location.href = onboardingData.url;
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upgrade e-transfer payment method",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpgradeETransfer = (method: PaymentMethod) => {
+    upgradeETransferMutation.mutate(method);
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -2375,6 +2462,7 @@ export default function PaymentSettings() {
               onAddPaymentMethod={() => addPaymentMethodMutation.mutate()}
               onDeletePaymentMethod={handleDeleteClick}
               onSetPrimary={handleSetPrimary}
+              onUpgradeETransfer={handleUpgradeETransfer}
               isSubmitting={addPaymentMethodMutation.isPending}
             />
           )}
