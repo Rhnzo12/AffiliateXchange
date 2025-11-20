@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X } from "lucide-react";
+import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -77,6 +77,7 @@ export default function CompanyRetainers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [platformFilter, setPlatformFilter] = useState("all");
+  const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
 
   const { data: contracts, isLoading } = useQuery<any[]>({
     queryKey: ["/api/company/retainer-contracts"],
@@ -873,8 +874,19 @@ export default function CompanyRetainers() {
                 Reset
               </Button>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
+              aria-label="Toggle filter visibility"
+              data-testid="button-toggle-filter"
+              className="sm:ml-2"
+            >
+              {isFilterCollapsed ? <ChevronDown className="h-5 w-5" /> : <ChevronUp className="h-5 w-5" />}
+            </Button>
           </div>
 
+          {!isFilterCollapsed && (
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <label className="text-sm font-medium">Search</label>
@@ -917,6 +929,7 @@ export default function CompanyRetainers() {
               </Select>
             </div>
           </div>
+          )}
         </CardContent>
       </Card>
 
