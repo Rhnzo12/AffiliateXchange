@@ -2366,6 +2366,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/payment-settings/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const paymentMethodId = req.params.id;
+
+      // Get all payment settings for the user
+      const allSettings = await storage.getPaymentSettings(userId);
+
+      // Find the payment method to delete
+      const settingToDelete = allSettings.find(s => s.id === paymentMethodId);
+
+      if (!settingToDelete) {
+        return res.status(404).send("Payment method not found");
+      }
+
+      // Verify the payment method belongs to the user
+      if (settingToDelete.userId !== userId) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // If deleting the primary payment method and there are other methods, set a new primary
+      if (settingToDelete.isDefault && allSettings.length > 1) {
+        // Find another payment method to set as primary (first one that's not being deleted)
+        const newPrimary = allSettings.find(s => s.id !== paymentMethodId);
+        if (newPrimary) {
+          await storage.setPrimaryPaymentMethod(userId, newPrimary.id);
+        }
+      }
+
+      // Delete the payment method
+      await storage.deletePaymentSetting(paymentMethodId);
+
+      res.json({ success: true, message: "Payment method deleted successfully" });
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.put("/api/payment-settings/:id/set-primary", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const paymentMethodId = req.params.id;
+
+      // Get all payment settings for the user
+      const allSettings = await storage.getPaymentSettings(userId);
+
+      // Find the payment method to set as primary
+      const settingToSetPrimary = allSettings.find(s => s.id === paymentMethodId);
+
+      if (!settingToSetPrimary) {
+        return res.status(404).send("Payment method not found");
+      }
+
+      // Verify the payment method belongs to the user
+      if (settingToSetPrimary.userId !== userId) {
+        return res.status(403).send("Unauthorized");
+      }
+
+      // Set as primary
+      await storage.setPrimaryPaymentMethod(userId, paymentMethodId);
+
+      res.json({ success: true, message: "Primary payment method updated successfully" });
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
   // Payment routes for creators
   app.get("/api/payments/creator", requireAuth, requireRole('creator'), async (req, res) => {
     try {
