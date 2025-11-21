@@ -1158,11 +1158,22 @@ function AdminPaymentDashboard({
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to process payments",
-        variant: "destructive",
-      });
+      const errorMsg = error.message || "Failed to process payments";
+
+      // Check if it's a minimum payment error
+      const isMinimumPaymentError = errorMsg.toLowerCase().includes('minimum') ||
+                                     errorMsg.toLowerCase().includes('below the minimum required amount');
+
+      if (isMinimumPaymentError) {
+        setMinimumPaymentError(errorMsg);
+        setMinimumPaymentDialogOpen(true);
+      } else {
+        toast({
+          title: "Error",
+          description: errorMsg,
+          variant: "destructive",
+        });
+      }
     },
   });
 
