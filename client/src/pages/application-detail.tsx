@@ -444,12 +444,6 @@ export default function ApplicationDetail() {
           </Card>
 
           {/* Tracking Link (if approved) */}
-          {(() => {
-            console.log('[QR Debug] Application status:', application.status);
-            console.log('[QR Debug] Tracking link:', application.trackingLink);
-            console.log('[QR Debug] Should show card?', (application.status === 'approved' || application.status === 'active') && application.trackingLink);
-            return null;
-          })()}
           {(application.status === 'approved' || application.status === 'active') && application.trackingLink && (
             <Card className="border-2 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
               <CardHeader>

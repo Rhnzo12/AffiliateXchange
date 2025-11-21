@@ -33,6 +33,7 @@ import { TopNavBar } from "../components/TopNavBar";
 import { MessageTemplates } from "../components/MessageTemplates";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { proxiedSrc } from "../lib/image";
+import { MessageItemSkeleton } from "../components/skeletons";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -366,19 +367,12 @@ export default function Messages() {
     };
   }, [isAuthenticated]);
 
-  const { data: conversations } = useQuery<any[]>({
+  const { data: conversations, isLoading: conversationsLoading } = useQuery<any[]>({
     queryKey: ["/api/conversations"],
     enabled: isAuthenticated,
   });
 
-  useEffect(() => {
-    if (conversations && conversations.length > 0) {
-      console.log('Conversations data:', conversations);
-      console.log('First conversation otherUser:', conversations[0]?.otherUser);
-    }
-  }, [conversations]);
-
-  const { data: messages = [] } = useQuery<EnhancedMessage[]>({
+  const { data: messages = [], isLoading: messagesLoading } = useQuery<EnhancedMessage[]>({
     queryKey: ["/api/messages", selectedConversation],
     enabled: !!selectedConversation && isAuthenticated,
   });
@@ -798,7 +792,13 @@ export default function Messages() {
               </Button>
             </div>
             <ScrollArea className="flex-1">
-              {!conversations || conversations.length === 0 ? (
+              {conversationsLoading ? (
+                <div className="divide-y">
+                  {[...Array(5)].map((_, i) => (
+                    <MessageItemSkeleton key={i} />
+                  ))}
+                </div>
+              ) : !conversations || conversations.length === 0 ? (
                 <div className="p-12 text-center">
                   <MessageSquare className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                   <p className="text-sm text-muted-foreground">No conversations yet</p>
@@ -940,6 +940,19 @@ export default function Messages() {
 
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-4">
+                  {messagesLoading ? (
+                    <div className="space-y-4">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="flex gap-2 justify-start">
+                          <div className="h-8 w-8 rounded-full bg-muted shrink-0" />
+                          <div className="bg-muted rounded-lg px-4 py-2.5 max-w-[70%] space-y-2">
+                            <div className="h-4 w-48 bg-muted-foreground/20 rounded animate-pulse" />
+                            <div className="h-3 w-16 bg-muted-foreground/20 rounded animate-pulse" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   {messages?.map((message, index) => {
                     const previousMessage = index > 0 ? messages[index - 1] : null;
                     const showDateSeparator = shouldShowDateSeparator(message, previousMessage);

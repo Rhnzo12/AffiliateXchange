@@ -363,23 +363,8 @@ export default function CompanyOfferDetail() {
     setIsUploading(true);
 
     try {
-      // IMPORTANT: Use nested folder structure with company ID and offer ID
-      // This matches the lookup logic in /objects/ endpoint
-
-      // Log current state for debugging
-      console.log('[Video Upload] Starting upload with:', {
-        hasOffer: !!offer,
-        offerId: offerId,
-        companyId: offer?.companyId,
-      });
-
       // Validate we have the required IDs
       if (!offer?.companyId || !offerId) {
-        console.error('[Video Upload] Missing required IDs:', {
-          offer: offer ? 'exists' : 'null',
-          companyId: offer?.companyId || 'missing',
-          offerId: offerId || 'missing',
-        });
         setErrorDialog({
           open: true,
           title: "Upload Error",
@@ -390,9 +375,8 @@ export default function CompanyOfferDetail() {
         return;
       }
 
-      // Always use the nested folder structure: creatorlink/videos/{companyId}/{offerId}
+      // Use nested folder structure: creatorlink/videos/{companyId}/{offerId}
       const folder = `creatorlink/videos/${offer.companyId}/${offerId}`;
-      console.log('[Video Upload] Uploading to folder:', folder);
 
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
