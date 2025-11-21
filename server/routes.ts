@@ -1,4 +1,4 @@
-import type { Express, Request } from "express";
+import type { Express, Request as ExpressRequest } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { parse as parseUrl } from "url";
@@ -17,6 +17,9 @@ import bcrypt from "bcrypt";
 import { PriorityListingScheduler } from "./priorityListingScheduler";
 import * as QRCode from "qrcode";
 import multer from "multer";
+
+// Extend Express Request type to include multer's file property
+type Request = ExpressRequest;
 import {
   insertCreatorProfileSchema,
   insertCompanyProfileSchema,
@@ -4996,13 +4999,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Endpoint to upload a file directly and get its signed URL
-  app.post("/api/upload-file", requireAuth, upload.single('file'), async (req, res) => {
+  app.post("/api/upload-file", requireAuth, upload.single('file'), async (req: ExpressRequest, res) => {
     try {
-      if (!req.file) {
+      // Type assertion for multer's file property
+      const multerReq = req as ExpressRequest & { file?: Express.Multer.File };
+
+      if (!multerReq.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      const file = req.file;
+      const file = multerReq.file;
       const folder = req.body.folder || 'affiliatexchange/uploads';
       const resourceType = req.body.resourceType || 'auto';
 

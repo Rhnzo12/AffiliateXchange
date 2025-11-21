@@ -52,7 +52,7 @@ export function CloudinaryUploader({
       formData: false, // GCS expects raw file data, not multipart form
       fieldName: "file",
       responseType: "text",
-      getResponseData: (responseText: any, xhr: XMLHttpRequest) => {
+      getResponseData: (xhr: XMLHttpRequest) => {
         // GCS returns empty body on success, construct response from request
         const uploadUrl = xhr.responseURL || "";
         // Extract the file path from the signed URL (before query params)
