@@ -838,6 +838,11 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; description: string }>({
+    open: false,
+    title: "",
+    description: "",
+  });
   const totalPaid = payouts
     .filter((p) => p.status === "completed")
     .reduce((sum, p) => sum + parseFloat(p.grossAmount), 0);
