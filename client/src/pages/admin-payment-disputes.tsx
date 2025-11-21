@@ -350,10 +350,10 @@ export default function AdminPaymentDisputes() {
       </Dialog>
 
       <GenericErrorDialog
-        isOpen={!!errorDialog}
-        onClose={() => setErrorDialog(null)}
+        open={!!errorDialog}
+        onOpenChange={(open) => !open && setErrorDialog(null)}
         title={errorDialog?.title || "Error"}
-        message={errorDialog?.message || "An unexpected error occurred"}
+        description={errorDialog?.message || "An unexpected error occurred"}
       />
     </div>
   );

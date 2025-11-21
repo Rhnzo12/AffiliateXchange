@@ -981,10 +981,10 @@ export default function CreatorOnboarding() {
       </div>
 
       <GenericErrorDialog
-        isOpen={errorDialog.isOpen}
-        onClose={() => setErrorDialog({ isOpen: false, title: "", message: "" })}
+        open={errorDialog.isOpen}
+        onOpenChange={(open) => !open && setErrorDialog({ isOpen: false, title: "", message: "" })}
         title={errorDialog.title}
-        message={errorDialog.message}
+        description={errorDialog.message}
       />
     </div>
   );
