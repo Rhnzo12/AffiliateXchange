@@ -1153,10 +1153,10 @@ export default function Messages() {
       </div>
 
       <GenericErrorDialog
-        isOpen={!!errorDialog}
-        onClose={() => setErrorDialog(null)}
+        open={!!errorDialog}
+        onOpenChange={(open) => !open && setErrorDialog(null)}
         title={errorDialog?.title || "Error"}
-        message={errorDialog?.message || "An error occurred"}
+        description={errorDialog?.message || "An error occurred"}
       />
     </div>
   );

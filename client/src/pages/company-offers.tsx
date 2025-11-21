@@ -647,8 +647,8 @@ export default function CompanyOffers() {
 
       {/* Error Dialog */}
       <GenericErrorDialog
-        isOpen={!!errorDialog}
-        onClose={() => setErrorDialog(null)}
+        open={!!errorDialog}
+        onOpenChange={(open) => !open && setErrorDialog(null)}
         title={errorDialog?.title || "Error"}
         description={errorDialog?.description || "An error occurred"}
       />

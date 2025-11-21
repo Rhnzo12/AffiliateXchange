@@ -765,9 +765,9 @@ export default function CompanyCreators() {
       )}
       <GenericErrorDialog
         open={!!errorDialog}
-        onClose={() => setErrorDialog(null)}
+        onOpenChange={(open) => !open && setErrorDialog(null)}
         title={errorDialog?.title || "Error"}
-        message={errorDialog?.message || "An unexpected error occurred."}
+        description={errorDialog?.message || "An unexpected error occurred."}
       />
     </div>
   );
