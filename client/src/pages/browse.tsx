@@ -33,6 +33,7 @@ import { apiRequest, queryClient } from "../lib/queryClient";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
 import { OfferCardSkeleton } from "../components/skeletons";
+import { GenericErrorDialog } from "../components/GenericErrorDialog";
 
 const COMMISSION_TYPES = [
   { value: "per_sale", label: "Per Sale" },
@@ -192,6 +193,15 @@ export default function Browse() {
   const [showTrending, setShowTrending] = useState(false);
   const [showPriority, setShowPriority] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
+  const [errorDialog, setErrorDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -580,10 +590,10 @@ export default function Browse() {
       queryClient.invalidateQueries({ queryKey: ["/api/favorites"] });
     },
     onError: (error: any) => {
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: "Failed to update favorites",
-        variant: "destructive",
       });
     },
   });
@@ -1573,6 +1583,15 @@ export default function Browse() {
           </>
         )}
       </div>
+
+      {/* Error Dialog */}
+      <GenericErrorDialog
+        open={errorDialog.open}
+        onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+        title={errorDialog.title}
+        description={errorDialog.description}
+        variant="error"
+      />
     </div>
   );
 }

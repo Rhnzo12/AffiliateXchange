@@ -71,6 +71,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
+import { GenericErrorDialog } from "../components/GenericErrorDialog";
 
 const applyRetainerSchema = z.object({
   message: z
@@ -102,6 +103,15 @@ export default function CreatorRetainers() {
   const [preferenceFilter, setPreferenceFilter] = useState<string[]>([]);
   const [amountRange, setAmountRange] = useState<number[]>([0, 10000]);
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+  });
 
   const handlePreferenceToggle = (preference: string) => {
     setPreferenceFilter((prev) =>
@@ -177,10 +187,10 @@ export default function CreatorRetainers() {
         return;
       }
 
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: error.message || "Failed to submit application",
-        variant: "destructive",
       });
     },
   });
@@ -1217,6 +1227,14 @@ export default function CreatorRetainers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <GenericErrorDialog
+        open={errorDialog.open}
+        onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+        title={errorDialog.title}
+        description={errorDialog.description}
+        variant="error"
+      />
     </div>
   );
 }

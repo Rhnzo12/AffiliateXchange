@@ -48,6 +48,7 @@ import {
 
 import type { User } from "../../../shared/schema";
 import { TopNavBar } from "../components/TopNavBar";
+import { GenericErrorDialog } from "../components/GenericErrorDialog";
 
 type PaymentStatus =
   | "pending"
@@ -597,6 +598,11 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
   const [disputeReason, setDisputeReason] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; description: string }>({
+    open: false,
+    title: "",
+    description: "",
+  });
 
   const pendingPayouts = useMemo(
     () => payouts.filter((payout) => payout.status === "pending" || payout.status === "processing"),
@@ -648,10 +654,10 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
       });
     },
     onError: (error: Error) => {
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: error.message || "Failed to approve payment",
-        variant: "destructive",
       });
     },
   });
@@ -671,10 +677,10 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
       });
     },
     onError: (error: Error) => {
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: error.message || "Failed to dispute payment",
-        variant: "destructive",
       });
     },
   });
@@ -1048,6 +1054,14 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
           )}
         </div>
       </div>
+
+      <GenericErrorDialog
+        open={errorDialog.open}
+        onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+        title={errorDialog.title}
+        description={errorDialog.description}
+        variant="error"
+      />
     </div>
   );
 }
@@ -1061,6 +1075,11 @@ function AdminPaymentDashboard({
   const [selectedPayments, setSelectedPayments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; description: string }>({
+    open: false,
+    title: "",
+    description: "",
+  });
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [paymentToProcess, setPaymentToProcess] = useState<CreatorPayment | null>(null);
   const [insufficientFundsDialogOpen, setInsufficientFundsDialogOpen] = useState(false);
@@ -1170,10 +1189,10 @@ function AdminPaymentDashboard({
         setMinimumPaymentError(errorMsg);
         setMinimumPaymentDialogOpen(true);
       } else {
-        toast({
+        setErrorDialog({
+          open: true,
           title: "Error",
           description: errorMsg,
-          variant: "destructive",
         });
       }
     },
@@ -1261,10 +1280,10 @@ function AdminPaymentDashboard({
       });
     },
     onError: (error: Error) => {
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: error.message || "Failed to update payment status",
-        variant: "destructive",
       });
     },
   });
@@ -1785,6 +1804,14 @@ function AdminPaymentDashboard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <GenericErrorDialog
+        open={errorDialog.open}
+        onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+        title={errorDialog.title}
+        description={errorDialog.description}
+        variant="error"
+      />
     </div>
   );
 }
@@ -1795,6 +1822,11 @@ function AdminPaymentSettings() {
   const [reservePercentage, setReservePercentage] = useState("10");
   const [minimumBalance, setMinimumBalance] = useState("5000");
   const [autoDisburse, setAutoDisburse] = useState(true);
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; description: string }>({
+    open: false,
+    title: "",
+    description: "",
+  });
   const [notificationEmail, setNotificationEmail] = useState("finance@affiliatexchange.com");
   const [escalationEmail, setEscalationEmail] = useState("compliance@affiliatexchange.com");
   const [includeReports, setIncludeReports] = useState(true);
@@ -1830,10 +1862,10 @@ function AdminPaymentSettings() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
     },
     onError: (error: Error) => {
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: error.message || "Failed to update setting",
-        variant: "destructive",
       });
     },
   });
@@ -1906,10 +1938,10 @@ function AdminPaymentSettings() {
       });
     },
     onError: (error: Error) => {
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: error.message || "Failed to add funding account",
-        variant: "destructive",
       });
     },
   });
@@ -1927,10 +1959,10 @@ function AdminPaymentSettings() {
       });
     },
     onError: (error: Error) => {
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: error.message || "Failed to update account",
-        variant: "destructive",
       });
     },
   });
@@ -1948,10 +1980,10 @@ function AdminPaymentSettings() {
       });
     },
     onError: (error: Error) => {
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: error.message || "Failed to delete account",
-        variant: "destructive",
       });
     },
   });
@@ -1969,10 +2001,10 @@ function AdminPaymentSettings() {
       });
     },
     onError: (error: Error) => {
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: error.message || "Failed to set primary account",
-        variant: "destructive",
       });
     },
   });
@@ -2281,6 +2313,14 @@ function AdminPaymentSettings() {
           </Button>
         </div>
       </div>
+
+      <GenericErrorDialog
+        open={errorDialog.open}
+        onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+        title={errorDialog.title}
+        description={errorDialog.description}
+        variant="error"
+      />
     </div>
   );
 }
@@ -2299,19 +2339,24 @@ export default function PaymentSettings() {
   const [cryptoNetwork, setCryptoNetwork] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [paymentMethodToDelete, setPaymentMethodToDelete] = useState<PaymentMethod | null>(null);
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; description: string }>({
+    open: false,
+    title: "",
+    description: "",
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Unauthorized",
         description: "You are logged out. Logging in again...",
-        variant: "destructive",
       });
       setTimeout(() => {
         window.location.href = "/api/login";
       }, 500);
     }
-  }, [isAuthenticated, isLoading, toast]);
+  }, [isAuthenticated, isLoading]);
 
   useEffect(() => {
     if (user?.role === "company" || user?.role === "creator") {
@@ -2336,15 +2381,15 @@ export default function PaymentSettings() {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (onboardingStatus === 'refresh') {
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Setup Incomplete",
         description: "Stripe Connect onboarding was not completed. Please try again.",
-        variant: "destructive",
       });
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [toast]);
+  }, []);
 
   // Fetch payment methods
   const { data: paymentMethods } = useQuery<PaymentMethod[]>({
@@ -2434,20 +2479,20 @@ export default function PaymentSettings() {
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
-        toast({
+        setErrorDialog({
+          open: true,
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
-          variant: "destructive",
         });
         setTimeout(() => {
           window.location.href = "/api/login";
         }, 500);
         return;
       }
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: "Failed to add payment method",
-        variant: "destructive",
       });
     },
   });
@@ -2468,20 +2513,20 @@ export default function PaymentSettings() {
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
-        toast({
+        setErrorDialog({
+          open: true,
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
-          variant: "destructive",
         });
         setTimeout(() => {
           window.location.href = "/api/login";
         }, 500);
         return;
       }
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: "Failed to delete payment method",
-        variant: "destructive",
       });
     },
   });
@@ -2511,20 +2556,20 @@ export default function PaymentSettings() {
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
-        toast({
+        setErrorDialog({
+          open: true,
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
-          variant: "destructive",
         });
         setTimeout(() => {
           window.location.href = "/api/login";
         }, 500);
         return;
       }
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: "Failed to set primary payment method",
-        variant: "destructive",
       });
     },
   });
@@ -2567,20 +2612,20 @@ export default function PaymentSettings() {
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
-        toast({
+        setErrorDialog({
+          open: true,
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
-          variant: "destructive",
         });
         setTimeout(() => {
           window.location.href = "/api/login";
         }, 500);
         return;
       }
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error",
         description: error.message || "Failed to upgrade e-transfer payment method",
-        variant: "destructive",
       });
     },
   });
@@ -2795,6 +2840,14 @@ export default function PaymentSettings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <GenericErrorDialog
+        open={errorDialog.open}
+        onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+        title={errorDialog.title}
+        description={errorDialog.description}
+        variant="error"
+      />
     </div>
   );
 }
