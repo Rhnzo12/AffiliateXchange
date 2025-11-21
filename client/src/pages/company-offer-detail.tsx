@@ -406,7 +406,7 @@ export default function CompanyOfferDetail() {
       const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "PUT",
         headers: {
-          "Content-Type": file.type || "video/mp4",
+          "Content-Type": uploadData.contentType || file.type || "video/mp4",
         },
         body: file,
       });
@@ -438,7 +438,7 @@ export default function CompanyOfferDetail() {
           const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
             method: "PUT",
             headers: {
-              "Content-Type": "image/jpeg",
+              "Content-Type": thumbUploadData.contentType || "image/jpeg",
             },
             body: thumbnailBlob,
           });

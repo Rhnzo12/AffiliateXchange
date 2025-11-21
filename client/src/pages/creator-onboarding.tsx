@@ -154,7 +154,7 @@ export default function CreatorOnboarding() {
       const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "PUT",
         headers: {
-          "Content-Type": file.type || "image/jpeg",
+          "Content-Type": uploadData.contentType || file.type || "image/jpeg",
         },
         body: file,
       });

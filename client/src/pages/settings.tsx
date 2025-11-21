@@ -312,7 +312,7 @@ export default function Settings() {
       const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "PUT",
         headers: {
-          "Content-Type": file.type || "image/jpeg",
+          "Content-Type": uploadData.contentType || file.type || "image/jpeg",
         },
         body: file,
       });
@@ -325,7 +325,7 @@ export default function Settings() {
 
       // Construct the public URL from the upload response
       const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
-      
+
       // Set the logo URL
       setLogoUrl(uploadedUrl);
       
@@ -393,7 +393,7 @@ export default function Settings() {
       const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "PUT",
         headers: {
-          "Content-Type": file.type || "image/jpeg",
+          "Content-Type": uploadData.contentType || file.type || "image/jpeg",
         },
         body: file,
       });
@@ -476,7 +476,7 @@ export default function Settings() {
       const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "PUT",
         headers: {
-          "Content-Type": file.type || "application/octet-stream",
+          "Content-Type": uploadData.contentType || file.type || "application/octet-stream",
         },
         body: file,
       });

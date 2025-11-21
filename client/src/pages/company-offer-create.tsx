@@ -204,12 +204,13 @@ export default function CompanyOfferCreate() {
     file: File,
     bucket: string,
     key: string,
+    contentType: string,
     onProgress: (progress: number) => void,
   ) => {
     return new Promise<any>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("PUT", uploadUrl);
-      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+      xhr.setRequestHeader("Content-Type", contentType);
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
@@ -317,7 +318,7 @@ export default function CompanyOfferCreate() {
           const thumbUploadResult = await fetch(thumbUploadData.uploadUrl, {
             method: "PUT",
             headers: {
-              "Content-Type": thumbnailFile.type || "image/jpeg",
+              "Content-Type": thumbUploadData.contentType || thumbnailFile.type || "image/jpeg",
             },
             body: thumbnailFile,
           });
@@ -375,6 +376,7 @@ export default function CompanyOfferCreate() {
               video.videoFile,
               uploadData.fields.bucket,
               uploadData.fields.key,
+              uploadData.contentType || video.videoFile.type || "video/mp4",
               (progress) => {
                 setVideoUploadProgress(progress);
                 const progressValue = 20 + perVideoPortion * i + (perVideoPortion * progress) / 100;
@@ -404,7 +406,7 @@ export default function CompanyOfferCreate() {
               const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
                 method: "PUT",
                 headers: {
-                  "Content-Type": "image/jpeg",
+                  "Content-Type": thumbUploadData.contentType || "image/jpeg",
                 },
                 body: thumbnailBlob,
               });
