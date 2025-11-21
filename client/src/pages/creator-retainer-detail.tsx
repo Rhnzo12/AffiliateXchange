@@ -167,7 +167,7 @@ export default function CreatorRetainerDetail() {
       const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "PUT",
         headers: {
-          "Content-Type": file.type || "video/mp4",
+          "Content-Type": uploadData.contentType || file.type || "video/mp4",
         },
         body: file,
       });

@@ -534,7 +534,7 @@ export default function Messages() {
       const uploadResult = await fetch(uploadData.uploadUrl, {
         method: "PUT",
         headers: {
-          "Content-Type": file.type || "application/octet-stream",
+          "Content-Type": uploadData.contentType || file.type || "application/octet-stream",
         },
         body: file,
       });

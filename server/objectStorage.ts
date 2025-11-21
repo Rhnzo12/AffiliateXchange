@@ -106,6 +106,7 @@ export class ObjectStorageService {
     timestamp?: number;
     apiKey?: string;
     folder?: string;
+    contentType?: string;
     fields?: { [key: string]: string };
   }> {
     const folder = customFolder || this.getStorageFolder();
@@ -115,19 +116,23 @@ export class ObjectStorageService {
     const bucket = this.getBucket();
     const file = bucket.file(filePath);
 
+    // Determine content type for the signed URL
+    const contentType = this.getContentType(fileName, resourceType);
+
     // Generate signed URL for upload (valid for 15 minutes)
     const [signedUrl] = await file.getSignedUrl({
       version: 'v4',
       action: 'write',
       expires: Date.now() + 15 * 60 * 1000, // 15 minutes
-      contentType: this.getContentType(fileName, resourceType),
+      contentType,
     });
 
-    console.log('[ObjectStorage] Generated GCS signed upload URL for folder:', folder, 'resourceType:', resourceType);
+    console.log('[ObjectStorage] Generated GCS signed upload URL for folder:', folder, 'resourceType:', resourceType, 'contentType:', contentType);
 
     return {
       uploadUrl: signedUrl,
       folder,
+      contentType, // Return the content type so frontend uses the exact same one
       fields: {
         key: filePath,
         bucket: BUCKET_NAME,
