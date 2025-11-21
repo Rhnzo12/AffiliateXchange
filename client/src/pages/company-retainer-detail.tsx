@@ -601,41 +601,43 @@ export default function CompanyRetainerDetail() {
                           </div>
 
                           {/* Submitter Info Card */}
-                          <Card className="bg-muted/30 border-muted">
-                            <CardContent className="p-4">
-                              <p className="text-xs font-medium text-muted-foreground uppercase mb-3">
-                                Submitted By
-                              </p>
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-12 w-12 border-2 border-background">
-                                  <AvatarFallback className="text-base font-semibold">
-                                    {contract.assignedCreator?.firstName?.[0]}
-                                    {contract.assignedCreator?.lastName?.[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold truncate">
-                                    {contract.assignedCreator?.email}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground truncate">
-                                    @{contract.assignedCreator?.username}
-                                  </p>
+                          {contract.assignedCreator && (
+                            <Card className="bg-muted/30 border-muted">
+                              <CardContent className="p-4">
+                                <p className="text-xs font-medium text-muted-foreground uppercase mb-3">
+                                  Submitted By
+                                </p>
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-12 w-12 border-2 border-background">
+                                    <AvatarFallback className="text-base font-semibold">
+                                      {contract.assignedCreator.firstName?.[0]}
+                                      {contract.assignedCreator.lastName?.[0]}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold truncate">
+                                      {contract.assignedCreator.email}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground truncate">
+                                      @{contract.assignedCreator.username}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
 
-                              {/* Submission Time */}
-                              {deliverable.submittedAt && (
-                                <div className="mt-3 pt-3 border-t border-border/50">
-                                  <p className="text-xs text-muted-foreground">
-                                    📅 {format(new Date(deliverable.submittedAt), "MMM d, yyyy")}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    🕐 {format(new Date(deliverable.submittedAt), "h:mm a")}
-                                  </p>
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
+                                {/* Submission Time */}
+                                {deliverable.submittedAt && (
+                                  <div className="mt-3 pt-3 border-t border-border/50">
+                                    <p className="text-xs text-muted-foreground">
+                                      📅 {format(new Date(deliverable.submittedAt), "MMM d, yyyy")}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      🕐 {format(new Date(deliverable.submittedAt), "h:mm a")}
+                                    </p>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          )}
                         </div>
 
                         {/* Right Column: Details & Actions */}
