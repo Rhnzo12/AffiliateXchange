@@ -23,11 +23,11 @@ export const proxiedSrc = (src?: string | null) => {
   if (!src) return src || undefined;
 
   // Handle legacy normalized paths like /objects/{publicId}
-  // Convert them to full storage URLs before proxying
+  // Convert them to /public-objects/ for public access (no auth required)
   if (src.startsWith('/objects/')) {
     const publicId = src.replace('/objects/', '');
-    // Use the /objects/ endpoint which has storage fallback
-    return src;
+    // Use the /public-objects/ endpoint which doesn't require authentication
+    return `/public-objects/${publicId}`;
   }
 
   try {

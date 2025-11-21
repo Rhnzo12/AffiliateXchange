@@ -833,7 +833,7 @@ export default function Messages() {
                       >
                         <div className="flex gap-3 items-start">
                           <Avatar className="h-12 w-12 sm:h-10 sm:w-10 shrink-0">
-                            <AvatarImage src={conversation.otherUser?.profileImageUrl || conversation.otherUser?.logoUrl} />
+                            <AvatarImage src={proxiedSrc(conversation.otherUser?.profileImageUrl || conversation.otherUser?.logoUrl)} />
                             <AvatarFallback>
                               {getAvatarFallback(conversation.otherUser)}
                             </AvatarFallback>
@@ -901,7 +901,7 @@ export default function Messages() {
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <Avatar className="h-10 w-10 shrink-0">
-                      <AvatarImage src={otherUser?.profileImageUrl || otherUser?.logoUrl} />
+                      <AvatarImage src={proxiedSrc(otherUser?.profileImageUrl || otherUser?.logoUrl)} />
                       <AvatarFallback>
                         {getAvatarFallback(otherUser)}
                       </AvatarFallback>
@@ -961,7 +961,7 @@ export default function Messages() {
                         >
                           {!isOwnMessage && (
                             <Avatar className={`h-8 w-8 shrink-0 ${groupWithPrevious ? 'invisible' : ''}`}>
-                              <AvatarImage src={otherUser?.profileImageUrl || otherUser?.logoUrl} />
+                              <AvatarImage src={proxiedSrc(otherUser?.profileImageUrl || otherUser?.logoUrl)} />
                               <AvatarFallback className="text-xs">
                                 {getAvatarFallback(otherUser)}
                               </AvatarFallback>
@@ -1021,7 +1021,7 @@ export default function Messages() {
                   {isOtherUserTyping && (
                     <div className="flex gap-2 justify-start mt-4">
                       <Avatar className="h-8 w-8 shrink-0">
-                        <AvatarImage src={otherUser?.profileImageUrl || otherUser?.logoUrl} />
+                        <AvatarImage src={proxiedSrc(otherUser?.profileImageUrl || otherUser?.logoUrl)} />
                         <AvatarFallback className="text-xs">
                           {getAvatarFallback(otherUser)}
                         </AvatarFallback>
