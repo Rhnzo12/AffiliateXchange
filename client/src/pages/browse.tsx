@@ -1228,7 +1228,8 @@ export default function Browse() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
                     {monthlyRetainerOffers.map((offer) => {
                       const isFavorite = favorites.some(f => f.offerId === offer.id);
-                      const category = getOfferCategory(offer);
+                      // Always show RETAINER badge for monthly retainer offers in this section
+                      const category = { label: "RETAINER", color: "bg-gradient-to-r from-purple-600 to-violet-600" };
                       const isRetainer = offer.commissionType === 'monthly_retainer';
 
                       const commissionDisplay = getCommissionDisplay(offer);
@@ -1388,7 +1389,8 @@ export default function Browse() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
                       {monthlyRetainerOffers.map((offer) => {
                         const isFavorite = favorites.some(f => f.offerId === offer.id);
-                        const category = getOfferCategory(offer);
+                        // Always show RETAINER badge for monthly retainer offers in this section
+                        const category = { label: "RETAINER", color: "bg-gradient-to-r from-purple-600 to-violet-600" };
                         const isRetainer = offer.commissionType === 'monthly_retainer';
 
                         const commissionDisplay = getCommissionDisplay(offer);
