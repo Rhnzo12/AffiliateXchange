@@ -402,29 +402,18 @@ export default function CompanyOfferDetail() {
       });
       const uploadData = await uploadResponse.json();
 
-      const formData = new FormData();
-      formData.append('file', file);
-
-      if (uploadData.uploadPreset) {
-        formData.append('upload_preset', uploadData.uploadPreset);
-      } else if (uploadData.signature) {
-        formData.append('signature', uploadData.signature);
-        formData.append('timestamp', uploadData.timestamp.toString());
-        formData.append('api_key', uploadData.apiKey);
-      }
-
-      if (uploadData.folder) {
-        formData.append('folder', uploadData.folder);
-      }
-
+      // Upload file to Google Cloud Storage using signed URL
       const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "POST",
-        body: formData,
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "video/mp4",
+        },
+        body: file,
       });
 
       if (uploadResult.ok) {
-        const cloudinaryResponse = await uploadResult.json();
-        const uploadedVideoUrl = cloudinaryResponse.secure_url;
+        // Construct the public URL from the upload response
+        const uploadedVideoUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
 
         toast({
           title: "Video Uploaded",
@@ -445,29 +434,18 @@ export default function CompanyOfferDetail() {
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
-          const thumbnailFormData = new FormData();
-          thumbnailFormData.append('file', thumbnailBlob, 'thumbnail.jpg');
-
-          if (thumbUploadData.uploadPreset) {
-            thumbnailFormData.append('upload_preset', thumbUploadData.uploadPreset);
-          } else if (thumbUploadData.signature) {
-            thumbnailFormData.append('signature', thumbUploadData.signature);
-            thumbnailFormData.append('timestamp', thumbUploadData.timestamp.toString());
-            thumbnailFormData.append('api_key', thumbUploadData.apiKey);
-          }
-
-          if (thumbUploadData.folder) {
-            thumbnailFormData.append('folder', thumbUploadData.folder);
-          }
-
+          // Upload thumbnail to Google Cloud Storage using signed URL
           const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
-            method: "POST",
-            body: thumbnailFormData,
+            method: "PUT",
+            headers: {
+              "Content-Type": "image/jpeg",
+            },
+            body: thumbnailBlob,
           });
 
           if (thumbnailUploadResult.ok) {
-            const thumbnailResponse = await thumbnailUploadResult.json();
-            const uploadedThumbnailUrl = thumbnailResponse.secure_url;
+            // Construct the public URL from the upload response
+            const uploadedThumbnailUrl = `https://storage.googleapis.com/${thumbUploadData.fields.bucket}/${thumbUploadData.fields.key}`;
 
             setVideoUrl(uploadedVideoUrl);
             setThumbnailUrl(uploadedThumbnailUrl);
