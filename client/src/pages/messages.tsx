@@ -32,6 +32,7 @@ import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
 import { MessageTemplates } from "../components/MessageTemplates";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { proxiedSrc } from "../lib/image";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -774,12 +775,12 @@ export default function Messages() {
             </div>
           )}
 
-          <div 
+          <div
             className="max-w-[90vw] max-h-[90vh] overflow-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={currentImages[currentImageIndex]}
+              src={proxiedSrc(currentImages[currentImageIndex])}
               alt={`Image ${currentImageIndex + 1}`}
               className="max-w-full max-h-[90vh] object-contain transition-transform duration-200"
               style={{ transform: `scale(${imageZoom})` }}
@@ -991,7 +992,7 @@ export default function Messages() {
                                     className="block w-full text-left"
                                   >
                                     <img
-                                      src={url}
+                                      src={proxiedSrc(url)}
                                       alt={`Attachment ${idx + 1}`}
                                       className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
                                       style={{ maxHeight: '300px' }}
