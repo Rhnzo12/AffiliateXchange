@@ -1067,6 +1067,8 @@ function AdminPaymentDashboard({
   const [failedPayment, setFailedPayment] = useState<CreatorPayment | null>(null);
   const [minimumPaymentDialogOpen, setMinimumPaymentDialogOpen] = useState(false);
   const [minimumPaymentError, setMinimumPaymentError] = useState<string>("");
+  const [paymentFailedDialogOpen, setPaymentFailedDialogOpen] = useState(false);
+  const [paymentFailedError, setPaymentFailedError] = useState<string>("");
 
   const allPayments = payments;
 
@@ -1234,13 +1236,13 @@ function AdminPaymentDashboard({
         setMinimumPaymentError(errorMsg);
         setMinimumPaymentDialogOpen(true);
       } else {
-        // Show error toast for other types of errors
-        toast({
-          title: "Payment Failed",
-          description: errorMsg,
-          variant: "destructive",
-          duration: 5000,
-        });
+        // Show payment failed dialog for other types of errors
+        const payment = allPayments.find(p => p.id === paymentId);
+        if (payment) {
+          setFailedPayment(payment);
+        }
+        setPaymentFailedError(errorMsg);
+        setPaymentFailedDialogOpen(true);
       }
     },
   });
@@ -1691,6 +1693,89 @@ function AdminPaymentDashboard({
                   </p>
                 </div>
               )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              Close
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Payment Failed Reminder Dialog */}
+      <AlertDialog open={paymentFailedDialogOpen} onOpenChange={setPaymentFailedDialogOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-gray-900">
+              <Info className="h-6 w-6 text-gray-600" />
+              Payment Processing Reminder
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 pt-3">
+              <div className="rounded-lg bg-gray-50 border-2 border-gray-200 p-4">
+                <p className="text-gray-800 leading-relaxed">
+                  The payment could not be processed at this time. Please review the details below and take appropriate action.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-700">Payment Details:</p>
+                <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Amount:</span>
+                    <span className="font-semibold text-gray-900">${failedPayment?.netAmount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Description:</span>
+                    <span className="font-medium text-gray-900">{failedPayment?.description || 'Payment'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Payment ID:</span>
+                    <span className="font-mono text-xs text-gray-700">{failedPayment?.id.slice(0, 12)}...</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+                <p className="text-sm font-semibold text-blue-900 mb-2">What Happened:</p>
+                <ul className="space-y-1.5 text-sm text-blue-800">
+                  <li className="flex gap-2">
+                    <span>•</span>
+                    <span>The payment processing encountered an issue</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>•</span>
+                    <span>The payment status has been updated to "failed"</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span>•</span>
+                    <span>Please review the error details below</span>
+                  </li>
+                </ul>
+              </div>
+
+              {paymentFailedError && (
+                <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
+                  <p className="text-sm font-semibold text-yellow-900 mb-2">Error Details:</p>
+                  <p className="text-sm text-yellow-800">
+                    {paymentFailedError}
+                  </p>
+                </div>
+              )}
+
+              <div className="rounded-lg bg-green-50 border border-green-200 p-3">
+                <p className="text-sm font-semibold text-green-900 mb-2">Next Steps:</p>
+                <ol className="list-decimal list-inside space-y-1.5 text-sm text-green-800">
+                  <li>Review the error details and payment information</li>
+                  <li>Verify the payment settings are configured correctly</li>
+                  <li>Contact the creator if additional information is needed</li>
+                  <li>Use the "Retry" button to process the payment again once the issue is resolved</li>
+                </ol>
+              </div>
+
+              <p className="text-xs text-gray-500 italic">
+                This payment will remain in "failed" status until you successfully retry the transaction or take corrective action.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
