@@ -24,7 +24,8 @@ import {
   X,
   ChevronsUpDown,
   Video,
-  CreditCard
+  CreditCard,
+  Info
 } from "lucide-react";
 
 const STEPS = [
@@ -673,6 +674,15 @@ export default function CreatorOnboarding() {
                       value={payoutEmail}
                       onChange={(e) => setPayoutEmail(e.target.value)}
                     />
+                    <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 mt-2">
+                      <div className="flex gap-2">
+                        <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-blue-900">
+                          <p className="font-semibold mb-1">Payment Requirements:</p>
+                          <p className="text-xs">E-Transfer payments via Stripe require a minimum transaction amount of <strong>$1.00 CAD</strong>. Payments below this amount cannot be processed.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </button>
