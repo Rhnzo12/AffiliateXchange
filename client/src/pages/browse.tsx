@@ -356,8 +356,13 @@ export default function Browse() {
         currentOffers = offers || [];
     }
 
-    // Merge retainer contracts with offers for all tabs
-    return [...currentOffers, ...(retainerContracts || [])];
+    // Only include retainer contracts when "Monthly Retainers" category is selected
+    if (selectedCategory === "monthly_retainers") {
+      return retainerContracts || [];
+    }
+
+    // Otherwise, return only regular offers (no retainer contracts)
+    return currentOffers;
   };
 
   // Get loading state based on active tab
@@ -861,8 +866,8 @@ export default function Browse() {
           </div>
         ) : (
           <>
-            {/* Trending Offers Section - Only on "all" tab */}
-            {activeTab === "all" && trendingOffers.length > 0 && (
+            {/* Trending Offers Section - Only on "all" tab and not on monthly retainers category */}
+            {activeTab === "all" && selectedCategory !== "monthly_retainers" && trendingOffers.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
@@ -1030,8 +1035,11 @@ export default function Browse() {
             {/* Main Offers Grid */}
             <div className="space-y-4">
               {/* Tab-specific headers */}
-              {activeTab === "all" && regularOffers.length > 0 && trendingOffers.length > 0 && (
+              {activeTab === "all" && selectedCategory !== "monthly_retainers" && regularOffers.length > 0 && trendingOffers.length > 0 && (
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground">All Offers</h2>
+              )}
+              {activeTab === "all" && selectedCategory === "monthly_retainers" && regularOffers.length > 0 && (
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">Monthly Retainer Contracts</h2>
               )}
               {activeTab === "trending" && regularOffers.length > 0 && (
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>
