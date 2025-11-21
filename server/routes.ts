@@ -16,6 +16,7 @@ import { NotificationService } from "./notifications/notificationService";
 import bcrypt from "bcrypt";
 import { PriorityListingScheduler } from "./priorityListingScheduler";
 import * as QRCode from "qrcode";
+import multer from "multer";
 import {
   insertCreatorProfileSchema,
   insertCompanyProfileSchema,
@@ -4941,6 +4942,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType);
     console.log('[Upload API] Upload params returned:', uploadParams);
     res.json(uploadParams);
+  });
+
+  // Configure multer for file uploads (store in memory as buffer)
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 100 * 1024 * 1024, // 100MB limit
+    },
+  });
+
+  // Endpoint to generate signed URL for reading an existing file
+  app.get("/api/get-signed-url/:filename(*)", requireAuth, async (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const objectStorageService = new ObjectStorageService();
+
+      // Import Storage from @google-cloud/storage
+      const { Storage } = await import('@google-cloud/storage');
+
+      // Initialize Google Cloud Storage with service account key
+      const keyFilePath = process.env.GOOGLE_CLOUD_KEYFILE;
+      const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'tool-development-478707';
+      const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
+
+      let gcsStorage: any;
+      if (keyFilePath) {
+        gcsStorage = new Storage({
+          projectId,
+          keyFilename: keyFilePath,
+        });
+      } else {
+        gcsStorage = new Storage({ projectId });
+      }
+
+      const options = {
+        version: 'v4' as const,
+        action: 'read' as const,
+        expires: Date.now() + 60 * 60 * 1000, // 1 hour from now
+      };
+
+      const [url] = await gcsStorage
+        .bucket(bucketName)
+        .file(filename)
+        .getSignedUrl(options);
+
+      console.log('[Signed URL API] Generated signed URL for:', filename);
+      res.json({ url });
+    } catch (error: any) {
+      console.error('Error generating signed URL:', error);
+      res.status(500).json({ error: 'Failed to generate URL', details: error.message });
+    }
+  });
+
+  // Endpoint to upload a file directly and get its signed URL
+  app.post("/api/upload-file", requireAuth, upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const file = req.file;
+      const folder = req.body.folder || 'affiliatexchange/uploads';
+      const resourceType = req.body.resourceType || 'auto';
+
+      // Import Storage from @google-cloud/storage
+      const { Storage } = await import('@google-cloud/storage');
+
+      // Initialize Google Cloud Storage
+      const keyFilePath = process.env.GOOGLE_CLOUD_KEYFILE;
+      const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'tool-development-478707';
+      const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
+
+      let gcsStorage: any;
+      if (keyFilePath) {
+        gcsStorage = new Storage({
+          projectId,
+          keyFilename: keyFilePath,
+        });
+      } else {
+        gcsStorage = new Storage({ projectId });
+      }
+
+      // Generate unique filename with original extension
+      const { randomUUID } = await import('crypto');
+      const ext = file.originalname.split('.').pop();
+      const filename = `${randomUUID()}.${ext}`;
+      const destination = `${folder}/${filename}`;
+
+      const blob = gcsStorage.bucket(bucketName).file(destination);
+
+      const blobStream = blob.createWriteStream({
+        resumable: false,
+        metadata: {
+          contentType: file.mimetype
+        }
+      });
+
+      blobStream.on('error', (err: any) => {
+        console.error('Error uploading file:', err);
+        res.status(500).json({ error: err.message });
+      });
+
+      blobStream.on('finish', async () => {
+        try {
+          // Generate signed URL for the uploaded file
+          const [url] = await blob.getSignedUrl({
+            version: 'v4',
+            action: 'read',
+            expires: Date.now() + 60 * 60 * 1000,
+          });
+
+          console.log('[Direct Upload API] File uploaded successfully:', destination);
+          res.json({
+            message: 'File uploaded successfully',
+            filename: destination,
+            originalName: file.originalname,
+            url: url,
+            publicUrl: `https://storage.googleapis.com/${bucketName}/${destination}`
+          });
+        } catch (error: any) {
+          console.error('Error generating signed URL after upload:', error);
+          res.status(500).json({ error: 'File uploaded but failed to generate signed URL' });
+        }
+      });
+
+      blobStream.end(file.buffer);
+    } catch (error: any) {
+      console.error('Error in direct upload:', error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.put("/api/company-logos", requireAuth, requireRole('company'), async (req, res) => {
