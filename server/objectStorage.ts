@@ -110,7 +110,16 @@ export class ObjectStorageService {
     fields?: { [key: string]: string };
   }> {
     const folder = customFolder || this.getStorageFolder();
-    const fileName = `${randomUUID()}`;
+
+    // Generate filename with appropriate extension based on resource type
+    let fileExtension = '';
+    if (resourceType === 'image') {
+      fileExtension = '.jpg'; // Thumbnails are generated as JPEG
+    } else if (resourceType === 'video') {
+      fileExtension = '.mp4'; // Default video extension
+    }
+
+    const fileName = `${randomUUID()}${fileExtension}`;
     const filePath = `${folder}/${fileName}`;
 
     const bucket = this.getBucket();
