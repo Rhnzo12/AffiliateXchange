@@ -101,7 +101,7 @@ export default function CreatorRetainerDetail() {
   const [applyOpen, setApplyOpen] = useState(false);
 
   const { data: contract, isLoading } = useQuery<any>({
-    queryKey: ["/api/retainer-contracts", contractId],
+    queryKey: [`/api/retainer-contracts/${contractId}`],
     enabled: !!contractId,
   });
 
@@ -110,7 +110,7 @@ export default function CreatorRetainerDetail() {
   });
 
   const { data: deliverables } = useQuery<any[]>({
-    queryKey: ["/api/retainer-contracts", contractId, "deliverables"],
+    queryKey: [`/api/retainer-contracts/${contractId}/deliverables`],
     enabled: !!contractId && myApplication?.some((app: any) => app.contractId === contractId && app.status === "approved"),
   });
 
@@ -232,7 +232,7 @@ export default function CreatorRetainerDetail() {
       return await apiRequest("POST", "/api/creator/retainer-deliverables", payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/retainer-contracts", contractId, "deliverables"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/retainer-contracts/${contractId}/deliverables`] });
       toast({
         title: "Deliverable Submitted",
         description: "Your video has been submitted for review.",
@@ -366,7 +366,7 @@ export default function CreatorRetainerDetail() {
       return await apiRequest("PATCH", `/api/creator/retainer-deliverables/${selectedDeliverable.id}/resubmit`, payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/retainer-contracts", contractId, "deliverables"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/retainer-contracts/${contractId}/deliverables`] });
       toast({
         title: "Revision Submitted",
         description: "Your revised video has been submitted for review.",
@@ -485,15 +485,14 @@ export default function CreatorRetainerDetail() {
     };
   });
 
-  const bestValueTier = tierSummaries.reduce(
-    (best: any, tier: any) => {
-      if (tier.perVideoCost < best.perVideoCost) {
-        return tier;
-      }
-      return best;
-    },
-    tierSummaries[0] || null
-  );
+  const bestValueTier = tierSummaries.length > 0
+    ? tierSummaries.reduce((best: any, tier: any) => {
+        if (tier.perVideoCost < best.perVideoCost) {
+          return tier;
+        }
+        return best;
+      })
+    : null;
 
   const getValidationBadge = (label: string, isValid: boolean) => (
     <Badge variant={isValid ? "outline" : "destructive"} className="gap-1">
