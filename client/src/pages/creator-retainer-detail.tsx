@@ -518,7 +518,7 @@ export default function CreatorRetainerDetail() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <TopNavBar />
       <div className="flex items-center gap-4">
         <Link href="/retainers">
@@ -541,16 +541,6 @@ export default function CreatorRetainerDetail() {
             by {contract.company?.tradeName || contract.company?.legalName || "Company"}
           </p>
         </div>
-        {!currentApplication && (
-          <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="button-apply-retainer">
-                <Send className="h-4 w-4 mr-2" />
-                Apply Now
-              </Button>
-            </DialogTrigger>
-          </Dialog>
-        )}
         {isApproved && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -1444,6 +1434,30 @@ export default function CreatorRetainerDetail() {
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Sticky Apply Button */}
+      {!currentApplication && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50">
+          <div className="container max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <p className="font-semibold text-sm sm:text-base">{contract.title}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  {formatCurrency(contractMonthlyAmount)} / month · {contractVideosPerMonth} videos
+                </p>
+              </div>
+              <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-auto sm:min-w-[140px]" data-testid="button-apply-retainer-sticky">
+                    <Send className="h-4 w-4 mr-2" />
+                    Apply Now
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
