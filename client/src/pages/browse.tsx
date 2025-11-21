@@ -668,8 +668,7 @@ export default function Browse() {
         </Tabs>
 
         {/* Category Pills - Horizontal Scroll */}
-        {/* Category Pills - Horizontal Scroll */}
-<ScrollArea orientation="horizontal" className="w-full pb-3">
+        <ScrollArea orientation="horizontal" className="w-full pb-3">
   <div className="flex gap-2 pb-1 pr-4 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
     {categoryOptions.map(({ label, value }) => (
       <button
@@ -1116,7 +1115,6 @@ export default function Browse() {
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                               referrerPolicy="no-referrer"
                               onError={(e) => {
-                                console.error(`Image failed to load: ${offer.title}`, offer.featuredImageUrl);
                                 (e.target as HTMLImageElement).style.display = 'none';
                                 const fallback = (e.target as HTMLImageElement).nextElementSibling;
                                 if (fallback) {
@@ -1269,7 +1267,6 @@ export default function Browse() {
                                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                       referrerPolicy="no-referrer"
                                       onError={(e) => {
-                                        console.error(`Image failed to load: ${offer.title}`, offer.featuredImageUrl);
                                         (e.target as HTMLImageElement).style.display = 'none';
                                         const fallback = (e.target as HTMLImageElement).nextElementSibling;
                                         if (fallback) {

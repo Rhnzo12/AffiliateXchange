@@ -874,8 +874,6 @@ export default function Settings() {
 
       // Creator profile payload
       if (user?.role === 'creator') {
-        console.log("[Settings] Saving niches:", selectedNiches);
-
         payload = {
           bio,
           profileImageUrl: profileImageUrl || null,
@@ -912,10 +910,7 @@ export default function Settings() {
         };
       }
 
-      console.log("[Settings] API payload:", payload);
-
       const result = await apiRequest("PUT", "/api/profile", payload);
-      console.log("[Settings] API response:", result);
       return result;
     },
     onSuccess: () => {
@@ -929,8 +924,6 @@ export default function Settings() {
       });
     },
     onError: (error: Error) => {
-      console.log("[Settings] Error caught:", error);
-      console.log("[Settings] Error message:", error.message);
       setErrorDialog({
         title: "Error",
         message: error.message || "Failed to update profile",
