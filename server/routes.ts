@@ -4540,7 +4540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple image proxy for allowed external hosts (e.g., Cloudinary)
+  // Simple image proxy for allowed external hosts (e.g., GCS, Cloudinary)
   // This makes images same-origin and helps avoid browser tracking-prevention blocking
   app.get("/proxy/image", async (req, res) => {
     try {
@@ -4555,7 +4555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only allow known safe hosts to avoid open proxy / SSRF
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com", "googleapis.com"];
       const hostname = parsed.hostname || "";
       const allowed = allowedHosts.some((h) => hostname.endsWith(h));
       if (!allowed) return res.status(403).send("forbidden host");
@@ -4596,7 +4596,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only allow known safe hosts to avoid open proxy / SSRF
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com", "googleapis.com"];
       const hostname = parsed.hostname || "";
       const allowed = allowedHosts.some((h) => hostname.endsWith(h));
       if (!allowed) return res.status(403).send("forbidden host");
