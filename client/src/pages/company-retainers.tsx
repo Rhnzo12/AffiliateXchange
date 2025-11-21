@@ -345,18 +345,16 @@ export default function CompanyRetainers() {
                             {["1", "3", "6", "12"].map((value) => (
                               <label
                                 key={value}
-                                className={`flex items-center justify-between gap-2 rounded-md border p-3 cursor-pointer transition-all ${
+                                className={`flex items-center gap-2 rounded-md border p-3 cursor-pointer transition-all ${
                                   field.value === value
                                     ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                                     : "hover:border-primary hover:bg-accent"
                                 }`}
                               >
-                                <div className="flex items-center gap-2">
-                                  <RadioGroupItem value={value} />
-                                  <span className={`font-medium ${field.value === value ? "text-primary" : ""}`}>
-                                    {value} month{value === "1" ? "" : "s"}
-                                  </span>
-                                </div>
+                                <RadioGroupItem value={value} />
+                                <span className={`font-medium ${field.value === value ? "text-primary" : ""}`}>
+                                  {value} month{value === "1" ? "" : "s"}
+                                </span>
                               </label>
                             ))}
                           </RadioGroup>
