@@ -51,11 +51,20 @@ const formatCommission = (offer: any) => {
   if (!offer) return "$0";
 
   if (offer.commissionAmount) {
-    return `$${offer.commissionAmount.toFixed(2)}`;
+    const amount = typeof offer.commissionAmount === 'number'
+      ? offer.commissionAmount
+      : parseFloat(offer.commissionAmount);
+    return `$${amount.toFixed(2)}`;
   } else if (offer.commissionPercentage) {
-    return `${offer.commissionPercentage}%`;
+    const percentage = typeof offer.commissionPercentage === 'number'
+      ? offer.commissionPercentage
+      : parseFloat(offer.commissionPercentage);
+    return `${percentage}%`;
   } else if (offer.commissionRate) {
-    return `$${offer.commissionRate.toFixed(2)}`;
+    const rate = typeof offer.commissionRate === 'number'
+      ? offer.commissionRate
+      : parseFloat(offer.commissionRate);
+    return `$${rate.toFixed(2)}`;
   }
   return "$0";
 };
@@ -676,8 +685,9 @@ export default function CompanyOfferDetail() {
                   <div className="relative">
                     <Avatar className="h-32 w-32 sm:h-36 sm:w-36 border-4 border-background shadow-2xl ring-2 ring-primary/20">
                       <AvatarImage
-                        src={company?.logoUrl}
+                        src={proxiedSrc(company?.logoUrl)}
                         alt={companyName}
+                        referrerPolicy="no-referrer"
                       />
                       <AvatarFallback className="text-3xl sm:text-4xl font-bold bg-gradient-to-br from-primary to-purple-600 text-white">
                         {companyName[0]}
