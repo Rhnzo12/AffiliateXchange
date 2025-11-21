@@ -1242,102 +1242,122 @@ export default function Browse() {
 
                       return (
                         <Link key={offer.id} href={offer.isRetainerContract ? `/retainers/${offer.id}` : `/offers/${offer.id}`}>
-                          <Card className={`group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden h-full ${
+                          <Card className={`group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full ${
                             isRetainer ? 'ring-2 ring-purple-400/50 hover:ring-purple-500 hover:shadow-purple-500/20' : ''
                           }`} data-testid={`card-offer-${offer.id}`}>
-                            {/* Thumbnail */}
-                            <div className={`aspect-video relative overflow-hidden ${
-                              isRetainer ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100' : ''
-                            }`}>
-                              {!isRetainer && offer.featuredImageUrl ? (
-                                <>
-                                  <img
-                                    src={proxiedSrc(offer.featuredImageUrl)}
-                                    alt={offer.title}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                    referrerPolicy="no-referrer"
-                                    onError={(e) => {
-                                      console.error(`Image failed to load: ${offer.title}`, offer.featuredImageUrl);
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                      const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                                      if (fallback) {
-                                        fallback.classList.remove('hidden');
-                                        fallback.classList.add('flex');
-                                      }
-                                    }}
-                                  />
-                                  {/* Fallback if image fails */}
-                                  <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
+                            {/* Thumbnail Container with Logo */}
+                            <div className="relative">
+                              {/* Gradient Background */}
+                              <div className={`aspect-video relative overflow-hidden rounded-t-lg ${
+                                isRetainer ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100' : ''
+                              }`}>
+                                {!isRetainer && offer.featuredImageUrl ? (
+                                  <>
+                                    <img
+                                      src={proxiedSrc(offer.featuredImageUrl)}
+                                      alt={offer.title}
+                                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                      referrerPolicy="no-referrer"
+                                      onError={(e) => {
+                                        console.error(`Image failed to load: ${offer.title}`, offer.featuredImageUrl);
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                                        if (fallback) {
+                                          fallback.classList.remove('hidden');
+                                          fallback.classList.add('flex');
+                                        }
+                                      }}
+                                    />
+                                    {/* Fallback if image fails */}
+                                    <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
+                                      <Play className="h-12 w-12 text-muted-foreground/50" />
+                                    </div>
+                                  </>
+                                ) : !isRetainer ? (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
                                     <Play className="h-12 w-12 text-muted-foreground/50" />
                                   </div>
-                                </>
-                              ) : !isRetainer ? (
-                                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
-                                  <Play className="h-12 w-12 text-muted-foreground/50" />
-                                </div>
-                              ) : null}
+                                ) : null}
 
-                              {/* Favorite button - Top Left */}
-                              <button
-                                className="rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-lg backdrop-blur-md"
-                                style={{
-                                  position: 'absolute',
-                                  top: '12px',
-                                  left: '12px',
-                                  width: '36px',
-                                  height: '36px',
-                                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                  zIndex: 10,
-                                  border: 'none',
-                                  cursor: 'pointer'
-                                }}
-                                onClick={(e) => handleFavoriteToggle(e, offer.id)}
-                                data-testid={`button-favorite-${offer.id}`}
-                              >
-                                <Heart className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500 scale-110' : 'text-gray-600'}`} />
-                              </button>
+                                {/* Favorite button - Top Left */}
+                                <button
+                                  className="absolute top-3 left-3 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-md backdrop-blur-sm"
+                                  style={{
+                                    width: '36px',
+                                    height: '36px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    zIndex: 10
+                                  }}
+                                  onClick={(e) => handleFavoriteToggle(e, offer.id)}
+                                  data-testid={`button-favorite-${offer.id}`}
+                                >
+                                  <Heart className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
+                                </button>
 
-                              {/* Category Badge - Top Right */}
-                              {category && (
-                                <div className={`absolute top-0 right-0 ${category.color} text-white px-3 py-1.5 rounded-bl-lg shadow-lg font-bold text-xs tracking-wide`}>
-                                  {category.label}
+                                {/* Category Badge - Top Right */}
+                                {category && (
+                                  <div className={`absolute top-0 right-0 ${category.color} text-white px-3 py-1.5 rounded-bl-lg shadow-lg font-bold text-xs tracking-wide`}>
+                                    {category.label}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Company Logo - Positioned outside thumbnail but inside wrapper */}
+                              {offer.company?.logoUrl && (
+                                <div className="absolute -bottom-6 sm:-bottom-7 left-3 sm:left-4 h-12 w-12 sm:h-14 sm:w-14 rounded-lg sm:rounded-xl overflow-hidden bg-white shadow-lg border-2 border-background z-20">
+                                  <img
+                                    src={offer.company.logoUrl}
+                                    alt={offer.company.tradeName}
+                                    className="h-full w-full object-cover"
+                                  />
                                 </div>
                               )}
                             </div>
 
-                            <CardContent className="p-4 sm:p-5 space-y-2 sm:space-y-3">
-                              <div className="flex items-start justify-between gap-2">
-                                <h3 className="font-semibold text-sm sm:text-base line-clamp-1 flex-1">{offer.title}</h3>
-                                {!isRetainer && offer.company?.logoUrl && (
-                                  <img src={offer.company.logoUrl} alt={offer.company.tradeName} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover ring-2 ring-border flex-shrink-0" />
-                                )}
-                              </div>
+                            <CardContent className="p-4 sm:p-5 pt-7 sm:pt-8 space-y-2 sm:space-y-3">
+                              {/* Title */}
+                              <h3 className="font-semibold text-sm sm:text-base line-clamp-2 text-foreground leading-snug">
+                                {offer.title}
+                              </h3>
 
-                              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">{offer.shortDescription}</p>
+                              {/* Company Name */}
+                              {offer.company?.tradeName && (
+                                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                                  {offer.company.tradeName}
+                                </p>
+                              )}
 
+                              {/* Hashtag Badges */}
                               <div className="flex flex-wrap gap-1 sm:gap-1.5">
                                 {offer.primaryNiche && (
-                                  <Badge variant="outline" className={`text-[10px] sm:text-xs border ${NICHE_COLORS[offer.primaryNiche] || 'bg-secondary'}`}>
-                                    {offer.primaryNiche}
+                                  <Badge variant="secondary" className="text-[10px] sm:text-xs font-normal">
+                                    #{offer.primaryNiche}
+                                  </Badge>
+                                )}
+                                {offer.secondaryNiche && (
+                                  <Badge variant="secondary" className="text-[10px] sm:text-xs font-normal">
+                                    #{offer.secondaryNiche}
                                   </Badge>
                                 )}
                               </div>
 
-                              <div className="flex items-center justify-between pt-2 sm:pt-3 border-t">
-                                <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
-                                  <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-amber-400 text-amber-400" />
-                                  <span className="font-medium text-foreground">{offer.company?.averageRating?.toFixed(1) || '5.0'}</span>
+                              {/* Commission and Stats */}
+                              <div className="flex items-end justify-between pt-1 sm:pt-2">
+                                <div>
+                                  <div className="text-xl sm:text-2xl font-bold text-purple-600 group-hover:text-purple-700 transition-colors">
+                                    {commissionDisplay.isCurrency
+                                      ? `$${commissionDisplay.value}`
+                                      : commissionDisplay.value}
+                                  </div>
+                                  <div className="text-[10px] sm:text-xs text-purple-600/70 font-medium">
+                                    per month
+                                  </div>
                                 </div>
-                                <div className={`flex items-center gap-0.5 sm:gap-1 font-mono font-bold text-sm sm:text-base ${
-                                  isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-primary'
-                                } transition-colors`}>
-                                  {commissionDisplay.isCurrency && <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />}
-                                  {commissionDisplay.value}
-                                </div>
-                              </div>
 
-                              <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1 sm:gap-1.5">
+                                {/* Active creators */}
+                                <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
                                   <Users className="h-3 w-3 sm:h-4 sm:w-4" />
                                   <span className="hidden xs:inline">{offer.activeCreatorsCount || 0} active</span>
                                   <span className="xs:hidden">{offer.activeCreatorsCount || 0}</span>
@@ -1346,7 +1366,7 @@ export default function Browse() {
 
                               {/* Application Status */}
                               {hasApplied && application && (
-                                <div className="pt-2 sm:pt-3 border-t">
+                                <div className="pt-2 sm:pt-3 border-t mt-2 sm:mt-3">
                                   <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                                     <div className="flex items-center gap-2">
                                       <Badge variant={getApplicationStatusBadge(application.status).variant} className="text-xs">
@@ -1403,102 +1423,122 @@ export default function Browse() {
 
                         return (
                           <Link key={offer.id} href={offer.isRetainerContract ? `/retainers/${offer.id}` : `/offers/${offer.id}`}>
-                            <Card className={`group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden h-full ${
+                            <Card className={`group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full ${
                               isRetainer ? 'ring-2 ring-purple-400/50 hover:ring-purple-500 hover:shadow-purple-500/20' : ''
                             }`} data-testid={`card-offer-${offer.id}`}>
-                              {/* Thumbnail */}
-                              <div className={`aspect-video relative overflow-hidden ${
-                                isRetainer ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100' : ''
-                              }`}>
-                                {!isRetainer && offer.featuredImageUrl ? (
-                                  <>
-                                    <img
-                                      src={proxiedSrc(offer.featuredImageUrl)}
-                                      alt={offer.title}
-                                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                      referrerPolicy="no-referrer"
-                                      onError={(e) => {
-                                        console.error(`Image failed to load: ${offer.title}`, offer.featuredImageUrl);
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                                        if (fallback) {
-                                          fallback.classList.remove('hidden');
-                                          fallback.classList.add('flex');
-                                        }
-                                      }}
-                                    />
-                                    {/* Fallback if image fails */}
-                                    <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
+                              {/* Thumbnail Container with Logo */}
+                              <div className="relative">
+                                {/* Gradient Background */}
+                                <div className={`aspect-video relative overflow-hidden rounded-t-lg ${
+                                  isRetainer ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100' : ''
+                                }`}>
+                                  {!isRetainer && offer.featuredImageUrl ? (
+                                    <>
+                                      <img
+                                        src={proxiedSrc(offer.featuredImageUrl)}
+                                        alt={offer.title}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                        referrerPolicy="no-referrer"
+                                        onError={(e) => {
+                                          console.error(`Image failed to load: ${offer.title}`, offer.featuredImageUrl);
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                          const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                                          if (fallback) {
+                                            fallback.classList.remove('hidden');
+                                            fallback.classList.add('flex');
+                                          }
+                                        }}
+                                      />
+                                      {/* Fallback if image fails */}
+                                      <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
+                                        <Play className="h-12 w-12 text-muted-foreground/50" />
+                                      </div>
+                                    </>
+                                  ) : !isRetainer ? (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
                                       <Play className="h-12 w-12 text-muted-foreground/50" />
                                     </div>
-                                  </>
-                                ) : !isRetainer ? (
-                                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
-                                    <Play className="h-12 w-12 text-muted-foreground/50" />
-                                  </div>
-                                ) : null}
+                                  ) : null}
 
-                                {/* Favorite button - Top Left */}
-                                <button
-                                  className="rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-lg backdrop-blur-md"
-                                  style={{
-                                    position: 'absolute',
-                                    top: '12px',
-                                    left: '12px',
-                                    width: '36px',
-                                    height: '36px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                    zIndex: 10,
-                                    border: 'none',
-                                    cursor: 'pointer'
-                                  }}
-                                  onClick={(e) => handleFavoriteToggle(e, offer.id)}
-                                  data-testid={`button-favorite-${offer.id}`}
-                                >
-                                  <Heart className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500 scale-110' : 'text-gray-600'}`} />
-                                </button>
+                                  {/* Favorite button - Top Left */}
+                                  <button
+                                    className="absolute top-3 left-3 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-md backdrop-blur-sm"
+                                    style={{
+                                      width: '36px',
+                                      height: '36px',
+                                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      zIndex: 10
+                                    }}
+                                    onClick={(e) => handleFavoriteToggle(e, offer.id)}
+                                    data-testid={`button-favorite-${offer.id}`}
+                                  >
+                                    <Heart className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
+                                  </button>
 
-                                {/* Category Badge - Top Right */}
-                                {category && (
-                                  <div className={`absolute top-0 right-0 ${category.color} text-white px-3 py-1.5 rounded-bl-lg shadow-lg font-bold text-xs tracking-wide`}>
-                                    {category.label}
+                                  {/* Category Badge - Top Right */}
+                                  {category && (
+                                    <div className={`absolute top-0 right-0 ${category.color} text-white px-3 py-1.5 rounded-bl-lg shadow-lg font-bold text-xs tracking-wide`}>
+                                      {category.label}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Company Logo - Positioned outside thumbnail but inside wrapper */}
+                                {offer.company?.logoUrl && (
+                                  <div className="absolute -bottom-6 sm:-bottom-7 left-3 sm:left-4 h-12 w-12 sm:h-14 sm:w-14 rounded-lg sm:rounded-xl overflow-hidden bg-white shadow-lg border-2 border-background z-20">
+                                    <img
+                                      src={offer.company.logoUrl}
+                                      alt={offer.company.tradeName}
+                                      className="h-full w-full object-cover"
+                                    />
                                   </div>
                                 )}
                               </div>
 
-                              <CardContent className="p-4 sm:p-5 space-y-2 sm:space-y-3">
-                                <div className="flex items-start justify-between gap-2">
-                                  <h3 className="font-semibold text-sm sm:text-base line-clamp-1 flex-1">{offer.title}</h3>
-                                  {!isRetainer && offer.company?.logoUrl && (
-                                    <img src={offer.company.logoUrl} alt={offer.company.tradeName} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover ring-2 ring-border flex-shrink-0" />
-                                  )}
-                                </div>
+                              <CardContent className="p-4 sm:p-5 pt-7 sm:pt-8 space-y-2 sm:space-y-3">
+                                {/* Title */}
+                                <h3 className="font-semibold text-sm sm:text-base line-clamp-2 text-foreground leading-snug">
+                                  {offer.title}
+                                </h3>
 
-                                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">{offer.shortDescription}</p>
+                                {/* Company Name */}
+                                {offer.company?.tradeName && (
+                                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                                    {offer.company.tradeName}
+                                  </p>
+                                )}
 
+                                {/* Hashtag Badges */}
                                 <div className="flex flex-wrap gap-1 sm:gap-1.5">
                                   {offer.primaryNiche && (
-                                    <Badge variant="outline" className={`text-[10px] sm:text-xs border ${NICHE_COLORS[offer.primaryNiche] || 'bg-secondary'}`}>
-                                      {offer.primaryNiche}
+                                    <Badge variant="secondary" className="text-[10px] sm:text-xs font-normal">
+                                      #{offer.primaryNiche}
+                                    </Badge>
+                                  )}
+                                  {offer.secondaryNiche && (
+                                    <Badge variant="secondary" className="text-[10px] sm:text-xs font-normal">
+                                      #{offer.secondaryNiche}
                                     </Badge>
                                   )}
                                 </div>
 
-                                <div className="flex items-center justify-between pt-2 sm:pt-3 border-t">
-                                  <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
-                                    <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-amber-400 text-amber-400" />
-                                    <span className="font-medium text-foreground">{offer.company?.averageRating?.toFixed(1) || '5.0'}</span>
+                                {/* Commission and Stats */}
+                                <div className="flex items-end justify-between pt-1 sm:pt-2">
+                                  <div>
+                                    <div className="text-xl sm:text-2xl font-bold text-purple-600 group-hover:text-purple-700 transition-colors">
+                                      {commissionDisplay.isCurrency
+                                        ? `$${commissionDisplay.value}`
+                                        : commissionDisplay.value}
+                                    </div>
+                                    <div className="text-[10px] sm:text-xs text-purple-600/70 font-medium">
+                                      per month
+                                    </div>
                                   </div>
-                                  <div className={`flex items-center gap-0.5 sm:gap-1 font-mono font-bold text-sm sm:text-base ${
-                                    isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-primary'
-                                  } transition-colors`}>
-                                    {commissionDisplay.isCurrency && <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />}
-                                    {commissionDisplay.value}
-                                  </div>
-                                </div>
 
-                                <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
-                                  <div className="flex items-center gap-1 sm:gap-1.5">
+                                  {/* Active creators */}
+                                  <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
                                     <Users className="h-3 w-3 sm:h-4 sm:w-4" />
                                     <span className="hidden xs:inline">{offer.activeCreatorsCount || 0} active</span>
                                     <span className="xs:hidden">{offer.activeCreatorsCount || 0}</span>
@@ -1507,7 +1547,7 @@ export default function Browse() {
 
                                 {/* Application Status */}
                                 {hasApplied && application && (
-                                  <div className="pt-2 sm:pt-3 border-t">
+                                  <div className="pt-2 sm:pt-3 border-t mt-2 sm:mt-3">
                                     <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                                       <div className="flex items-center gap-2">
                                         <Badge variant={getApplicationStatusBadge(application.status).variant} className="text-xs">
