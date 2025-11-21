@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import {
   Dialog,
   DialogContent,
@@ -99,6 +100,7 @@ export default function CreatorRetainerDetail() {
   const [isResubmitUploading, setIsResubmitUploading] = useState(false);
   const resubmitVideoInputRef = useRef<HTMLInputElement>(null);
   const [applyOpen, setApplyOpen] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
 
   const { data: contract, isLoading } = useQuery<any>({
     queryKey: [`/api/retainer-contracts/${contractId}`],
@@ -131,10 +133,9 @@ export default function CreatorRetainerDetail() {
 
     // Validate file size (max 500MB)
     if (file.size > 500 * 1024 * 1024) {
-      toast({
+      setErrorDialog({
         title: "File Too Large",
-        description: "Video file must be less than 500MB",
-        variant: "destructive",
+        message: "Video file must be less than 500MB",
       });
       return;
     }
@@ -207,10 +208,9 @@ export default function CreatorRetainerDetail() {
     } catch (error) {
       console.error("Video upload error:", error);
       setIsUploading(false);
-      toast({
+      setErrorDialog({
         title: "Upload Failed",
-        description: "Failed to upload video. Please try again.",
-        variant: "destructive",
+        message: "Failed to upload video. Please try again.",
       });
     }
   };
@@ -242,10 +242,9 @@ export default function CreatorRetainerDetail() {
       setVideoUrl("");
     },
     onError: (error: Error) => {
-      toast({
+      setErrorDialog({
         title: "Error",
-        description: error.message || "Failed to submit deliverable",
-        variant: "destructive",
+        message: error.message || "Failed to submit deliverable",
       });
     },
   });
@@ -341,10 +340,9 @@ export default function CreatorRetainerDetail() {
     } catch (error) {
       console.error("Video upload error:", error);
       setIsResubmitUploading(false);
-      toast({
+      setErrorDialog({
         title: "Upload Failed",
-        description: "Failed to upload video. Please try again.",
-        variant: "destructive",
+        message: "Failed to upload video. Please try again.",
       });
     }
   };
@@ -377,10 +375,9 @@ export default function CreatorRetainerDetail() {
       setSelectedDeliverable(null);
     },
     onError: (error: Error) => {
-      toast({
+      setErrorDialog({
         title: "Error",
-        description: error.message || "Failed to resubmit deliverable",
-        variant: "destructive",
+        message: error.message || "Failed to resubmit deliverable",
       });
     },
   });
@@ -423,10 +420,9 @@ export default function CreatorRetainerDetail() {
       applyForm.reset();
     },
     onError: (error: Error) => {
-      toast({
+      setErrorDialog({
         title: "Application Failed",
-        description: error.message || "Failed to submit application",
-        variant: "destructive",
+        message: error.message || "Failed to submit application",
       });
     },
   });
@@ -1457,6 +1453,13 @@ export default function CreatorRetainerDetail() {
           </div>
         </div>
       )}
+
+      <GenericErrorDialog
+        isOpen={!!errorDialog}
+        onClose={() => setErrorDialog(null)}
+        title={errorDialog?.title || "Error"}
+        message={errorDialog?.message || "An error occurred"}
+      />
     </div>
   );
 }

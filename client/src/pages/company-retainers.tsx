@@ -4,6 +4,7 @@ import { apiRequest, queryClient } from "../lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
+import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import {
   Dialog,
   DialogContent,
@@ -78,6 +79,17 @@ export default function CompanyRetainers() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [platformFilter, setPlatformFilter] = useState("all");
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    errorDetails?: string;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    errorDetails: "",
+  });
 
   const { data: contracts, isLoading } = useQuery<any[]>({
     queryKey: ["/api/company/retainer-contracts"],
@@ -179,10 +191,11 @@ export default function CompanyRetainers() {
     },
     onError: (error: any) => {
       const errorMessage = error?.response?.data || error?.message || "Failed to create retainer contract";
-      toast({
+      setErrorDialog({
+        open: true,
         title: "Error Creating Contract",
-        description: String(errorMessage),
-        variant: "destructive",
+        description: "We encountered an issue while creating your retainer contract. Please try again.",
+        errorDetails: String(errorMessage),
       });
     },
   });
@@ -918,6 +931,15 @@ export default function CompanyRetainers() {
           ))}
         </div>
       )}
+
+      <GenericErrorDialog
+        open={errorDialog.open}
+        onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+        title={errorDialog.title}
+        description={errorDialog.description}
+        errorDetails={errorDialog.errorDetails}
+        variant="error"
+      />
     </div>
   );
 }
