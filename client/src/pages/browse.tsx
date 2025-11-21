@@ -223,6 +223,31 @@ export default function Browse() {
     enabled: isAuthenticated && activeTab === "all",
   });
 
+  // Fetch monthly retainer contracts
+  const { data: retainerContracts = [], isLoading: retainersLoading } = useQuery<any[]>({
+    queryKey: ["/api/retainer-contracts"],
+    queryFn: async () => {
+      const res = await fetch('/api/retainer-contracts', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch retainer contracts');
+      const data = await res.json();
+
+      // Transform retainer contracts to match offer structure
+      return data.filter((contract: any) => contract.status === 'open').map((contract: any) => ({
+        ...contract,
+        // Map retainer fields to offer fields for compatibility
+        commissionType: 'monthly_retainer',
+        commissionAmount: contract.monthlyAmount,
+        shortDescription: contract.description?.substring(0, 150) || '',
+        fullDescription: contract.description,
+        primaryNiche: contract.niches?.[0] || null,
+        secondaryNiche: contract.niches?.[1] || null,
+        additionalNiches: contract.niches?.slice(2) || [],
+        isRetainerContract: true, // Flag to identify retainer contracts
+      }));
+    },
+    enabled: isAuthenticated,
+  });
+
   // Trending offers query (most applied in last 7 days)
   const { data: trendingOffersData, isLoading: trendingLoading } = useQuery<any[]>({
     queryKey: ["/api/offers/trending"],
@@ -312,34 +337,52 @@ export default function Browse() {
 
   // Get current data based on active tab
   const getCurrentOffers = () => {
+    let currentOffers: any[] = [];
+
     switch (activeTab) {
       case "trending":
-        return trendingOffersData || [];
+        currentOffers = trendingOffersData || [];
+        break;
       case "recommended":
-        return recommendedOffersData || [];
+        currentOffers = recommendedOffersData || [];
+        break;
       case "new":
-        return newListingsData || [];
+        currentOffers = newListingsData || [];
+        break;
       case "highest-commission":
-        return highestCommissionData || [];
+        currentOffers = highestCommissionData || [];
+        break;
       default:
-        return offers || [];
+        currentOffers = offers || [];
     }
+
+    // Merge retainer contracts with offers for all tabs
+    return [...currentOffers, ...(retainerContracts || [])];
   };
 
   // Get loading state based on active tab
   const isCurrentLoading = () => {
+    let tabLoading = false;
+
     switch (activeTab) {
       case "trending":
-        return trendingLoading;
+        tabLoading = trendingLoading;
+        break;
       case "recommended":
-        return recommendedLoading;
+        tabLoading = recommendedLoading;
+        break;
       case "new":
-        return newListingsLoading;
+        tabLoading = newListingsLoading;
+        break;
       case "highest-commission":
-        return highestCommissionLoading;
+        tabLoading = highestCommissionLoading;
+        break;
       default:
-        return offersLoading;
+        tabLoading = offersLoading;
     }
+
+    // Include retainer loading state
+    return tabLoading || retainersLoading;
   };
 
   // Apply client-side filters
@@ -496,6 +539,20 @@ export default function Browse() {
   // Fetch creator's applications to show status on cards
   const { data: applications = [] } = useQuery<any[]>({
     queryKey: ["/api/applications"],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch retainer applications for the creator
+  const { data: retainerApplications = [] } = useQuery<any[]>({
+    queryKey: ["/api/retainer-applications/creator"],
+    queryFn: async () => {
+      const res = await fetch('/api/retainer-applications/creator', { credentials: 'include' });
+      if (!res.ok) {
+        if (res.status === 404) return [];
+        throw new Error('Failed to fetch retainer applications');
+      }
+      return res.json();
+    },
     enabled: isAuthenticated,
   });
 
@@ -829,7 +886,7 @@ export default function Browse() {
                 const commissionDisplay = getCommissionDisplay(offer);
 
                 return (
-                  <Link key={offer.id} href={`/offers/${offer.id}`}>
+                  <Link key={offer.id} href={offer.isRetainerContract ? `/retainers/${offer.id}` : `/offers/${offer.id}`}>
                     <Card className={`group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full ${
                       isRetainer ? 'ring-2 ring-purple-400/50 hover:ring-purple-500 hover:shadow-purple-500/20' : ''
                     }`}>
@@ -1011,12 +1068,14 @@ export default function Browse() {
 
                 const commissionDisplay = getCommissionDisplay(offer);
 
-                // Check if creator has applied to this offer
-                const application = applications.find((app: any) => app.offerId === offer.id);
+                // Check if creator has applied to this offer or retainer contract
+                const application = offer.isRetainerContract
+                  ? retainerApplications.find((app: any) => app.contractId === offer.id)
+                  : applications.find((app: any) => app.offerId === offer.id);
                 const hasApplied = !!application;
 
                 return (
-                  <Link key={offer.id} href={`/offers/${offer.id}`}>
+                  <Link key={offer.id} href={offer.isRetainerContract ? `/retainers/${offer.id}` : `/offers/${offer.id}`}>
                     <Card className={`group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden h-full ${
                       isRetainer ? 'ring-2 ring-purple-400/50 hover:ring-purple-500 hover:shadow-purple-500/20' : ''
                     }`} data-testid={`card-offer-${offer.id}`}>
