@@ -1447,7 +1447,7 @@ export default function CreatorRetainerDetail() {
               </div>
               <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
                 <DialogTrigger asChild>
-                  <Button className="w-auto sm:min-w-[140px]" data-testid="button-apply-retainer-sticky">
+                  <Button className="w-full sm:w-auto" variant="default" data-testid="button-apply-retainer-sticky">
                     <Send className="h-4 w-4 mr-2" />
                     Apply Now
                   </Button>
