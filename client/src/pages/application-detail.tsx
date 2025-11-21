@@ -657,9 +657,10 @@ export default function ApplicationDetail() {
                 <div className="flex items-center gap-3">
                   {application.offer.company.logoUrl ? (
                     <img
-                      src={application.offer.company.logoUrl}
+                      src={proxiedSrc(application.offer.company.logoUrl)}
                       alt={application.offer.company.tradeName}
                       className="h-12 w-12 rounded-lg object-cover"
+                      referrerPolicy="no-referrer"
                     />
                   ) : (
                     <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
