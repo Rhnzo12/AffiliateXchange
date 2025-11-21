@@ -965,7 +965,7 @@ export default function Browse() {
                         {!isRetainer && offer.company?.logoUrl && (
                           <div className="absolute -bottom-6 sm:-bottom-7 left-3 sm:left-4 h-12 w-12 sm:h-14 sm:w-14 rounded-lg sm:rounded-xl overflow-hidden bg-white shadow-lg border-2 border-background z-20">
                             <img
-                              src={proxiedSrc(offer.company.logoUrl)}
+                              src={offer.company.logoUrl}
                               alt={offer.company.tradeName}
                               className="h-full w-full object-cover"
                             />
@@ -1168,7 +1168,7 @@ export default function Browse() {
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="font-semibold text-sm sm:text-base line-clamp-1 flex-1">{offer.title}</h3>
                           {!isRetainer && offer.company?.logoUrl && (
-                            <img src={proxiedSrc(offer.company.logoUrl)} alt={offer.company.tradeName} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover ring-2 ring-border flex-shrink-0" />
+                            <img src={offer.company.logoUrl} alt={offer.company.tradeName} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover ring-2 ring-border flex-shrink-0" />
                           )}
                         </div>
 
@@ -1318,7 +1318,7 @@ export default function Browse() {
                               {offer.company?.logoUrl && (
                                 <div className="absolute -bottom-6 sm:-bottom-7 left-3 sm:left-4 h-12 w-12 sm:h-14 sm:w-14 rounded-lg sm:rounded-xl overflow-hidden bg-white shadow-lg border-2 border-background z-20">
                                   <img
-                                    src={proxiedSrc(offer.company.logoUrl)}
+                                    src={offer.company.logoUrl}
                                     alt={offer.company.tradeName}
                                     className="h-full w-full object-cover"
                                   />
@@ -1499,7 +1499,7 @@ export default function Browse() {
                                 {offer.company?.logoUrl && (
                                   <div className="absolute -bottom-6 sm:-bottom-7 left-3 sm:left-4 h-12 w-12 sm:h-14 sm:w-14 rounded-lg sm:rounded-xl overflow-hidden bg-white shadow-lg border-2 border-background z-20">
                                     <img
-                                      src={proxiedSrc(offer.company.logoUrl)}
+                                      src={offer.company.logoUrl}
                                       alt={offer.company.tradeName}
                                       className="h-full w-full object-cover"
                                     />
