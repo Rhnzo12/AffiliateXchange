@@ -685,7 +685,7 @@ export default function CompanyOfferDetail() {
                   <div className="relative">
                     <Avatar className="h-32 w-32 sm:h-36 sm:w-36 border-4 border-background shadow-2xl ring-2 ring-primary/20">
                       <AvatarImage
-                        src={proxiedSrc(company?.logoUrl)}
+                        src={company?.logoUrl}
                         alt={companyName}
                         referrerPolicy="no-referrer"
                       />
