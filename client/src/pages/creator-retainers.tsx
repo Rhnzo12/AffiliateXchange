@@ -882,8 +882,8 @@ export default function CreatorRetainers() {
                           </div>
                         </div>
 
-                        {/* Application Status */}
-                        {applicationStatus.badge && (
+                        {/* Application Status or Apply Button */}
+                        {applicationStatus.badge ? (
                           <div className="pt-2 sm:pt-3 border-t mt-2 sm:mt-3">
                             <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                               <div className="flex items-center gap-2">
@@ -901,6 +901,24 @@ export default function CreatorRetainers() {
                                 </Badge>
                               </div>
                             </div>
+                          </div>
+                        ) : (
+                          <div className="pt-2 sm:pt-3 mt-2 sm:mt-3">
+                            <Button
+                              className="w-full"
+                              variant="default"
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedContract(contract);
+                                setOpen(true);
+                              }}
+                              data-testid={`button-apply-preview-${contract.id}`}
+                            >
+                              <Send className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                              Apply Now
+                            </Button>
                           </div>
                         )}
                       </CardContent>

@@ -26,6 +26,7 @@ import {
 } from "../components/ui/form";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   DollarSign,
   Video,
@@ -39,6 +40,7 @@ import {
   Clock3,
   Info,
   CheckCircle2,
+  Send,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -66,6 +68,22 @@ const uploadDeliverableSchema = z.object({
 
 type UploadDeliverableForm = z.infer<typeof uploadDeliverableSchema>;
 
+const applyRetainerSchema = z.object({
+  message: z
+    .string()
+    .min(20, "Tell us why you're interested (at least 20 characters)")
+    .max(500, "Keep your note under 500 characters"),
+  portfolioLinks: z.string().optional(),
+  proposedStartDate: z.string().optional(),
+  selectedTierId: z.string().optional(),
+  acceptTerms: z
+    .boolean()
+    .refine((val) => val === true, { message: "You need to accept the expectations before applying" })
+    .default(false),
+});
+
+type ApplyRetainerForm = z.infer<typeof applyRetainerSchema>;
+
 export default function CreatorRetainerDetail() {
   const [, params] = useRoute("/retainers/:id");
   const { toast} = useToast();
@@ -80,6 +98,7 @@ export default function CreatorRetainerDetail() {
   const [resubmitVideoUrl, setResubmitVideoUrl] = useState("");
   const [isResubmitUploading, setIsResubmitUploading] = useState(false);
   const resubmitVideoInputRef = useRef<HTMLInputElement>(null);
+  const [applyOpen, setApplyOpen] = useState(false);
 
   const { data: contract, isLoading } = useQuery<any>({
     queryKey: ["/api/retainer-contracts", contractId],
@@ -239,6 +258,17 @@ export default function CreatorRetainerDetail() {
     resolver: zodResolver(uploadDeliverableSchema),
   });
 
+  const applyForm = useForm<ApplyRetainerForm>({
+    resolver: zodResolver(applyRetainerSchema),
+    defaultValues: {
+      message: "",
+      portfolioLinks: "",
+      proposedStartDate: "",
+      selectedTierId: "",
+      acceptTerms: false,
+    },
+  });
+
   const handleResubmitVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -371,6 +401,40 @@ export default function CreatorRetainerDetail() {
     setResubmitOpen(true);
   };
 
+  const applyMutation = useMutation({
+    mutationFn: async (data: ApplyRetainerForm) => {
+      const payload = {
+        message: data.message,
+        portfolioLinks: data.portfolioLinks
+          ? data.portfolioLinks.split(",").map((link) => link.trim()).filter(Boolean)
+          : [],
+        proposedStartDate: data.proposedStartDate || undefined,
+        selectedTierId: data.selectedTierId || undefined,
+      };
+      return await apiRequest("POST", `/api/creator/retainer-contracts/${contractId}/apply`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/creator/retainer-applications"] });
+      toast({
+        title: "Application Submitted!",
+        description: "Your application has been sent. The company will review it soon.",
+      });
+      setApplyOpen(false);
+      applyForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Application Failed",
+        description: error.message || "Failed to submit application",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onApplySubmit = (data: ApplyRetainerForm) => {
+    applyMutation.mutate(data);
+  };
+
   if (isLoading) {
     return <div className="space-y-6">Loading...</div>;
   }
@@ -477,6 +541,16 @@ export default function CreatorRetainerDetail() {
             by {contract.company?.tradeName || contract.company?.legalName || "Company"}
           </p>
         </div>
+        {!currentApplication && (
+          <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-apply-retainer">
+                <Send className="h-4 w-4 mr-2" />
+                Apply Now
+              </Button>
+            </DialogTrigger>
+          </Dialog>
+        )}
         {isApproved && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -782,6 +856,111 @@ export default function CreatorRetainerDetail() {
                   disabled={resubmitMutation.isPending || !resubmitVideoUrl || isResubmitUploading}
                 >
                   {resubmitMutation.isPending ? "Submitting..." : "Submit Revision"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Apply Dialog */}
+      <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Apply to {contract?.title}</DialogTitle>
+            <DialogDescription>
+              Submit your application for this monthly retainer opportunity
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...applyForm}>
+            <form onSubmit={applyForm.handleSubmit(onApplySubmit)} className="space-y-4">
+              <FormField
+                control={applyForm.control}
+                name="message"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Why are you interested?</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Share your niche, experience, and why this brand is a great fit."
+                        rows={5}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Minimum 20 characters, maximum 500
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={applyForm.control}
+                name="portfolioLinks"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Portfolio Links (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://tiktok.com/@yourprofile, https://instagram.com/yourprofile"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Comma-separated URLs to your social profiles
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={applyForm.control}
+                name="proposedStartDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Proposed Start Date (Optional)</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={applyForm.control}
+                name="acceptTerms"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <div className="flex items-start gap-2 rounded-md border bg-background p-3">
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      <div className="space-y-1 text-sm">
+                        <FormLabel className="text-sm">I understand the deliverables</FormLabel>
+                        <p className="text-muted-foreground text-xs">
+                          {contract?.videosPerMonth} videos per month for {contract?.durationMonths} months, following the posted schedule and approval requirements.
+                        </p>
+                      </div>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setApplyOpen(false);
+                    applyForm.reset();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={applyMutation.isPending}>
+                  {applyMutation.isPending ? "Submitting..." : "Submit Application"}
                 </Button>
               </DialogFooter>
             </form>
