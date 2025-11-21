@@ -46,9 +46,7 @@ import {
   Eye,
   AlertTriangle,
   Search,
-  Flame,
   Sparkles,
-  Heart,
   Star,
   ShieldCheck,
   Info,
@@ -103,25 +101,12 @@ export default function CreatorRetainers() {
   const [durationFilter, setDurationFilter] = useState("all");
   const [preferenceFilter, setPreferenceFilter] = useState<string[]>([]);
   const [amountRange, setAmountRange] = useState<number[]>([0, 10000]);
-  const [favoriteContracts, setFavoriteContracts] = useState<Set<string>>(new Set());
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
 
   const handlePreferenceToggle = (preference: string) => {
     setPreferenceFilter((prev) =>
       prev.includes(preference) ? prev.filter((item) => item !== preference) : [...prev, preference]
     );
-  };
-
-  const toggleFavorite = (contractId: string) => {
-    setFavoriteContracts((prev) => {
-      const updated = new Set(prev);
-      if (updated.has(contractId)) {
-        updated.delete(contractId);
-      } else {
-        updated.add(contractId);
-      }
-      return updated;
-    });
   };
 
   const buildTierOptions = (contract?: any) => {
@@ -767,126 +752,27 @@ export default function CreatorRetainers() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
+            <div className="grid gap-6">
               {filteredContracts.map((contract: any) => {
                 const applicationStatus = getApplicationStatus(contract.id);
                 const StatusIcon = applicationStatus.icon;
                 const monthlyAmount = Number(contract.monthlyAmount || 0);
-                const perVideo = contract.videosPerMonth ? monthlyAmount / Number(contract.videosPerMonth) : monthlyAmount;
-                const tierOptions = Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0
-                  ? contract.retainerTiers
-                  : [
-                      {
-                        name: "Standard",
-                        monthlyAmount: monthlyAmount,
-                        videosPerMonth: contract.videosPerMonth,
-                        durationMonths: contract.durationMonths,
-                      },
-                    ];
-                const bestValueTier = tierOptions.reduce((prev: any, current: any) => {
-                  const prevRate = Number(prev.monthlyAmount || 0) / Math.max(1, Number(prev.videosPerMonth || 1));
-                  const currentRate = Number(current.monthlyAmount || 0) / Math.max(1, Number(current.videosPerMonth || 1));
-                  return currentRate < prevRate ? current : prev;
-                }, tierOptions[0]);
-                const isPriority = monthlyAmount >= 5000 || contract.exclusivityRequired;
-                const isTrending = (contract.retainerTiers?.length || 0) >= 3 || monthlyAmount >= 3000;
 
                 return (
-                  <Link key={contract.id} href={`/retainers/${contract.id}`}>
-                    <Card
-                      className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full ring-2 ring-purple-400/50 hover:ring-purple-500 hover:shadow-purple-500/20"
-                      data-testid={`retainer-card-${contract.id}`}
-                    >
-                      {/* Thumbnail Container with Logo */}
-                      <div className="relative">
-                        {/* Gradient Background */}
-                        <div className="aspect-video relative overflow-hidden rounded-t-lg bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100">
-                          {/* Favorite button - Top Left */}
-                          <button
-                            className="absolute top-3 left-3 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-md backdrop-blur-sm"
-                            style={{
-                              width: '36px',
-                              height: '36px',
-                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                              border: 'none',
-                              cursor: 'pointer',
-                              zIndex: 10
-                            }}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              toggleFavorite(contract.id);
-                            }}
-                            data-testid={`button-favorite-${contract.id}`}
-                          >
-                            <Heart className={`h-5 w-5 transition-all ${favoriteContracts.has(contract.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
-                          </button>
-
-                          {/* Category Badge - Top Right */}
-                          {(isPriority || isTrending) && (
-                            <div className={`absolute top-0 right-0 ${isPriority ? 'bg-red-500' : 'bg-amber-500'} text-white px-3 py-1.5 rounded-bl-lg shadow-lg font-bold text-xs tracking-wide`}>
-                              {isPriority ? 'PRIORITY' : isTrending ? 'TRENDING' : 'RETAINER'}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Company Logo - Positioned outside thumbnail but inside wrapper */}
-                        {contract.company?.logoUrl && (
-                          <div className="absolute -bottom-6 sm:-bottom-7 left-3 sm:left-4 h-12 w-12 sm:h-14 sm:w-14 rounded-lg sm:rounded-xl overflow-hidden bg-white shadow-lg border-2 border-background z-20">
-                            <img
-                              src={contract.company.logoUrl}
-                              alt={contract.company.tradeName}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      <CardContent className="p-4 sm:p-5 pt-7 sm:pt-8 space-y-2 sm:space-y-3">
-                        {/* Title */}
-                        <h3 className="font-semibold text-sm sm:text-base line-clamp-2 text-foreground leading-snug" data-testid={`text-retainer-title-${contract.id}`}>
-                          {contract.title}
-                        </h3>
-
-                        {/* Company Name */}
-                        {contract.company?.tradeName && (
-                          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                            {contract.company.tradeName}
-                          </p>
-                        )}
-
-                        {/* Hashtag Badges */}
-                        <div className="flex flex-wrap gap-1 sm:gap-1.5">
-                          {contract.niches && contract.niches.slice(0, 2).map((niche: string, index: number) => (
-                            <Badge key={index} variant="secondary" className="text-[10px] sm:text-xs font-normal">
-                              #{niche}
-                            </Badge>
-                          ))}
-                        </div>
-
-                        {/* Commission and Stats */}
-                        <div className="flex items-end justify-between pt-1 sm:pt-2">
-                          <div>
-                            <div className="text-xl sm:text-2xl font-bold text-purple-600 group-hover:text-purple-700 transition-colors">
-                              ${monthlyAmount.toLocaleString()}
-                            </div>
-                            <div className="text-[10px] sm:text-xs text-purple-600/70 font-medium">
-                              per month
-                            </div>
-                          </div>
-
-                          {/* Active creators */}
-                          <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
-                            <UsersIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="hidden xs:inline">{contract.activeCreators || 0} active</span>
-                            <span className="xs:hidden">{contract.activeCreators || 0}</span>
-                          </div>
-                        </div>
-
-                        {/* Application Status or Apply Button */}
-                        {applicationStatus.badge ? (
-                          <div className="pt-2 sm:pt-3 border-t mt-2 sm:mt-3">
-                            <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                              <div className="flex items-center gap-2">
+                  <Card
+                    key={contract.id}
+                    className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-primary/30 hover:ring-primary/50 hover:shadow-primary/20"
+                    data-testid={`retainer-card-${contract.id}`}
+                  >
+                    <CardHeader className="pb-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <CardTitle className="text-xl" data-testid={`text-retainer-title-${contract.id}`}>
+                                {contract.title}
+                              </CardTitle>
+                              {applicationStatus.badge && (
                                 <Badge
                                   variant={
                                     applicationStatus.variant === "default" && applicationStatus.badge.includes("Approved")
@@ -895,35 +781,132 @@ export default function CreatorRetainers() {
                                       ? "destructive"
                                       : "secondary"
                                   }
-                                  className={`text-xs ${applicationStatus.badge.includes("Approved") ? "bg-green-500 hover:bg-green-600" : ""}`}
+                                  className={applicationStatus.badge.includes("Approved") ? "bg-green-500 hover:bg-green-600" : ""}
                                 >
                                   {applicationStatus.badge}
                                 </Badge>
-                              </div>
+                              )}
                             </div>
                           </div>
-                        ) : (
-                          <div className="pt-2 sm:pt-3 mt-2 sm:mt-3">
+                          <Link href={`/retainers/${contract.id}`}>
                             <Button
-                              className="w-full"
-                              variant="default"
-                              size="sm"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setSelectedContract(contract);
-                                setOpen(true);
-                              }}
-                              data-testid={`button-apply-preview-${contract.id}`}
+                              variant="outline"
+                              className="group/btn hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200 font-medium shrink-0"
+                              data-testid={`button-view-retainer-${contract.id}`}
                             >
-                              <Send className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                              Apply Now
+                              <Eye className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200" />
+                              View Details
                             </Button>
+                          </Link>
+                        </div>
+                        <p className="text-muted-foreground line-clamp-2 leading-relaxed">
+                          {contract.description}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {contract.contentApprovalRequired && (
+                            <Badge variant="secondary">Approval required</Badge>
+                          )}
+                          {contract.exclusivityRequired && (
+                            <Badge className="bg-primary/10 text-primary" variant="outline">
+                              Exclusivity
+                            </Badge>
+                          )}
+                          {contract.minimumVideoLengthSeconds && (
+                            <Badge variant="outline">
+                              Min length: {contract.minimumVideoLengthSeconds}s
+                            </Badge>
+                          )}
+                          {contract.postingSchedule && (
+                            <Badge variant="outline">{contract.postingSchedule}</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
+                          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                            <DollarSign className="h-5 w-5 text-primary" />
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Monthly Payment</p>
+                            <p className="font-semibold">${monthlyAmount.toLocaleString()}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
+                          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                            <Video className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Videos/Month</p>
+                            <p className="font-semibold">{contract.videosPerMonth}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
+                          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                            <Calendar className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Duration</p>
+                            <p className="font-semibold">{contract.durationMonths} months</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
+                          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                            <UsersIcon className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Platform</p>
+                            <p className="font-semibold">{contract.requiredPlatform}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0 && (
+                        <div className="mt-4 pt-4 border-t space-y-3">
+                          <p className="text-sm font-semibold">Tiered packages</p>
+                          <div className="grid md:grid-cols-3 gap-3">
+                            {contract.retainerTiers.map((tier: any, tierIndex: number) => (
+                              <div
+                                key={`${contract.id}-tier-${tierIndex}`}
+                                className="rounded-lg border p-3 bg-muted/30"
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-semibold">{tier.name}</span>
+                                  <Badge variant="outline">${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {tier.videosPerMonth} videos / {tier.durationMonths} month{tier.durationMonths === 1 ? "" : "s"}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {!applicationStatus.badge && (
+                        <div className="mt-4 pt-4 border-t">
+                          <Button
+                            className="w-full sm:w-auto"
+                            variant="default"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedContract(contract);
+                              setOpen(true);
+                            }}
+                            data-testid={`button-apply-${contract.id}`}
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            Apply Now
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 );
               })}
             </div>
