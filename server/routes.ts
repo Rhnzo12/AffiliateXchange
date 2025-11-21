@@ -4577,7 +4577,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
 
-      const fetchRes = await fetch(url, { method: "GET" });
+      // For GCS URLs, generate a signed URL first (files are not public)
+      let fetchUrl = url;
+      if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
+        try {
+          // Extract the file path from GCS URL: https://storage.googleapis.com/bucket-name/path/to/file
+          const pathParts = parsed.pathname.split('/').filter(p => p);
+          if (pathParts.length >= 2) {
+            // Remove bucket name, keep the rest as file path
+            const filePath = pathParts.slice(1).join('/');
+
+            // Generate signed URL using ObjectStorageService
+            const { Storage } = await import('@google-cloud/storage');
+            const keyFilePath = process.env.GOOGLE_CLOUD_KEYFILE;
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
+            const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
+
+            let gcsStorage: any;
+            if (keyFilePath) {
+              gcsStorage = new Storage({ projectId, keyFilename: keyFilePath });
+            } else {
+              gcsStorage = new Storage({ projectId });
+            }
+
+            const [signedUrl] = await gcsStorage
+              .bucket(bucketName)
+              .file(filePath)
+              .getSignedUrl({
+                version: 'v4',
+                action: 'read',
+                expires: Date.now() + 60 * 60 * 1000, // 1 hour
+              });
+
+            fetchUrl = signedUrl;
+            console.log('[Proxy Image] Generated signed URL for GCS file:', filePath);
+          }
+        } catch (signedUrlError) {
+          console.error('[Proxy Image] Failed to generate signed URL:', signedUrlError);
+          // Continue with original URL as fallback
+        }
+      }
+
+      const fetchRes = await fetch(fetchUrl, { method: "GET" });
       if (!fetchRes.ok) return res.status(fetchRes.status).send("failed to fetch image");
 
       const contentType = fetchRes.headers.get("content-type");
@@ -4618,6 +4659,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
 
+      // For GCS URLs, generate a signed URL first (files are not public)
+      let fetchUrl = url;
+      if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
+        try {
+          // Extract the file path from GCS URL: https://storage.googleapis.com/bucket-name/path/to/file
+          const pathParts = parsed.pathname.split('/').filter(p => p);
+          if (pathParts.length >= 2) {
+            // Remove bucket name, keep the rest as file path
+            const filePath = pathParts.slice(1).join('/');
+
+            // Generate signed URL using ObjectStorageService
+            const { Storage } = await import('@google-cloud/storage');
+            const keyFilePath = process.env.GOOGLE_CLOUD_KEYFILE;
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
+            const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
+
+            let gcsStorage: any;
+            if (keyFilePath) {
+              gcsStorage = new Storage({ projectId, keyFilename: keyFilePath });
+            } else {
+              gcsStorage = new Storage({ projectId });
+            }
+
+            const [signedUrl] = await gcsStorage
+              .bucket(bucketName)
+              .file(filePath)
+              .getSignedUrl({
+                version: 'v4',
+                action: 'read',
+                expires: Date.now() + 60 * 60 * 1000, // 1 hour
+              });
+
+            fetchUrl = signedUrl;
+            console.log('[Proxy Video] Generated signed URL for GCS file:', filePath);
+          }
+        } catch (signedUrlError) {
+          console.error('[Proxy Video] Failed to generate signed URL:', signedUrlError);
+          // Continue with original URL as fallback
+        }
+      }
+
       // Get the range header from the request (for video seeking)
       const range = req.headers.range;
 
@@ -4627,7 +4709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         headers['Range'] = range;
       }
 
-      const fetchRes = await fetch(url, {
+      const fetchRes = await fetch(fetchUrl, {
         method: "GET",
         headers
       });
