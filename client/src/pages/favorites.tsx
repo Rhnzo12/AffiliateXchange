@@ -274,10 +274,10 @@ export default function Favorites() {
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-semibold line-clamp-1 flex-1">{offer.title}</h3>
                       {offer.company?.logoUrl && (
-                        <img 
-                          src={offer.company.logoUrl} 
-                          alt={offer.company.tradeName} 
-                          className="h-8 w-8 rounded-full object-cover" 
+                        <img
+                          src={proxiedSrc(offer.company.logoUrl)}
+                          alt={offer.company.tradeName}
+                          className="h-8 w-8 rounded-full object-cover"
                         />
                       )}
                     </div>
