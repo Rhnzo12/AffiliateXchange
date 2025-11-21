@@ -16,7 +16,18 @@ import { NotificationService } from "./notifications/notificationService";
 import bcrypt from "bcrypt";
 import { PriorityListingScheduler } from "./priorityListingScheduler";
 import * as QRCode from "qrcode";
+// @ts-ignore - multer may not have types in all environments
 import multer from "multer";
+
+// Define multer file interface for type safety
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+}
 
 // Extend Express Request type to include multer's file property
 type Request = ExpressRequest;
@@ -5002,7 +5013,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/upload-file", requireAuth, upload.single('file'), async (req: ExpressRequest, res) => {
     try {
       // Type assertion for multer's file property
-      const multerReq = req as ExpressRequest & { file?: Express.Multer.File };
+      const multerReq = req as ExpressRequest & { file?: MulterFile };
 
       if (!multerReq.file) {
         return res.status(400).json({ error: 'No file uploaded' });
