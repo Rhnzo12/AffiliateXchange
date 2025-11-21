@@ -345,13 +345,18 @@ export default function CompanyRetainers() {
                             {["1", "3", "6", "12"].map((value) => (
                               <label
                                 key={value}
-                                className="flex items-center justify-between gap-2 rounded-md border p-3 hover:border-primary cursor-pointer"
+                                className={`flex items-center justify-between gap-2 rounded-md border p-3 cursor-pointer transition-all ${
+                                  field.value === value
+                                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                                    : "hover:border-primary hover:bg-accent"
+                                }`}
                               >
                                 <div className="flex items-center gap-2">
                                   <RadioGroupItem value={value} />
-                                  <span className="font-medium">{value} month{value === "1" ? "" : "s"}</span>
+                                  <span className={`font-medium ${field.value === value ? "text-primary" : ""}`}>
+                                    {value} month{value === "1" ? "" : "s"}
+                                  </span>
                                 </div>
-                                <span className="text-xs text-muted-foreground">Contract length</span>
                               </label>
                             ))}
                           </RadioGroup>
@@ -442,180 +447,6 @@ export default function CompanyRetainers() {
                     </FormItem>
                     )}
                   />
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="minimumVideoLengthSeconds"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Minimum Video Length (seconds)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="45"
-                            data-testid="input-minimum-video-length"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Set expectations like 45-60 seconds per video
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="postingSchedule"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Posting Schedule</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g., 1 video every weekday"
-                            data-testid="input-posting-schedule"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Outline cadence expectations for creators
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="contentApprovalRequired"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-1">
-                          <FormLabel className="text-base">Content approval required</FormLabel>
-                          <FormDescription>Review videos before they go live</FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            data-testid="switch-content-approval"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="exclusivityRequired"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-1">
-                          <FormLabel className="text-base">Exclusivity</FormLabel>
-                          <FormDescription>Prevent creators from working with competitors</FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            data-testid="switch-exclusivity"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="minimumVideoLengthSeconds"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Minimum Video Length (seconds)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="45"
-                            data-testid="input-minimum-video-length"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Set expectations like 45-60 seconds per video
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="postingSchedule"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Posting Schedule</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g., 1 video every weekday"
-                            data-testid="input-posting-schedule"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Outline cadence expectations for creators
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="contentApprovalRequired"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-1">
-                          <FormLabel className="text-base">Content approval required</FormLabel>
-                          <FormDescription>Review videos before they go live</FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            data-testid="switch-content-approval"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="exclusivityRequired"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-1">
-                          <FormLabel className="text-base">Exclusivity</FormLabel>
-                          <FormDescription>Prevent creators from working with competitors</FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            data-testid="switch-exclusivity"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <FormField
