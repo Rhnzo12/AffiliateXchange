@@ -258,6 +258,7 @@ export default function Browse() {
   const categoryOptions = useMemo(
     () => [
       { label: "All", value: "all" },
+      { label: "Monthly Retainers", value: "monthly_retainers" },
       ...niches.map((niche) => ({ label: niche.name, value: normalizeNicheValue(niche.name) })),
     ],
     [niches],
@@ -360,8 +361,15 @@ export default function Browse() {
     const offerNiches = getOfferNicheValues(offer);
 
     // Category filter (from category pills)
-    if (selectedCategory !== "all" && !offerNiches.includes(selectedCategory)) {
-      return false;
+    if (selectedCategory !== "all") {
+      // Handle Monthly Retainers special category
+      if (selectedCategory === "monthly_retainers") {
+        if (offer.commissionType !== "monthly_retainer") {
+          return false;
+        }
+      } else if (!offerNiches.includes(selectedCategory)) {
+        return false;
+      }
     }
 
     // Niche filter (from filter sheet checkboxes)
