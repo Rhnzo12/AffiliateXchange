@@ -34,6 +34,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Badge } from "../components/ui/badge";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { proxiedSrc } from "../lib/image";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -971,7 +972,7 @@ export default function Settings() {
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
               <AvatarImage
-                src={profileImageUrl || user?.profileImageUrl || ''}
+                src={proxiedSrc(profileImageUrl || user?.profileImageUrl) || ''}
                 alt={user?.firstName || 'User'}
                 referrerPolicy="no-referrer"
               />
@@ -1014,7 +1015,7 @@ export default function Settings() {
                     <div className="relative inline-block">
                       <div className="flex items-center gap-4 p-4 border rounded-lg">
                         <Avatar className="h-24 w-24">
-                          <AvatarImage src={logoUrl} alt={tradeName || 'Company logo'} />
+                          <AvatarImage src={proxiedSrc(logoUrl)} alt={tradeName || 'Company logo'} />
                           <AvatarFallback className="text-2xl">
                             {tradeName?.[0] || 'C'}
                           </AvatarFallback>
@@ -1388,7 +1389,7 @@ export default function Settings() {
                   <div className="relative inline-block">
                     <div className="flex items-center gap-4 p-4 border rounded-lg">
                       <Avatar className="h-24 w-24">
-                        <AvatarImage src={profileImageUrl} alt={user?.firstName || 'Creator profile'} />
+                        <AvatarImage src={proxiedSrc(profileImageUrl)} alt={user?.firstName || 'Creator profile'} />
                         <AvatarFallback className="text-2xl">
                           {user?.firstName?.[0] || user?.username?.[0] || 'C'}
                         </AvatarFallback>
