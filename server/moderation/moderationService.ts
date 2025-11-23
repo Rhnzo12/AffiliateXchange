@@ -1,7 +1,7 @@
 import { Filter } from 'bad-words';
 import { db } from '../db';
 import { bannedKeywords, contentFlags, reviews, messages, notifications } from '../../shared/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 const profanityFilter = new Filter();
 
@@ -201,7 +201,7 @@ export async function reviewFlaggedContent(
       adminNotes,
       actionTaken,
     })
-    .where(sql`${contentFlags.id} = ${flagId}::uuid`);
+    .where(eq(contentFlags.id, flagId));
 }
 
 /**
