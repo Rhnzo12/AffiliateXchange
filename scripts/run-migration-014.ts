@@ -16,7 +16,7 @@ const __dirname = dirname(__filename);
 
 async function runMigration() {
   try {
-    console.log("🔄 Running migration 014: Add admin_response to reviews table");
+    console.log("🔄 Running migration 014: Add missing columns to reviews table");
 
     // Read the migration SQL file
     const migrationPath = join(__dirname, "..", "db", "migrations", "014_add_admin_response_to_reviews.sql");
@@ -27,26 +27,30 @@ async function runMigration() {
 
     console.log("✅ Migration completed successfully!\n");
 
-    // Verify the column was added
-    console.log("🔍 Verifying new column...");
+    // Verify the columns were added
+    console.log("🔍 Verifying new columns...");
     const result = await db.execute(sql`
       SELECT column_name, data_type, is_nullable
       FROM information_schema.columns
       WHERE table_name = 'reviews'
-      AND column_name = 'admin_response'
+      AND column_name IN ('admin_response', 'responded_at', 'responded_by', 'is_edited',
+                          'admin_note', 'is_approved', 'approved_by', 'approved_at', 'is_hidden')
+      ORDER BY column_name
     `);
 
-    if (result.rows.length === 1) {
-      const column: any = result.rows[0];
-      console.log("✅ Column added successfully:");
-      console.log(`   - ${column.column_name} (${column.data_type}, nullable: ${column.is_nullable})`);
+    if (result.rows.length > 0) {
+      console.log(`✅ Added ${result.rows.length} columns successfully:`);
+      result.rows.forEach((column: any) => {
+        console.log(`   - ${column.column_name} (${column.data_type}, nullable: ${column.is_nullable})`);
+      });
     } else {
-      console.log(`⚠️  Expected 1 column, found ${result.rows.length}`);
+      console.log(`⚠️  No new columns found`);
     }
 
-    console.log("\n✨ Migration complete! The admin_response column is now available.");
-    console.log("   - Admin can now add platform-level responses to reviews");
-    console.log("   - Restart your application to use the new feature\n");
+    console.log("\n✨ Migration complete! Reviews table now has all required columns:");
+    console.log("   - Admin can add responses and notes to reviews");
+    console.log("   - Reviews can be approved/hidden by admin");
+    console.log("   - Response tracking with timestamps and user references\n");
 
     process.exit(0);
   } catch (error: any) {
@@ -61,14 +65,15 @@ async function runMigration() {
           SELECT column_name, data_type
           FROM information_schema.columns
           WHERE table_name = 'reviews'
-          AND column_name = 'admin_response'
+          AND column_name IN ('admin_response', 'responded_at', 'responded_by', 'is_edited',
+                              'admin_note', 'is_approved', 'approved_by', 'approved_at', 'is_hidden')
         `);
 
-        if (result.rows.length === 1) {
-          console.log("✅ Column already exists in database");
+        if (result.rows.length > 0) {
+          console.log(`✅ ${result.rows.length} columns already exist in database`);
           process.exit(0);
         } else {
-          console.log("❌ Column not found despite 'already exists' error");
+          console.log("❌ Columns not found despite 'already exists' error");
         }
       } catch (verifyError) {
         console.error("❌ Could not verify column:", verifyError);
