@@ -1,8 +1,7 @@
-import Filter from 'bad-words';
-import { db } from '../storage';
-import { bannedKeywords, contentFlags, reviews, messages } from '../../shared/schema';
+import { Filter } from 'bad-words';
+import { db } from '../db';
+import { bannedKeywords, contentFlags, reviews, messages, notifications } from '../../shared/schema';
 import { eq, and } from 'drizzle-orm';
-import { createNotification } from '../notifications/notificationService';
 
 const profanityFilter = new Filter();
 
@@ -90,7 +89,7 @@ export async function flagContent(
 
   // Create notifications for all admins
   for (const admin of admins) {
-    await createNotification({
+    await db.insert(notifications).values({
       userId: admin.id,
       type: 'content_flagged',
       title: 'Content Flagged for Review',
@@ -102,6 +101,7 @@ export async function flagContent(
         flaggedUserId: userId,
         matchedKeywords,
       },
+      isRead: false,
     });
   }
 }
