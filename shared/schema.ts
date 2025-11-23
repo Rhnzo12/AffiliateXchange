@@ -11,6 +11,7 @@ import {
   decimal,
   boolean,
   pgEnum,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -676,13 +677,13 @@ export const systemSettingsRelations = relations(systemSettings, ({ one }) => ({
 
 // Banned Keywords
 export const bannedKeywords = pgTable("banned_keywords", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   keyword: varchar("keyword", { length: 255 }).notNull(),
   category: keywordCategoryEnum("category").notNull().default('custom'),
   isActive: boolean("is_active").notNull().default(true),
   severity: integer("severity").notNull().default(1), // 1-5, where 5 is most severe
   description: text("description"),
-  createdBy: varchar("created_by").references(() => users.id, { onDelete: 'set null' }),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -696,14 +697,14 @@ export const bannedKeywordsRelations = relations(bannedKeywords, ({ one }) => ({
 
 // Content Flags
 export const contentFlags = pgTable("content_flags", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   contentType: contentTypeEnum("content_type").notNull(),
   contentId: varchar("content_id").notNull(), // ID of message or review
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }), // User who created the flagged content
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }), // User who created the flagged content
   flagReason: text("flag_reason").notNull(), // Why it was flagged
   matchedKeywords: text("matched_keywords").array().default(sql`ARRAY[]::text[]`), // Which keywords triggered the flag
   status: flagStatusEnum("status").notNull().default('pending'),
-  reviewedBy: varchar("reviewed_by").references(() => users.id, { onDelete: 'set null' }),
+  reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: 'set null' }),
   reviewedAt: timestamp("reviewed_at"),
   adminNotes: text("admin_notes"),
   actionTaken: text("action_taken"), // What action was taken (e.g., content removed, user warned, etc.)
