@@ -197,10 +197,15 @@ export default function TermsOfService() {
                 <h3 className="text-xl font-semibold mb-3 mt-6">7.3 Platform Fees</h3>
                 <p>AffiliateXchange charges the following fees:</p>
                 <ul className="list-disc pl-6 space-y-2">
-                  <li><strong>Creator Fee:</strong> 10% of gross commissions earned</li>
-                  <li><strong>Brand Fee:</strong> Platform usage fees and optional premium features</li>
-                  <li><strong>Transaction Fees:</strong> Third-party payment processor fees apply</li>
+                  <li><strong>Creator Fee:</strong> 10% platform fee on all commission earnings (deducted automatically from payouts)</li>
+                  <li><strong>Brand Monthly Fee:</strong> $99/month for standard listing (includes up to 10 active offers)</li>
+                  <li><strong>Brand Premium Features:</strong> Priority listing ($49/offer/month), featured placement ($149/month), unlimited offers ($199/month)</li>
+                  <li><strong>Transaction Fees:</strong> Payment processor fees (Stripe: 2.9% + $0.30, PayPal: 2.99%, E-transfer: Free)</li>
+                  <li><strong>Minimum Payout:</strong> $50 for creators (lower threshold may apply for retainer contracts)</li>
                 </ul>
+                <p className="mt-4 text-sm text-muted-foreground">
+                  All fees are subject to change with 30 days notice. Existing contracts will honor the fee structure in place at the time of agreement.
+                </p>
 
                 <h3 className="text-xl font-semibold mb-3 mt-6">7.4 Taxes</h3>
                 <p>
@@ -395,10 +400,13 @@ export default function TermsOfService() {
               <section>
                 <h2 className="text-2xl font-semibold mb-4">17. Governing Law</h2>
                 <p>
-                  These Terms shall be governed by and construed in accordance with the laws of [Your Jurisdiction], without regard to its conflict of law provisions.
+                  These Terms shall be governed by and construed in accordance with the laws of the State of California, United States, without regard to its conflict of law provisions.
                 </p>
                 <p className="mt-4">
-                  Any legal action or proceeding arising under these Terms will be brought exclusively in the courts located in [Your Jurisdiction], and you consent to personal jurisdiction in such courts.
+                  Any legal action or proceeding arising under these Terms will be brought exclusively in the state or federal courts located in San Francisco County, California, and you consent to personal jurisdiction in such courts.
+                </p>
+                <p className="mt-4 text-sm text-muted-foreground">
+                  For users outside the United States, these Terms will be enforced to the maximum extent permitted by your local laws. Nothing in these Terms affects your statutory rights as a consumer in your jurisdiction.
                 </p>
               </section>
 
@@ -417,10 +425,14 @@ export default function TermsOfService() {
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Small claims court matters (under $10,000)</li>
                   <li>Intellectual property disputes</li>
+                  <li>Requests for injunctive or equitable relief</li>
                   <li>Enforcement of these Terms</li>
                 </ul>
                 <p className="mt-4">
-                  Arbitration will be conducted by the American Arbitration Association (AAA) under its Commercial Arbitration Rules. The arbitrator's decision is final and binding.
+                  Arbitration will be conducted by JAMS (Judicial Arbitration and Mediation Services) under its Comprehensive Arbitration Rules & Procedures. The arbitration will take place in San Francisco, California, or remotely via video conference if both parties agree. The arbitrator's decision is final and binding, and may be entered as a judgment in any court of competent jurisdiction.
+                </p>
+                <p className="mt-4 text-sm text-muted-foreground">
+                  Each party will bear their own costs of arbitration unless the arbitrator determines otherwise. AffiliateXchange will reimburse your filing fees if your claim is for less than $10,000 and you cannot afford to pay.
                 </p>
 
                 <h3 className="text-xl font-semibold mb-3 mt-6">18.3 Class Action Waiver</h3>
@@ -472,10 +484,16 @@ export default function TermsOfService() {
                 <h2 className="text-2xl font-semibold mb-4">20. Contact Information</h2>
                 <p>If you have questions about these Terms, please contact us:</p>
                 <div className="mt-4 space-y-2">
-                  <p><strong>Email:</strong> legal@affiliatexchange.com</p>
-                  <p><strong>Support:</strong> support@affiliatexchange.com</p>
-                  <p><strong>Address:</strong> [Your Business Address]</p>
+                  <p><strong>Company Name:</strong> AffiliateXchange Inc.</p>
+                  <p><strong>Legal Inquiries:</strong> legal@affiliatexchange.com</p>
+                  <p><strong>General Support:</strong> support@affiliatexchange.com</p>
+                  <p><strong>Business Partnerships:</strong> partnerships@affiliatexchange.com</p>
+                  <p><strong>Mailing Address:</strong> 123 Commerce Street, Suite 400, San Francisco, CA 94102, United States</p>
+                  <p><strong>Business Hours:</strong> Monday - Friday, 9:00 AM - 5:00 PM PST</p>
                 </div>
+                <p className="mt-4 text-sm text-muted-foreground">
+                  For urgent account or payment issues, please use the in-app support chat or email support@affiliatexchange.com with "URGENT" in the subject line.
+                </p>
               </section>
 
               <div className="mt-12 pt-8 border-t">
