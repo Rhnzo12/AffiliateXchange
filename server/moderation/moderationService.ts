@@ -165,11 +165,11 @@ export async function moderateMessage(messageId: string): Promise<void> {
     where: eq(messages.id, messageId),
   });
 
-  if (!message || !message.message) {
+  if (!message || !message.content) {
     return;
   }
 
-  const contentCheck = await checkContent(message.message, 'message');
+  const contentCheck = await checkContent(message.content, 'message');
 
   if (contentCheck.isFlagged) {
     await flagContent(

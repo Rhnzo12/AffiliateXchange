@@ -244,6 +244,9 @@ function buildEphemeralReview(review: InsertReview): Review {
     supportRating: partial.supportRating ?? null,
     companyResponse: partial.companyResponse ?? null,
     companyRespondedAt: partial.companyRespondedAt ?? null,
+    adminResponse: partial.adminResponse ?? null,
+    respondedAt: partial.respondedAt ?? null,
+    respondedBy: partial.respondedBy ?? null,
     isEdited: partial.isEdited ?? false,
     adminNote: partial.adminNote ?? null,
     isApproved: partial.isApproved ?? true,
@@ -513,6 +516,12 @@ function mapLegacyReviewRow(row: any, columns: Set<string>): Review {
       columns.has("company_responded_at") && row.company_responded_at
         ? coerceDate(row.company_responded_at)
         : null,
+    adminResponse: columns.has("admin_response") ? row.admin_response ?? null : null,
+    respondedAt:
+      columns.has("responded_at") && row.responded_at
+        ? coerceDate(row.responded_at)
+        : null,
+    respondedBy: columns.has("responded_by") ? row.responded_by ?? null : null,
     isEdited:
       columns.has("is_edited")
         ? coerceBoolean(row.is_edited, false)
