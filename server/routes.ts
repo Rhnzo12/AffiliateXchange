@@ -44,6 +44,7 @@ import {
   insertPaymentSettingSchema,
   adminReviewUpdateSchema,
   adminNoteSchema,
+  adminResponseSchema,
   createRetainerContractSchema,
   insertRetainerApplicationSchema,
   insertRetainerDeliverableSchema,
@@ -4112,6 +4113,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const review = await storage.approveReview(req.params.id, userId);
       res.json(review);
     } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.put("/api/admin/reviews/:id/respond", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const reviewId = req.params.id;
+      const validated = adminResponseSchema.parse(req.body);
+
+      // Verify the review exists
+      const review = await storage.getReview(reviewId);
+      if (!review) {
+        return res.status(404).send("Review not found");
+      }
+
+      const updatedReview = await storage.respondToReview(reviewId, validated.response, userId);
+      res.json(updatedReview);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).send(error.errors[0]?.message || "Invalid request");
+      }
       res.status(500).send(error.message);
     }
   });
