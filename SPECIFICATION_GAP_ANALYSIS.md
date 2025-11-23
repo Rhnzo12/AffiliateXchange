@@ -396,8 +396,8 @@
 - Cryptocurrency (Bitcoin, Ethereum, USDC)
 
 **Current Status**: ⚠️ PARTIAL
-- PayPal: ✅ Fully functional
-- E-Transfer: 20% complete (UI only)
+- PayPal: ✅ Fully functional (sandbox mode)
+- E-Transfer: ✅ Configured (sandbox mode)
 - Wire/ACH: 20% complete (UI only)
 - Crypto: 20% complete (UI only)
 
@@ -411,11 +411,12 @@
 **Action Required**:
 
 **E-Transfer (Canada)**:
-1. Partner with Canadian bank or use Interac API
-2. Implement e-transfer initiation
-3. Handle email notification to recipient
-4. Track e-transfer status
-5. Estimated effort: 2-3 weeks
+✅ **Already configured in sandbox mode**
+- To move to production:
+  1. Switch from sandbox to production API credentials
+  2. Test with real e-transfer transactions
+  3. Update documentation with production details
+- Estimated effort: 1-2 days (production migration)
 
 **Wire Transfer/ACH**:
 1. Use Stripe Payouts API or similar
@@ -880,10 +881,10 @@ The following major features from the specification are **100% implemented**:
 **Priority**: MEDIUM
 **Timeline**: 2-4 weeks
 
-1. Implement Additional Payment Methods:
-   - E-Transfer for Canada
-   - Wire Transfer/ACH via Stripe
-   - Cryptocurrency (optional)
+1. Complete Additional Payment Methods:
+   - E-Transfer: Move from sandbox to production (1-2 days)
+   - Wire Transfer/ACH via Stripe (1-2 weeks)
+   - Cryptocurrency (optional, 2-3 weeks)
 2. Add Two-Factor Authentication
 3. Build Platform Health Monitoring
 4. Complete Admin Conversation Join Feature
