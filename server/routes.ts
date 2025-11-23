@@ -4292,7 +4292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/moderation/flags/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const flag = await db.query.contentFlags.findFirst({
-        where: eq(contentFlags.id, req.params.id),
+        where: sql`${contentFlags.id} = ${req.params.id}::uuid`,
         with: {
           user: {
             columns: {
@@ -4328,7 +4328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await reviewFlaggedContent(req.params.id, userId, status, adminNotes, actionTaken);
 
       const flag = await db.query.contentFlags.findFirst({
-        where: eq(contentFlags.id, req.params.id),
+        where: sql`${contentFlags.id} = ${req.params.id}::uuid`,
       });
 
       res.json(flag);
