@@ -46,6 +46,8 @@ import AdminPlatformSettings from "./pages/admin-platform-settings";
 import AdminMessages from "./pages/admin-messages";
 import AdminPaymentDisputes from "./pages/admin-payment-disputes";
 import AdminNiches from "./pages/admin-niches";
+import AdminKeywordManagement from "./pages/admin-keyword-management";
+import AdminModerationDashboard from "./pages/admin-moderation-dashboard";
 import Onboarding from "./pages/onboarding";
 import CreatorOnboarding from "./pages/creator-onboarding";
 import CompanyOnboarding from "./pages/company-onboarding";
@@ -162,6 +164,9 @@ function ProtectedRouter() {
                     <Route path="/admin/niches" component={AdminNiches} />
                     <Route path="/admin/audit-logs" component={AdminAuditLogs} />
                     <Route path="/admin/platform-settings" component={AdminPlatformSettings} />
+                    <Route path="/admin/moderation" component={AdminModerationDashboard} />
+                    <Route path="/admin/moderation/dashboard" component={AdminModerationDashboard} />
+                    <Route path="/admin/moderation/keywords" component={AdminKeywordManagement} />
                     <Route path="/admin/users" component={AdminDashboard} />
                     <Route path="/admin/payment-settings" component={PaymentSettings} />
                     <Route path="/payments/:id" component={PaymentDetail} />
