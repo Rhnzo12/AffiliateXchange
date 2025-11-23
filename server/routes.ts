@@ -4164,7 +4164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const category = req.query.category as string | undefined;
       const isActive = req.query.isActive as string | undefined;
 
-      let query = db.select().from(bannedKeywords);
+      let query = db.select().from(bannedKeywords).$dynamic();
 
       if (category) {
         query = query.where(eq(bannedKeywords.category, category as any));
