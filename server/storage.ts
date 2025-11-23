@@ -2687,6 +2687,36 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async respondToReview(id: string, response: string, adminId: string): Promise<Review | undefined> {
+    try {
+      const result = await db
+        .update(reviews)
+        .set({
+          adminResponse: response,
+          respondedAt: new Date(),
+          respondedBy: adminId,
+          updatedAt: new Date(),
+        })
+        .where(eq(reviews.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      if (isLegacyReviewColumnError(error)) {
+        console.warn(
+          "[Storage] reviews column mismatch while responding to review - treating as no-op.",
+        );
+        return undefined;
+      }
+      if (isMissingRelationError(error, "reviews")) {
+        console.warn(
+          "[Storage] reviews relation missing while responding to review - treating as no-op.",
+        );
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
   // Favorites
   async getFavoritesByCreator(creatorId: string): Promise<Favorite[]> {
     try {

@@ -343,6 +343,9 @@ export const reviews = pgTable("reviews", {
   supportRating: integer("support_rating"),
   companyResponse: text("company_response"),
   companyRespondedAt: timestamp("company_responded_at"),
+  adminResponse: text("admin_response"),
+  respondedAt: timestamp("responded_at"),
+  respondedBy: varchar("responded_by").references(() => users.id, { onDelete: 'set null' }),
   isEdited: boolean("is_edited").default(false),
   adminNote: text("admin_note"),
   isApproved: boolean("is_approved").default(true),
@@ -809,9 +812,10 @@ export const createOfferSchema = createInsertSchema(offers).omit({ id: true, com
 export const insertOfferVideoSchema = createInsertSchema(offerVideos).omit({ id: true, createdAt: true });
 export const insertApplicationSchema = createInsertSchema(applications).omit({ id: true, createdAt: true, updatedAt: true, approvedAt: true, trackingLink: true, trackingCode: true, autoApprovalScheduledAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
-export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true, updatedAt: true, companyResponse: true, companyRespondedAt: true, isEdited: true, adminNote: true, isApproved: true, approvedBy: true, approvedAt: true, isHidden: true });
+export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true, updatedAt: true, companyResponse: true, companyRespondedAt: true, adminResponse: true, respondedAt: true, respondedBy: true, isEdited: true, adminNote: true, isApproved: true, approvedBy: true, approvedAt: true, isHidden: true });
 export const adminReviewUpdateSchema = createInsertSchema(reviews).pick({ reviewText: true, overallRating: true, paymentSpeedRating: true, communicationRating: true, offerQualityRating: true, supportRating: true }).partial();
 export const adminNoteSchema = z.object({ note: z.string() });
+export const adminResponseSchema = z.object({ response: z.string().min(1, "Response text is required") });
 export const insertFavoriteSchema = createInsertSchema(favorites).omit({ id: true, createdAt: true });
 export const insertPaymentSettingSchema = createInsertSchema(paymentSettings).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true, updatedAt: true, initiatedAt: true, completedAt: true, failedAt: true, refundedAt: true });
