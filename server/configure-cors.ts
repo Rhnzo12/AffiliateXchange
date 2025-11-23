@@ -5,6 +5,8 @@
 
 import { Storage } from '@google-cloud/storage';
 import dotenv from 'dotenv';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 dotenv.config();
 
@@ -24,15 +26,9 @@ async function configureCORS() {
     const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
     const bucket = storage.bucket(bucketName);
 
-    // CORS configuration
-    const corsConfiguration = [
-      {
-        origin: ['http://localhost:3000', 'http://localhost:5000', 'https://*.vercel.app'],
-        method: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD'],
-        responseHeader: ['Content-Type', 'Access-Control-Allow-Origin'],
-        maxAgeSeconds: 3600,
-      },
-    ];
+    // Read CORS configuration from cors-config.json
+    const corsConfigPath = join(__dirname, '..', 'cors-config.json');
+    const corsConfiguration = JSON.parse(readFileSync(corsConfigPath, 'utf-8'));
 
     console.log('Configuring CORS for bucket:', bucketName);
     console.log('CORS configuration:', JSON.stringify(corsConfiguration, null, 2));
@@ -40,10 +36,7 @@ async function configureCORS() {
     await bucket.setCorsConfiguration(corsConfiguration);
 
     console.log('\n✅ CORS configuration applied successfully!');
-    console.log('\nYou can now upload files from:');
-    console.log('  - http://localhost:3000');
-    console.log('  - http://localhost:5000');
-    console.log('  - Any Vercel deployment (*.vercel.app)');
+    console.log('\nCORS is now configured to allow requests from all origins (*)');
 
     // Verify the configuration
     const [metadata] = await bucket.getMetadata();
