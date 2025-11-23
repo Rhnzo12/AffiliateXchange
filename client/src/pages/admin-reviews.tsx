@@ -58,6 +58,13 @@ export default function AdminReviews() {
 
   const { data: reviews = [], isLoading: loadingReviews } = useQuery<any[]>({
     queryKey: ["/api/admin/reviews"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/reviews", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch reviews");
+      return response.json();
+    },
     enabled: isAuthenticated,
   });
 
