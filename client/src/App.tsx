@@ -53,6 +53,8 @@ import CompanyProfile from "./pages/company-profile";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import SelectRole from "./pages/select-role";
+import PrivacyPolicy from "./pages/privacy-policy";
+import TermsOfService from "./pages/terms-of-service";
 
 // Public routes that don't require authentication
 function PublicRouter() {
@@ -62,6 +64,8 @@ function PublicRouter() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/select-role" component={SelectRole} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/terms-of-service" component={TermsOfService} />
       <Route component={Landing} />
     </Switch>
   );
@@ -175,6 +179,8 @@ function ProtectedRouter() {
                 <Route path="/payment-settings" component={PaymentSettings} />
                 <Route path="/payments/:id" component={PaymentDetail} />
                 <Route path="/company-profile/:id" component={CompanyProfile} />
+                <Route path="/privacy-policy" component={PrivacyPolicy} />
+                <Route path="/terms-of-service" component={TermsOfService} />
 
                 {/* Fallback */}
                 <Route component={NotFound} />
