@@ -205,15 +205,22 @@ Add to system settings:
 2. ✅ Add routes for moderation pages
 3. ✅ Import components in App.tsx
 
-### Step 6: Testing & Polish ⚠️
+### Step 6: Database Migration ✅
+**Time**: 5 minutes (SAFE MIGRATION CREATED)
+1. ✅ Created manual migration script (scripts/migrate-content-moderation.ts)
+2. ✅ Created SQL migration file (migrations/create_content_moderation_tables.sql)
+3. ✅ Added npm script: `npm run migrate:content-moderation`
+4. ⚠️ **DO NOT use `npm run db:push`** - would cause data loss!
+5. ⏳ Run the safe migration: `npm run migrate:content-moderation`
+
+### Step 7: Testing & Polish ⚠️
 **Time**: 2-3 hours (RECOMMENDED)
-1. ⏳ Run database migrations (npm run db:push)
-2. ⏳ Test with real profanity
-3. ⏳ Test with custom keywords
-4. ⏳ Test review workflow
-5. ⏳ Test notifications
-6. ⏳ Fix any bugs
-7. ⏳ Polish UI/UX
+1. ⏳ Test with real profanity
+2. ⏳ Test with custom keywords
+3. ⏳ Test review workflow
+4. ⏳ Test notifications
+5. ⏳ Fix any bugs
+6. ⏳ Polish UI/UX
 
 ---
 
@@ -249,7 +256,7 @@ Add to system settings:
 
 ---
 
-## 📝 NEXT RECOMMENDED STEPS (Before Production)
+## 📝 NEXT STEPS (To Complete Implementation)
 
 1. ✅ ~~Add API endpoints for keyword management~~
 2. ✅ ~~Add API endpoints for flag management~~
@@ -257,9 +264,15 @@ Add to system settings:
 4. ✅ ~~Create admin keyword management page~~
 5. ✅ ~~Create moderation dashboard page~~
 6. ✅ ~~Add routes and navigation~~
-7. ⚠️ **Run database migrations**: `npm run db:push`
-8. ⚠️ **Test moderation system** with real content
-9. ⏳ (Optional) Add custom email notification template for flagged content
+7. ✅ ~~Create safe migration script~~
+8. **⚠️ IMPORTANT: Run the safe migration** (5 minutes):
+   ```bash
+   npm run migrate:content-moderation
+   ```
+   **DO NOT use `npm run db:push` - it will cause data loss!**
+9. ⚠️ **Test moderation system** with real content
+10. ⏳ (Optional) Add custom email notification template for flagged content
+11. ⏳ (Optional) Add auto-approve reviews toggle setting
 
 ---
 
