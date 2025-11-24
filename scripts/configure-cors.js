@@ -13,15 +13,30 @@ dotenv.config();
 async function configureCORS() {
   try {
     // Initialize Google Cloud Storage
-    const keyFilePath = process.env.GOOGLE_CLOUD_KEYFILE;
-    const storage = keyFilePath
-      ? new Storage({
-          projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-          keyFilename: keyFilePath,
-        })
-      : new Storage({
-          projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-        });
+    let storage;
+
+    if (process.env.GOOGLE_CLOUD_CREDENTIALS_JSON) {
+      // Use credentials from environment variable (for Render/production)
+      const credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS_JSON);
+      storage = new Storage({
+        projectId: credentials.project_id || process.env.GOOGLE_CLOUD_PROJECT_ID,
+        credentials: credentials,
+      });
+      console.log('✓ Using credentials from environment variable');
+    } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+      // Use keyfile path (for local development)
+      storage = new Storage({
+        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+        keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+      });
+      console.log('✓ Using credentials from keyfile:', process.env.GOOGLE_CLOUD_KEYFILE);
+    } else {
+      // Use Application Default Credentials
+      storage = new Storage({
+        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+      });
+      console.log('✓ Using Application Default Credentials');
+    }
 
     const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
     const bucket = storage.bucket(bucketName);
@@ -50,7 +65,7 @@ async function configureCORS() {
       }
     ];
 
-    console.log('Configuring CORS for bucket:', bucketName);
+    console.log('\nConfiguring CORS for bucket:', bucketName);
     console.log('CORS configuration:', JSON.stringify(corsConfiguration, null, 2));
 
     await bucket.setCorsConfiguration(corsConfiguration);
@@ -60,7 +75,8 @@ async function configureCORS() {
     corsConfiguration[0].origin.forEach(origin => {
       console.log(`  - ${origin}`);
     });
-    console.log('\n⚠️  Note: To add Vercel deployments, you must add each specific URL to the origin array.');
+    console.log('\n⚠️  Note: GCS does not support wildcard origins.');
+    console.log('    Add each specific Vercel URL to the origin array.');
 
     // Verify the configuration
     const [metadata] = await bucket.getMetadata();
@@ -71,6 +87,9 @@ async function configureCORS() {
     console.error('❌ Error configuring CORS:', error.message);
     if (error.code) {
       console.error('Error code:', error.code);
+    }
+    if (error.errors) {
+      console.error('Details:', error.errors);
     }
     process.exit(1);
   }
