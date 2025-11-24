@@ -1,6 +1,6 @@
 # SPECIFICATION vs IMPLEMENTATION - GAP ANALYSIS
 
-**Date**: November 23, 2025
+**Date**: November 24, 2025
 **Specification**: Affiliate Marketplace App - Complete Developer Specification.docx
 **Implementation Status**: Based on IMPLEMENTATION_STATUS_CHECKLIST.md
 **Analyst**: Claude Code Review
@@ -11,11 +11,12 @@
 
 | Metric | Status |
 |--------|--------|
-| **Overall Implementation** | **99% Complete** ✅ |
-| **Critical Gaps** | **2 items** 🔴 |
+| **Overall Implementation** | **~85% Complete** ✅ |
+| **Critical Gaps** | **3 items** 🔴 |
 | **Medium Priority Gaps** | **15 items** 🟡 |
 | **Low Priority Gaps** | **3 items** ⚪ |
-| **Production Ready** | **YES** ✅ |
+| **Production Ready** | **YES (with limitations)** ⚠️ |
+| **Advanced Features Missing** | **~15 features** 🟡 |
 
 ---
 
@@ -124,7 +125,16 @@ See `CONTENT_MODERATION_IMPLEMENTATION.md` for complete details.
 - Canned admin responses
 - Email templates for requesting additional information
 
-**Current Status**: ❌ NOT STARTED
+**Current Status**: ❌ **NOT IMPLEMENTED** (Hardcoded Only)
+
+**Actual Implementation**:
+- **Location**: `server/notifications/emailTemplates.ts`
+- **What Exists**: 14+ hardcoded TypeScript email template functions
+- **What's Missing**:
+  - ❌ No `email_templates` database table
+  - ❌ No admin UI for template management
+  - ❌ No template variable system
+  - ❌ Admins cannot create/edit templates without code changes
 
 **Impact**:
 - Admin efficiency and consistency
@@ -132,15 +142,17 @@ See `CONTENT_MODERATION_IMPLEMENTATION.md` for complete details.
 - Faster response times
 - Standardized messaging
 
-**Effort**: Low-Medium (3-5 days)
+**Effort**: Medium (5-7 days)
 
 **Action Required**:
-1. Create `email_templates` table with categories
-2. Add template variables system ({{companyName}}, {{reason}}, etc.)
-3. Create admin UI for template management (CRUD)
-4. Add template selection dropdown in approval workflows
-5. Implement template rendering with variable substitution
-6. Create default templates for common scenarios:
+1. Create `email_templates` table with categories (type, subject, body, variables)
+2. Migrate existing 14 hardcoded templates to database with default data
+3. Add template variables system ({{companyName}}, {{reason}}, {{userName}}, etc.)
+4. Create admin UI for template management (CRUD) at `/admin/email-templates`
+5. Add template selection dropdown in approval workflows
+6. Implement template rendering engine with variable substitution
+7. Add preview functionality before sending
+8. Create default templates for common scenarios:
    - Company registration: Request more info
    - Company registration: Rejection
    - Offer review: Request edits
@@ -157,7 +169,15 @@ See `CONTENT_MODERATION_IMPLEMENTATION.md` for complete details.
 - "Website verification (Meta tag or DNS TXT record)"
 - Automatic domain ownership check
 
-**Current Status**: ❌ NOT STARTED (manual verification only)
+**Current Status**: ❌ **NOT IMPLEMENTED** (manual verification only)
+
+**Actual Implementation**:
+- **Database Schema**: `shared/schema.ts` - company_profiles table
+- **What's Missing**:
+  - ❌ No `verificationToken` field in company_profiles
+  - ❌ No `websiteVerified` boolean field
+  - ❌ No `verificationMethod` field
+  - ❌ No verification workflow in admin UI
 
 **Impact**:
 - Security and fraud prevention
@@ -168,18 +188,35 @@ See `CONTENT_MODERATION_IMPLEMENTATION.md` for complete details.
 **Effort**: Medium (5-7 days)
 
 **Action Required**:
-1. Add `verificationToken` field to company profiles
-2. Generate unique verification token on registration
-3. Provide two verification methods:
+1. **Database Changes**:
+   - Add `verificationToken` varchar(255) to company_profiles
+   - Add `websiteVerified` boolean (default: false)
+   - Add `verificationMethod` varchar (meta_tag | dns_txt | null)
+   - Add `websiteVerifiedAt` timestamp
+
+2. **Backend Implementation**:
+   - Generate unique verification token on company registration
+   - Create endpoint: `POST /api/companies/verify-website`
+   - Implement meta tag verification (fetch HTML, parse for tag)
+   - Implement DNS TXT record verification (use `dns.resolve()`)
+   - Install library: `node-fetch` or `axios` for HTML fetching
+   - Install library: `dns` module for DNS verification
+
+3. **Frontend Implementation**:
+   - Add verification instructions to company dashboard
+   - Display verification token and instructions
+   - Add "Verify Now" button
+   - Show verification status badge (Verified ✅ / Not Verified ⚠️)
+   - Add verification status to admin company detail page
+
+4. **Verification Methods**:
    - **Meta Tag**: `<meta name="affiliatexchange-verify" content="{token}">`
    - **DNS TXT**: `affiliatexchange-verify={token}`
-4. Create verification endpoint: `POST /api/companies/verify-website`
-5. Implement verification logic:
-   - Fetch company website HTML (for meta tag)
-   - Query DNS TXT records (for DNS method)
-   - Match token and mark as verified
-6. Add verification status to admin approval UI
-7. Auto-approve companies with verified websites (optional)
+
+5. **Optional Enhancements**:
+   - Auto-approve companies with verified websites
+   - Send verification reminder emails after 24 hours
+   - Add re-verification every 90 days
 
 ---
 
@@ -228,22 +265,64 @@ See `CONTENT_MODERATION_IMPLEMENTATION.md` for complete details.
 - "Adjust platform fee percentage (currently 4%)"
 - "Special pricing for specific companies"
 
-**Current Status**: ❌ NOT STARTED
+**Current Status**: ❌ **NOT IMPLEMENTED** (Hardcoded 7% Total)
+
+**Actual Implementation**:
+- **Location**: `server/routes.ts:1524`
+- **Current Logic**: Hardcoded fees for all companies
+  ```typescript
+  const platformFeeAmount = grossAmount * 0.04; // 4% fixed
+  const stripeFeeAmount = grossAmount * 0.03;   // 3% fixed
+  ```
+- **What's Missing**:
+  - ❌ No `customPlatformFee` field in company_profiles table
+  - ❌ No `customProcessingFee` field in company_profiles table
+  - ❌ No admin UI to set custom fees
+  - ❌ Payment logic doesn't check for company-specific overrides
 
 **Impact**:
 - Business flexibility for partnerships
 - Ability to offer discounts to high-value companies
 - Competitive pricing strategies
+- Revenue optimization for premium accounts
 
-**Effort**: Low (2-3 days)
+**Effort**: Low-Medium (3-5 days)
 
 **Action Required**:
-1. Add `customPlatformFee` decimal field to company_profiles (nullable)
-2. Add `customProcessingFee` decimal field to company_profiles (nullable)
-3. Update payment calculation logic to check for custom fees first
-4. Add admin UI in company detail page to set custom fees
-5. Add audit logging for fee changes
-6. Display custom fee in company dashboard
+1. **Database Changes**:
+   - Add `customPlatformFee` decimal(5,2) to company_profiles (nullable)
+   - Add `customProcessingFee` decimal(5,2) to company_profiles (nullable)
+   - Add `feeOverrideReason` text (for audit trail)
+   - Add `feeOverrideSetBy` integer (admin user ID)
+   - Add `feeOverrideSetAt` timestamp
+
+2. **Backend Changes** (`server/routes.ts`):
+   - Update payment calculation logic (around line 1524)
+   - Check for custom fees before applying defaults:
+     ```typescript
+     const platformFeeRate = company.customPlatformFee ?? 0.04;
+     const processingFeeRate = company.customProcessingFee ?? 0.03;
+     const platformFeeAmount = grossAmount * platformFeeRate;
+     const stripeFeeAmount = grossAmount * processingFeeRate;
+     ```
+   - Add validation (fees must be 0-100%)
+
+3. **Admin UI** (`client/src/pages/admin-company-detail.tsx`):
+   - Add "Custom Fees" section with toggle
+   - Input fields for platform fee % and processing fee %
+   - Show default fees (4% + 3% = 7% total)
+   - Show calculated savings for company
+   - Add reason/notes field (required for changes)
+   - Confirmation modal before applying
+
+4. **Audit Logging**:
+   - Log all fee changes to audit_logs table
+   - Include old values, new values, admin user, reason
+
+5. **Company Dashboard**:
+   - Display custom fee rate if applicable
+   - Show "Special Pricing" badge
+   - Calculate savings vs standard rate
 
 ---
 
@@ -257,23 +336,73 @@ See `CONTENT_MODERATION_IMPLEMENTATION.md` for complete details.
 - Set primary niches (e.g., "Apps" as #1)
 - Merge niches
 
-**Current Status**: ⚠️ PARTIAL
+**Current Status**: ⚠️ **PARTIAL** (40% Complete - Basic CRUD Only)
 
-**Impact**: Admin flexibility for organizing content
+**Actual Implementation**:
+- **Location**: `client/src/pages/admin-niches.tsx`
+- **Database**: `niches` table in `shared/schema.ts`
 
-**Effort**: Low-Medium (3-5 days)
+**What's IMPLEMENTED** ✅:
+- ✅ Create new niches
+- ✅ Edit niche name/description
+- ✅ Delete niches
+- ✅ Toggle active/inactive status
+- ✅ Basic listing with statistics (offer count, creator count)
+
+**What's MISSING** ❌:
+- ❌ No drag-and-drop reordering functionality
+- ❌ No `orderIndex` or `priority` field in database schema
+- ❌ No "Set as Primary" feature
+- ❌ No "Merge Niches" workflow
+- ❌ No validation to prevent deleting niches currently in use
+- ❌ Niches appear in alphabetical order only
+
+**Impact**:
+- Admin flexibility for organizing content
+- Featured niche placement on homepage
+- Cleanup of duplicate/similar niches
+- Professional category organization
+
+**Effort**: Low-Medium (5-7 days)
 
 **Action Required**:
-1. Check existing admin niches page (`/admin-niches`)
-2. Add drag-and-drop reordering functionality
-3. Add "Set as Primary" feature with priority field
-4. Implement "Merge Niches" workflow:
-   - Select source niche
-   - Select target niche
-   - Confirm merge
-   - Update all offers/creators with old niche to new niche
-   - Delete old niche
-5. Add validation to prevent deleting niches in use (without merge)
+1. **Database Changes**:
+   - Add `orderIndex` integer field to niches table
+   - Add `isPrimary` boolean field (for featured niches)
+   - Add migration to set default orderIndex values
+
+2. **Drag-and-Drop Reordering**:
+   - Install `@dnd-kit/core` or `react-beautiful-dnd` library
+   - Add drag handles to niche list items
+   - Create `PUT /api/admin/niches/reorder` endpoint
+   - Update orderIndex values on drop
+   - Display niches sorted by orderIndex
+
+3. **Set as Primary Feature**:
+   - Add "Star" icon button next to each niche
+   - Limit to 3-5 primary niches
+   - Display primary niches prominently on homepage
+   - Create `PUT /api/admin/niches/:id/set-primary` endpoint
+
+4. **Merge Niches Workflow**:
+   - Add "Merge" button to each niche row
+   - Show modal with niche selection:
+     - Source niche (to be merged/deleted)
+     - Target niche (to keep)
+   - Display counts: "This will affect X offers and Y creators"
+   - Confirm merge button
+   - Backend implementation:
+     ```typescript
+     // Update all offers with oldNicheId to newNicheId
+     // Update all creator profiles with oldNicheId to newNicheId
+     // Delete oldNicheId
+     ```
+   - Create `POST /api/admin/niches/merge` endpoint
+
+5. **Delete Protection**:
+   - Before delete, check if niche is in use
+   - If in use, show error: "Cannot delete - X offers use this niche. Merge first."
+   - Add force delete option (with warning)
 
 ---
 
@@ -387,48 +516,113 @@ See `CONTENT_MODERATION_IMPLEMENTATION.md` for complete details.
 **Specification Reference**: Section 3.3 (Payment Infrastructure - Creator Payment Methods)
 
 **Requirements**:
+- PayPal (required)
 - E-transfer (Canada)
 - Wire transfer/ACH (USA/Canada)
 - Cryptocurrency (Bitcoin, Ethereum, USDC)
 
-**Current Status**: ⚠️ PARTIAL
-- PayPal: ✅ Fully functional (sandbox mode)
-- E-Transfer: ✅ Configured (sandbox mode)
-- Wire/ACH: 20% complete (UI only)
-- Crypto: 20% complete (UI only)
+**Current Status**: ⚠️ **MIXED** - 2 of 4 Methods Fully Implemented
+
+**Actual Implementation** (`server/paymentProcessor.ts`):
+
+#### ✅ **PayPal Payout** - FULLY IMPLEMENTED (100%)
+- **Status**: Production Ready
+- **Location**: Lines 211-303
+- **Integration**: `@paypal/payouts-sdk` (v1.0.0+)
+- **Features**:
+  - ✅ Batch payouts API integration
+  - ✅ Error handling and retry logic
+  - ✅ Transaction status tracking
+  - ✅ Email notifications
+- **Testing**: Sandbox mode active, production ready
+
+#### ✅ **E-Transfer (Canada via Stripe)** - FULLY IMPLEMENTED (100%)
+- **Status**: Production Ready
+- **Location**: Lines 309-446
+- **Integration**: Stripe Connect transfers (CAD)
+- **Features**:
+  - ✅ Stripe Connect account linking
+  - ✅ CAD currency support
+  - ✅ Transfer creation and tracking
+  - ✅ Status monitoring
+- **Testing**: Sandbox mode active
+- **Production Migration**: 1-2 days
+  1. Switch Stripe API keys from test to live
+  2. Verify company Stripe Connect accounts are in production mode
+  3. Test with small real transfers
+  4. Update documentation
+
+#### ⚠️ **Wire Transfer/ACH** - SIMULATED ONLY (20%)
+- **Status**: Stub Implementation
+- **Location**: Lines 452-498
+- **Current Code**:
+  ```typescript
+  // Lines 462-477: Production code is commented out
+  // In production, use Stripe Payouts API: ...
+  const mockTransactionId = `WIRE-${Date.now()}-${Math.random()}`;
+  return {
+    success: true,
+    transactionId: mockTransactionId,
+    providerResponse: { note: 'SIMULATED - In production, this would use Stripe Payouts' }
+  };
+  ```
+- **What Works**: UI for adding wire/ACH payment settings only
+- **What's Missing**: Actual payout functionality
+
+**Action Required for Wire/ACH**:
+1. Uncomment and implement Stripe Payouts API integration
+2. Install required libraries if needed
+3. Collect bank account details (routing number, account number, account type)
+4. Implement bank account verification (Stripe micro-deposits)
+5. Create actual ACH/wire transfer logic using Stripe API
+6. Handle transfer failures and notifications
+7. Estimated effort: 1-2 weeks
+
+#### ⚠️ **Cryptocurrency** - SIMULATED ONLY (20%)
+- **Status**: Stub Implementation
+- **Location**: Lines 504-555
+- **Current Code**:
+  ```typescript
+  // Lines 513-531: Example code commented out
+  // Example with Coinbase Commerce: ...
+  const mockTxHash = `0x${Array.from({length: 64}, () => Math.random())}`;
+  return {
+    success: true,
+    transactionId: mockTxHash,
+    providerResponse: { note: 'SIMULATED - In production, this would send real crypto' }
+  };
+  ```
+- **What Works**: UI for adding crypto wallet addresses only
+- **What's Missing**: Actual blockchain transactions
+
+**Action Required for Cryptocurrency**:
+1. Choose crypto payment provider (Coinbase Commerce, Coinbase Prime, or BitPay)
+2. Install SDK: `npm install @coinbase/coinbase-sdk` or similar
+3. Create API credentials with chosen provider
+4. Implement wallet address validation (per currency)
+5. Implement blockchain transaction sending:
+   - Bitcoin (BTC)
+   - Ethereum (ETH)
+   - USD Coin (USDC)
+6. Add transaction hash tracking
+7. Implement blockchain confirmation monitoring
+8. Handle gas fees calculation and deduction
+9. Add network fee transparency to users
+10. Estimated effort: 2-3 weeks
+
+**Summary**:
+- ✅ **PayPal**: 100% - Production Ready
+- ✅ **E-Transfer**: 100% - Production Ready (needs API key switch)
+- ❌ **Wire/ACH**: 20% - UI only, needs real implementation
+- ❌ **Crypto**: 20% - UI only, needs real implementation
+
+**Overall Completion**: 60% (2 of 4 methods fully functional)
 
 **Impact**:
-- Geographic reach (Canada needs e-transfer)
-- User preference and convenience
-- International creator support
-
-**Effort**: Medium-High (2-3 weeks per method)
-
-**Action Required**:
-
-**E-Transfer (Canada)**:
-✅ **Already configured in sandbox mode**
-- To move to production:
-  1. Switch from sandbox to production API credentials
-  2. Test with real e-transfer transactions
-  3. Update documentation with production details
-- Estimated effort: 1-2 days (production migration)
-
-**Wire Transfer/ACH**:
-1. Use Stripe Payouts API or similar
-2. Collect bank account details (routing, account number)
-3. Verify bank account (micro-deposits)
-4. Implement ACH/wire payout logic
-5. Handle failed transfers
-6. Estimated effort: 1-2 weeks
-
-**Cryptocurrency**:
-1. Integrate Coinbase Commerce or similar
-2. Support BTC, ETH, USDC
-3. Validate wallet addresses
-4. Implement blockchain transaction tracking
-5. Handle gas fees and network confirmations
-6. Estimated effort: 2-3 weeks
+- Geographic reach (Canada needs e-transfer) - ✅ COVERED
+- User preference and convenience - ⚠️ PARTIAL
+- International creator support - ⚠️ LIMITED
+- Platform can launch with PayPal + E-Transfer for North American market
 
 ---
 
@@ -514,32 +708,99 @@ See `CONTENT_MODERATION_IMPLEMENTATION.md` for complete details.
 - Creator acquisition and churn metrics
 - Company acquisition and churn metrics
 
-**Current Status**: ⚠️ PARTIAL
-- Geographic data is collected ✅
-- Heatmap visualization not built ❌
-- Churn calculations not implemented ❌
+**Current Status**: ⚠️ **PARTIAL** (20% Complete - Data Only)
 
-**Impact**: Business insights for growth
+**Actual Implementation** (`client/src/pages/analytics.tsx`):
+- **Location**: Lines 23-42
+- **What's IMPLEMENTED**:
+  - ✅ Geographic data collection (`country`, `city` in `click_events` table)
+  - ✅ Basic charts (LineChart, AreaChart, PieChart, FunnelChart)
+  - ✅ Time-series click/conversion tracking
+- **What's MISSING**:
+  - ❌ No mapping library installed (no `react-simple-maps`, `leaflet`, etc.)
+  - ❌ Geographic heatmap visualization not built
+  - ❌ Churn rate calculations not implemented
+  - ❌ Retention cohort analysis missing
+  - ❌ No inactive user detection logic
 
-**Effort**: Low-Medium (5-7 days)
+**Impact**:
+- Business insights for growth
+- Understanding geographic performance
+- Identifying at-risk users
+- Measuring user retention
+
+**Effort**: Medium (7-10 days total)
 
 **Action Required**:
 
-**Geographic Heatmap**:
-1. Install mapping library (e.g., `react-simple-maps` or `leaflet`)
-2. Query creator/click location data
-3. Aggregate by country/state
-4. Render heatmap with color intensity
-5. Add to company and admin dashboards
+**Geographic Heatmap** (3-4 days):
+1. **Install Dependencies**:
+   ```bash
+   npm install react-simple-maps
+   npm install d3-geo d3-scale-chromatic
+   ```
 
-**Churn Metrics**:
-1. Define churn criteria:
-   - Creator: No activity in 90 days
-   - Company: No active offers in 90 days
-2. Calculate monthly churn rate: `(Lost Users / Total Users) * 100`
-3. Create database views or queries for churn
-4. Add churn widgets to admin dashboard
-5. Track churn trends over time
+2. **Backend Endpoint** (`server/routes.ts`):
+   - Create `GET /api/analytics/geographic-data` endpoint
+   - Aggregate click_events by country/state/region:
+     ```sql
+     SELECT country, COUNT(*) as click_count, SUM(converted::int) as conversions
+     FROM click_events
+     GROUP BY country
+     ```
+   - Return JSON with country codes and metrics
+
+3. **Frontend Component** (new file: `client/src/components/GeographicHeatmap.tsx`):
+   - Import `ComposableMap`, `Geographies`, `Geography` from react-simple-maps
+   - Fetch geographic data from API
+   - Color countries by intensity (click count or conversion rate)
+   - Add tooltip showing detailed stats
+   - Add legend showing color scale
+
+4. **Dashboard Integration**:
+   - Add heatmap widget to company analytics page
+   - Add heatmap widget to admin dashboard
+   - Add filter for date range
+
+**Churn Metrics** (4-6 days):
+1. **Define Churn Criteria** (add to `server/analytics/churnCalculator.ts`):
+   ```typescript
+   // Creator churn: No login or activity in 90 days
+   // Company churn: No active offers and no logins in 90 days
+   ```
+
+2. **Database Queries**:
+   - Add `lastActivityAt` tracking to users table
+   - Update on every login, message, application, etc.
+   - Create churn calculation query:
+     ```sql
+     SELECT
+       DATE_TRUNC('month', created_at) as month,
+       COUNT(*) as total_users,
+       COUNT(CASE WHEN last_activity_at < NOW() - INTERVAL '90 days' THEN 1 END) as churned_users
+     FROM users
+     GROUP BY month
+     ```
+
+3. **Churn Calculation Logic**:
+   - Calculate monthly churn rate: `(Churned Users / Total Users at Start of Month) * 100`
+   - Calculate retention rate: `100 - Churn Rate`
+   - Identify "at risk" users (60-89 days inactive)
+
+4. **Admin Dashboard Widgets**:
+   - Churn rate card (current month %)
+   - Churn trend chart (last 12 months)
+   - At-risk users count
+   - Retention cohort table
+
+5. **Automated Actions** (optional):
+   - Send re-engagement email to inactive users (60 days)
+   - Admin notification for high churn months (>10%)
+
+**Additional Analytics** (bonus):
+- User lifetime value (LTV) calculation
+- Monthly recurring revenue (MRR) tracking
+- Conversion funnel analysis by geography
 
 ---
 
@@ -552,21 +813,89 @@ See `CONTENT_MODERATION_IMPLEMENTATION.md` for complete details.
 - "Send messages as platform"
 - Mediation tools
 
-**Current Status**: ⚠️ PARTIAL
-- Admins can view all conversations ✅
-- Cannot send messages as platform ❌
+**Current Status**: ⚠️ **PARTIAL** (40% Complete - View Only)
 
-**Impact**: Customer support and mediation
+**Actual Implementation** (`client/src/pages/admin-messages.tsx`):
+- **Location**: Lines 44-69
+- **What's IMPLEMENTED**:
+  - ✅ Admins can view all conversations (line 44-57)
+  - ✅ Admins can search conversations (line 48)
+  - ✅ Admins can read all messages with sender identification (line 59-69)
+  - ✅ Read-only message display interface
+  - ✅ GET endpoint exists: `/api/admin/messages/:conversationId`
 
-**Effort**: Low-Medium (3-5 days)
+- **What's MISSING**:
+  - ❌ No message input field for admins
+  - ❌ No "Send as Platform" functionality
+  - ❌ No "Join Conversation" button
+  - ❌ No admin message badge/styling
+  - ❌ No POST endpoint for admin message sending
+  - ❌ No audit logging for admin interventions
+  - ❌ No notification to participants when admin joins
+
+**Impact**:
+- Customer support and mediation
+- Dispute resolution
+- Platform intervention in conversations
+- Professional conflict management
+
+**Effort**: Low-Medium (4-6 days)
 
 **Action Required**:
-1. Add "Join Conversation" button in admin message oversight
-2. Allow admin to send messages in thread
-3. Mark admin messages with special badge ("Platform Support")
-4. Add "Resolve" button to close mediation
-5. Notify both parties when admin joins
-6. Log all admin interventions in audit log
+
+1. **Database Changes**:
+   - Add `isAdminMessage` boolean field to `messages` table
+   - Add `adminUserId` integer field (nullable, references admin user)
+   - Add `mediationStatus` enum to `conversations` ('active' | 'admin_joined' | 'resolved')
+
+2. **Backend Implementation** (`server/routes.ts`):
+   - Create `POST /api/admin/conversations/:id/send-message` endpoint
+   - Logic to insert message with `isAdminMessage: true`
+   - Set conversation `mediationStatus` to 'admin_joined'
+   - Send notifications to both participants
+   - Log intervention to audit_logs table
+
+3. **Frontend - Admin UI** (`client/src/pages/admin-messages.tsx`):
+   - Add message input box at bottom of conversation view
+   - Add "Send as Platform Support" button
+   - Show admin messages with special styling:
+     - Different background color (e.g., light blue)
+     - Badge: "🛡️ Platform Support"
+     - Timestamp and admin name
+   - Add "Join Conversation" toggle button (enable/disable input)
+   - Add "Mark as Resolved" button to close mediation
+   - Show mediation status badge in conversation list
+
+4. **WebSocket Integration** (`server/index.ts`):
+   - Emit admin messages to both conversation participants in real-time
+   - Send "Admin joined conversation" notification
+   - Update conversation mediation status via WebSocket
+
+5. **Notifications**:
+   - Email notification to both parties: "A Platform Support representative has joined your conversation"
+   - In-app notification with link to conversation
+   - Show "Admin Active" indicator in user's message interface
+
+6. **Audit Logging**:
+   - Log when admin joins conversation
+   - Log all admin messages
+   - Log when conversation marked as resolved
+   - Include: admin ID, timestamp, conversation ID, action type
+
+7. **User-Facing Changes** (`client/src/pages/messages.tsx`):
+   - Display admin messages with special badge
+   - Show "Platform Support is in this conversation" banner
+   - Disable ability to delete conversation when admin is involved
+
+**Example Admin Message Display**:
+```
+┌─────────────────────────────────────────────┐
+│ 🛡️ Platform Support (Admin: Sarah)         │
+│ "We've reviewed this dispute and recommend  │
+│  the following resolution..."               │
+│ Nov 24, 2025 at 3:45 PM                     │
+└─────────────────────────────────────────────┘
+```
 
 ---
 
@@ -833,12 +1162,48 @@ The following major features from the specification are **100% implemented**:
 
 ---
 
+## 📋 DETAILED IMPLEMENTATION STATUS - ALL FEATURES
+
+### ❌ FEATURES NOT IMPLEMENTED (0% Complete)
+
+The following features from the specification are **completely not implemented**:
+
+1. **Email Template System** - Hardcoded templates only (server/notifications/emailTemplates.ts)
+2. **Automated Website Verification** - No meta tag or DNS verification
+3. **Per-Company Fee Override** - Hardcoded 7% fee for all companies
+4. **Platform Health Monitoring** - No system metrics or monitoring
+5. **Bulk Admin Actions** - No bulk approve/reject functionality
+6. **Two-Factor Authentication (2FA)** - No 2FA implementation
+7. **Conversation Export** - Cannot export conversations for legal/GDPR
+8. **Tracking Pixel & JavaScript Snippet** - Only UTM link tracking exists
+9. **Saved Searches for Creators** - No saved search functionality
+10. **Offer Templates for Companies** - No template system
+11. **Social Media API Verification** - Manual URL entry only
+
+### ⚠️ PARTIALLY IMPLEMENTED FEATURES
+
+1. **Niche Management** (40%) - Basic CRUD exists, missing reorder/merge
+2. **CSV/PDF Export** (10%) - Only basic client-side CSV for payments
+3. **Wire Transfer/ACH Payments** (20%) - UI exists, simulated payouts only
+4. **Cryptocurrency Payments** (20%) - UI exists, simulated payouts only
+5. **Geographic Heatmap** (20%) - Data collected, no visualization
+6. **Churn Metrics** (0%) - No churn calculation logic
+7. **Admin Join Conversation** (40%) - Can view only, cannot send messages
+8. **Support Ticket System** (0%) - No structured ticket system
+
+### ✅ FULLY IMPLEMENTED PAYMENT METHODS
+
+1. **PayPal Payouts** (100%) - Production ready, sandbox mode active
+2. **E-Transfer via Stripe** (100%) - Production ready, sandbox mode active
+
+---
+
 ## 📋 RECOMMENDATIONS
 
 ### Immediate Actions (Before Production Launch) 🔴
 
 **Priority**: CRITICAL
-**Timeline**: 1-2 weeks
+**Timeline**: 2-3 weeks
 
 1. ✅ **Content Moderation System** (COMPLETED)
    - ✅ Implemented banned keywords management
@@ -847,13 +1212,23 @@ The following major features from the specification are **100% implemented**:
    - ✅ Set up admin notifications for flagged content
    - ✅ Built full admin UI (keyword management + moderation dashboard)
 
-2. **Email Template System for Admins**
-   - Create template management interface
-   - Add common templates (approval, rejection, etc.)
+2. ❌ **Email Template System for Admins** (NOT STARTED - 5-7 days)
+   - Create email_templates database table
+   - Migrate 14 hardcoded templates to database
+   - Build admin UI for template management (CRUD)
+   - Add template variable system ({{companyName}}, etc.)
+   - Create template selection in approval workflows
 
-3. **Automated Website Verification**
+3. ❌ **Automated Website Verification** (NOT STARTED - 5-7 days)
+   - Add verification fields to database schema
    - Implement meta tag verification
    - Implement DNS TXT record verification
+   - Build verification UI for companies and admins
+
+4. ❌ **Conversation Export for Legal Compliance** (NOT STARTED - 1-2 days)
+   - Create export endpoint (PDF/JSON/CSV)
+   - Add "Export" button in admin conversation view
+   - Required for GDPR data portability and dispute resolution
 
 ---
 
@@ -963,42 +1338,97 @@ The implementation is **exceptional**:
 
 ### Overall Assessment
 
-The **AffiliateXchange** platform implementation is **outstanding** with 98-99% feature completion against a very comprehensive specification. The development team has built:
+The **AffiliateXchange** platform implementation is **solid and functional** with approximately **85% feature completion** against a comprehensive specification. The development team has built:
 
+**✅ STRONG CORE IMPLEMENTATION**:
 - ✅ Robust backend with 150+ API endpoints
 - ✅ Complete database schema with 26+ tables
 - ✅ Full-featured UI with 40+ pages
-- ✅ Real-time messaging and notifications
+- ✅ Real-time messaging and notifications (WebSocket)
 - ✅ Advanced tracking with fraud detection
-- ✅ Payment processing (PayPal + Stripe + E-transfer sandbox)
+- ✅ **Payment processing (PayPal + E-Transfer fully functional)**
 - ✅ GDPR-compliant data handling
-- ✅ **Privacy Policy & Terms of Service pages** ✅
-- ✅ **Admin Response to Reviews** ✅
+- ✅ Privacy Policy & Terms of Service pages
+- ✅ Admin Response to Reviews
+- ✅ Content Moderation System (completed Nov 23, 2025)
+- ✅ All core marketplace features (offers, applications, reviews, analytics)
 
-### Remaining Gaps
+**⚠️ NOTABLE GAPS** (~15% of specification):
+1. **Email Template System** (0%) - Templates are hardcoded, no admin UI
+2. **Website Verification** (0%) - Manual verification only
+3. **Per-Company Fee Override** (0%) - Hardcoded 7% fee for all
+4. **Wire Transfer/ACH** (20%) - UI only, no real payouts
+5. **Cryptocurrency** (20%) - UI only, no real payouts
+6. **2FA** (0%) - No two-factor authentication
+7. **Admin Join Conversation** (40%) - View only, cannot send messages
+8. **Advanced Analytics** (20%) - Data collected, visualizations missing
+9. **Bulk Admin Actions** (0%) - No bulk operations
+10. **Conversation Export** (0%) - No export for legal/GDPR
+11. **Platform Health Monitoring** (0%) - No system metrics
 
-The remaining gaps are primarily nice-to-have enhancements:
-1. **Content moderation** - 1-2 weeks (recommended for quality)
-2. **Admin convenience tools** - 1-2 weeks
-3. **Alternative payment methods** - 2-4 weeks (E-transfer ready for production)
-4. **Mobile apps** - can use PWA (1 day) or defer
+### Production Readiness Assessment
 
-### Production Readiness
+**Status**: ⚠️ **PRODUCTION READY WITH LIMITATIONS**
 
-**The platform is READY for production launch NOW!** ✅
+**✅ CAN LAUNCH NOW** for North American market with:
+- PayPal payments (fully functional)
+- E-Transfer payments (fully functional for Canada)
+- All core marketplace features operational
+- Content moderation system active
 
-All critical requirements are met. The remaining items are enhancements that can be added post-launch:
-1. Content moderation system (recommended for long-term quality)
-2. Email template system (admin convenience)
-3. Automated website verification (optional enhancement)
+**⚠️ RECOMMENDED BEFORE FULL PRODUCTION LAUNCH** (2-3 weeks):
+1. **Email Template System** (5-7 days) - Critical for admin efficiency
+2. **Automated Website Verification** (5-7 days) - Important for fraud prevention
+3. **Conversation Export** (1-2 days) - Required for GDPR compliance
+4. **Per-Company Fee Override** (3-5 days) - Needed for business flexibility
 
-### Recommendation
+**🔄 POST-LAUNCH ENHANCEMENTS** (1-2 months):
+1. Complete Wire Transfer/ACH implementation (1-2 weeks)
+2. Complete Cryptocurrency implementation (2-3 weeks)
+3. Add Two-Factor Authentication (1-2 weeks)
+4. Complete Admin Join Conversation feature (4-6 days)
+5. Build Geographic Heatmap visualization (3-4 days)
+6. Implement Churn Metrics tracking (4-6 days)
+7. Add Bulk Admin Actions (3-5 days)
+8. Complete Niche Management features (5-7 days)
 
-**APPROVE FOR PRODUCTION** with minor additions noted above. This is an excellent implementation that meets or exceeds the specification requirements.
+### Implementation Quality Analysis
+
+| Aspect | Rating | Notes |
+|--------|--------|-------|
+| **Core Features** | ⭐⭐⭐⭐⭐ | Excellent - All core marketplace features work well |
+| **Payment Processing** | ⭐⭐⭐⭐ | Good - PayPal & E-Transfer fully functional; Wire/Crypto simulated |
+| **Admin Tools** | ⭐⭐⭐ | Average - Basic tools work; missing templates, bulk actions, monitoring |
+| **Security** | ⭐⭐⭐⭐ | Good - Strong basics; missing 2FA and website verification |
+| **Analytics** | ⭐⭐⭐ | Average - Data collected; missing visualizations and churn metrics |
+| **Code Quality** | ⭐⭐⭐⭐⭐ | Excellent - Professional, well-structured, comprehensive |
+| **Database Design** | ⭐⭐⭐⭐⭐ | Excellent - Comprehensive, normalized, properly indexed |
+| **API Coverage** | ⭐⭐⭐⭐⭐ | Excellent - 150+ endpoints, very thorough |
+
+### Final Recommendation
+
+**CONDITIONAL APPROVAL FOR PRODUCTION LAUNCH**
+
+**Minimum Launch Requirements**:
+1. ✅ Content moderation system active
+2. ⚠️ Implement conversation export (GDPR requirement) - **2 days**
+3. ⚠️ Add email template system (admin efficiency) - **1 week**
+4. ⚠️ Add website verification (fraud prevention) - **1 week**
+
+**Estimated Time to Full Production Readiness**: **2-3 weeks**
+
+**The platform has an excellent foundation and can launch with current features**, but the recommended additions above will significantly improve:
+- Legal compliance (conversation export)
+- Admin efficiency (email templates)
+- Security and trust (website verification)
+- Business flexibility (per-company fees)
+
+This is a **well-built platform** that demonstrates strong engineering practices. The core functionality is solid; the gaps are primarily in administrative tools and advanced features that can be added incrementally.
 
 ---
 
-**Report Generated**: November 23, 2025
-**Last Updated**: November 23, 2025
+**Report Generated**: November 24, 2025
+**Last Updated**: November 24, 2025
 **Reviewed By**: Claude Code Review
-**Status**: ✅ **APPROVED FOR PRODUCTION** - All Critical Features Complete!
+**Status**: ⚠️ **APPROVED FOR LIMITED LAUNCH** - Core Features Complete, Admin Tools Need Enhancement
+**Recommended Action**: Complete 4 critical items above (2-3 weeks) before full production launch
