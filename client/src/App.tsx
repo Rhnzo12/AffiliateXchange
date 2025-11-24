@@ -171,6 +171,7 @@ function ProtectedRouter() {
                     <Route path="/admin/moderation" component={AdminModerationDashboard} />
                     <Route path="/admin/moderation/dashboard" component={AdminModerationDashboard} />
                     <Route path="/admin/moderation/keywords" component={AdminKeywordManagement} />
+                    <Route path="/admin/keyword-management" component={AdminKeywordManagement} />
                     <Route path="/admin/users" component={AdminDashboard} />
                     <Route path="/admin/payment-settings" component={PaymentSettings} />
                     <Route path="/payments/:id" component={PaymentDetail} />

@@ -32,6 +32,7 @@ import {
   AlertCircle,
   Tags,
   ShieldAlert,
+  Ban,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -163,6 +164,11 @@ export function AppSidebar() {
       title: "Content Moderation",
       url: "/admin/moderation",
       icon: ShieldAlert,
+    },
+    {
+      title: "Keyword Management",
+      url: "/admin/keyword-management",
+      icon: Ban,
     },
     {
       title: "Message Monitoring",
