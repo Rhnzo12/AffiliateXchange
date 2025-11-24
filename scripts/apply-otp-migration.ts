@@ -19,20 +19,20 @@ async function applyMigration() {
     const migrationPath = join(__dirname, '../db/migrations/016_add_account_deletion_otp.sql');
     const migrationSQL = readFileSync(migrationPath, 'utf-8');
 
-    console.log('🚀 Applying OTP migration...');
+    console.log('🚀 Applying OTP migration...\n');
 
-    // Split by semicolons and execute each statement
-    const statements = migrationSQL
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
+    // Execute statements directly
+    console.log('1️⃣ Adding account_deletion_otp column...');
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS account_deletion_otp varchar`;
+    console.log('✅ account_deletion_otp column added\n');
 
-    for (const statement of statements) {
-      if (statement.trim()) {
-        await sql(statement);
-        console.log('✓', statement.split('\n')[0].substring(0, 60) + '...');
-      }
-    }
+    console.log('2️⃣ Adding account_deletion_otp_expiry column...');
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS account_deletion_otp_expiry timestamp`;
+    console.log('✅ account_deletion_otp_expiry column added\n');
+
+    console.log('3️⃣ Creating index for OTP lookups...');
+    await sql`CREATE INDEX IF NOT EXISTS idx_users_account_deletion_otp ON users(account_deletion_otp) WHERE account_deletion_otp IS NOT NULL`;
+    console.log('✅ Index created\n');
 
     console.log('✅ Migration completed successfully!');
     console.log('\n📋 Summary:');
