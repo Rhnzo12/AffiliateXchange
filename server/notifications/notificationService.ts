@@ -50,7 +50,8 @@ export type NotificationType =
   | 'revision_requested'
   | 'email_verification'
   | 'password_reset'
-  | 'account_deletion_otp';
+  | 'account_deletion_otp'
+  | 'password_change_otp';
 
 interface NotificationData {
   userName?: string;
@@ -364,6 +365,9 @@ export class NotificationService {
           break;
         case 'account_deletion_otp':
           emailContent = emailTemplates.accountDeletionOtpEmail(data);
+          break;
+        case 'password_change_otp':
+          emailContent = emailTemplates.passwordChangeOtpEmail(data);
           break;
         default:
           console.warn(`[Notifications] Unknown email type: ${type}`);

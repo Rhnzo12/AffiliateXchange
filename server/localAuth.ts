@@ -738,6 +738,121 @@ export async function setupAuth(app: Express) {
 
   });
 
+  // Request password change OTP - Send verification code to email
+  app.post("/api/auth/request-password-change-otp", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if user has a password (OAuth users don't)
+      if (!user.password) {
+        return res.status(400).json({ error: "Cannot change password for OAuth accounts" });
+      }
+
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Set OTP expiry to 15 minutes from now
+      const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
+
+      // Store OTP in database
+      await storage.updateUser(userId, {
+        passwordChangeOtp: otp,
+        passwordChangeOtpExpiry: otpExpiry,
+      });
+
+      // Send OTP via email
+      const notificationService = new NotificationService(storage);
+
+      await notificationService.sendEmailNotification(
+        user.email,
+        'password_change_otp',
+        {
+          userName: user.firstName || user.username,
+          otpCode: otp,
+        }
+      );
+
+      res.json({
+        message: "Verification code sent to your email",
+        email: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3') // Partially hide email
+      });
+
+    } catch (error: any) {
+      console.error("Request password change OTP error:", error);
+      res.status(500).json({ error: error.message || "Failed to send verification code" });
+    }
+  });
+
+  // Verify OTP and change password
+  app.post("/api/auth/verify-password-change-otp", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { otp, newPassword } = req.body;
+
+      // Validate required fields
+      if (!otp) {
+        return res.status(400).json({ error: "Verification code is required" });
+      }
+
+      if (!newPassword) {
+        return res.status(400).json({ error: "New password is required" });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if user has a password (OAuth users don't)
+      if (!user.password) {
+        return res.status(400).json({ error: "Cannot change password for OAuth accounts" });
+      }
+
+      // Verify OTP
+      if (!user.passwordChangeOtp) {
+        return res.status(400).json({ error: "No verification code found. Please request a new code." });
+      }
+
+      if (!user.passwordChangeOtpExpiry) {
+        return res.status(400).json({ error: "Verification code expiry not found. Please request a new code." });
+      }
+
+      if (user.passwordChangeOtp !== otp) {
+        return res.status(400).json({ error: "Invalid verification code" });
+      }
+
+      if (new Date() > user.passwordChangeOtpExpiry) {
+        return res.status(400).json({ error: "Verification code has expired. Please request a new code." });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password and clear OTP
+      await storage.updateUser(userId, {
+        password: hashedPassword,
+        passwordChangeOtp: null,
+        passwordChangeOtpExpiry: null,
+      });
+
+      res.json({ success: true, message: "Password changed successfully" });
+
+    } catch (error: any) {
+      console.error("Verify password change OTP error:", error);
+      res.status(500).json({ error: error.message || "Failed to change password" });
+    }
+  });
+
   // Email verification endpoint
 
   app.post("/api/auth/verify-email", async (req, res) => {

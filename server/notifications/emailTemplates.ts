@@ -870,3 +870,53 @@ export function accountDeletionOtpEmail(data: EmailTemplateData): { subject: str
 
   return { subject, html };
 }
+
+export function passwordChangeOtpEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Password Change Verification Code`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #F59E0B;">
+          <h1>Password Change Request</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>We received a request to change your Affiliate Marketplace account password. To confirm this action, please use the verification code below:</p>
+
+          <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 20px; margin: 20px 0; border-radius: 4px; text-align: center;">
+            <p style="margin: 0 0 10px 0; font-size: 14px; color: #92400E; font-weight: 600;">Your Verification Code</p>
+            <p style="margin: 0; font-size: 36px; font-weight: bold; color: #D97706; letter-spacing: 8px; font-family: monospace;">${data.otpCode}</p>
+          </div>
+
+          <div style="background-color: #DBEAFE; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; font-weight: 600; color: #1E40AF;">ℹ️ Important:</p>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #1E3A8A;">
+              <li style="margin-bottom: 8px;">This code will expire in <strong>15 minutes</strong></li>
+              <li style="margin-bottom: 8px;">Enter this code to complete your password change</li>
+              <li style="margin-bottom: 0;">Keep this code confidential and do not share it with anyone</li>
+            </ul>
+          </div>
+
+          <p style="color: #6B7280; font-size: 14px;">If you didn't request a password change, please ignore this email and consider securing your account by changing your password immediately.</p>
+
+          <div style="background-color: #F3F4F6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px; color: #374151;">For security reasons, we require this verification code to ensure that only you can change your account password.</p>
+          </div>
+        </div>
+        <div class="footer">
+          <p>This is an automated email from Affiliate Marketplace.</p>
+          <p>If you need assistance, please contact our support team.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
