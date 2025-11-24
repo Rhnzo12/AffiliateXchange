@@ -111,6 +111,15 @@ export default function Settings() {
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
   const [maskedEmail, setMaskedEmail] = useState("");
 
+  // Password change with OTP states
+  const [passwordChangeOtpSent, setPasswordChangeOtpSent] = useState(false);
+  const [passwordChangeOtpCode, setPasswordChangeOtpCode] = useState("");
+  const [passwordChangeMaskedEmail, setPasswordChangeMaskedEmail] = useState("");
+  const [isRequestingPasswordChangeOtp, setIsRequestingPasswordChangeOtp] = useState(false);
+  const [newPasswordWithOtp, setNewPasswordWithOtp] = useState("");
+  const [confirmPasswordWithOtp, setConfirmPasswordWithOtp] = useState("");
+  const [isChangingPasswordWithOtp, setIsChangingPasswordWithOtp] = useState(false);
+
   const { data: profile } = useQuery<any>({
     queryKey: ["/api/profile"],
     enabled: isAuthenticated,
@@ -906,6 +915,119 @@ export default function Settings() {
       });
     },
   });
+
+  // Handle requesting password change OTP
+  const handleRequestPasswordChangeOtp = async () => {
+    try {
+      setIsRequestingPasswordChangeOtp(true);
+
+      const response = await fetch("/api/auth/request-password-change-otp", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send verification code");
+      }
+
+      setPasswordChangeOtpSent(true);
+      setPasswordChangeMaskedEmail(result.email || user?.email || "");
+      toast({
+        title: "Verification Code Sent",
+        description: "A 6-digit code has been sent to your email address.",
+      });
+    } catch (error: any) {
+      console.error("Request password change OTP error:", error);
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to send verification code. Please try again.",
+      });
+    } finally {
+      setIsRequestingPasswordChangeOtp(false);
+    }
+  };
+
+  // Handle changing password with OTP
+  const handleChangePasswordWithOtp = async () => {
+    try {
+      setIsChangingPasswordWithOtp(true);
+
+      if (!passwordChangeOtpCode) {
+        setErrorDialog({
+          title: "Error",
+          message: "Please enter the verification code sent to your email.",
+        });
+        return;
+      }
+
+      if (!newPasswordWithOtp) {
+        setErrorDialog({
+          title: "Error",
+          message: "Please enter a new password.",
+        });
+        return;
+      }
+
+      if (newPasswordWithOtp.length < 8) {
+        setErrorDialog({
+          title: "Error",
+          message: "New password must be at least 8 characters.",
+        });
+        return;
+      }
+
+      if (newPasswordWithOtp !== confirmPasswordWithOtp) {
+        setErrorDialog({
+          title: "Error",
+          message: "Passwords do not match.",
+        });
+        return;
+      }
+
+      const response = await fetch("/api/auth/verify-password-change-otp", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          otp: passwordChangeOtpCode,
+          newPassword: newPasswordWithOtp
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to change password");
+      }
+
+      toast({
+        title: "Password Changed",
+        description: result.message || "Your password has been changed successfully.",
+      });
+
+      // Reset states
+      setPasswordChangeOtpSent(false);
+      setPasswordChangeOtpCode("");
+      setPasswordChangeMaskedEmail("");
+      setNewPasswordWithOtp("");
+      setConfirmPasswordWithOtp("");
+    } catch (error: any) {
+      console.error("Change password with OTP error:", error);
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to change password. Please try again.",
+      });
+    } finally {
+      setIsChangingPasswordWithOtp(false);
+    }
+  };
 
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
@@ -1868,6 +1990,116 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
+
+      {!user?.googleId && (
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Change Password with Email Verification</CardTitle>
+            <CardDescription>
+              Change your password securely with email verification code
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!passwordChangeOtpSent ? (
+              <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                    Secure Password Change
+                  </p>
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    We'll send a verification code to your email to ensure it's really you making this change.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleRequestPasswordChangeOtp}
+                  disabled={isRequestingPasswordChangeOtp}
+                  className="w-full"
+                >
+                  {isRequestingPasswordChangeOtp ? "Sending Code..." : "Send Verification Code to Email"}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                  <Shield className="h-4 w-4 text-blue-600" />
+                  <AlertTitle className="text-blue-900 dark:text-blue-100">Verification Code Sent</AlertTitle>
+                  <AlertDescription className="text-blue-800 dark:text-blue-200">
+                    We've sent a 6-digit code to {passwordChangeMaskedEmail}. Please check your email and enter the code below.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password-change-otp">Verification Code *</Label>
+                  <Input
+                    id="password-change-otp"
+                    type="text"
+                    placeholder="000000"
+                    maxLength={6}
+                    value={passwordChangeOtpCode}
+                    onChange={(e) => setPasswordChangeOtpCode(e.target.value.replace(/\D/g, ''))}
+                    className="font-mono text-lg tracking-widest text-center"
+                  />
+                  <p className="text-xs text-muted-foreground">Code expires in 15 minutes</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="newPasswordWithOtp">New Password *</Label>
+                  <Input
+                    id="newPasswordWithOtp"
+                    type="password"
+                    placeholder="Enter new password (min 8 characters)"
+                    value={newPasswordWithOtp}
+                    onChange={(e) => setNewPasswordWithOtp(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPasswordWithOtp">Confirm New Password *</Label>
+                  <Input
+                    id="confirmPasswordWithOtp"
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmPasswordWithOtp}
+                    onChange={(e) => setConfirmPasswordWithOtp(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleChangePasswordWithOtp}
+                    disabled={isChangingPasswordWithOtp}
+                    className="flex-1"
+                  >
+                    {isChangingPasswordWithOtp ? "Changing Password..." : "Change Password"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setPasswordChangeOtpSent(false);
+                      setPasswordChangeOtpCode("");
+                      setPasswordChangeMaskedEmail("");
+                      setNewPasswordWithOtp("");
+                      setConfirmPasswordWithOtp("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+
+                <Button
+                  variant="link"
+                  onClick={handleRequestPasswordChangeOtp}
+                  disabled={isRequestingPasswordChangeOtp}
+                  className="w-full text-sm"
+                >
+                  {isRequestingPasswordChangeOtp ? "Sending..." : "Didn't receive the code? Send again"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {!user?.googleId && (
         <Card className="border-card-border">
