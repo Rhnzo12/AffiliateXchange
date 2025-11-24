@@ -17,6 +17,7 @@ interface EmailTemplateData {
   linkUrl?: string;
   verificationUrl?: string;
   resetUrl?: string;
+  otpCode?: string;
 }
 
 const baseStyles = `
@@ -811,6 +812,56 @@ export function passwordResetEmail(data: EmailTemplateData): { subject: string; 
         </div>
         <div class="footer">
           <p>This is an automated email from Affiliate Marketplace.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function accountDeletionOtpEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Account Deletion Verification Code`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #EF4444;">
+          <h1>Account Deletion Request</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>We received a request to delete your Affiliate Marketplace account. To confirm this action, please use the verification code below:</p>
+
+          <div style="background-color: #FEE2E2; border-left: 4px solid #EF4444; padding: 20px; margin: 20px 0; border-radius: 4px; text-align: center;">
+            <p style="margin: 0 0 10px 0; font-size: 14px; color: #991B1B; font-weight: 600;">Your Verification Code</p>
+            <p style="margin: 0; font-size: 36px; font-weight: bold; color: #DC2626; letter-spacing: 8px; font-family: monospace;">${data.otpCode}</p>
+          </div>
+
+          <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; font-weight: 600; color: #92400E;">⚠️ Important:</p>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #78350F;">
+              <li style="margin-bottom: 8px;">This code will expire in <strong>15 minutes</strong></li>
+              <li style="margin-bottom: 8px;">Account deletion is permanent and cannot be undone</li>
+              <li style="margin-bottom: 0;">All your data, applications, and messages will be permanently deleted</li>
+            </ul>
+          </div>
+
+          <p style="color: #6B7280; font-size: 14px;">If you didn't request to delete your account, please ignore this email and consider changing your password for security.</p>
+
+          <div style="background-color: #F3F4F6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px; color: #374151;">For security reasons, we require this verification code to ensure that only you can delete your account.</p>
+          </div>
+        </div>
+        <div class="footer">
+          <p>This is an automated email from Affiliate Marketplace.</p>
+          <p>If you need assistance, please contact our support team.</p>
         </div>
       </div>
     </body>

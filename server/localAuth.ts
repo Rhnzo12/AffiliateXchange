@@ -1324,6 +1324,51 @@ export async function setupAuth(app: Express) {
 
   });
 
+// Request account deletion - Generate and send OTP
+app.post("/api/user/request-account-deletion", isAuthenticated, async (req, res) => {
+  try {
+    const userId = (req.user as any).id;
+    const user = await storage.getUser(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Set OTP expiry to 15 minutes from now
+    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    // Store OTP in database
+    await storage.updateUser(userId, {
+      accountDeletionOtp: otp,
+      accountDeletionOtpExpiry: otpExpiry,
+    });
+
+    // Send OTP via email
+    const notificationService = new NotificationService(storage);
+
+    await notificationService.sendEmailNotification(
+      user.email,
+      'account_deletion_otp',
+      {
+        userName: user.firstName || user.username,
+        otpCode: otp,
+      }
+    );
+
+    res.json({
+      message: "Verification code sent to your email",
+      email: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3') // Partially hide email
+    });
+
+  } catch (error: any) {
+    console.error("Request account deletion error:", error);
+    res.status(500).json({ error: error.message || "Failed to send verification code" });
+  }
+});
+
 // GDPR/CCPA: Delete account
 
 app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
@@ -1332,7 +1377,7 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
     const userId = (req.user as any).id;
 
-    const { password } = req.body;
+    const { otp } = req.body;
 
     const user = await storage.getUser(userId);
 
@@ -1342,24 +1387,27 @@ app.post("/api/user/delete-account", isAuthenticated, async (req, res) => {
 
     }
 
-    // Verify password for non-OAuth users
+    // Verify OTP
+    if (!otp) {
+      return res.status(400).json({ error: "Verification code is required" });
+    }
 
-    if (user.password && !user.googleId) {
+    if (!user.accountDeletionOtp) {
+      return res.status(400).json({ error: "No verification code found. Please request a new code." });
+    }
 
-      if (!password) {
+    if (!user.accountDeletionOtpExpiry) {
+      return res.status(400).json({ error: "Invalid verification code. Please request a new code." });
+    }
 
-        return res.status(400).json({ error: "Password is required to delete your account" });
+    // Check if OTP has expired
+    if (new Date() > new Date(user.accountDeletionOtpExpiry)) {
+      return res.status(400).json({ error: "Verification code has expired. Please request a new code." });
+    }
 
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-
-      if (!isPasswordValid) {
-
-        return res.status(401).json({ error: "Incorrect password" });
-
-      }
-
+    // Verify OTP matches
+    if (user.accountDeletionOtp !== otp) {
+      return res.status(401).json({ error: "Invalid verification code. Please check and try again." });
     }
 
     // Check for active applications/contracts/retainers
