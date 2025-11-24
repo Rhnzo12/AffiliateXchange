@@ -11,15 +11,33 @@ dotenv.config();
 async function configureCORS() {
   try {
     // Initialize Google Cloud Storage
-    const keyFilePath = process.env.GOOGLE_CLOUD_KEYFILE;
-    const storage = keyFilePath
-      ? new Storage({
-          projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-          keyFilename: keyFilePath,
-        })
-      : new Storage({
-          projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-        });
+    let storage: Storage;
+
+    // Option 1: Use credentials from JSON string (best for production/Render)
+    const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    if (credentialsJson) {
+      const credentials = JSON.parse(credentialsJson);
+      storage = new Storage({
+        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || credentials.project_id,
+        credentials,
+      });
+      console.log('Using credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON');
+    }
+    // Option 2: Use key file path (for local development)
+    else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+      storage = new Storage({
+        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+        keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+      });
+      console.log('Using key file from GOOGLE_CLOUD_KEYFILE');
+    }
+    // Option 3: Fallback to default credentials
+    else {
+      storage = new Storage({
+        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+      });
+      console.log('Using default credentials');
+    }
 
     const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
     const bucket = storage.bucket(bucketName);
