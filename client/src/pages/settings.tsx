@@ -1991,35 +1991,42 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      {!user?.googleId && (
-        <Card className="border-card-border">
-          <CardHeader>
-            <CardTitle>Change Password with Email Verification</CardTitle>
-            <CardDescription>
-              Change your password securely with email verification code
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!passwordChangeOtpSent ? (
-              <div className="space-y-4">
-                <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md border border-blue-200 dark:border-blue-800">
-                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                    Secure Password Change
-                  </p>
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
-                    We'll send a verification code to your email to ensure it's really you making this change.
-                  </p>
-                </div>
-
-                <Button
-                  onClick={handleRequestPasswordChangeOtp}
-                  disabled={isRequestingPasswordChangeOtp}
-                  className="w-full"
-                >
-                  {isRequestingPasswordChangeOtp ? "Sending Code..." : "Send Verification Code to Email"}
-                </Button>
+      <Card className="border-card-border">
+        <CardHeader>
+          <CardTitle>Change Password with Email Verification</CardTitle>
+          <CardDescription>
+            Change your password securely with email verification code
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {user?.googleId ? (
+            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+              <Shield className="h-4 w-4 text-blue-600" />
+              <AlertTitle className="text-blue-900 dark:text-blue-100">Google Account</AlertTitle>
+              <AlertDescription className="text-blue-800 dark:text-blue-200">
+                You signed in with Google. Your password is managed by Google, so you don't need to change it here.
+              </AlertDescription>
+            </Alert>
+          ) : !passwordChangeOtpSent ? (
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md border border-blue-200 dark:border-blue-800">
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                  Secure Password Change
+                </p>
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  We'll send a verification code to your email to ensure it's really you making this change.
+                </p>
               </div>
-            ) : (
+
+              <Button
+                onClick={handleRequestPasswordChangeOtp}
+                disabled={isRequestingPasswordChangeOtp}
+                className="w-full"
+              >
+                {isRequestingPasswordChangeOtp ? "Sending Code..." : "Send Verification Code to Email"}
+              </Button>
+            </div>
+          ) : (
               <div className="space-y-4">
                 <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
                   <Shield className="h-4 w-4 text-blue-600" />
@@ -2099,60 +2106,72 @@ export default function Settings() {
             )}
           </CardContent>
         </Card>
-      )}
 
-      {!user?.googleId && (
-        <Card className="border-card-border">
-          <CardHeader>
-            <CardTitle>Change Password</CardTitle>
-          </CardHeader>
+      <Card className="border-card-border">
+        <CardHeader>
+          <CardTitle>Change Password (Legacy)</CardTitle>
+          <CardDescription>
+            Quick password change without email verification (less secure)
+          </CardDescription>
+        </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password *</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                placeholder="Enter current password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                data-testid="input-current-password"
-              />
-            </div>
+            {user?.googleId ? (
+              <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                <Shield className="h-4 w-4 text-blue-600" />
+                <AlertTitle className="text-blue-900 dark:text-blue-100">Google Account</AlertTitle>
+                <AlertDescription className="text-blue-800 dark:text-blue-200">
+                  You signed in with Google. Your password is managed by Google.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password *</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    placeholder="Enter current password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    data-testid="input-current-password"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password *</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                placeholder="Enter new password (min 8 characters)"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                data-testid="input-new-password"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password *</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    placeholder="Enter new password (min 8 characters)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    data-testid="input-new-password"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password *</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                data-testid="input-confirm-password"
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password *</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    data-testid="input-confirm-password"
+                  />
+                </div>
 
-            <Button
-              onClick={() => changePasswordMutation.mutate()}
-              disabled={changePasswordMutation.isPending}
-              data-testid="button-change-password"
-            >
-              {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
-            </Button>
+                <Button
+                  onClick={() => changePasswordMutation.mutate()}
+                  disabled={changePasswordMutation.isPending}
+                  data-testid="button-change-password"
+                >
+                  {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
-      )}
 
       <Card className="border-card-border">
         <CardHeader>

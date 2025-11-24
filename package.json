@@ -16,6 +16,7 @@
     "migrate:content-moderation": "tsx --env-file=.env scripts/migrate-content-moderation.ts",
     "migrate:otp": "tsx --env-file=.env scripts/apply-otp-migration.ts",
     "migrate:password-otp": "tsx --env-file=.env scripts/run-017-migration.ts",
+    "check:user-auth": "tsx --env-file=.env scripts/check-user-auth.ts",
     "verify:otp": "tsx --env-file=.env scripts/verify-otp-columns.ts",
     "update:offer-requirements": "tsx --env-file=.env scripts/update-offer-requirements.ts",
     "check:offer-requirements": "tsx --env-file=.env scripts/check-offer-requirements.ts",
