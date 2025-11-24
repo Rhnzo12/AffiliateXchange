@@ -11,7 +11,7 @@ The application requires Google Cloud Storage credentials to handle media upload
 3. Navigate to the **Environment** tab
 4. Add the following environment variable:
 
-**GOOGLE_APPLICATION_CREDENTIALS_JSON**
+**GOOGLE_CLOUD_CREDENTIALS_JSON**
 - Value: The entire contents of your Google Cloud service account JSON file
 - This should be a single-line JSON string containing your credentials
 
@@ -32,7 +32,7 @@ Make sure these are also set in Render:
 
 The application now supports three methods for loading credentials (in order of priority):
 
-1. **GOOGLE_APPLICATION_CREDENTIALS_JSON** (Recommended for production)
+1. **GOOGLE_CLOUD_CREDENTIALS_JSON** (Recommended for production)
    - Loads credentials from JSON string environment variable
    - Best for deployment platforms like Render, Heroku, etc.
 
@@ -54,7 +54,7 @@ ENOENT: no such file or directory, open '/opt/render/project/src/config/...'
 This means:
 1. The `GOOGLE_CLOUD_KEYFILE` environment variable is set to a file path
 2. The file doesn't exist in the deployed environment
-3. **Solution**: Remove `GOOGLE_CLOUD_KEYFILE` and add `GOOGLE_APPLICATION_CREDENTIALS_JSON` instead
+3. **Solution**: Remove `GOOGLE_CLOUD_KEYFILE` and add `GOOGLE_CLOUD_CREDENTIALS_JSON` instead
 
 ### Getting Your Credentials JSON
 
@@ -65,6 +65,6 @@ This means:
 5. Click **Add Key** → **Create new key**
 6. Select **JSON** format
 7. Download the file
-8. Copy the entire contents and paste into `GOOGLE_APPLICATION_CREDENTIALS_JSON` in Render
+8. Copy the entire contents and paste into `GOOGLE_CLOUD_CREDENTIALS_JSON` in Render
 
 **Important**: Keep your credentials secure and never commit them to your repository!

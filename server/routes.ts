@@ -4850,14 +4850,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Generate signed URL using ObjectStorageService
             const { Storage } = await import('@google-cloud/storage');
-            const keyFilePath = process.env.GOOGLE_CLOUD_KEYFILE;
             const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
             const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
 
             let gcsStorage: any;
-            if (keyFilePath) {
-              gcsStorage = new Storage({ projectId, keyFilename: keyFilePath });
-            } else {
+            // Option 1: Use credentials from JSON string (best for production/Render)
+            const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
+            if (credentialsJson) {
+              const credentials = JSON.parse(credentialsJson);
+              gcsStorage = new Storage({
+                projectId: projectId || credentials.project_id,
+                credentials,
+              });
+            }
+            // Option 2: Use key file path (for local development)
+            else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+              gcsStorage = new Storage({
+                projectId,
+                keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+              });
+            }
+            // Option 3: Fallback to default credentials (useful for GCP environments)
+            else {
               gcsStorage = new Storage({ projectId });
             }
 
@@ -4932,14 +4946,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Generate signed URL using ObjectStorageService
             const { Storage } = await import('@google-cloud/storage');
-            const keyFilePath = process.env.GOOGLE_CLOUD_KEYFILE;
             const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
             const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
 
             let gcsStorage: any;
-            if (keyFilePath) {
-              gcsStorage = new Storage({ projectId, keyFilename: keyFilePath });
-            } else {
+            // Option 1: Use credentials from JSON string (best for production/Render)
+            const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
+            if (credentialsJson) {
+              const credentials = JSON.parse(credentialsJson);
+              gcsStorage = new Storage({
+                projectId: projectId || credentials.project_id,
+                credentials,
+              });
+            }
+            // Option 2: Use key file path (for local development)
+            else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+              gcsStorage = new Storage({
+                projectId,
+                keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+              });
+            }
+            // Option 3: Fallback to default credentials (useful for GCP environments)
+            else {
               gcsStorage = new Storage({ projectId });
             }
 
@@ -5319,17 +5347,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { Storage } = await import('@google-cloud/storage');
 
       // Initialize Google Cloud Storage with service account key
-      const keyFilePath = process.env.GOOGLE_CLOUD_KEYFILE;
       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'tool-development-478707';
       const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
 
       let gcsStorage: any;
-      if (keyFilePath) {
+      // Option 1: Use credentials from JSON string (best for production/Render)
+      const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
+      if (credentialsJson) {
+        const credentials = JSON.parse(credentialsJson);
+        gcsStorage = new Storage({
+          projectId: projectId || credentials.project_id,
+          credentials,
+        });
+      }
+      // Option 2: Use key file path (for local development)
+      else if (process.env.GOOGLE_CLOUD_KEYFILE) {
         gcsStorage = new Storage({
           projectId,
-          keyFilename: keyFilePath,
+          keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
         });
-      } else {
+      }
+      // Option 3: Fallback to default credentials (useful for GCP environments)
+      else {
         gcsStorage = new Storage({ projectId });
       }
 
@@ -5370,17 +5409,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { Storage } = await import('@google-cloud/storage');
 
       // Initialize Google Cloud Storage
-      const keyFilePath = process.env.GOOGLE_CLOUD_KEYFILE;
       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'tool-development-478707';
       const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
 
       let gcsStorage: any;
-      if (keyFilePath) {
+      // Option 1: Use credentials from JSON string (best for production/Render)
+      const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
+      if (credentialsJson) {
+        const credentials = JSON.parse(credentialsJson);
+        gcsStorage = new Storage({
+          projectId: projectId || credentials.project_id,
+          credentials,
+        });
+      }
+      // Option 2: Use key file path (for local development)
+      else if (process.env.GOOGLE_CLOUD_KEYFILE) {
         gcsStorage = new Storage({
           projectId,
-          keyFilename: keyFilePath,
+          keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
         });
-      } else {
+      }
+      // Option 3: Fallback to default credentials (useful for GCP environments)
+      else {
         gcsStorage = new Storage({ projectId });
       }
 
