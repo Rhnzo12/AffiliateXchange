@@ -1,4 +1,4 @@
-import { db } from '../server/storage';
+import { db } from '../server/db';
 import { sql } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
@@ -10,21 +10,16 @@ async function runMigration() {
     const migrationPath = path.join(process.cwd(), 'db/migrations/017_add_password_change_otp.sql');
     const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
 
-    // Split by semicolons and execute each statement
-    const statements = migrationSQL
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
-
-    for (const statement of statements) {
-      if (statement.includes('ALTER TABLE') || statement.includes('CREATE INDEX')) {
-        console.log(`Executing: ${statement.substring(0, 60)}...`);
-        await db.execute(sql.raw(statement));
-      }
-    }
+    // Execute the entire migration as raw SQL
+    console.log('Executing migration SQL...');
+    await db.execute(sql.raw(migrationSQL));
 
     console.log('✅ Migration completed successfully!');
-    console.log('You can now restart your server.');
+    console.log('The following columns have been added:');
+    console.log('  - password_change_otp');
+    console.log('  - password_change_otp_expiry');
+    console.log('  - Index: idx_users_password_change_otp');
+    console.log('\nYou can now restart your server.');
     process.exit(0);
   } catch (error) {
     console.error('❌ Migration failed:', error);
