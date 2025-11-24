@@ -1,6 +1,6 @@
 [
   {
-    "origin": ["http://localhost:3000", "http://localhost:5000", "https://*.vercel.app"],
+    "origin": ["https://affiliatexchange.onrender.com", "https://affiliatexchangemarket.onrender.com", "http://localhost:3000", "http://localhost:5000", "https://*.vercel.app"],
     "method": ["GET", "PUT", "POST", "DELETE", "HEAD"],
     "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"],
     "maxAgeSeconds": 3600
