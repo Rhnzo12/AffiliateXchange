@@ -49,7 +49,8 @@ export type NotificationType =
   | 'deliverable_rejected'
   | 'revision_requested'
   | 'email_verification'
-  | 'password_reset';
+  | 'password_reset'
+  | 'account_deletion_otp';
 
 interface NotificationData {
   userName?: string;
@@ -85,6 +86,7 @@ interface NotificationData {
   revisionInstructions?: string;
   verificationUrl?: string;
   resetUrl?: string;
+  otpCode?: string;
 }
 
 export class NotificationService {
@@ -359,6 +361,9 @@ export class NotificationService {
           break;
         case 'password_reset':
           emailContent = emailTemplates.passwordResetEmail(data);
+          break;
+        case 'account_deletion_otp':
+          emailContent = emailTemplates.accountDeletionOtpEmail(data);
           break;
         default:
           console.warn(`[Notifications] Unknown email type: ${type}`);

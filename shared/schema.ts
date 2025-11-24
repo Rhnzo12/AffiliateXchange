@@ -94,6 +94,8 @@ export const users = pgTable("users", {
   emailVerificationTokenExpiry: timestamp("email_verification_token_expiry"),
   passwordResetToken: varchar("password_reset_token"),
   passwordResetTokenExpiry: timestamp("password_reset_token_expiry"),
+  accountDeletionOtp: varchar("account_deletion_otp"),
+  accountDeletionOtpExpiry: timestamp("account_deletion_otp_expiry"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

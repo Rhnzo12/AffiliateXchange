@@ -106,6 +106,10 @@ export default function Settings() {
   const [showActiveItemsDialog, setShowActiveItemsDialog] = useState(false);
   const [activeItemsDetails, setActiveItemsDetails] = useState<any>(null);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
+  const [maskedEmail, setMaskedEmail] = useState("");
 
   const { data: profile } = useQuery<any>({
     queryKey: ["/api/profile"],
@@ -717,22 +721,51 @@ export default function Settings() {
     }
   };
 
+  const handleRequestDeleteOtp = async () => {
+    try {
+      setIsRequestingOtp(true);
+
+      const response = await fetch("/api/user/request-account-deletion", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send verification code");
+      }
+
+      setOtpSent(true);
+      setMaskedEmail(result.email || user?.email || "");
+      toast({
+        title: "Verification Code Sent",
+        description: "A 6-digit code has been sent to your email address.",
+      });
+    } catch (error: any) {
+      console.error("Request OTP error:", error);
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to send verification code. Please try again.",
+      });
+    } finally {
+      setIsRequestingOtp(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     try {
       setIsDeletingAccount(true);
 
-      const payload: any = {};
-
-      // Only require password for non-OAuth users
-      if (!user?.googleId && user?.password) {
-        if (!deletePassword) {
-          setErrorDialog({
-            title: "Error",
-            message: "Password is required to delete your account.",
-          });
-          return;
-        }
-        payload.password = deletePassword;
+      if (!otpCode) {
+        setErrorDialog({
+          title: "Error",
+          message: "Please enter the verification code sent to your email.",
+        });
+        return;
       }
 
       const response = await fetch("/api/user/delete-account", {
@@ -741,7 +774,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ otp: otpCode }),
       });
 
       const result = await response.json();
@@ -753,6 +786,9 @@ export default function Settings() {
           setShowActiveItemsDialog(true);
           setShowDeleteDialog(false);
           setDeletePassword("");
+          setOtpCode("");
+          setOtpSent(false);
+          setMaskedEmail("");
           return;
         }
         throw new Error(result.error || result.details || "Failed to delete account");
@@ -778,6 +814,9 @@ export default function Settings() {
       setIsDeletingAccount(false);
       setShowDeleteDialog(false);
       setDeletePassword("");
+      setOtpCode("");
+      setOtpSent(false);
+      setMaskedEmail("");
     }
   };
 
@@ -2040,29 +2079,74 @@ export default function Settings() {
                     <li>Messages (content kept, sender anonymized)</li>
                   </ul>
                 </div>
-                {!user?.googleId && (
-                  <div className="space-y-2 pt-2">
-                    <Label htmlFor="delete-password">
-                      Enter your password to confirm deletion:
-                    </Label>
-                    <Input
-                      id="delete-password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={deletePassword}
-                      onChange={(e) => setDeletePassword(e.target.value)}
-                    />
-                  </div>
-                )}
+
+                {/* Two-step verification */}
+                <div className="space-y-3 pt-2">
+                  {!otpSent ? (
+                    <div className="bg-amber-50 dark:bg-amber-950 p-3 rounded-md border border-amber-200 dark:border-amber-800">
+                      <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                        Security Verification Required
+                      </p>
+                      <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                        To proceed with account deletion, we'll send a verification code to your email address.
+                      </p>
+                      <Button
+                        onClick={handleRequestDeleteOtp}
+                        disabled={isRequestingOtp}
+                        variant="outline"
+                        className="w-full border-amber-300 dark:border-amber-700 bg-white dark:bg-amber-900"
+                      >
+                        {isRequestingOtp ? "Sending..." : "Send Verification Code to Email"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="bg-green-50 dark:bg-green-950 p-3 rounded-md border border-green-200 dark:border-green-800 mb-3">
+                        <p className="text-sm text-green-900 dark:text-green-100">
+                          ✓ Verification code sent to <strong>{maskedEmail}</strong>
+                        </p>
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                          The code will expire in 15 minutes.
+                        </p>
+                      </div>
+                      <Label htmlFor="delete-otp">
+                        Enter the 6-digit verification code:
+                      </Label>
+                      <Input
+                        id="delete-otp"
+                        type="text"
+                        placeholder="000000"
+                        maxLength={6}
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                        className="font-mono text-lg tracking-widest text-center"
+                      />
+                      <Button
+                        onClick={handleRequestDeleteOtp}
+                        disabled={isRequestingOtp}
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs"
+                      >
+                        {isRequestingOtp ? "Resending..." : "Didn't receive? Resend code"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setDeletePassword("")}>
+              <AlertDialogCancel onClick={() => {
+                setDeletePassword("");
+                setOtpCode("");
+                setOtpSent(false);
+                setMaskedEmail("");
+              }}>
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDeleteAccount}
-                disabled={isDeletingAccount}
+                disabled={isDeletingAccount || !otpSent || otpCode.length !== 6}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 {isDeletingAccount ? "Deleting..." : "Yes, delete my account"}
