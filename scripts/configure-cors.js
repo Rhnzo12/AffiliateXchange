@@ -27,13 +27,27 @@ async function configureCORS() {
     const bucket = storage.bucket(bucketName);
 
     // CORS configuration
+    // Note: GCS does not support wildcard origins. Each domain must be listed explicitly.
     const corsConfiguration = [
       {
-        origin: ['http://localhost:3000', 'http://localhost:5000', 'https://*.vercel.app'],
-        method: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD'],
-        responseHeader: ['Content-Type', 'Access-Control-Allow-Origin'],
-        maxAgeSeconds: 3600,
-      },
+        origin: [
+          "https://affiliatexchange.onrender.com",
+          "https://affiliatexchangemarket.onrender.com",
+          "http://localhost:3000",
+          "http://localhost:5000"
+          // Add specific Vercel deployment URLs here as needed
+          // Example: "https://your-app-abc123.vercel.app"
+        ],
+        method: ["GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"],
+        responseHeader: [
+          "Content-Type",
+          "Access-Control-Allow-Origin",
+          "Content-Length",
+          "Content-Range",
+          "Accept-Ranges"
+        ],
+        maxAgeSeconds: 3600
+      }
     ];
 
     console.log('Configuring CORS for bucket:', bucketName);
@@ -43,9 +57,10 @@ async function configureCORS() {
 
     console.log('\n✅ CORS configuration applied successfully!');
     console.log('\nYou can now upload files from:');
-    console.log('  - http://localhost:3000');
-    console.log('  - http://localhost:5000');
-    console.log('  - Any Vercel deployment (*.vercel.app)');
+    corsConfiguration[0].origin.forEach(origin => {
+      console.log(`  - ${origin}`);
+    });
+    console.log('\n⚠️  Note: To add Vercel deployments, you must add each specific URL to the origin array.');
 
     // Verify the configuration
     const [metadata] = await bucket.getMetadata();
@@ -54,6 +69,9 @@ async function configureCORS() {
 
   } catch (error) {
     console.error('❌ Error configuring CORS:', error.message);
+    if (error.code) {
+      console.error('Error code:', error.code);
+    }
     process.exit(1);
   }
 }
