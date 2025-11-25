@@ -920,3 +920,118 @@ export function passwordChangeOtpEmail(data: EmailTemplateData): { subject: stri
 
   return { subject, html };
 }
+
+interface ContentFlaggedEmailData extends EmailTemplateData {
+  contentType?: string;
+  matchedKeywords?: string[];
+  reviewStatus?: string;
+  actionTaken?: string;
+}
+
+export function contentFlaggedEmail(data: ContentFlaggedEmailData): { subject: string; html: string } {
+  const contentType = data.contentType || 'content';
+  const isReviewComplete = data.reviewStatus && data.reviewStatus !== 'pending';
+
+  let subject: string;
+  let headerColor: string;
+  let headerTitle: string;
+  let bodyContent: string;
+
+  if (isReviewComplete) {
+    // Review completed notification
+    switch (data.reviewStatus) {
+      case 'dismissed':
+        subject = `Content Review Complete - No Issues Found`;
+        headerColor = '#10B981';
+        headerTitle = 'Review Complete';
+        bodyContent = `
+          <p>Good news! Your ${contentType} has been reviewed by our moderation team and <strong>no issues were found</strong>.</p>
+          <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #065F46;">✓ The flag on your content has been dismissed. No further action is required.</p>
+          </div>
+        `;
+        break;
+      case 'action_taken':
+        subject = `Content Moderation Notice`;
+        headerColor = '#EF4444';
+        headerTitle = 'Moderation Action Taken';
+        bodyContent = `
+          <p>Your ${contentType} has been reviewed by our moderation team and action has been taken.</p>
+          ${data.actionTaken ? `
+            <div style="background-color: #FEE2E2; border-left: 4px solid #EF4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0; font-weight: 600; color: #991B1B;">Action Taken:</p>
+              <p style="margin: 10px 0 0 0; color: #7F1D1D;">${data.actionTaken}</p>
+            </div>
+          ` : ''}
+          <p style="color: #6B7280; font-size: 14px;">Please review our <a href="/terms-of-service">community guidelines</a> to ensure your future content complies with our policies.</p>
+        `;
+        break;
+      default:
+        subject = `Content Review Complete`;
+        headerColor = '#3B82F6';
+        headerTitle = 'Review Complete';
+        bodyContent = `
+          <p>Your ${contentType} has been reviewed by our moderation team.</p>
+          <div style="background-color: #DBEAFE; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #1E40AF;">The review has been completed. No further action is required from you at this time.</p>
+          </div>
+        `;
+    }
+  } else {
+    // Content flagged notification
+    subject = `Your ${contentType} is Under Review`;
+    headerColor = '#F59E0B';
+    headerTitle = 'Content Under Review';
+
+    const keywordsList = data.matchedKeywords && data.matchedKeywords.length > 0
+      ? data.matchedKeywords.join(', ')
+      : 'potential policy violation';
+
+    bodyContent = `
+      <p>Your ${contentType} has been flagged for review by our moderation system.</p>
+
+      <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; font-weight: 600; color: #92400E;">Reason for Review:</p>
+        <p style="margin: 10px 0 0 0; color: #78350F;">${keywordsList}</p>
+      </div>
+
+      <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #374151;">What happens next?</h3>
+        <ul style="margin: 0; padding-left: 20px; color: #6B7280;">
+          <li style="margin-bottom: 8px;">Our moderation team will review your content</li>
+          <li style="margin-bottom: 8px;">You will be notified once the review is complete</li>
+          <li style="margin-bottom: 0;">If any action is required, we will provide detailed information</li>
+        </ul>
+      </div>
+
+      <p style="color: #6B7280; font-size: 14px;">If you believe this flag was made in error, please wait for the review to complete. Our team carefully reviews all flagged content.</p>
+    `;
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: ${headerColor};">
+          <h1>${headerTitle}</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          ${bodyContent}
+          <a href="${data.linkUrl || '/notifications'}" class="button" style="background-color: ${headerColor};">View Details</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
