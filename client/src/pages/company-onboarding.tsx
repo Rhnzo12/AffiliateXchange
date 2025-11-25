@@ -258,7 +258,9 @@ export default function CompanyOnboarding() {
         },
         body: JSON.stringify({
           folder: user?.id ? `verification-documents/${user.id}` : "verification-documents",
-          resourceType: file.type === 'application/pdf' ? 'raw' : 'image'
+          resourceType: file.type === 'application/pdf' ? 'raw' : 'image',
+          contentType: file.type, // Pass actual file content type
+          fileName: file.name // Pass original filename to preserve extension
         }),
       });
 

@@ -5512,10 +5512,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const objectStorageService = new ObjectStorageService();
     const folder = req.body.folder || undefined; // Optional folder parameter
     const resourceType = req.body.resourceType || 'auto'; // Optional resource type (image, video, auto)
+    const contentType = req.body.contentType || undefined; // Optional content type from client
+    const fileName = req.body.fileName || undefined; // Optional original filename
     console.log('[Upload API] Requested folder:', req.body.folder);
     console.log('[Upload API] Requested resourceType:', req.body.resourceType);
+    console.log('[Upload API] Requested contentType:', contentType);
+    console.log('[Upload API] Requested fileName:', fileName);
     console.log('[Upload API] Folder parameter passed to service:', folder);
-    const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType);
+    const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType, contentType, fileName);
     console.log('[Upload API] Upload params returned:', uploadParams);
     res.json(uploadParams);
   });
