@@ -425,6 +425,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== Company Verification Documents Routes =====
+
+  // Get verification documents for the logged-in company user
+  app.get("/api/company/verification-documents", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const documents = await storage.getVerificationDocumentsByUserId(userId);
+      return res.json(documents);
+    } catch (error: any) {
+      console.error("Get verification documents error:", error);
+      res.status(500).json({ error: error.message || "Failed to get verification documents" });
+    }
+  });
+
+  // Add a new verification document
+  app.post("/api/company/verification-documents", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { documentUrl, documentName, documentType, fileSize } = req.body;
+
+      if (!documentUrl || !documentName || !documentType) {
+        return res.status(400).json({ error: "Missing required fields: documentUrl, documentName, documentType" });
+      }
+
+      // Get company profile for this user
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+
+      const document = await storage.addVerificationDocument({
+        companyId: companyProfile.id,
+        documentUrl,
+        documentName,
+        documentType,
+        fileSize: fileSize || null,
+      });
+
+      return res.json({ success: true, document });
+    } catch (error: any) {
+      console.error("Add verification document error:", error);
+      res.status(500).json({ error: error.message || "Failed to add verification document" });
+    }
+  });
+
+  // Delete a verification document
+  app.delete("/api/company/verification-documents/:id", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const documentId = req.params.id;
+
+      // Get the document and verify ownership
+      const document = await storage.getVerificationDocumentById(documentId);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Get company profile and verify the document belongs to this company
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile || document.companyId !== companyProfile.id) {
+        return res.status(403).json({ error: "Not authorized to delete this document" });
+      }
+
+      const deleted = await storage.deleteVerificationDocument(documentId);
+      if (deleted) {
+        return res.json({ success: true });
+      } else {
+        return res.status(500).json({ error: "Failed to delete document" });
+      }
+    } catch (error: any) {
+      console.error("Delete verification document error:", error);
+      res.status(500).json({ error: error.message || "Failed to delete verification document" });
+    }
+  });
+
+  // Admin: Get verification documents for a specific company
+  app.get("/api/admin/companies/:id/verification-documents", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      const documents = await storage.getVerificationDocumentsByCompanyId(companyId);
+      return res.json(documents);
+    } catch (error: any) {
+      console.error("Admin get verification documents error:", error);
+      res.status(500).json({ error: error.message || "Failed to get verification documents" });
+    }
+  });
+
   // Creator stats
   app.get("/api/creator/stats", requireAuth, requireRole('creator'), async (req, res) => {
     try {
