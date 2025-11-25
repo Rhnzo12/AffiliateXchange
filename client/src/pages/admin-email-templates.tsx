@@ -88,6 +88,19 @@ interface EmailTemplate {
   updatedAt: string;
 }
 
+interface TemplateType {
+  type: string;
+  category: string;
+  name: string;
+  description: string;
+  slug: string;
+  variables: Array<{
+    name: string;
+    description: string;
+    example: string;
+  }>;
+}
+
 const CATEGORIES = [
   { value: 'application', label: 'Application', icon: FileText, description: 'Application status updates' },
   { value: 'payment', label: 'Payment', icon: DollarSign, description: 'Payment notifications' },
@@ -432,6 +445,7 @@ export default function AdminEmailTemplates() {
     title: "",
     description: ""
   });
+  const [selectedTemplateType, setSelectedTemplateType] = useState<TemplateType | null>(null);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<EmailTemplate[]>({
     queryKey: ["/api/admin/email-templates"],
@@ -440,6 +454,18 @@ export default function AdminEmailTemplates() {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch email templates");
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === 'admin',
+  });
+
+  const { data: templateTypes = [] } = useQuery<TemplateType[]>({
+    queryKey: ["/api/admin/email-templates/available-types"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/email-templates/available-types", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch template types");
       return response.json();
     },
     enabled: isAuthenticated && user?.role === 'admin',
@@ -626,15 +652,23 @@ export default function AdminEmailTemplates() {
     setHtmlContent("");
     setDescription("");
     setIsActive(true);
+    setSelectedTemplateType(null);
     setShowStarterDialog(true);
   };
 
-  const handleSelectStarter = (starter: typeof STARTER_TEMPLATES[0] | null) => {
+  const handleSelectStarter = (starter: typeof STARTER_TEMPLATES[0] | null, templateType?: TemplateType) => {
     setShowStarterDialog(false);
     if (starter) {
       setSubject(starter.subject);
       setHtmlContent(starter.content);
       setName(starter.name);
+    }
+    if (templateType) {
+      setSelectedTemplateType(templateType);
+      setSlug(templateType.slug);
+      setCategory(templateType.category);
+      setName(templateType.name);
+      setDescription(templateType.description);
     }
     setShowDialog(true);
   };
@@ -648,6 +682,9 @@ export default function AdminEmailTemplates() {
     setHtmlContent(template.htmlContent);
     setDescription(template.description || "");
     setIsActive(template.isActive);
+    // Find matching template type for variable suggestions
+    const matchingType = templateTypes.find(t => t.slug === template.slug);
+    setSelectedTemplateType(matchingType || null);
     setShowDialog(true);
   };
 
@@ -767,6 +804,7 @@ export default function AdminEmailTemplates() {
     setDescription("");
     setIsActive(true);
     setActiveTab('visual');
+    setSelectedTemplateType(null);
   };
 
   const handleNameChange = (value: string) => {
@@ -971,49 +1009,126 @@ export default function AdminEmailTemplates() {
 
       {/* Starter Template Selection Dialog */}
       <Dialog open={showStarterDialog} onOpenChange={setShowStarterDialog}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Choose a Starting Point</DialogTitle>
             <DialogDescription>
-              Select a pre-built template to start with, or create from scratch
+              Select a notification type to customize, use a design template, or start from scratch
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4 py-4 max-h-[60vh] overflow-y-auto">
-            {/* Blank template option */}
-            <Card
-              className="cursor-pointer hover:border-primary transition-colors"
-              onClick={() => handleSelectStarter(null)}
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Blank Template
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Start from scratch with a blank template</p>
-              </CardContent>
-            </Card>
+          <div className="flex-1 overflow-y-auto py-4 space-y-6">
+            {/* Notification Types - Grouped by Category */}
+            <div>
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Notification Templates (Recommended)
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Select a notification type to override its default email. The correct variables will be automatically available.
+              </p>
 
-            {/* Pre-built templates */}
-            {STARTER_TEMPLATES.map((starter, index) => (
-              <Card
-                key={index}
-                className="cursor-pointer hover:border-primary transition-colors"
-                onClick={() => handleSelectStarter(starter)}
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <LayoutTemplate className="h-4 w-4" />
-                    {starter.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{starter.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+              {/* Group template types by category */}
+              {Object.entries(
+                templateTypes.reduce((acc, t) => {
+                  if (!acc[t.category]) acc[t.category] = [];
+                  acc[t.category].push(t);
+                  return acc;
+                }, {} as Record<string, TemplateType[]>)
+              ).map(([cat, types]) => {
+                const catInfo = CATEGORIES.find(c => c.value === cat);
+                const CatIcon = catInfo?.icon || Mail;
+
+                // Check if template already exists for this type
+                const existingForCat = types.filter(t =>
+                  templates.some(template => template.slug === t.slug)
+                );
+
+                return (
+                  <div key={cat} className="mb-4">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                      <CatIcon className="h-3 w-3" />
+                      {catInfo?.label || cat}
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {types.map(templateType => {
+                        const exists = templates.some(t => t.slug === templateType.slug);
+                        return (
+                          <Card
+                            key={templateType.type}
+                            className={`cursor-pointer hover:border-primary transition-colors p-3 ${exists ? 'opacity-60' : ''}`}
+                            onClick={() => {
+                              if (!exists) {
+                                handleSelectStarter(null, templateType);
+                              }
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{templateType.name}</p>
+                                <p className="text-xs text-muted-foreground line-clamp-2">{templateType.description}</p>
+                              </div>
+                              {exists && (
+                                <Badge variant="secondary" className="text-xs shrink-0">Exists</Badge>
+                              )}
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <Separator />
+
+            {/* Design Templates */}
+            <div>
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Palette className="h-4 w-4" />
+                Design Templates
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Start with a pre-designed layout and customize it
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {/* Blank template option */}
+                <Card
+                  className="cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => handleSelectStarter(null)}
+                >
+                  <CardHeader className="p-3 pb-1">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Blank Template
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-1">
+                    <p className="text-xs text-muted-foreground">Start from scratch</p>
+                  </CardContent>
+                </Card>
+
+                {/* Pre-built templates */}
+                {STARTER_TEMPLATES.map((starter, index) => (
+                  <Card
+                    key={index}
+                    className="cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => handleSelectStarter(starter)}
+                  >
+                    <CardHeader className="p-3 pb-1">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <LayoutTemplate className="h-4 w-4" />
+                        {starter.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3 pt-1">
+                      <p className="text-xs text-muted-foreground">{starter.description}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -1031,6 +1146,24 @@ export default function AdminEmailTemplates() {
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto space-y-6 py-4">
+            {/* Template Type Info Banner */}
+            {selectedTemplateType && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Mail className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-blue-900">Customizing: {selectedTemplateType.name}</h4>
+                    <p className="text-sm text-blue-700 mt-1">{selectedTemplateType.description}</p>
+                    <p className="text-xs text-blue-600 mt-2">
+                      Slug: <code className="bg-blue-100 px-1 rounded">{selectedTemplateType.slug}</code>
+                      {" · "}
+                      {selectedTemplateType.variables.length} variables available
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Basic Info */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1138,7 +1271,7 @@ export default function AdminEmailTemplates() {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  {/* Variables Dropdown */}
+                  {/* Variables Dropdown - Shows template-specific variables if available */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm">
@@ -1147,18 +1280,55 @@ export default function AdminEmailTemplates() {
                         <ChevronDown className="h-4 w-4 ml-1" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-72 max-h-80 overflow-y-auto">
-                      <DropdownMenuLabel>Dynamic Variables</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {VARIABLES.map(v => (
-                        <DropdownMenuItem key={v.name} onClick={() => insertVariable(v.name)}>
-                          <v.icon className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
-                          <div className="min-w-0">
-                            <div className="font-medium">{v.label}</div>
-                            <div className="text-xs text-muted-foreground truncate">{v.description}</div>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
+                    <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+                      {selectedTemplateType && selectedTemplateType.variables.length > 0 ? (
+                        <>
+                          <DropdownMenuLabel className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            Variables for {selectedTemplateType.name}
+                          </DropdownMenuLabel>
+                          <p className="px-2 pb-2 text-xs text-muted-foreground">
+                            These variables are available for this notification type
+                          </p>
+                          <DropdownMenuSeparator />
+                          {selectedTemplateType.variables.map(v => (
+                            <DropdownMenuItem key={v.name} onClick={() => insertVariable(v.name)}>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium font-mono text-xs bg-muted px-1 rounded">{`{{${v.name}}}`}</span>
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">{v.description}</div>
+                                <div className="text-xs text-blue-600 mt-0.5">Example: {v.example}</div>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">All Variables</DropdownMenuLabel>
+                          {VARIABLES.map(v => (
+                            <DropdownMenuItem key={v.name} onClick={() => insertVariable(v.name)} className="opacity-70">
+                              <v.icon className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
+                              <div className="min-w-0">
+                                <div className="font-medium text-sm">{v.label}</div>
+                                <div className="text-xs text-muted-foreground truncate">{v.description}</div>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          <DropdownMenuLabel>Dynamic Variables</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {VARIABLES.map(v => (
+                            <DropdownMenuItem key={v.name} onClick={() => insertVariable(v.name)}>
+                              <v.icon className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
+                              <div className="min-w-0">
+                                <div className="font-medium">{v.label}</div>
+                                <div className="text-xs text-muted-foreground truncate">{v.description}</div>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
 
