@@ -2429,6 +2429,83 @@ export class DatabaseStorage implements IStorage {
       .where(eq(conversations.id, conversationId));
   }
 
+  // Delete message for current user only ("delete for me")
+  async deleteMessageForUser(messageId: string, userId: string): Promise<boolean> {
+    try {
+      const message = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId))
+        .limit(1);
+
+      if (!message || message.length === 0) {
+        return false;
+      }
+
+      // Add userId to the deletedFor array
+      const currentDeletedFor = message[0].deletedFor || [];
+      if (!currentDeletedFor.includes(userId)) {
+        await db
+          .update(messages)
+          .set({
+            deletedFor: [...currentDeletedFor, userId]
+          })
+          .where(eq(messages.id, messageId));
+      }
+
+      return true;
+    } catch (error) {
+      console.error("[deleteMessageForUser] Error:", error);
+      return false;
+    }
+  }
+
+  // Delete message for both users (physical delete from DB)
+  async deleteMessageForBoth(messageId: string, userId: string): Promise<boolean> {
+    try {
+      // Verify the message exists and the user is the sender
+      const message = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId))
+        .limit(1);
+
+      if (!message || message.length === 0) {
+        return false;
+      }
+
+      // Only the sender can delete for both
+      if (message[0].senderId !== userId) {
+        return false;
+      }
+
+      // Physically delete the message from the database
+      await db
+        .delete(messages)
+        .where(eq(messages.id, messageId));
+
+      return true;
+    } catch (error) {
+      console.error("[deleteMessageForBoth] Error:", error);
+      return false;
+    }
+  }
+
+  // Get a single message by ID
+  async getMessage(messageId: string): Promise<Message | null> {
+    try {
+      const result = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      console.error("[getMessage] Error:", error);
+      return null;
+    }
+  }
+
   // Reviews
   async getReviewsByCompany(companyId: string): Promise<Review[]> {
     try {

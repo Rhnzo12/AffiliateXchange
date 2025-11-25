@@ -2117,8 +2117,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/messages/:conversationId", requireAuth, async (req, res) => {
     try {
-      const messages = await storage.getMessages(req.params.conversationId);
-      res.json(messages);
+      const userId = (req.user as any).id;
+      const allMessages = await storage.getMessages(req.params.conversationId);
+      // Filter out messages deleted for the current user
+      const filteredMessages = allMessages.filter(msg => {
+        const deletedFor = msg.deletedFor || [];
+        return !deletedFor.includes(userId);
+      });
+      res.json(filteredMessages);
     } catch (error: any) {
       console.error('[GET /api/messages/:conversationId] Error:', error);
       res.status(500).send(error.message);
@@ -2146,6 +2152,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(message);
     } catch (error: any) {
       console.error('[POST /api/messages] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Delete message for current user only ("delete for me")
+  app.delete("/api/messages/:messageId/for-me", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const messageId = req.params.messageId;
+
+      // Verify the message exists and user is part of the conversation
+      const message = await storage.getMessage(messageId);
+      if (!message) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+
+      // Get conversation to verify user is part of it
+      const conversation = await storage.getConversation(message.conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+
+      // Check if user is part of the conversation
+      const isCreator = conversation.creatorId === userId;
+      const companyProfile = await storage.getCompanyProfile(userId);
+      const isCompany = companyProfile?.id === conversation.companyId;
+
+      if (!isCreator && !isCompany) {
+        return res.status(403).json({ error: "You don't have permission to delete this message" });
+      }
+
+      const success = await storage.deleteMessageForUser(messageId, userId);
+      if (success) {
+        res.json({ success: true, message: "Message deleted for you" });
+      } else {
+        res.status(500).json({ error: "Failed to delete message" });
+      }
+    } catch (error: any) {
+      console.error('[DELETE /api/messages/:messageId/for-me] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Delete message for both users ("delete for everyone")
+  app.delete("/api/messages/:messageId/for-both", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const messageId = req.params.messageId;
+
+      // Verify the message exists
+      const message = await storage.getMessage(messageId);
+      if (!message) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+
+      // Only the sender can delete for both
+      if (message.senderId !== userId) {
+        return res.status(403).json({ error: "Only the sender can delete a message for everyone" });
+      }
+
+      const success = await storage.deleteMessageForBoth(messageId, userId);
+      if (success) {
+        res.json({ success: true, message: "Message deleted for everyone" });
+      } else {
+        res.status(500).json({ error: "Failed to delete message" });
+      }
+    } catch (error: any) {
+      console.error('[DELETE /api/messages/:messageId/for-both] Error:', error);
       res.status(500).send(error.message);
     }
   });

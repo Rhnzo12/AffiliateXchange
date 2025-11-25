@@ -324,6 +324,7 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   attachments: text("attachments").array().default(sql`ARRAY[]::text[]`),
   isRead: boolean("is_read").default(false),
+  deletedFor: text("deleted_for").array().default(sql`ARRAY[]::text[]`), // Array of user IDs who deleted "for me"
   createdAt: timestamp("created_at").defaultNow(),
 });
 
