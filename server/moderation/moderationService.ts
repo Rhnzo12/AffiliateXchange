@@ -160,11 +160,10 @@ export async function moderateReview(reviewId: string): Promise<void> {
   }
 
   const reasons: string[] = [];
-  let shouldFlag = false;
+  let matchedKeywords: string[] = [];
 
   // Check for low rating (1-2 stars)
   if (review.overallRating <= 2) {
-    shouldFlag = true;
     reasons.push('Low rating (1-2 stars)');
   }
 
@@ -172,28 +171,19 @@ export async function moderateReview(reviewId: string): Promise<void> {
   if (review.reviewText) {
     const contentCheck = await checkContent(review.reviewText, 'review');
     if (contentCheck.isFlagged) {
-      shouldFlag = true;
       reasons.push(...contentCheck.reasons);
-
-      if (contentCheck.matchedKeywords.length > 0) {
-        await flagContent(
-          'review',
-          reviewId,
-          review.creatorId,
-          reasons.join(', '),
-          contentCheck.matchedKeywords
-        );
-      }
+      matchedKeywords = contentCheck.matchedKeywords;
     }
   }
 
-  // If flagged but no keywords, still create flag
-  if (shouldFlag && reasons.length > 0 && !review.reviewText) {
+  // Flag if any reasons found
+  if (reasons.length > 0) {
     await flagContent(
       'review',
       reviewId,
       review.creatorId,
-      reasons.join(', ')
+      reasons.join(', '),
+      matchedKeywords
     );
   }
 }
