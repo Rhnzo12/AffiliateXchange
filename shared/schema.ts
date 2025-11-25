@@ -893,6 +893,7 @@ export const emailTemplates = pgTable("email_templates", {
   category: emailTemplateCategoryEnum("category").notNull(),
   subject: varchar("subject", { length: 200 }).notNull(),
   htmlContent: text("html_content").notNull(),
+  visualData: jsonb("visual_data"), // Visual email builder data (blocks, header, etc.)
   description: text("description"), // Admin-facing description of when this template is used
   availableVariables: text("available_variables").array().default(sql`ARRAY[]::text[]`), // List of variables like {{userName}}, {{offerTitle}}
   isActive: boolean("is_active").notNull().default(true),

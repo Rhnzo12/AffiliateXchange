@@ -4967,7 +4967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/email-templates", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const userId = (req.user as any).id;
-      const { name, slug, category, subject, htmlContent, description, availableVariables, isActive, isSystem } = req.body;
+      const { name, slug, category, subject, htmlContent, visualData, description, availableVariables, isActive, isSystem } = req.body;
 
       // Validate required fields
       if (!name || !slug || !category || !subject || !htmlContent) {
@@ -4986,6 +4986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category,
         subject,
         htmlContent,
+        visualData: visualData || null,
         description: description || null,
         availableVariables: availableVariables || [],
         isActive: isActive !== false,
@@ -5016,7 +5017,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).id;
       const templateId = req.params.id;
-      const { name, slug, category, subject, htmlContent, description, availableVariables, isActive } = req.body;
+      const { name, slug, category, subject, htmlContent, visualData, description, availableVariables, isActive } = req.body;
 
       // Check if template exists
       const existingTemplate = await storage.getEmailTemplateById(templateId);
@@ -5038,6 +5039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (category !== undefined) updates.category = category;
       if (subject !== undefined) updates.subject = subject;
       if (htmlContent !== undefined) updates.htmlContent = htmlContent;
+      if (visualData !== undefined) updates.visualData = visualData;
       if (description !== undefined) updates.description = description;
       if (availableVariables !== undefined) updates.availableVariables = availableVariables;
       if (isActive !== undefined) updates.isActive = isActive;
@@ -5166,6 +5168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category: sourceTemplate.category,
         subject: sourceTemplate.subject,
         htmlContent: sourceTemplate.htmlContent,
+        visualData: sourceTemplate.visualData,
         description: sourceTemplate.description,
         availableVariables: sourceTemplate.availableVariables || [],
         isActive: false, // Start as inactive
@@ -5250,6 +5253,352 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(result);
     } catch (error: any) {
       console.error('[Email Templates] Error getting available template types:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Initialize default email templates for all notification types
+  app.post("/api/admin/email-templates/initialize-defaults", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { getTemplateSlugForNotificationType, getAvailableVariablesForTemplate } = await import('./notifications/templateEngine');
+
+      // Default visual template data for each notification type
+      const defaultTemplates: Record<string, {
+        name: string;
+        category: string;
+        subject: string;
+        headerTitle: string;
+        headerColor: string;
+        blocks: Array<{ id: string; type: string; content: string; properties: Record<string, string> }>;
+      }> = {
+        'application_status_change': {
+          name: 'Application Status Change',
+          category: 'application',
+          subject: 'Your application status has been updated',
+          headerTitle: 'Application Update',
+          headerColor: '#10B981',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'success-box', content: 'Your application for {{offerTitle}} has been updated!', properties: {} },
+            { id: '3', type: 'text', content: 'Please log in to view the details and next steps.', properties: {} },
+            { id: '4', type: 'button', content: 'View Application', properties: { url: '{{linkUrl}}', color: 'success' } },
+            { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+        'new_application': {
+          name: 'New Application',
+          category: 'application',
+          subject: 'New application for {{offerTitle}}',
+          headerTitle: 'New Application Received',
+          headerColor: '#4F46E5',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'info-box', content: 'You have received a new application for your offer: {{offerTitle}}', properties: {} },
+            { id: '3', type: 'text', content: 'Please review the application and respond to the creator.', properties: {} },
+            { id: '4', type: 'button', content: 'Review Application', properties: { url: '{{linkUrl}}', color: 'primary' } },
+            { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+        'payment_received': {
+          name: 'Payment Received',
+          category: 'payment',
+          subject: 'Payment received: {{amount}}',
+          headerTitle: 'Payment Received!',
+          headerColor: '#10B981',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'success-box', content: 'Great news! You have received a payment.', properties: {} },
+            { id: '3', type: 'amount-display', content: '{{amount}}', properties: { label: 'Amount Received', style: 'success' } },
+            { id: '4', type: 'details-table', content: 'Gross Amount:{{grossAmount}}\nPlatform Fee:{{platformFee}}\nProcessing Fee:{{processingFee}}\nTransaction ID:{{transactionId}}', properties: {} },
+            { id: '5', type: 'button', content: 'View Payment Details', properties: { url: '{{linkUrl}}', color: 'success' } },
+            { id: '6', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+        'payment_pending': {
+          name: 'Payment Pending',
+          category: 'payment',
+          subject: 'New payment ready for processing',
+          headerTitle: 'Payment Pending Review',
+          headerColor: '#F59E0B',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'warning-box', content: 'A new affiliate payment is ready for processing and requires your review.', properties: {} },
+            { id: '3', type: 'amount-display', content: '{{amount}}', properties: { label: 'Payment Amount', style: 'warning' } },
+            { id: '4', type: 'text', content: 'Please review and process this payment at your earliest convenience.', properties: {} },
+            { id: '5', type: 'button', content: 'Review Payment', properties: { url: '{{linkUrl}}', color: 'warning' } },
+            { id: '6', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+        'payment_approved': {
+          name: 'Payment Approved',
+          category: 'payment',
+          subject: 'Payment sent: {{amount}}',
+          headerTitle: 'Payment Sent Successfully',
+          headerColor: '#10B981',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'success-box', content: 'Your payment has been successfully sent!', properties: {} },
+            { id: '3', type: 'amount-display', content: '{{amount}}', properties: { label: 'Amount Sent', style: 'success' } },
+            { id: '4', type: 'button', content: 'View Details', properties: { url: '{{linkUrl}}', color: 'success' } },
+            { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+        'offer_approved': {
+          name: 'Offer Approved',
+          category: 'offer',
+          subject: 'Your offer "{{offerTitle}}" has been approved!',
+          headerTitle: 'Offer Approved!',
+          headerColor: '#10B981',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'success-box', content: 'Congratulations! Your offer "{{offerTitle}}" has been approved and is now live.', properties: {} },
+            { id: '3', type: 'text', content: 'Creators can now discover and apply to your offer.', properties: {} },
+            { id: '4', type: 'button', content: 'View Your Offer', properties: { url: '{{linkUrl}}', color: 'success' } },
+            { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+        'offer_rejected': {
+          name: 'Offer Rejected',
+          category: 'offer',
+          subject: 'Update on your offer submission',
+          headerTitle: 'Offer Review Update',
+          headerColor: '#6B7280',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'info-box', content: 'Your offer "{{offerTitle}}" requires adjustments before it can be published.', properties: {} },
+            { id: '3', type: 'text', content: 'Please review the feedback and make the necessary changes.', properties: {} },
+            { id: '4', type: 'button', content: 'View Offer', properties: { url: '{{linkUrl}}', color: 'gray' } },
+            { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+        'registration_approved': {
+          name: 'Registration Approved',
+          category: 'company',
+          subject: 'Your account has been approved!',
+          headerTitle: 'Welcome to AffiliateXchange!',
+          headerColor: '#4F46E5',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'success-box', content: 'Great news! Your company account has been approved.', properties: {} },
+            { id: '3', type: 'text', content: 'You can now start creating offers and connecting with creators.', properties: {} },
+            { id: '4', type: 'button', content: 'Get Started', properties: { url: '{{linkUrl}}', color: 'primary' } },
+            { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+        'registration_rejected': {
+          name: 'Registration Rejected',
+          category: 'company',
+          subject: 'Update on your registration',
+          headerTitle: 'Account Registration Update',
+          headerColor: '#6B7280',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'text', content: 'Unfortunately, we are unable to approve your company account at this time.', properties: {} },
+            { id: '3', type: 'info-box', content: 'If you believe this is an error, please contact our support team.', properties: {} },
+            { id: '4', type: 'button', content: 'Contact Support', properties: { url: '{{linkUrl}}', color: 'gray' } },
+            { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.', properties: {} },
+          ],
+        },
+        'new_message': {
+          name: 'New Message',
+          category: 'system',
+          subject: 'New message from {{companyName}}',
+          headerTitle: 'New Message',
+          headerColor: '#4F46E5',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'text', content: 'You have a new message from {{companyName}} regarding {{offerTitle}}.', properties: {} },
+            { id: '3', type: 'info-box', content: '"{{messagePreview}}"', properties: {} },
+            { id: '4', type: 'button', content: 'View Message', properties: { url: '{{linkUrl}}', color: 'primary' } },
+            { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+        'review_received': {
+          name: 'Review Received',
+          category: 'system',
+          subject: 'New review received ({{reviewRating}} stars)',
+          headerTitle: 'New Review Received',
+          headerColor: '#4F46E5',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'text', content: 'You have received a new review for your company!', properties: {} },
+            { id: '3', type: 'info-box', content: '{{reviewRating}} out of 5 stars\n\n"{{reviewText}}"', properties: {} },
+            { id: '4', type: 'button', content: 'View Review', properties: { url: '{{linkUrl}}', color: 'primary' } },
+            { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+        'email_verification': {
+          name: 'Email Verification',
+          category: 'authentication',
+          subject: 'Verify your email address',
+          headerTitle: 'Verify Your Email',
+          headerColor: '#4F46E5',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'text', content: 'Please verify your email address to complete your registration.', properties: {} },
+            { id: '3', type: 'button', content: 'Verify Email Address', properties: { url: '{{verificationUrl}}', color: 'primary' } },
+            { id: '4', type: 'warning-box', content: 'This verification link will expire in 24 hours.', properties: {} },
+            { id: '5', type: 'footer', content: 'This is an automated email from AffiliateXchange.', properties: {} },
+          ],
+        },
+        'password_reset': {
+          name: 'Password Reset',
+          category: 'authentication',
+          subject: 'Reset your password',
+          headerTitle: 'Password Reset Request',
+          headerColor: '#F59E0B',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'text', content: 'Click the button below to reset your password.', properties: {} },
+            { id: '3', type: 'button', content: 'Reset Password', properties: { url: '{{resetUrl}}', color: 'warning' } },
+            { id: '4', type: 'warning-box', content: 'This link will expire in 1 hour.', properties: {} },
+            { id: '5', type: 'footer', content: 'This is an automated email from AffiliateXchange.', properties: {} },
+          ],
+        },
+        'system_announcement': {
+          name: 'System Announcement',
+          category: 'system',
+          subject: '{{announcementTitle}}',
+          headerTitle: 'System Announcement',
+          headerColor: '#4F46E5',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'heading', content: '{{announcementTitle}}', properties: { size: 'medium' } },
+            { id: '3', type: 'text', content: '{{announcementMessage}}', properties: {} },
+            { id: '4', type: 'button', content: 'Learn More', properties: { url: '{{linkUrl}}', color: 'primary' } },
+            { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+        'content_flagged': {
+          name: 'Content Flagged',
+          category: 'moderation',
+          subject: 'Your content is under review',
+          headerTitle: 'Content Under Review',
+          headerColor: '#F59E0B',
+          blocks: [
+            { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+            { id: '2', type: 'warning-box', content: 'Your content has been flagged for review by our moderation system.', properties: {} },
+            { id: '3', type: 'text', content: 'Our team will review and you will be notified of the outcome.', properties: {} },
+            { id: '4', type: 'button', content: 'View Details', properties: { url: '{{linkUrl}}', color: 'warning' } },
+            { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+          ],
+        },
+      };
+
+      // Helper function to generate HTML from visual blocks
+      const generateHtmlFromBlocks = (data: { headerTitle: string; headerColor: string; blocks: any[] }): string => {
+        const baseStyles = `
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+          .header { background-color: ${data.headerColor}; color: #ffffff; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { padding: 30px 20px; }
+          .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; border-top: 1px solid #E5E7EB; }
+        `;
+
+        const renderBlock = (block: any): string => {
+          switch (block.type) {
+            case 'greeting':
+              return `<p>${block.content}</p>`;
+            case 'text':
+              return `<p>${block.content.replace(/\n/g, '<br>')}</p>`;
+            case 'heading':
+              return `<h3 style="font-size: 20px; font-weight: 600; color: #111827;">${block.content}</h3>`;
+            case 'success-box':
+              return `<div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;"><p style="margin: 0; color: #065F46;">${block.content}</p></div>`;
+            case 'warning-box':
+              return `<div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;"><p style="margin: 0; color: #92400E;">${block.content}</p></div>`;
+            case 'error-box':
+              return `<div style="background-color: #FEE2E2; border-left: 4px solid #EF4444; padding: 15px; margin: 20px 0; border-radius: 4px;"><p style="margin: 0; color: #991B1B;">${block.content}</p></div>`;
+            case 'info-box':
+              return `<div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;"><p style="margin: 0; color: #1E40AF;">${block.content.replace(/\n/g, '<br>')}</p></div>`;
+            case 'button':
+              const colors: Record<string, string> = { primary: '#4F46E5', success: '#10B981', warning: '#F59E0B', danger: '#EF4444', gray: '#6B7280' };
+              const btnColor = colors[block.properties?.color || 'primary'];
+              return `<div style="text-align: center; margin: 30px 0;"><a href="${block.properties?.url || '{{linkUrl}}'}" style="display: inline-block; padding: 12px 30px; background-color: ${btnColor}; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">${block.content}</a></div>`;
+            case 'amount-display':
+              const styles: Record<string, { bg: string; label: string; amount: string }> = {
+                default: { bg: '#F3F4F6', label: '#6B7280', amount: '#111827' },
+                success: { bg: '#ECFDF5', label: '#065F46', amount: '#047857' },
+                warning: { bg: '#FEF3C7', label: '#92400E', amount: '#D97706' },
+              };
+              const style = styles[block.properties?.style || 'default'];
+              return `<div style="background-color: ${style.bg}; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;"><p style="margin: 0 0 5px 0; font-size: 14px; color: ${style.label};">${block.properties?.label || 'Amount'}</p><p style="margin: 0; font-size: 32px; font-weight: bold; color: ${style.amount};">${block.content}</p></div>`;
+            case 'details-table':
+              const rows = block.content.split('\n').filter((line: string) => line.includes(':'));
+              const tableRows = rows.map((row: string) => {
+                const [label, ...valueParts] = row.split(':');
+                const value = valueParts.join(':').trim();
+                return `<tr style="border-bottom: 1px solid #D1D5DB;"><td style="padding: 12px 0; color: #6B7280;">${label.trim()}</td><td style="padding: 12px 0; font-weight: 600; color: #111827; text-align: right;">${value}</td></tr>`;
+              }).join('');
+              return `<div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;"><table style="width: 100%; border-collapse: collapse;">${tableRows}</table></div>`;
+            case 'footer':
+              return `<div class="footer">${block.content.split('\n').map((l: string) => `<p>${l}</p>`).join('')}</div>`;
+            case 'numbered-list':
+              const items = block.content.split('\n').filter(Boolean).map((item: string) => `<li style="margin-bottom: 8px;">${item}</li>`).join('');
+              return `<ol style="margin: 15px 0; padding-left: 20px; color: #374151;">${items}</ol>`;
+            default:
+              return '';
+          }
+        };
+
+        const contentBlocks = data.blocks.filter(b => b.type !== 'footer');
+        const footerBlocks = data.blocks.filter(b => b.type === 'footer');
+
+        const bodyContent = contentBlocks.map(renderBlock).join('\n');
+        const footerContent = footerBlocks.length > 0
+          ? footerBlocks.map(renderBlock).join('\n')
+          : `<div class="footer"><p>This is an automated notification from AffiliateXchange.</p></div>`;
+
+        return `<!DOCTYPE html><html><head><style>${baseStyles}</style></head><body><div class="container"><div class="header"><h1 style="margin: 0;">${data.headerTitle}</h1></div><div class="content">${bodyContent}</div>${footerContent}</div></body></html>`;
+      };
+
+      let created = 0;
+
+      for (const [notificationType, templateData] of Object.entries(defaultTemplates)) {
+        const slug = getTemplateSlugForNotificationType(notificationType);
+        if (!slug) continue;
+
+        // Check if template already exists
+        const existing = await storage.getEmailTemplateBySlug(slug);
+        if (existing) continue;
+
+        // Get variables for this template
+        const variables = getAvailableVariablesForTemplate(slug);
+        const variableNames = variables.map(v => v.name);
+
+        // Create visual data structure
+        const visualData = {
+          blocks: templateData.blocks,
+          headerTitle: templateData.headerTitle,
+          headerColor: templateData.headerColor,
+        };
+
+        // Generate HTML
+        const htmlContent = generateHtmlFromBlocks(visualData);
+
+        // Create the template
+        await storage.createEmailTemplate({
+          name: templateData.name,
+          slug,
+          category: templateData.category as any,
+          subject: templateData.subject,
+          htmlContent,
+          visualData,
+          description: `Default template for ${templateData.name} notifications`,
+          availableVariables: variableNames,
+          isActive: true,
+          isSystem: true,
+          createdBy: userId,
+          updatedBy: userId,
+        });
+
+        created++;
+      }
+
+      res.json({ success: true, created, message: `Created ${created} default email templates` });
+    } catch (error: any) {
+      console.error('[Email Templates] Error initializing default templates:', error);
       res.status(500).send(error.message);
     }
   });
