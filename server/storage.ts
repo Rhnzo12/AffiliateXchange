@@ -7,6 +7,7 @@ import {
   users,
   creatorProfiles,
   companyProfiles,
+  companyVerificationDocuments,
   offers,
   offerVideos,
   applications,
@@ -72,6 +73,8 @@ import {
   type InsertNiche,
   type PlatformFundingAccount,
   type InsertPlatformFundingAccount,
+  type CompanyVerificationDocument,
+  type InsertCompanyVerificationDocument,
 } from "../shared/schema";
 
 /**
@@ -5162,6 +5165,106 @@ async getCreatorGeographyByCompany(userId: string): Promise<any[]> {
   } catch (error) {
     console.error("[getCreatorGeographyByCompany] Error:", error);
     return [];
+  }
+}
+
+// Company Verification Documents CRUD operations
+async addVerificationDocument(document: InsertCompanyVerificationDocument): Promise<CompanyVerificationDocument | null> {
+  try {
+    const [newDocument] = await db
+      .insert(companyVerificationDocuments)
+      .values(document)
+      .returning();
+    return newDocument || null;
+  } catch (error) {
+    if (isMissingRelationError(error, "company_verification_documents")) {
+      console.warn("[addVerificationDocument] Table does not exist yet");
+      return null;
+    }
+    console.error("[addVerificationDocument] Error:", error);
+    throw error;
+  }
+}
+
+async getVerificationDocumentsByCompanyId(companyId: string): Promise<CompanyVerificationDocument[]> {
+  try {
+    const documents = await db
+      .select()
+      .from(companyVerificationDocuments)
+      .where(eq(companyVerificationDocuments.companyId, companyId))
+      .orderBy(desc(companyVerificationDocuments.createdAt));
+    return documents;
+  } catch (error) {
+    if (isMissingRelationError(error, "company_verification_documents")) {
+      console.warn("[getVerificationDocumentsByCompanyId] Table does not exist yet");
+      return [];
+    }
+    console.error("[getVerificationDocumentsByCompanyId] Error:", error);
+    return [];
+  }
+}
+
+async getVerificationDocumentsByUserId(userId: string): Promise<CompanyVerificationDocument[]> {
+  try {
+    // First get the company profile for this user
+    const companyProfile = await this.getCompanyProfile(userId);
+    if (!companyProfile) {
+      return [];
+    }
+    return this.getVerificationDocumentsByCompanyId(companyProfile.id);
+  } catch (error) {
+    console.error("[getVerificationDocumentsByUserId] Error:", error);
+    return [];
+  }
+}
+
+async getVerificationDocumentById(documentId: string): Promise<CompanyVerificationDocument | null> {
+  try {
+    const [document] = await db
+      .select()
+      .from(companyVerificationDocuments)
+      .where(eq(companyVerificationDocuments.id, documentId));
+    return document || null;
+  } catch (error) {
+    if (isMissingRelationError(error, "company_verification_documents")) {
+      console.warn("[getVerificationDocumentById] Table does not exist yet");
+      return null;
+    }
+    console.error("[getVerificationDocumentById] Error:", error);
+    return null;
+  }
+}
+
+async deleteVerificationDocument(documentId: string): Promise<boolean> {
+  try {
+    const result = await db
+      .delete(companyVerificationDocuments)
+      .where(eq(companyVerificationDocuments.id, documentId))
+      .returning();
+    return result.length > 0;
+  } catch (error) {
+    if (isMissingRelationError(error, "company_verification_documents")) {
+      console.warn("[deleteVerificationDocument] Table does not exist yet");
+      return false;
+    }
+    console.error("[deleteVerificationDocument] Error:", error);
+    return false;
+  }
+}
+
+async deleteAllVerificationDocumentsForCompany(companyId: string): Promise<boolean> {
+  try {
+    await db
+      .delete(companyVerificationDocuments)
+      .where(eq(companyVerificationDocuments.companyId, companyId));
+    return true;
+  } catch (error) {
+    if (isMissingRelationError(error, "company_verification_documents")) {
+      console.warn("[deleteAllVerificationDocumentsForCompany] Table does not exist yet");
+      return false;
+    }
+    console.error("[deleteAllVerificationDocumentsForCompany] Error:", error);
+    return false;
   }
 }
 }

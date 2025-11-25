@@ -11,7 +11,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +35,15 @@ import { Badge } from "../components/ui/badge";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { proxiedSrc } from "../lib/image";
+
+type VerificationDocument = {
+  id: string;
+  documentUrl: string;
+  documentName: string;
+  documentType: string;
+  fileSize: number | null;
+  uploadedAt?: string;
+};
 
 export default function Settings() {
   const { toast } = useToast();
@@ -68,7 +77,8 @@ export default function Settings() {
   const [twitterUrl, setTwitterUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
   const [companyInstagramUrl, setCompanyInstagramUrl] = useState("");
-  const [verificationDocumentUrl, setVerificationDocumentUrl] = useState("");
+  const [verificationDocumentUrl, setVerificationDocumentUrl] = useState(""); // Keep for backward compatibility
+  const [verificationDocuments, setVerificationDocuments] = useState<VerificationDocument[]>([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
@@ -124,6 +134,19 @@ export default function Settings() {
     queryKey: ["/api/profile"],
     enabled: isAuthenticated,
   });
+
+  // Fetch verification documents for company users
+  const { data: fetchedVerificationDocs = [] } = useQuery<VerificationDocument[]>({
+    queryKey: ["/api/company/verification-documents"],
+    enabled: isAuthenticated && user?.role === 'company',
+  });
+
+  // Sync fetched documents with local state
+  useEffect(() => {
+    if (fetchedVerificationDocs.length > 0) {
+      setVerificationDocuments(fetchedVerificationDocs);
+    }
+  }, [fetchedVerificationDocs]);
 
   // Fetch niches from API
   const { data: niches = [], isLoading: nichesLoading } = useQuery<Array<{ id: string; name: string; description: string | null; isActive: boolean }>>({
@@ -460,6 +483,15 @@ export default function Settings() {
       return;
     }
 
+    // Check max documents limit
+    if (verificationDocuments.length >= 5) {
+      setErrorDialog({
+        title: "Maximum Documents Reached",
+        message: "You can upload a maximum of 5 verification documents",
+      });
+      return;
+    }
+
     setIsUploadingDocument(true);
 
     try {
@@ -503,11 +535,47 @@ export default function Settings() {
 
       // Construct the public URL from the upload response
       const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
-      setVerificationDocumentUrl(uploadedUrl);
+
+      // Determine document type
+      const documentType = file.type === 'application/pdf' ? 'pdf' : 'image';
+
+      // Save document to API
+      const saveResponse = await fetch("/api/company/verification-documents", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          documentUrl: uploadedUrl,
+          documentName: file.name,
+          documentType,
+          fileSize: file.size,
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save document");
+      }
+
+      const saveData = await saveResponse.json();
+
+      // Add to local state
+      if (saveData.document) {
+        setVerificationDocuments(prev => [...prev, saveData.document]);
+      }
+
+      // Also update the legacy field for backward compatibility
+      if (verificationDocuments.length === 0) {
+        setVerificationDocumentUrl(uploadedUrl);
+      }
+
+      // Invalidate the query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/company/verification-documents"] });
 
       toast({
         title: "Success!",
-        description: "Verification document uploaded successfully. Don't forget to save your changes.",
+        description: "Verification document uploaded successfully.",
       });
     } catch (error) {
       console.error("Document upload error:", error);
@@ -517,7 +585,79 @@ export default function Settings() {
       });
     } finally {
       setIsUploadingDocument(false);
+      // Reset the input so the same file can be uploaded again
+      event.target.value = '';
     }
+  };
+
+  const handleRemoveDocument = async (documentId: string) => {
+    try {
+      const response = await fetch(`/api/company/verification-documents/${documentId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete document");
+      }
+
+      // Remove from local state
+      setVerificationDocuments(prev => prev.filter(doc => doc.id !== documentId));
+
+      // Update the legacy field
+      const remainingDocs = verificationDocuments.filter(doc => doc.id !== documentId);
+      setVerificationDocumentUrl(remainingDocs.length > 0 ? remainingDocs[0].documentUrl : "");
+
+      // Invalidate the query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/company/verification-documents"] });
+
+      toast({
+        title: "Success",
+        description: "Document removed successfully.",
+      });
+    } catch (error) {
+      console.error("Error removing document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove document. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewDocument = async (documentUrl: string) => {
+    try {
+      // Extract the file path from the GCS URL
+      const url = new URL(documentUrl);
+      const pathParts = url.pathname.split('/');
+      const filePath = pathParts.slice(2).join('/');
+
+      // Fetch signed URL from the API
+      const response = await fetch(`/api/get-signed-url/${filePath}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get document access');
+      }
+
+      const data = await response.json();
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Error viewing document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to view document. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatFileSize = (bytes: number | null): string => {
+    if (!bytes) return 'Unknown size';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const handleLogout = async () => {
@@ -1383,31 +1523,63 @@ export default function Settings() {
               <Separator />
 
               <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-base font-semibold">Verification Document</Label>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-base font-semibold">Verification Documents</Label>
+                  </div>
+                  <Badge variant="outline">
+                    {verificationDocuments.length}/5
+                  </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Upload business registration certificate, EIN/Tax ID, or incorporation certificate
+                  Upload business registration certificate, EIN/Tax ID, incorporation certificate, or other supporting documents (max 5 files)
                 </p>
 
-                {verificationDocumentUrl ? (
-                  <div className="flex items-center gap-3 p-4 border rounded-lg bg-green-50 dark:bg-green-950/20 border-green-200">
-                    <FileText className="h-8 w-8 text-green-600" />
-                    <div className="flex-1">
-                      <p className="font-medium text-green-900 dark:text-green-100">Document Uploaded</p>
-                      <p className="text-sm text-green-700 dark:text-green-300">Verification document on file</p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setVerificationDocumentUrl("")}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                {/* Uploaded Documents List */}
+                {verificationDocuments.length > 0 && (
+                  <div className="space-y-2">
+                    {verificationDocuments.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center gap-3 p-3 border rounded-lg bg-green-50 dark:bg-green-950/20 border-green-200"
+                      >
+                        <FileText className="h-6 w-6 text-green-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-green-900 dark:text-green-100 truncate">
+                            {doc.documentName}
+                          </p>
+                          <p className="text-xs text-green-700 dark:text-green-300">
+                            {doc.documentType.toUpperCase()} • {formatFileSize(doc.fileSize)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleViewDocument(doc.documentUrl)}
+                          >
+                            <Eye className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleRemoveDocument(doc.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ) : (
+                )}
+
+                {/* Upload Area */}
+                {verificationDocuments.length < 5 && (
                   <div className="relative">
                     <input
                       type="file"
@@ -1433,12 +1605,14 @@ export default function Settings() {
                           </>
                         ) : (
                           <>
-                            <FileText className="h-6 w-6 text-primary" />
+                            <Plus className="h-6 w-6 text-primary" />
                             <div className="text-sm font-medium">
-                              Click to upload verification document
+                              {verificationDocuments.length === 0
+                                ? "Click to upload verification document"
+                                : "Add another document"}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              PDF, JPG, PNG (max 10MB)
+                              PDF, JPG, PNG (max 10MB per file)
                             </div>
                           </>
                         )}

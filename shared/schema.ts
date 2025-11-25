@@ -174,6 +174,26 @@ export const companyProfilesRelations = relations(companyProfiles, ({ one, many 
     references: [users.id],
   }),
   offers: many(offers),
+  verificationDocuments: many(companyVerificationDocuments),
+}));
+
+// Company Verification Documents (for multiple document uploads)
+export const companyVerificationDocuments = pgTable("company_verification_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull().references(() => companyProfiles.id, { onDelete: 'cascade' }),
+  documentUrl: varchar("document_url").notNull(),
+  documentName: varchar("document_name").notNull(),
+  documentType: varchar("document_type").notNull(), // 'pdf', 'image'
+  fileSize: integer("file_size"), // in bytes
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const companyVerificationDocumentsRelations = relations(companyVerificationDocuments, ({ one }) => ({
+  company: one(companyProfiles, {
+    fields: [companyVerificationDocuments.companyId],
+    references: [companyProfiles.id],
+  }),
 }));
 
 // Offers
@@ -947,6 +967,7 @@ export const insertNicheSchema = createInsertSchema(niches).omit({ id: true, cre
 export const insertPlatformFundingAccountSchema = createInsertSchema(platformFundingAccounts).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertBannedKeywordSchema = createInsertSchema(bannedKeywords).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertContentFlagSchema = createInsertSchema(contentFlags).omit({ id: true, createdAt: true });
+export const insertCompanyVerificationDocumentSchema = createInsertSchema(companyVerificationDocuments).omit({ id: true, createdAt: true, uploadedAt: true });
 
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -998,3 +1019,5 @@ export type BannedKeyword = typeof bannedKeywords.$inferSelect;
 export type InsertBannedKeyword = z.infer<typeof insertBannedKeywordSchema>;
 export type ContentFlag = typeof contentFlags.$inferSelect;
 export type InsertContentFlag = z.infer<typeof insertContentFlagSchema>;
+export type CompanyVerificationDocument = typeof companyVerificationDocuments.$inferSelect;
+export type InsertCompanyVerificationDocument = z.infer<typeof insertCompanyVerificationDocumentSchema>;

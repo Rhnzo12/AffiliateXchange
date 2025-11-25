@@ -28,11 +28,21 @@ import {
   MapPin,
   Globe,
   Briefcase,
+  Eye,
 } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
 import { useLocation, useRoute } from "wouter";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+
+type VerificationDocument = {
+  id: string;
+  documentUrl: string;
+  documentName: string;
+  documentType: string;
+  fileSize: number | null;
+  uploadedAt?: string;
+};
 
 type CompanyDetail = {
   id: string;
@@ -127,14 +137,14 @@ export default function AdminCompanyDetail() {
   }, [company, error, loadingCompany, companyId]);
 
   // Function to view verification document with signed URL
-  const handleViewDocument = async () => {
-    if (!company?.verificationDocumentUrl) return;
+  const handleViewDocument = async (documentUrl: string) => {
+    if (!documentUrl) return;
 
     setIsLoadingDocument(true);
     try {
       // Extract the file path from the GCS URL
       // URL format: https://storage.googleapis.com/bucket-name/path/to/file
-      const url = new URL(company.verificationDocumentUrl);
+      const url = new URL(documentUrl);
       const pathParts = url.pathname.split('/');
       // Remove empty string and bucket name, keep the rest as file path
       const filePath = pathParts.slice(2).join('/');
@@ -202,6 +212,27 @@ export default function AdminCompanyDetail() {
     },
     enabled: isAuthenticated && !!companyId && activeTab === "creators",
   });
+
+  // Fetch verification documents
+  const { data: verificationDocuments = [] } = useQuery<VerificationDocument[]>({
+    queryKey: [`/api/admin/companies/${companyId}/verification-documents`],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/companies/${companyId}/verification-documents`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch verification documents");
+      return response.json();
+    },
+    enabled: isAuthenticated && !!companyId,
+  });
+
+  // Helper function to format file size
+  const formatFileSize = (bytes: number | null): string => {
+    if (!bytes) return 'Unknown size';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   // Mutations
   const approveMutation = useMutation({
@@ -594,24 +625,58 @@ export default function AdminCompanyDetail() {
             </Card>
 
             {/* Verification Documents */}
-            {company.verificationDocumentUrl && (
+            {(verificationDocuments.length > 0 || company.verificationDocumentUrl) && (
               <Card className="border-card-border">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5" />
                     Verification Documents
+                    <Badge variant="outline">
+                      {verificationDocuments.length > 0 ? verificationDocuments.length : 1}
+                    </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <button
-                    onClick={handleViewDocument}
-                    disabled={isLoadingDocument}
-                    className="inline-flex items-center gap-2 text-primary hover:underline disabled:opacity-50 disabled:cursor-wait"
-                  >
-                    <FileText className="h-4 w-4" />
-                    {isLoadingDocument ? "Loading..." : "View Document"}
-                    <ExternalLink className="h-3 w-3" />
-                  </button>
+                  {verificationDocuments.length > 0 ? (
+                    <div className="space-y-3">
+                      {verificationDocuments.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30"
+                        >
+                          <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{doc.documentName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {doc.documentType.toUpperCase()} • {formatFileSize(doc.fileSize)}
+                              {doc.uploadedAt && (
+                                <> • Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}</>
+                              )}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewDocument(doc.documentUrl)}
+                            disabled={isLoadingDocument}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : company.verificationDocumentUrl ? (
+                    <button
+                      onClick={() => handleViewDocument(company.verificationDocumentUrl!)}
+                      disabled={isLoadingDocument}
+                      className="inline-flex items-center gap-2 text-primary hover:underline disabled:opacity-50 disabled:cursor-wait"
+                    >
+                      <FileText className="h-4 w-4" />
+                      {isLoadingDocument ? "Loading..." : "View Document"}
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  ) : null}
                 </CardContent>
               </Card>
             )}
