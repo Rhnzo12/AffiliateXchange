@@ -2774,31 +2774,31 @@ export default function Settings() {
               </div>
             ) : documentViewerUrl ? (
               documentViewerType === 'pdf' ? (
-                <object
-                  data={`${documentViewerUrl}#toolbar=1&view=FitH`}
-                  type="application/pdf"
+                <iframe
+                  src={`${documentViewerUrl}#toolbar=1&view=FitH`}
                   className="w-full h-full rounded border"
                   title={documentViewerName}
-                >
-                  <div className="flex flex-col items-center justify-center h-full gap-4">
-                    <p className="text-muted-foreground">Unable to display PDF inline.</p>
-                    <a
-                      href={documentViewerUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      Click here to open in a new tab
-                    </a>
-                  </div>
-                </object>
-              ) : (
+                  style={{ border: 'none' }}
+                />
+              ) : documentViewerType === 'image' ? (
                 <div className="flex items-center justify-center h-full">
                   <img
                     src={documentViewerUrl}
                     alt={documentViewerName}
                     className="max-w-full max-h-full object-contain"
                   />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full gap-4">
+                  <p className="text-muted-foreground">Preview not available for this file type.</p>
+                  <a
+                    href={documentViewerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Click here to open in a new tab
+                  </a>
                 </div>
               )
             ) : null}
