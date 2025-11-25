@@ -469,20 +469,28 @@ export default function Messages() {
   }, [conversationFromUrl, selectedConversation]);
 
   // Handle application parameter - find or create conversation by application ID
+  const [conversationStarted, setConversationStarted] = useState(false);
+
   useEffect(() => {
     const startConversation = async () => {
-      if (!applicationFromUrl || !isAuthenticated) return;
+      if (!applicationFromUrl || !isAuthenticated || conversationsLoading) return;
 
       // First check if we already have a matching conversation
       if (conversations && conversations.length > 0) {
         const matchingConversation = conversations.find(
           (conv: any) => conv.applicationId === applicationFromUrl
         );
-        if (matchingConversation && matchingConversation.id !== selectedConversation) {
-          setSelectedConversation(matchingConversation.id);
+        if (matchingConversation) {
+          if (matchingConversation.id !== selectedConversation) {
+            setSelectedConversation(matchingConversation.id);
+          }
           return;
         }
       }
+
+      // Prevent multiple API calls
+      if (conversationStarted) return;
+      setConversationStarted(true);
 
       // If no matching conversation found, try to create/get one
       try {
@@ -500,11 +508,12 @@ export default function Messages() {
         }
       } catch (error) {
         console.error('Failed to start conversation:', error);
+        setConversationStarted(false); // Allow retry on error
       }
     };
 
     startConversation();
-  }, [applicationFromUrl, conversations, selectedConversation, isAuthenticated]);
+  }, [applicationFromUrl, conversations, conversationsLoading, selectedConversation, isAuthenticated, conversationStarted]);
 
   useEffect(() => {
     if (scrollRef.current) {
