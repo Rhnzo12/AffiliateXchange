@@ -73,6 +73,7 @@ export default function AdminCompanyDetail() {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [activeTab, setActiveTab] = useState("details");
+  const [isLoadingDocument, setIsLoadingDocument] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     title: string;
@@ -124,6 +125,44 @@ export default function AdminCompanyDetail() {
       });
     }
   }, [company, error, loadingCompany, companyId]);
+
+  // Function to view verification document with signed URL
+  const handleViewDocument = async () => {
+    if (!company?.verificationDocumentUrl) return;
+
+    setIsLoadingDocument(true);
+    try {
+      // Extract the file path from the GCS URL
+      // URL format: https://storage.googleapis.com/bucket-name/path/to/file
+      const url = new URL(company.verificationDocumentUrl);
+      const pathParts = url.pathname.split('/');
+      // Remove empty string and bucket name, keep the rest as file path
+      const filePath = pathParts.slice(2).join('/');
+
+      // Fetch signed URL from the API
+      const response = await fetch(`/api/get-signed-url/${filePath}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get document access');
+      }
+
+      const data = await response.json();
+
+      // Open the signed URL in a new tab
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Error fetching document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to access the verification document. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingDocument(false);
+    }
+  };
 
   // Fetch company offers
   const { data: offers = [], isLoading: loadingOffers } = useQuery<any[]>({
@@ -564,16 +603,15 @@ export default function AdminCompanyDetail() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <a
-                    href={company.verificationDocumentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-primary hover:underline"
+                  <button
+                    onClick={handleViewDocument}
+                    disabled={isLoadingDocument}
+                    className="inline-flex items-center gap-2 text-primary hover:underline disabled:opacity-50 disabled:cursor-wait"
                   >
                     <FileText className="h-4 w-4" />
-                    View Document
+                    {isLoadingDocument ? "Loading..." : "View Document"}
                     <ExternalLink className="h-3 w-3" />
-                  </a>
+                  </button>
                 </CardContent>
               </Card>
             )}
