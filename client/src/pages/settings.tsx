@@ -2774,11 +2774,24 @@ export default function Settings() {
               </div>
             ) : documentViewerUrl ? (
               documentViewerType === 'pdf' ? (
-                <iframe
-                  src={documentViewerUrl}
+                <object
+                  data={`${documentViewerUrl}#toolbar=1&view=FitH`}
+                  type="application/pdf"
                   className="w-full h-full rounded border"
                   title={documentViewerName}
-                />
+                >
+                  <div className="flex flex-col items-center justify-center h-full gap-4">
+                    <p className="text-muted-foreground">Unable to display PDF inline.</p>
+                    <a
+                      href={documentViewerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Click here to open in a new tab
+                    </a>
+                  </div>
+                </object>
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <img
