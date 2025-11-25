@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "../lib/queryClient";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
 import { Switch } from "../components/ui/switch";
+import { Label } from "../components/ui/label";
+import { Separator } from "../components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -33,12 +35,41 @@ import {
   TableRow,
 } from "../components/ui/table";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../components/ui/tabs";
-import { Plus, Pencil, Trash2, Mail, Eye, Copy, Code, X, Info } from "lucide-react";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../components/ui/tooltip";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Mail,
+  Eye,
+  Copy,
+  ChevronDown,
+  Bold,
+  Link,
+  List,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  User,
+  Building,
+  FileText,
+  Sparkles,
+  LayoutTemplate,
+  Palette,
+  Type,
+} from "lucide-react";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 
@@ -58,122 +89,342 @@ interface EmailTemplate {
 }
 
 const CATEGORIES = [
-  { value: 'application', label: 'Application' },
-  { value: 'payment', label: 'Payment' },
-  { value: 'offer', label: 'Offer' },
-  { value: 'company', label: 'Company' },
-  { value: 'system', label: 'System' },
-  { value: 'moderation', label: 'Moderation' },
-  { value: 'authentication', label: 'Authentication' },
+  { value: 'application', label: 'Application', icon: FileText, description: 'Application status updates' },
+  { value: 'payment', label: 'Payment', icon: DollarSign, description: 'Payment notifications' },
+  { value: 'offer', label: 'Offer', icon: Sparkles, description: 'Offer approvals and updates' },
+  { value: 'company', label: 'Company', icon: Building, description: 'Company registration' },
+  { value: 'system', label: 'System', icon: AlertCircle, description: 'System announcements' },
+  { value: 'moderation', label: 'Moderation', icon: AlertCircle, description: 'Content moderation' },
+  { value: 'authentication', label: 'Authentication', icon: User, description: 'Login and security' },
 ];
 
-const COMMON_VARIABLES = [
-  'userName',
-  'companyName',
-  'offerTitle',
-  'applicationId',
-  'trackingLink',
-  'trackingCode',
-  'amount',
-  'grossAmount',
-  'platformFee',
-  'processingFee',
-  'transactionId',
-  'reviewRating',
-  'reviewText',
-  'messagePreview',
-  'daysUntilExpiration',
-  'linkUrl',
-  'verificationUrl',
-  'resetUrl',
-  'otpCode',
+// User-friendly variable definitions with descriptions
+const VARIABLES = [
+  { name: 'userName', label: 'User Name', description: 'The recipient\'s name', example: 'John Doe', icon: User },
+  { name: 'companyName', label: 'Company Name', description: 'The company\'s name', example: 'Acme Corp', icon: Building },
+  { name: 'offerTitle', label: 'Offer Title', description: 'The name of the offer', example: 'Summer Sale Promotion', icon: FileText },
+  { name: 'amount', label: 'Amount', description: 'Payment or commission amount', example: '$500.00', icon: DollarSign },
+  { name: 'trackingLink', label: 'Tracking Link', description: 'Unique affiliate tracking URL', example: 'https://track.example.com/abc123', icon: Link },
+  { name: 'linkUrl', label: 'Action Link', description: 'Link to relevant page in the app', example: 'https://app.example.com/dashboard', icon: Link },
+  { name: 'transactionId', label: 'Transaction ID', description: 'Payment transaction reference', example: 'TXN-12345', icon: FileText },
+  { name: 'reviewRating', label: 'Review Rating', description: 'Star rating (1-5)', example: '5', icon: Sparkles },
+  { name: 'daysUntilExpiration', label: 'Days Until Expiration', description: 'Countdown for expiring items', example: '7', icon: Clock },
+  { name: 'otpCode', label: 'OTP Code', description: 'One-time verification code', example: '123456', icon: AlertCircle },
+  { name: 'verificationUrl', label: 'Verification URL', description: 'Email verification link', example: 'https://app.example.com/verify/abc', icon: Link },
+  { name: 'resetUrl', label: 'Password Reset URL', description: 'Password reset link', example: 'https://app.example.com/reset/abc', icon: Link },
 ];
 
-const BASE_STYLES = `
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    line-height: 1.6;
-    color: #333;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 0;
-  }
-  .container {
-    max-width: 600px;
-    margin: 0 auto;
-    background-color: #ffffff;
-    padding: 20px;
-  }
-  .header {
-    background-color: #4F46E5;
-    color: #ffffff;
-    padding: 30px 20px;
-    text-align: center;
-    border-radius: 8px 8px 0 0;
-  }
-  .content {
-    padding: 30px 20px;
-  }
-  .button {
-    display: inline-block;
-    padding: 12px 30px;
-    background-color: #4F46E5;
-    color: #ffffff;
-    text-decoration: none;
-    border-radius: 6px;
-    margin: 20px 0;
-    font-weight: 600;
-  }
-  .footer {
-    text-align: center;
-    padding: 20px;
-    color: #666;
-    font-size: 14px;
-  }
-`;
+// Pre-built content blocks
+const CONTENT_BLOCKS = [
+  {
+    name: 'Greeting',
+    description: 'Standard greeting with user name',
+    content: '<p>Hi {{userName}},</p>',
+  },
+  {
+    name: 'Success Message',
+    description: 'Green success box',
+    content: `<div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+  <p style="margin: 0; color: #065F46;">Your message here</p>
+</div>`,
+  },
+  {
+    name: 'Warning Message',
+    description: 'Yellow warning box',
+    content: `<div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
+  <p style="margin: 0; color: #92400E;">Your warning message here</p>
+</div>`,
+  },
+  {
+    name: 'Error Message',
+    description: 'Red error box',
+    content: `<div style="background-color: #FEE2E2; border-left: 4px solid #EF4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
+  <p style="margin: 0; color: #991B1B;">Your error message here</p>
+</div>`,
+  },
+  {
+    name: 'Info Box',
+    description: 'Blue information box',
+    content: `<div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
+  <p style="margin: 0; color: #1E40AF;">Your information here</p>
+</div>`,
+  },
+  {
+    name: 'Action Button',
+    description: 'Primary call-to-action button',
+    content: `<div style="text-align: center; margin: 30px 0;">
+  <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Take Action</a>
+</div>`,
+  },
+  {
+    name: 'Amount Display',
+    description: 'Large amount/price display',
+    content: `<div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+  <p style="margin: 0 0 5px 0; font-size: 14px; color: #6B7280;">Amount</p>
+  <p style="margin: 0; font-size: 32px; font-weight: bold; color: #111827;">{{amount}}</p>
+</div>`,
+  },
+  {
+    name: 'Footer',
+    description: 'Standard email footer',
+    content: `<div style="text-align: center; padding: 20px; color: #666; font-size: 14px; border-top: 1px solid #E5E7EB; margin-top: 30px;">
+  <p>This is an automated notification from Affiliate Marketplace.</p>
+  <p>Update your <a href="/settings" style="color: #4F46E5;">notification preferences</a> anytime.</p>
+</div>`,
+  },
+];
 
-const DEFAULT_TEMPLATE = `<!DOCTYPE html>
+// Starter templates
+const STARTER_TEMPLATES = [
+  {
+    name: 'Simple Notification',
+    description: 'Basic notification with message and button',
+    subject: 'Notification from Affiliate Marketplace',
+    content: `<!DOCTYPE html>
 <html>
 <head>
-  <style>${BASE_STYLES}</style>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+    .header { background-color: #4F46E5; color: #ffffff; padding: 30px 20px; text-align: center; }
+    .content { padding: 30px 20px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+  </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>Email Title</h1>
+      <h1 style="margin: 0;">Notification</h1>
     </div>
     <div class="content">
       <p>Hi {{userName}},</p>
-      <p>Your message content goes here.</p>
-      <a href="{{linkUrl}}" class="button">Take Action</a>
+      <p>Your notification message goes here.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">View Details</a>
+      </div>
     </div>
     <div class="footer">
       <p>This is an automated notification from Affiliate Marketplace.</p>
-      <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
     </div>
   </div>
 </body>
-</html>`;
+</html>`,
+  },
+  {
+    name: 'Success Notification',
+    description: 'Approval or success message with green theme',
+    subject: 'Great news! {{offerTitle}}',
+    content: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+    .header { background-color: #10B981; color: #ffffff; padding: 30px 20px; text-align: center; }
+    .content { padding: 30px 20px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">Congratulations!</h1>
+    </div>
+    <div class="content">
+      <p>Hi {{userName}},</p>
+      <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; color: #065F46;">Your success message here</p>
+      </div>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #10B981; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Get Started</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>This is an automated notification from Affiliate Marketplace.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+  },
+  {
+    name: 'Payment Notification',
+    description: 'Payment received or processed template',
+    subject: 'Payment Update: {{amount}}',
+    content: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+    .header { background-color: #10B981; color: #ffffff; padding: 30px 20px; text-align: center; }
+    .content { padding: 30px 20px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">Payment Update</h1>
+    </div>
+    <div class="content">
+      <p>Hi {{userName}},</p>
+      <p>Your payment has been processed.</p>
+      <div style="background-color: #ECFDF5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0 0 5px 0; font-size: 14px; color: #065F46;">Amount</p>
+        <p style="margin: 0; font-size: 32px; font-weight: bold; color: #047857;">{{amount}}</p>
+      </div>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #10B981; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">View Payment Details</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>This is an automated notification from Affiliate Marketplace.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+  },
+  {
+    name: 'Warning/Action Required',
+    description: 'Urgent action or warning message',
+    subject: 'Action Required',
+    content: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+    .header { background-color: #F59E0B; color: #ffffff; padding: 30px 20px; text-align: center; }
+    .content { padding: 30px 20px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">Action Required</h1>
+    </div>
+    <div class="content">
+      <p>Hi {{userName}},</p>
+      <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; font-weight: 600; color: #92400E;">Important Notice</p>
+        <p style="margin: 10px 0 0 0; color: #78350F;">Your warning message here.</p>
+      </div>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #F59E0B; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Take Action</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>This is an automated notification from Affiliate Marketplace.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+  },
+  {
+    name: 'Request More Information',
+    description: 'Ask user to provide additional details',
+    subject: 'Additional Information Needed',
+    content: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+    .header { background-color: #3B82F6; color: #ffffff; padding: 30px 20px; text-align: center; }
+    .content { padding: 30px 20px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">Information Needed</h1>
+    </div>
+    <div class="content">
+      <p>Hi {{userName}},</p>
+      <p>Thank you for your submission. To proceed with your request, we need some additional information.</p>
+      <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; font-weight: 600; color: #1E40AF;">What we need:</p>
+        <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #1E3A8A;">
+          <li>Item 1</li>
+          <li>Item 2</li>
+          <li>Item 3</li>
+        </ul>
+      </div>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #3B82F6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Provide Information</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>This is an automated notification from Affiliate Marketplace.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+  },
+  {
+    name: 'Rejection Notice',
+    description: 'Polite rejection with reason',
+    subject: 'Update on Your Request',
+    content: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+    .header { background-color: #6B7280; color: #ffffff; padding: 30px 20px; text-align: center; }
+    .content { padding: 30px 20px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">Request Update</h1>
+    </div>
+    <div class="content">
+      <p>Hi {{userName}},</p>
+      <p>Thank you for your interest. After careful review, we're unable to approve your request at this time.</p>
+      <div style="background-color: #F3F4F6; border-left: 4px solid #6B7280; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; font-weight: 600; color: #374151;">Reason:</p>
+        <p style="margin: 10px 0 0 0; color: #4B5563;">Please add the specific reason here.</p>
+      </div>
+      <p>If you have questions or would like to discuss this further, please don't hesitate to reach out.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #6B7280; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Contact Support</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>This is an automated notification from Affiliate Marketplace.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+  },
+];
 
 export default function AdminEmailTemplates() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { toast } = useToast();
   const [showDialog, setShowDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [showStarterDialog, setShowStarterDialog] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [previewHtml, setPreviewHtml] = useState("");
   const [previewSubject, setPreviewSubject] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<'visual' | 'code'>('visual');
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   // Form state
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [category, setCategory] = useState<string>("system");
   const [subject, setSubject] = useState("");
-  const [htmlContent, setHtmlContent] = useState(DEFAULT_TEMPLATE);
+  const [htmlContent, setHtmlContent] = useState("");
   const [description, setDescription] = useState("");
-  const [availableVariables, setAvailableVariables] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
 
   const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; description: string; errorDetails?: string }>({
@@ -324,16 +575,67 @@ export default function AdminEmailTemplates() {
     },
   });
 
+  // Insert variable at cursor position
+  const insertVariable = useCallback((variableName: string) => {
+    const textarea = contentRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = htmlContent;
+      const before = text.substring(0, start);
+      const after = text.substring(end);
+      const newText = before + `{{${variableName}}}` + after;
+      setHtmlContent(newText);
+
+      // Set cursor position after inserted variable
+      setTimeout(() => {
+        textarea.focus();
+        const newPos = start + variableName.length + 4;
+        textarea.setSelectionRange(newPos, newPos);
+      }, 0);
+    } else {
+      setHtmlContent(htmlContent + `{{${variableName}}}`);
+    }
+  }, [htmlContent]);
+
+  // Insert content block
+  const insertContentBlock = useCallback((content: string) => {
+    const textarea = contentRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const text = htmlContent;
+      const before = text.substring(0, start);
+      const after = text.substring(start);
+      setHtmlContent(before + '\n' + content + '\n' + after);
+    } else {
+      setHtmlContent(htmlContent + '\n' + content);
+    }
+  }, [htmlContent]);
+
+  // Insert variable into subject
+  const insertSubjectVariable = useCallback((variableName: string) => {
+    setSubject(subject + `{{${variableName}}}`);
+  }, [subject]);
+
   const handleCreate = () => {
     setEditingTemplate(null);
     setName("");
     setSlug("");
     setCategory("system");
     setSubject("");
-    setHtmlContent(DEFAULT_TEMPLATE);
+    setHtmlContent("");
     setDescription("");
-    setAvailableVariables([]);
     setIsActive(true);
+    setShowStarterDialog(true);
+  };
+
+  const handleSelectStarter = (starter: typeof STARTER_TEMPLATES[0] | null) => {
+    setShowStarterDialog(false);
+    if (starter) {
+      setSubject(starter.subject);
+      setHtmlContent(starter.content);
+      setName(starter.name);
+    }
     setShowDialog(true);
   };
 
@@ -345,7 +647,6 @@ export default function AdminEmailTemplates() {
     setSubject(template.subject);
     setHtmlContent(template.htmlContent);
     setDescription(template.description || "");
-    setAvailableVariables(template.availableVariables || []);
     setIsActive(template.isActive);
     setShowDialog(true);
   };
@@ -369,55 +670,36 @@ export default function AdminEmailTemplates() {
     duplicateTemplateMutation.mutate(template.id);
   };
 
-  const handlePreview = async (template: EmailTemplate) => {
-    try {
-      const response = await fetch(`/api/admin/email-templates/${template.id}/preview`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          sampleData: {
-            userName: "John Doe",
-            companyName: "Acme Corp",
-            offerTitle: "Summer Sale Promotion",
-            amount: "$500.00",
-            trackingLink: "https://track.example.com/abc123",
-            linkUrl: "https://app.affiliatexchange.com/dashboard",
-          },
-        }),
-      });
+  const handlePreview = async (template?: EmailTemplate) => {
+    const templateToPreview = template || { subject, htmlContent: htmlContent };
 
-      if (!response.ok) throw new Error("Failed to preview template");
+    // Generate preview with sample data
+    const sampleData: Record<string, string> = {};
+    VARIABLES.forEach(v => {
+      sampleData[v.name] = v.example;
+    });
 
-      const data = await response.json();
-      setPreviewSubject(data.subject);
-      setPreviewHtml(data.html);
-      setShowPreviewDialog(true);
-    } catch (error: any) {
-      setErrorDialog({
-        open: true,
-        title: "Error",
-        description: "Failed to preview template",
-        errorDetails: error.message,
-      });
-    }
+    let processedSubject = templateToPreview.subject;
+    let processedHtml = templateToPreview.htmlContent;
+
+    // Replace variables with sample data
+    Object.entries(sampleData).forEach(([key, value]) => {
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+      processedSubject = processedSubject.replace(regex, value);
+      processedHtml = processedHtml.replace(regex, value);
+    });
+
+    setPreviewSubject(processedSubject);
+    setPreviewHtml(processedHtml);
+    setShowPreviewDialog(true);
   };
 
   const handleSubmit = () => {
     if (!name.trim()) {
       setErrorDialog({
         open: true,
-        title: "Error",
-        description: "Template name is required",
-      });
-      return;
-    }
-
-    if (!slug.trim()) {
-      setErrorDialog({
-        open: true,
-        title: "Error",
-        description: "Template slug is required",
+        title: "Missing Information",
+        description: "Please enter a template name",
       });
       return;
     }
@@ -425,8 +707,8 @@ export default function AdminEmailTemplates() {
     if (!subject.trim()) {
       setErrorDialog({
         open: true,
-        title: "Error",
-        description: "Subject line is required",
+        title: "Missing Information",
+        description: "Please enter an email subject line",
       });
       return;
     }
@@ -434,20 +716,36 @@ export default function AdminEmailTemplates() {
     if (!htmlContent.trim()) {
       setErrorDialog({
         open: true,
-        title: "Error",
-        description: "HTML content is required",
+        title: "Missing Information",
+        description: "Please add email content",
       });
       return;
     }
 
+    // Auto-generate slug from name if not editing
+    const finalSlug = editingTemplate
+      ? slug
+      : (slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
+
+    // Extract used variables from content
+    const usedVariables: string[] = [];
+    const variableRegex = /\{\{(\w+)\}\}/g;
+    let match;
+    const contentToCheck = subject + htmlContent;
+    while ((match = variableRegex.exec(contentToCheck)) !== null) {
+      if (!usedVariables.includes(match[1])) {
+        usedVariables.push(match[1]);
+      }
+    }
+
     const data = {
       name,
-      slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+      slug: finalSlug,
       category,
       subject,
       htmlContent,
       description: description || null,
-      availableVariables,
+      availableVariables: usedVariables,
       isActive,
     };
 
@@ -465,30 +763,17 @@ export default function AdminEmailTemplates() {
     setSlug("");
     setCategory("system");
     setSubject("");
-    setHtmlContent(DEFAULT_TEMPLATE);
+    setHtmlContent("");
     setDescription("");
-    setAvailableVariables([]);
     setIsActive(true);
+    setActiveTab('visual');
   };
 
   const handleNameChange = (value: string) => {
     setName(value);
-    // Auto-generate slug from name if slug is empty or matches previous auto-generated value
-    if (!editingTemplate && (!slug || slug === name.toLowerCase().replace(/[^a-z0-9]+/g, '-'))) {
-      setSlug(value.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+    if (!editingTemplate && !slug) {
+      setSlug(value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
     }
-  };
-
-  const toggleVariable = (variable: string) => {
-    if (availableVariables.includes(variable)) {
-      setAvailableVariables(availableVariables.filter(v => v !== variable));
-    } else {
-      setAvailableVariables([...availableVariables, variable]);
-    }
-  };
-
-  const insertVariable = (variable: string) => {
-    setHtmlContent(htmlContent + `{{${variable}}}`);
   };
 
   if (isLoading || templatesLoading) {
@@ -507,16 +792,11 @@ export default function AdminEmailTemplates() {
     const matchesCategory = categoryFilter === "all" || template.category === categoryFilter;
     const matchesSearch = !searchTerm ||
       template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      template.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
       template.subject.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
   const activeCount = templates.filter(t => t.isActive).length;
-  const categoryGroups = CATEGORIES.map(cat => ({
-    ...cat,
-    count: templates.filter(t => t.category === cat.value).length,
-  }));
 
   return (
     <div className="space-y-6">
@@ -526,7 +806,7 @@ export default function AdminEmailTemplates() {
         <div>
           <h1 className="text-3xl font-bold">Email Templates</h1>
           <p className="text-muted-foreground mt-2">
-            Create and manage email templates with customizable variables
+            Create and customize email notifications sent to users
           </p>
         </div>
         <Button onClick={handleCreate}>
@@ -535,7 +815,8 @@ export default function AdminEmailTemplates() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Total Templates</CardTitle>
@@ -562,18 +843,9 @@ export default function AdminEmailTemplates() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Categories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-blue-600">
-              {categoryGroups.filter(c => c.count > 0).length}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
+      {/* Template List */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -609,7 +881,6 @@ export default function AdminEmailTemplates() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Slug</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Subject</TableHead>
                 <TableHead>Status</TableHead>
@@ -619,7 +890,7 @@ export default function AdminEmailTemplates() {
             <TableBody>
               {filteredTemplates.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     No templates found. Click "Create Template" to add one.
                   </TableCell>
                 </TableRow>
@@ -634,60 +905,60 @@ export default function AdminEmailTemplates() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-sm">
-                      {template.slug}
-                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary">
                         {CATEGORIES.find(c => c.value === template.category)?.label || template.category}
                       </Badge>
                     </TableCell>
-                    <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                    <TableCell className="max-w-[250px] truncate text-muted-foreground">
                       {template.subject}
                     </TableCell>
                     <TableCell>
                       {template.isActive ? (
-                        <Badge variant="default" className="bg-green-500">Active</Badge>
+                        <Badge className="bg-green-500">Active</Badge>
                       ) : (
                         <Badge variant="secondary">Inactive</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handlePreview(template)}
-                          title="Preview"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(template)}
-                          title="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDuplicate(template)}
-                          title="Duplicate"
-                          disabled={duplicateTemplateMutation.isPending}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(template)}
-                          disabled={deleteTemplateMutation.isPending || template.isSystem}
-                          title={template.isSystem ? "System templates cannot be deleted" : "Delete"}
-                        >
-                          <Trash2 className={`h-4 w-4 ${template.isSystem ? 'text-muted-foreground' : 'text-destructive'}`} />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handlePreview(template)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Preview</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(template)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => handleDuplicate(template)}>
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Duplicate</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(template)}
+                              disabled={template.isSystem}
+                            >
+                              <Trash2 className={`h-4 w-4 ${template.isSystem ? 'text-muted-foreground' : 'text-destructive'}`} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{template.isSystem ? 'System templates cannot be deleted' : 'Delete'}</TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -698,192 +969,246 @@ export default function AdminEmailTemplates() {
         </CardContent>
       </Card>
 
+      {/* Starter Template Selection Dialog */}
+      <Dialog open={showStarterDialog} onOpenChange={setShowStarterDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Choose a Starting Point</DialogTitle>
+            <DialogDescription>
+              Select a pre-built template to start with, or create from scratch
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 gap-4 py-4 max-h-[60vh] overflow-y-auto">
+            {/* Blank template option */}
+            <Card
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => handleSelectStarter(null)}
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Blank Template
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Start from scratch with a blank template</p>
+              </CardContent>
+            </Card>
+
+            {/* Pre-built templates */}
+            {STARTER_TEMPLATES.map((starter, index) => (
+              <Card
+                key={index}
+                className="cursor-pointer hover:border-primary transition-colors"
+                onClick={() => handleSelectStarter(starter)}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <LayoutTemplate className="h-4 w-4" />
+                    {starter.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{starter.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Create/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {editingTemplate ? "Edit Email Template" : "Create Email Template"}
             </DialogTitle>
             <DialogDescription>
-              {editingTemplate
-                ? "Update the email template details and content."
-                : "Create a new email template with customizable variables."}
+              Design your email using the visual editor or content blocks
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="content">Content</TabsTrigger>
-              <TabsTrigger value="variables">Variables</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="details" className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Name *</label>
-                  <Input
-                    placeholder="e.g., Application Approved"
-                    value={name}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Slug *</label>
-                  <Input
-                    placeholder="e.g., application-approved"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Unique identifier used to reference this template in code
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Category *</label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map(cat => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center justify-between space-x-2 pt-6">
-                  <div>
-                    <label className="text-sm font-medium">Active</label>
-                    <p className="text-xs text-muted-foreground">
-                      Inactive templates won't be used
-                    </p>
-                  </div>
-                  <Switch
-                    checked={isActive}
-                    onCheckedChange={setIsActive}
-                  />
-                </div>
-              </div>
-
+          <div className="flex-1 overflow-y-auto space-y-6 py-4">
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Subject Line *</label>
+                <Label>Template Name *</Label>
                 <Input
-                  placeholder="e.g., Your application has been approved!"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="e.g., Application Approved"
+                  value={name}
+                  onChange={(e) => handleNameChange(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
-                  You can use variables like {"{{userName}}"} or {"{{offerTitle}}"}
-                </p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Description</label>
-                <Textarea
-                  placeholder="Brief description of when this template is used..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
-                />
+                <Label>Category *</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map(cat => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        <div className="flex items-center gap-2">
+                          <cat.icon className="h-4 w-4" />
+                          {cat.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="content" className="space-y-4 py-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">HTML Content *</label>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Info className="h-3 w-3" />
-                    Use {"{{variableName}}"} for dynamic content
-                  </div>
+            {/* Subject Line */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Subject Line *</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-3 w-3 mr-1" />
+                      Insert Variable
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel>Click to insert</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {VARIABLES.slice(0, 5).map(v => (
+                      <DropdownMenuItem key={v.name} onClick={() => insertSubjectVariable(v.name)}>
+                        <v.icon className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">{v.label}</div>
+                          <div className="text-xs text-muted-foreground">Example: {v.example}</div>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <Input
+                placeholder="e.g., Your application has been approved!"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                This is what recipients see in their inbox. Use variables like {'{{'} userName {'}}'}
+              </p>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <Label>Internal Description (optional)</Label>
+              <Input
+                placeholder="When is this template used? (internal note)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            <Separator />
+
+            {/* Email Content Editor */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Email Content *</Label>
+                <div className="flex items-center gap-2">
+                  {/* Content Blocks Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <LayoutTemplate className="h-4 w-4 mr-2" />
+                        Add Block
+                        <ChevronDown className="h-4 w-4 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-64">
+                      <DropdownMenuLabel>Content Blocks</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {CONTENT_BLOCKS.map((block, index) => (
+                        <DropdownMenuItem key={index} onClick={() => insertContentBlock(block.content)}>
+                          <div>
+                            <div className="font-medium">{block.name}</div>
+                            <div className="text-xs text-muted-foreground">{block.description}</div>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Variables Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Type className="h-4 w-4 mr-2" />
+                        Insert Variable
+                        <ChevronDown className="h-4 w-4 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-72 max-h-80 overflow-y-auto">
+                      <DropdownMenuLabel>Dynamic Variables</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {VARIABLES.map(v => (
+                        <DropdownMenuItem key={v.name} onClick={() => insertVariable(v.name)}>
+                          <v.icon className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-medium">{v.label}</div>
+                            <div className="text-xs text-muted-foreground truncate">{v.description}</div>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Preview Button */}
+                  <Button variant="outline" size="sm" onClick={() => handlePreview()}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                </div>
+              </div>
+
+              {/* Editor */}
+              <div className="border rounded-lg">
+                <div className="flex items-center gap-1 p-2 border-b bg-muted/50">
+                  <span className="text-xs text-muted-foreground px-2">
+                    Tip: Click "Add Block" to insert pre-formatted sections, or "Insert Variable" for dynamic content
+                  </span>
                 </div>
                 <Textarea
-                  placeholder="Enter HTML content..."
+                  ref={contentRef}
+                  placeholder="Start typing your email content here...
+
+You can:
+• Click 'Add Block' above to insert pre-formatted sections (buttons, alerts, etc.)
+• Click 'Insert Variable' to add dynamic content like {{userName}}
+• Type or paste your HTML content directly"
                   value={htmlContent}
                   onChange={(e) => setHtmlContent(e.target.value)}
-                  rows={20}
-                  className="font-mono text-sm"
+                  rows={16}
+                  className="font-mono text-sm border-0 rounded-none focus-visible:ring-0"
                 />
               </div>
+            </div>
 
-              <div className="flex flex-wrap gap-2">
-                <span className="text-sm text-muted-foreground">Quick insert:</span>
-                {COMMON_VARIABLES.slice(0, 8).map(variable => (
-                  <Button
-                    key={variable}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => insertVariable(variable)}
-                    className="text-xs"
-                  >
-                    <Code className="h-3 w-3 mr-1" />
-                    {variable}
-                  </Button>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="variables" className="space-y-4 py-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Available Variables</label>
-                <p className="text-xs text-muted-foreground">
-                  Select the variables that this template uses. This helps admins understand what data is available.
+            {/* Active Toggle */}
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+              <div>
+                <Label className="font-medium">Active Status</Label>
+                <p className="text-sm text-muted-foreground">
+                  When active, this template will be used for sending emails
                 </p>
               </div>
+              <Switch
+                checked={isActive}
+                onCheckedChange={setIsActive}
+              />
+            </div>
+          </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                {COMMON_VARIABLES.map(variable => (
-                  <div
-                    key={variable}
-                    className={`flex items-center gap-2 p-2 rounded border cursor-pointer transition-colors ${
-                      availableVariables.includes(variable)
-                        ? 'bg-primary/10 border-primary'
-                        : 'hover:bg-muted'
-                    }`}
-                    onClick={() => toggleVariable(variable)}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={availableVariables.includes(variable)}
-                      onChange={() => toggleVariable(variable)}
-                      className="rounded"
-                    />
-                    <span className="text-sm font-mono">{`{{${variable}}}`}</span>
-                  </div>
-                ))}
-              </div>
-
-              {availableVariables.length > 0 && (
-                <div className="mt-4 p-3 bg-muted rounded-lg">
-                  <p className="text-sm font-medium mb-2">Selected Variables:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {availableVariables.map(variable => (
-                      <Badge key={variable} variant="secondary" className="font-mono">
-                        {`{{${variable}}}`}
-                        <button
-                          onClick={() => toggleVariable(variable)}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-
-          <DialogFooter>
+          <DialogFooter className="border-t pt-4">
             <Button variant="outline" onClick={handleCloseDialog}>
               Cancel
             </Button>
@@ -891,7 +1216,7 @@ export default function AdminEmailTemplates() {
               onClick={handleSubmit}
               disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}
             >
-              {editingTemplate ? "Update" : "Create"}
+              {editingTemplate ? "Save Changes" : "Create Template"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -899,20 +1224,27 @@ export default function AdminEmailTemplates() {
 
       {/* Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Email Preview</DialogTitle>
             <DialogDescription>
-              Subject: <strong>{previewSubject}</strong>
+              This shows how the email will appear with sample data filled in
             </DialogDescription>
           </DialogHeader>
 
-          <div className="border rounded-lg overflow-hidden">
-            <iframe
-              srcDoc={previewHtml}
-              className="w-full h-[500px]"
-              title="Email Preview"
-            />
+          <div className="space-y-3 flex-1 overflow-hidden">
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              <span className="text-sm font-medium text-muted-foreground">Subject:</span>
+              <span className="text-sm">{previewSubject}</span>
+            </div>
+
+            <div className="border rounded-lg overflow-hidden flex-1">
+              <iframe
+                srcDoc={previewHtml}
+                className="w-full h-[500px]"
+                title="Email Preview"
+              />
+            </div>
           </div>
 
           <DialogFooter>
