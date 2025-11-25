@@ -102,7 +102,25 @@ const statusConfig: Record<PaymentStatus, { bg: string; text: string; icon: type
   refunded: { bg: "bg-gray-100", text: "text-gray-800", icon: AlertTriangle, label: "Refunded" },
 };
 
-function StatusBadge({ status }: { status: PaymentStatus }) {
+// Helper to check if a payment is disputed (failed with "Disputed:" in description)
+function isDisputedPayment(payment: CreatorPayment): boolean {
+  return payment.status === "failed" &&
+    payment.description?.toLowerCase().includes("disputed:");
+}
+
+function StatusBadge({ status, isDisputed = false }: { status: PaymentStatus; isDisputed?: boolean }) {
+  // Show disputed badge if payment is disputed
+  if (isDisputed) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800"
+      >
+        <AlertTriangle className="w-3 h-3" />
+        Disputed
+      </span>
+    );
+  }
+
   const config = statusConfig[status];
   const Icon = config.icon;
   return (
@@ -117,11 +135,21 @@ function StatusBadge({ status }: { status: PaymentStatus }) {
 
 function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
   const { toast } = useToast();
-  const { totalEarnings, pendingEarnings, completedEarnings, processingEarnings } = useMemo(() => {
+  const { totalEarnings, pendingEarnings, completedEarnings, processingEarnings, disputedEarnings } = useMemo(() => {
     const totals = payments.reduce(
       (acc, payment) => {
         const amount = parseFloat(payment.netAmount);
+        const disputed = isDisputedPayment(payment);
+
+        // Track disputed payments separately - do NOT include in total earnings
+        if (disputed) {
+          acc.disputedEarnings += amount;
+          return acc; // Skip adding to totalEarnings
+        }
+
+        // Only add non-disputed payments to total earnings
         acc.totalEarnings += amount;
+
         if (payment.status === "completed") {
           acc.completedEarnings += amount;
         }
@@ -133,7 +161,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
         }
         return acc;
       },
-      { totalEarnings: 0, pendingEarnings: 0, completedEarnings: 0, processingEarnings: 0 }
+      { totalEarnings: 0, pendingEarnings: 0, completedEarnings: 0, processingEarnings: 0, disputedEarnings: 0 }
     );
 
     return totals;
@@ -206,6 +234,17 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
           <div className="text-3xl font-bold text-gray-900">${completedEarnings.toFixed(2)}</div>
           <div className="mt-1 text-xs text-gray-500">Completed</div>
         </div>
+
+        {disputedEarnings > 0 && (
+          <div className="rounded-xl border-2 border-orange-300 bg-orange-50 p-6">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm text-orange-700">Disputed</span>
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+            </div>
+            <div className="text-3xl font-bold text-orange-900">${disputedEarnings.toFixed(2)}</div>
+            <div className="mt-1 text-xs text-orange-700">Awaiting admin resolution</div>
+          </div>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
@@ -278,7 +317,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
                       ${parseFloat(payment.netAmount).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <StatusBadge status={payment.status} />
+                      <StatusBadge status={payment.status} isDisputed={isDisputedPayment(payment)} />
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
                       {payment.completedAt
@@ -760,7 +799,7 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                       <h4 className="font-bold text-gray-900 break-words">
                         {payout.description || `Payment ${payout.id.slice(0, 8)}`}
                       </h4>
-                      <StatusBadge status={payout.status} />
+                      <StatusBadge status={payout.status} isDisputed={isDisputedPayment(payout as CreatorPayment)} />
                     </div>
                     <p className="text-sm text-gray-600">
                       Created: {new Date(payout.createdAt).toLocaleDateString()}
@@ -1037,7 +1076,7 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
                       ${(parseFloat(payout.platformFeeAmount) + parseFloat(payout.stripeFeeAmount)).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <StatusBadge status={payout.status} />
+                      <StatusBadge status={payout.status} isDisputed={isDisputedPayment(payout as CreatorPayment)} />
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
                       {payout.completedAt
@@ -1467,7 +1506,7 @@ function AdminPaymentDashboard({
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <Link href={`/payments/${payment.id}`} className="block">
-                        <StatusBadge status={payment.status} />
+                        <StatusBadge status={payment.status} isDisputed={isDisputedPayment(payment as CreatorPayment)} />
                       </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
