@@ -4935,19 +4935,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get email template by ID
-  app.get("/api/admin/email-templates/:id", requireAuth, requireRole('admin'), async (req, res) => {
-    try {
-      const template = await storage.getEmailTemplateById(req.params.id);
-      if (!template) {
-        return res.status(404).send("Email template not found");
-      }
-      res.json(template);
-    } catch (error: any) {
-      console.error('[Email Templates] Error fetching template:', error);
-      res.status(500).send(error.message);
-    }
-  });
+  // IMPORTANT: Specific path routes MUST come before the generic :id route
+  // Otherwise Express will match "available-types", "slug", "category", etc. as :id values
 
   // Get email template by slug (for internal use)
   app.get("/api/admin/email-templates/slug/:slug", requireAuth, requireRole('admin'), async (req, res) => {
@@ -4959,6 +4948,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(template);
     } catch (error: any) {
       console.error('[Email Templates] Error fetching template by slug:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get templates by category
+  app.get("/api/admin/email-templates/category/:category", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const templates = await storage.getEmailTemplatesByCategory(req.params.category);
+      res.json(templates);
+    } catch (error: any) {
+      console.error('[Email Templates] Error fetching templates by category:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get available variables for a specific template slug
+  app.get("/api/admin/email-templates/variables/:slug", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { getAvailableVariablesForTemplate } = await import('./notifications/templateEngine');
+      const variables = getAvailableVariablesForTemplate(req.params.slug);
+      res.json(variables);
+    } catch (error: any) {
+      console.error('[Email Templates] Error getting template variables:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get all available template types/slugs with their variables
+  app.get("/api/admin/email-templates/available-types", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { getAvailableVariablesForTemplate, getTemplateSlugForNotificationType } = await import('./notifications/templateEngine');
+
+      // All notification types and their slugs
+      const templateTypes = [
+        { type: 'application_status_change', category: 'application', name: 'Application Status Change', description: 'Sent when application status changes (approved/rejected/pending)' },
+        { type: 'new_application', category: 'application', name: 'New Application', description: 'Sent when a new application or offer is submitted for review' },
+        { type: 'payment_received', category: 'payment', name: 'Payment Received', description: 'Sent to creator when payment is successfully received' },
+        { type: 'payment_pending', category: 'payment', name: 'Payment Pending', description: 'Sent when payment is pending approval or processing' },
+        { type: 'payment_approved', category: 'payment', name: 'Payment Approved', description: 'Sent when payment has been approved and is being processed' },
+        { type: 'payment_failed_insufficient_funds', category: 'payment', name: 'Payment Failed (Insufficient Funds)', description: 'Sent when payment fails due to insufficient funds' },
+        { type: 'payment_disputed', category: 'payment', name: 'Payment Disputed', description: 'Sent when a payment is disputed' },
+        { type: 'payment_dispute_resolved', category: 'payment', name: 'Payment Dispute Resolved', description: 'Sent when a payment dispute is resolved' },
+        { type: 'payment_refunded', category: 'payment', name: 'Payment Refunded', description: 'Sent when a payment is refunded' },
+        { type: 'offer_approved', category: 'offer', name: 'Offer Approved', description: 'Sent when company offer is approved by admin' },
+        { type: 'offer_rejected', category: 'offer', name: 'Offer Rejected', description: 'Sent when company offer is rejected by admin' },
+        { type: 'registration_approved', category: 'company', name: 'Registration Approved', description: 'Sent when company registration is approved' },
+        { type: 'registration_rejected', category: 'company', name: 'Registration Rejected', description: 'Sent when company registration is rejected' },
+        { type: 'system_announcement', category: 'system', name: 'System Announcement', description: 'General system announcements and updates' },
+        { type: 'new_message', category: 'system', name: 'New Message', description: 'Sent when user receives a new message' },
+        { type: 'review_received', category: 'system', name: 'Review Received', description: 'Sent when company receives a new review' },
+        { type: 'work_completion_approval', category: 'system', name: 'Work Completion Approval', description: 'Sent when work is approved' },
+        { type: 'priority_listing_expiring', category: 'system', name: 'Priority Listing Expiring', description: 'Sent when priority listing is about to expire' },
+        { type: 'deliverable_rejected', category: 'system', name: 'Deliverable Rejected', description: 'Sent when retainer deliverable is rejected' },
+        { type: 'revision_requested', category: 'system', name: 'Revision Requested', description: 'Sent when revision is requested for deliverable' },
+        { type: 'content_flagged', category: 'moderation', name: 'Content Flagged', description: 'Sent when content is flagged for moderation' },
+        { type: 'email_verification', category: 'authentication', name: 'Email Verification', description: 'Sent for email address verification' },
+        { type: 'password_reset', category: 'authentication', name: 'Password Reset', description: 'Sent for password reset requests' },
+        { type: 'account_deletion_otp', category: 'authentication', name: 'Account Deletion OTP', description: 'Sent for account deletion verification' },
+        { type: 'password_change_otp', category: 'authentication', name: 'Password Change OTP', description: 'Sent for password change verification' },
+      ];
+
+      // Add slug and variables to each type
+      const result = templateTypes.map(t => {
+        const slug = getTemplateSlugForNotificationType(t.type);
+        return {
+          ...t,
+          slug,
+          variables: slug ? getAvailableVariablesForTemplate(slug) : [],
+        };
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('[Email Templates] Error getting available template types:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get email template by ID (must come after specific path routes)
+  app.get("/api/admin/email-templates/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const template = await storage.getEmailTemplateById(req.params.id);
+      if (!template) {
+        return res.status(404).send("Email template not found");
+      }
+      res.json(template);
+    } catch (error: any) {
+      console.error('[Email Templates] Error fetching template:', error);
       res.status(500).send(error.message);
     }
   });
@@ -5097,17 +5174,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get templates by category
-  app.get("/api/admin/email-templates/category/:category", requireAuth, requireRole('admin'), async (req, res) => {
-    try {
-      const templates = await storage.getEmailTemplatesByCategory(req.params.category);
-      res.json(templates);
-    } catch (error: any) {
-      console.error('[Email Templates] Error fetching templates by category:', error);
-      res.status(500).send(error.message);
-    }
-  });
-
   // Preview email template with sample data
   app.post("/api/admin/email-templates/:id/preview", requireAuth, requireRole('admin'), async (req, res) => {
     try {
@@ -5190,69 +5256,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(newTemplate);
     } catch (error: any) {
       console.error('[Email Templates] Error duplicating template:', error);
-      res.status(500).send(error.message);
-    }
-  });
-
-  // Get available variables for a specific template slug
-  app.get("/api/admin/email-templates/variables/:slug", requireAuth, requireRole('admin'), async (req, res) => {
-    try {
-      const { getAvailableVariablesForTemplate } = await import('./notifications/templateEngine');
-      const variables = getAvailableVariablesForTemplate(req.params.slug);
-      res.json(variables);
-    } catch (error: any) {
-      console.error('[Email Templates] Error getting template variables:', error);
-      res.status(500).send(error.message);
-    }
-  });
-
-  // Get all available template types/slugs with their variables
-  app.get("/api/admin/email-templates/available-types", requireAuth, requireRole('admin'), async (req, res) => {
-    try {
-      const { getAvailableVariablesForTemplate, getTemplateSlugForNotificationType } = await import('./notifications/templateEngine');
-
-      // All notification types and their slugs
-      const templateTypes = [
-        { type: 'application_status_change', category: 'application', name: 'Application Status Change', description: 'Sent when application status changes (approved/rejected/pending)' },
-        { type: 'new_application', category: 'application', name: 'New Application', description: 'Sent when a new application or offer is submitted for review' },
-        { type: 'payment_received', category: 'payment', name: 'Payment Received', description: 'Sent to creator when payment is successfully received' },
-        { type: 'payment_pending', category: 'payment', name: 'Payment Pending', description: 'Sent when payment is pending approval or processing' },
-        { type: 'payment_approved', category: 'payment', name: 'Payment Approved', description: 'Sent when payment has been approved and is being processed' },
-        { type: 'payment_failed_insufficient_funds', category: 'payment', name: 'Payment Failed (Insufficient Funds)', description: 'Sent when payment fails due to insufficient funds' },
-        { type: 'payment_disputed', category: 'payment', name: 'Payment Disputed', description: 'Sent when a payment is disputed' },
-        { type: 'payment_dispute_resolved', category: 'payment', name: 'Payment Dispute Resolved', description: 'Sent when a payment dispute is resolved' },
-        { type: 'payment_refunded', category: 'payment', name: 'Payment Refunded', description: 'Sent when a payment is refunded' },
-        { type: 'offer_approved', category: 'offer', name: 'Offer Approved', description: 'Sent when company offer is approved by admin' },
-        { type: 'offer_rejected', category: 'offer', name: 'Offer Rejected', description: 'Sent when company offer is rejected by admin' },
-        { type: 'registration_approved', category: 'company', name: 'Registration Approved', description: 'Sent when company registration is approved' },
-        { type: 'registration_rejected', category: 'company', name: 'Registration Rejected', description: 'Sent when company registration is rejected' },
-        { type: 'system_announcement', category: 'system', name: 'System Announcement', description: 'General system announcements and updates' },
-        { type: 'new_message', category: 'system', name: 'New Message', description: 'Sent when user receives a new message' },
-        { type: 'review_received', category: 'system', name: 'Review Received', description: 'Sent when company receives a new review' },
-        { type: 'work_completion_approval', category: 'system', name: 'Work Completion Approval', description: 'Sent when work is approved' },
-        { type: 'priority_listing_expiring', category: 'system', name: 'Priority Listing Expiring', description: 'Sent when priority listing is about to expire' },
-        { type: 'deliverable_rejected', category: 'system', name: 'Deliverable Rejected', description: 'Sent when retainer deliverable is rejected' },
-        { type: 'revision_requested', category: 'system', name: 'Revision Requested', description: 'Sent when revision is requested for deliverable' },
-        { type: 'content_flagged', category: 'moderation', name: 'Content Flagged', description: 'Sent when content is flagged for moderation' },
-        { type: 'email_verification', category: 'authentication', name: 'Email Verification', description: 'Sent for email address verification' },
-        { type: 'password_reset', category: 'authentication', name: 'Password Reset', description: 'Sent for password reset requests' },
-        { type: 'account_deletion_otp', category: 'authentication', name: 'Account Deletion OTP', description: 'Sent for account deletion verification' },
-        { type: 'password_change_otp', category: 'authentication', name: 'Password Change OTP', description: 'Sent for password change verification' },
-      ];
-
-      // Add slug and variables to each type
-      const result = templateTypes.map(t => {
-        const slug = getTemplateSlugForNotificationType(t.type);
-        return {
-          ...t,
-          slug,
-          variables: slug ? getAvailableVariablesForTemplate(slug) : [],
-        };
-      });
-
-      res.json(result);
-    } catch (error: any) {
-      console.error('[Email Templates] Error getting available template types:', error);
       res.status(500).send(error.message);
     }
   });
