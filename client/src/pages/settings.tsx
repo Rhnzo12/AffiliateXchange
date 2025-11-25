@@ -23,6 +23,12 @@ import {
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -116,6 +122,14 @@ export default function Settings() {
   const [showActiveItemsDialog, setShowActiveItemsDialog] = useState(false);
   const [activeItemsDetails, setActiveItemsDetails] = useState<any>(null);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+
+  // Document viewer state
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+  const [documentViewerUrl, setDocumentViewerUrl] = useState("");
+  const [documentViewerName, setDocumentViewerName] = useState("");
+  const [documentViewerType, setDocumentViewerType] = useState("");
+  const [isLoadingDocument, setIsLoadingDocument] = useState(false);
+
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
@@ -625,8 +639,13 @@ export default function Settings() {
     }
   };
 
-  const handleViewDocument = async (documentUrl: string) => {
+  const handleViewDocument = async (documentUrl: string, documentName: string, documentType: string) => {
     try {
+      setIsLoadingDocument(true);
+      setDocumentViewerName(documentName);
+      setDocumentViewerType(documentType);
+      setShowDocumentViewer(true);
+
       // Extract the file path from the GCS URL
       const url = new URL(documentUrl);
       const pathParts = url.pathname.split('/');
@@ -642,14 +661,17 @@ export default function Settings() {
       }
 
       const data = await response.json();
-      window.open(data.url, '_blank', 'noopener,noreferrer');
+      setDocumentViewerUrl(data.url);
     } catch (error) {
       console.error('Error viewing document:', error);
+      setShowDocumentViewer(false);
       toast({
         title: "Error",
         description: "Failed to view document. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoadingDocument(false);
     }
   };
 
@@ -1594,7 +1616,7 @@ export default function Settings() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => handleViewDocument(doc.documentUrl)}
+                            onClick={() => handleViewDocument(doc.documentUrl, doc.documentName, doc.documentType)}
                             title="View document"
                           >
                             <Eye className="h-4 w-4 text-green-600" />
@@ -2731,6 +2753,45 @@ export default function Settings() {
           </AlertDialogContent>
         </AlertDialog>
       )}
+
+      {/* Document Viewer Dialog */}
+      <Dialog open={showDocumentViewer} onOpenChange={(open) => {
+        if (!open) {
+          setShowDocumentViewer(false);
+          setDocumentViewerUrl("");
+          setDocumentViewerName("");
+          setDocumentViewerType("");
+        }
+      }}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0">
+          <DialogHeader className="p-4 pb-2 border-b">
+            <DialogTitle className="truncate pr-8">{documentViewerName}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 p-4">
+            {isLoadingDocument ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : documentViewerUrl ? (
+              documentViewerType === 'pdf' ? (
+                <iframe
+                  src={documentViewerUrl}
+                  className="w-full h-full rounded border"
+                  title={documentViewerName}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <img
+                    src={documentViewerUrl}
+                    alt={documentViewerName}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              )
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <GenericErrorDialog
         open={!!errorDialog}
