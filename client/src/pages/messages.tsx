@@ -468,19 +468,43 @@ export default function Messages() {
     }
   }, [conversationFromUrl, selectedConversation]);
 
-  // Handle application parameter - find conversation by application ID
+  // Handle application parameter - find or create conversation by application ID
   useEffect(() => {
-    if (applicationFromUrl && conversations && conversations.length > 0) {
-      const matchingConversation = conversations.find(
-        (conv: any) => conv.applicationId === applicationFromUrl
-      );
-      if (matchingConversation && matchingConversation.id !== selectedConversation) {
-        setSelectedConversation(matchingConversation.id);
-        // Refetch conversations to ensure we have the latest data
-        queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+    const startConversation = async () => {
+      if (!applicationFromUrl || !isAuthenticated) return;
+
+      // First check if we already have a matching conversation
+      if (conversations && conversations.length > 0) {
+        const matchingConversation = conversations.find(
+          (conv: any) => conv.applicationId === applicationFromUrl
+        );
+        if (matchingConversation && matchingConversation.id !== selectedConversation) {
+          setSelectedConversation(matchingConversation.id);
+          return;
+        }
       }
-    }
-  }, [applicationFromUrl, conversations, selectedConversation]);
+
+      // If no matching conversation found, try to create/get one
+      try {
+        const response = await apiRequest("POST", "/api/conversations/start", {
+          applicationId: applicationFromUrl,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.conversationId) {
+            // Refresh conversations list and select the new conversation
+            await queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+            setSelectedConversation(data.conversationId);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to start conversation:', error);
+      }
+    };
+
+    startConversation();
+  }, [applicationFromUrl, conversations, selectedConversation, isAuthenticated]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -1016,7 +1040,7 @@ export default function Messages() {
                         {getDisplayName(otherUser)}
                       </h3>
                       <p className="text-sm text-muted-foreground truncate">
-                        {conversations?.find((c: any) => c.id === selectedConversation)?.offer?.title}
+                        {conversations?.find((c: any) => c.id === selectedConversation)?.offerTitle}
                       </p>
                     </div>
                   </div>
