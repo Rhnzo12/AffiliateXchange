@@ -390,11 +390,11 @@ function PaymentMethodSettings({
                     needsStripeSetup ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <CreditCard className={`h-5 w-5 ${needsStripeSetup ? 'text-yellow-600' : 'text-gray-400'}`} />
-                      <div>
-                        <div className="font-medium capitalize text-gray-900 flex items-center gap-2">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <CreditCard className={`h-5 w-5 flex-shrink-0 ${needsStripeSetup ? 'text-yellow-600' : 'text-gray-400'}`} />
+                      <div className="min-w-0">
+                        <div className="font-medium capitalize text-gray-900 flex flex-wrap items-center gap-2">
                           {method.payoutMethod.replace("_", " ")}
                           {needsStripeSetup && (
                             <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
@@ -402,10 +402,10 @@ function PaymentMethodSettings({
                             </Badge>
                           )}
                         </div>
-                        <div className="text-sm text-gray-600">{getDisplayValue(method)}</div>
+                        <div className="text-sm text-gray-600 truncate">{getDisplayValue(method)}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
                       {method.isDefault ? (
                         <Badge>Default</Badge>
                       ) : (
@@ -414,7 +414,7 @@ function PaymentMethodSettings({
                             variant="outline"
                             size="sm"
                             onClick={() => onSetPrimary(method)}
-                            className="text-sm"
+                            className="text-sm whitespace-nowrap"
                           >
                             Set as Primary
                           </Button>
@@ -433,15 +433,15 @@ function PaymentMethodSettings({
                     </div>
                   </div>
                   {needsStripeSetup && (
-                    <div className="mt-3 pt-3 border-t border-yellow-200 flex items-center justify-between">
+                    <div className="mt-3 pt-3 border-t border-yellow-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2 text-sm text-yellow-800">
-                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                         <span>Stripe Connect setup required to process payments</span>
                       </div>
                       <Button
                         size="sm"
                         onClick={() => onUpgradeETransfer && onUpgradeETransfer(method)}
-                        className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white w-full sm:w-auto"
                       >
                         Complete Setup
                       </Button>
