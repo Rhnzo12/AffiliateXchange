@@ -2137,7 +2137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Auto-moderate message for banned content
       try {
-        await moderateMessage(message.id);
+        await moderateMessage(message.id, storage);
       } catch (moderationError) {
         console.error('[Moderation] Error auto-moderating message:', moderationError);
         // Don't fail the message creation if moderation fails
@@ -2304,7 +2304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Auto-moderate review for banned content and low ratings
       try {
-        await moderateReview(review.id);
+        await moderateReview(review.id, storage);
       } catch (moderationError) {
         console.error('[Moderation] Error auto-moderating review:', moderationError);
         // Don't fail the review creation if moderation fails
@@ -4325,7 +4325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Invalid status. Must be: reviewed, dismissed, or action_taken");
       }
 
-      await reviewFlaggedContent(req.params.id, userId, status, adminNotes, actionTaken);
+      await reviewFlaggedContent(req.params.id, userId, status, adminNotes, actionTaken, storage);
 
       const flag = await db.query.contentFlags.findFirst({
         where: eq(contentFlags.id, req.params.id),
@@ -6166,7 +6166,7 @@ res.json(approved);
 
           // Auto-moderate message for banned content
           try {
-            await moderateMessage(savedMessage.id);
+            await moderateMessage(savedMessage.id, storage);
           } catch (moderationError) {
             console.error('[WebSocket] Error auto-moderating message:', moderationError);
             // Don't fail the message if moderation fails

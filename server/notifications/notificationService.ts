@@ -51,7 +51,8 @@ export type NotificationType =
   | 'email_verification'
   | 'password_reset'
   | 'account_deletion_otp'
-  | 'password_change_otp';
+  | 'password_change_otp'
+  | 'content_flagged';
 
 interface NotificationData {
   userName?: string;
@@ -88,6 +89,12 @@ interface NotificationData {
   verificationUrl?: string;
   resetUrl?: string;
   otpCode?: string;
+  // Content moderation fields
+  contentType?: string;
+  contentId?: string;
+  matchedKeywords?: string[];
+  reviewStatus?: string;
+  actionTaken?: string;
 }
 
 export class NotificationService {
@@ -205,6 +212,11 @@ export class NotificationService {
       case 'system_announcement':
         // Use provided linkUrl or go to home
         return data.linkUrl || '/';
+
+      case 'content_flagged':
+        // For users, link to notifications page to see details
+        // The content itself might be removed/modified, so we don't link directly to it
+        return '/notifications';
 
       default:
         // Default fallback based on user role
@@ -369,6 +381,9 @@ export class NotificationService {
         case 'password_change_otp':
           emailContent = emailTemplates.passwordChangeOtpEmail(data);
           break;
+        case 'content_flagged':
+          emailContent = emailTemplates.contentFlaggedEmail(data);
+          break;
         default:
           console.warn(`[Notifications] Unknown email type: ${type}`);
           return;
@@ -458,6 +473,7 @@ export class NotificationService {
       case 'registration_approved':
       case 'registration_rejected':
       case 'priority_listing_expiring':
+      case 'content_flagged':
         return preferences.emailSystem;
       default:
         return true;

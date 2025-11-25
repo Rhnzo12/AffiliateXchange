@@ -1,7 +1,9 @@
 import { Filter } from 'bad-words';
 import { db } from '../db';
-import { bannedKeywords, contentFlags, reviews, messages, notifications } from '../../shared/schema';
+import { bannedKeywords, contentFlags, reviews, messages, notifications, users } from '../../shared/schema';
 import { eq, and, count } from 'drizzle-orm';
+import { NotificationService } from '../notifications/notificationService';
+import type { DatabaseStorage } from '../storage';
 
 const profanityFilter = new Filter();
 
@@ -104,53 +106,76 @@ export async function checkContent(
 }
 
 /**
- * Flag content and create notification for admins
+ * Flag content and create notification for admins and notify the user
  */
 export async function flagContent(
   contentType: 'message' | 'review',
   contentId: string,
   userId: string,
   reason: string,
-  matchedKeywords: string[] = []
+  matchedKeywords: string[] = [],
+  storage?: DatabaseStorage
 ): Promise<void> {
   // Create content flag
-  await db.insert(contentFlags).values({
+  const [flag] = await db.insert(contentFlags).values({
     contentType,
     contentId,
     userId,
     flagReason: reason,
     matchedKeywords,
     status: 'pending',
-  });
+  }).returning();
 
   // Get all admin users to notify
   const admins = await db.query.users.findMany({
     where: (users, { eq }) => eq(users.role, 'admin'),
   });
 
-  // Create notifications for all admins
+  // Create notifications for all admins - link to moderation dashboard
   for (const admin of admins) {
     await db.insert(notifications).values({
       userId: admin.id,
       type: 'content_flagged',
       title: 'Content Flagged for Review',
       message: `A ${contentType} has been flagged for moderation: ${reason}`,
-      linkUrl: `/admin/moderation/${contentType}/${contentId}`,
+      linkUrl: `/admin/moderation`,
       metadata: {
         contentType,
         contentId,
+        flagId: flag.id,
         flaggedUserId: userId,
         matchedKeywords,
       },
       isRead: false,
     });
   }
+
+  // Notify the user whose content was flagged
+  if (storage) {
+    const notificationService = new NotificationService(storage);
+    const keywordsList = matchedKeywords.length > 0
+      ? matchedKeywords.join(', ')
+      : 'inappropriate content';
+
+    await notificationService.sendNotification(
+      userId,
+      'content_flagged',
+      'Content Under Review',
+      `Your ${contentType} has been flagged for review due to: ${keywordsList}. Our moderation team will review it shortly.`,
+      {
+        contentType,
+        contentId,
+        matchedKeywords,
+        reason,
+      }
+    );
+  }
 }
 
 /**
  * Check and flag a review if it meets flagging criteria
  */
-export async function moderateReview(reviewId: string): Promise<void> {
+export async function moderateReview(reviewId: string, storage?: DatabaseStorage): Promise<void> {
   const review = await db.query.reviews.findFirst({
     where: eq(reviews.id, reviewId),
   });
@@ -183,7 +208,8 @@ export async function moderateReview(reviewId: string): Promise<void> {
       reviewId,
       review.creatorId,
       reasons.join(', '),
-      matchedKeywords
+      matchedKeywords,
+      storage
     );
   }
 }
@@ -191,7 +217,7 @@ export async function moderateReview(reviewId: string): Promise<void> {
 /**
  * Check and flag a message if it contains banned content
  */
-export async function moderateMessage(messageId: string): Promise<void> {
+export async function moderateMessage(messageId: string, storage?: DatabaseStorage): Promise<void> {
   console.log(`[Moderation] Checking message: ${messageId}`);
 
   const message = await db.query.messages.findFirst({
@@ -220,7 +246,8 @@ export async function moderateMessage(messageId: string): Promise<void> {
         messageId,
         message.senderId,
         contentCheck.reasons.join(', '),
-        contentCheck.matchedKeywords
+        contentCheck.matchedKeywords,
+        storage
       );
       console.log(`[Moderation] Successfully flagged message ${messageId}`);
     } catch (flagError) {
@@ -233,15 +260,21 @@ export async function moderateMessage(messageId: string): Promise<void> {
 }
 
 /**
- * Review a flagged content item
+ * Review a flagged content item and notify the user
  */
 export async function reviewFlaggedContent(
   flagId: string,
   adminId: string,
   status: 'reviewed' | 'dismissed' | 'action_taken',
   adminNotes?: string,
-  actionTaken?: string
+  actionTaken?: string,
+  storage?: DatabaseStorage
 ): Promise<void> {
+  // First get the flag to know which user to notify
+  const flag = await db.query.contentFlags.findFirst({
+    where: eq(contentFlags.id, flagId),
+  });
+
   await db
     .update(contentFlags)
     .set({
@@ -252,6 +285,45 @@ export async function reviewFlaggedContent(
       actionTaken,
     })
     .where(eq(contentFlags.id, flagId));
+
+  // Notify the user about the review outcome
+  if (flag && storage) {
+    const notificationService = new NotificationService(storage);
+
+    let title: string;
+    let message: string;
+
+    switch (status) {
+      case 'reviewed':
+        title = 'Content Review Complete';
+        message = `Your ${flag.contentType} has been reviewed by our moderation team. No action was taken.`;
+        break;
+      case 'dismissed':
+        title = 'Content Review Complete';
+        message = `Your ${flag.contentType} has been reviewed and the flag has been dismissed. No issues were found.`;
+        break;
+      case 'action_taken':
+        title = 'Content Moderation Notice';
+        message = `Your ${flag.contentType} has been reviewed and action has been taken${actionTaken ? `: ${actionTaken}` : '.'}`;
+        break;
+      default:
+        title = 'Content Review Update';
+        message = `Your ${flag.contentType} review status has been updated.`;
+    }
+
+    await notificationService.sendNotification(
+      flag.userId,
+      'content_flagged',
+      title,
+      message,
+      {
+        contentType: flag.contentType,
+        contentId: flag.contentId,
+        reviewStatus: status,
+        actionTaken,
+      }
+    );
+  }
 }
 
 /**
