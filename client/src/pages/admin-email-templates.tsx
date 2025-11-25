@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "../lib/queryClient";
 import { useAuth } from "../hooks/useAuth";
@@ -6,7 +6,6 @@ import { useToast } from "../hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
 import { Switch } from "../components/ui/switch";
 import { Label } from "../components/ui/label";
@@ -35,14 +34,6 @@ import {
   TableRow,
 } from "../components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -54,24 +45,24 @@ import {
   Mail,
   Eye,
   Copy,
-  ChevronDown,
-  Bold,
-  Link,
-  List,
   AlertCircle,
   CheckCircle,
-  Clock,
-  DollarSign,
   User,
   Building,
   FileText,
   Sparkles,
-  LayoutTemplate,
-  Palette,
-  Type,
+  DollarSign,
+  RefreshCw,
 } from "lucide-react";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import {
+  VisualEmailBuilder,
+  VisualEmailData,
+  visualBlocksToHtml,
+  createEmptyVisualData,
+  EmailBlock,
+} from "../components/visual-email-builder";
 
 interface EmailTemplate {
   id: string;
@@ -80,6 +71,7 @@ interface EmailTemplate {
   category: string;
   subject: string;
   htmlContent: string;
+  visualData: VisualEmailData | null;
   description: string | null;
   availableVariables: string[];
   isActive: boolean;
@@ -111,334 +103,345 @@ const CATEGORIES = [
   { value: 'authentication', label: 'Authentication', icon: User, description: 'Login and security' },
 ];
 
-// User-friendly variable definitions with descriptions
-const VARIABLES = [
-  { name: 'userName', label: 'User Name', description: 'The recipient\'s name', example: 'John Doe', icon: User },
-  { name: 'companyName', label: 'Company Name', description: 'The company\'s name', example: 'Acme Corp', icon: Building },
-  { name: 'offerTitle', label: 'Offer Title', description: 'The name of the offer', example: 'Summer Sale Promotion', icon: FileText },
-  { name: 'amount', label: 'Amount', description: 'Payment or commission amount', example: '$500.00', icon: DollarSign },
-  { name: 'trackingLink', label: 'Tracking Link', description: 'Unique affiliate tracking URL', example: 'https://track.example.com/abc123', icon: Link },
-  { name: 'linkUrl', label: 'Action Link', description: 'Link to relevant page in the app', example: 'https://app.example.com/dashboard', icon: Link },
-  { name: 'transactionId', label: 'Transaction ID', description: 'Payment transaction reference', example: 'TXN-12345', icon: FileText },
-  { name: 'reviewRating', label: 'Review Rating', description: 'Star rating (1-5)', example: '5', icon: Sparkles },
-  { name: 'daysUntilExpiration', label: 'Days Until Expiration', description: 'Countdown for expiring items', example: '7', icon: Clock },
-  { name: 'otpCode', label: 'OTP Code', description: 'One-time verification code', example: '123456', icon: AlertCircle },
-  { name: 'verificationUrl', label: 'Verification URL', description: 'Email verification link', example: 'https://app.example.com/verify/abc', icon: Link },
-  { name: 'resetUrl', label: 'Password Reset URL', description: 'Password reset link', example: 'https://app.example.com/reset/abc', icon: Link },
-];
-
-// Pre-built content blocks
-const CONTENT_BLOCKS = [
-  {
-    name: 'Greeting',
-    description: 'Standard greeting with user name',
-    content: '<p>Hi {{userName}},</p>',
+// Pre-built templates for each notification type
+const DEFAULT_TEMPLATE_DATA: Record<string, {
+  headerTitle: string;
+  headerColor: string;
+  blocks: EmailBlock[];
+  subject: string;
+}> = {
+  'application-status-change': {
+    headerTitle: 'Application Update',
+    headerColor: '#10B981',
+    subject: 'Your application status has been updated',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'success-box', content: 'Your application for {{offerTitle}} has been updated!', properties: {} },
+      { id: '3', type: 'text', content: 'Please log in to view the details and next steps.', properties: {} },
+      { id: '4', type: 'button', content: 'View Application', properties: { url: '{{linkUrl}}', color: 'success' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
   },
-  {
-    name: 'Success Message',
-    description: 'Green success box',
-    content: `<div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;">
-  <p style="margin: 0; color: #065F46;">Your message here</p>
-</div>`,
+  'new-application': {
+    headerTitle: 'New Application Received',
+    headerColor: '#4F46E5',
+    subject: 'New application for {{offerTitle}}',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'info-box', content: 'You have received a new application for your offer: {{offerTitle}}', properties: {} },
+      { id: '3', type: 'text', content: 'Please review the application and respond to the creator.', properties: {} },
+      { id: '4', type: 'button', content: 'Review Application', properties: { url: '{{linkUrl}}', color: 'primary' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
   },
-  {
-    name: 'Warning Message',
-    description: 'Yellow warning box',
-    content: `<div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
-  <p style="margin: 0; color: #92400E;">Your warning message here</p>
-</div>`,
+  'payment-received': {
+    headerTitle: 'Payment Received!',
+    headerColor: '#10B981',
+    subject: 'Payment received: {{amount}}',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'success-box', content: 'Great news! You have received a payment.', properties: {} },
+      { id: '3', type: 'amount-display', content: '{{amount}}', properties: { label: 'Amount Received', style: 'success' } },
+      { id: '4', type: 'details-table', content: 'Gross Amount:{{grossAmount}}\nPlatform Fee:{{platformFee}}\nProcessing Fee:{{processingFee}}\nTransaction ID:{{transactionId}}', properties: {} },
+      { id: '5', type: 'button', content: 'View Payment Details', properties: { url: '{{linkUrl}}', color: 'success' } },
+      { id: '6', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
   },
-  {
-    name: 'Error Message',
-    description: 'Red error box',
-    content: `<div style="background-color: #FEE2E2; border-left: 4px solid #EF4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
-  <p style="margin: 0; color: #991B1B;">Your error message here</p>
-</div>`,
+  'payment-pending': {
+    headerTitle: 'Payment Pending Review',
+    headerColor: '#F59E0B',
+    subject: 'New payment ready for processing',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'warning-box', content: 'A new affiliate payment is ready for processing and requires your review.', properties: {} },
+      { id: '3', type: 'amount-display', content: '{{amount}}', properties: { label: 'Payment Amount', style: 'warning' } },
+      { id: '4', type: 'text', content: 'Please review and process this payment at your earliest convenience.', properties: {} },
+      { id: '5', type: 'button', content: 'Review Payment', properties: { url: '{{linkUrl}}', color: 'warning' } },
+      { id: '6', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
   },
-  {
-    name: 'Info Box',
-    description: 'Blue information box',
-    content: `<div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
-  <p style="margin: 0; color: #1E40AF;">Your information here</p>
-</div>`,
+  'payment-approved': {
+    headerTitle: 'Payment Sent Successfully',
+    headerColor: '#10B981',
+    subject: 'Payment sent: {{amount}}',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'success-box', content: 'Your payment has been successfully sent!', properties: {} },
+      { id: '3', type: 'amount-display', content: '{{amount}}', properties: { label: 'Amount Sent', style: 'success' } },
+      { id: '4', type: 'text', content: 'The payment has been processed and sent to the creator.', properties: {} },
+      { id: '5', type: 'button', content: 'View Details', properties: { url: '{{linkUrl}}', color: 'success' } },
+      { id: '6', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
   },
-  {
-    name: 'Action Button',
-    description: 'Primary call-to-action button',
-    content: `<div style="text-align: center; margin: 30px 0;">
-  <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Take Action</a>
-</div>`,
+  'offer-approved': {
+    headerTitle: 'Offer Approved!',
+    headerColor: '#10B981',
+    subject: 'Your offer "{{offerTitle}}" has been approved!',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'success-box', content: 'Congratulations! Your offer "{{offerTitle}}" has been approved and is now live on the marketplace.', properties: {} },
+      { id: '3', type: 'text', content: 'Creators can now discover and apply to your offer.', properties: {} },
+      { id: '4', type: 'button', content: 'View Your Offer', properties: { url: '{{linkUrl}}', color: 'success' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
   },
-  {
-    name: 'Amount Display',
-    description: 'Large amount/price display',
-    content: `<div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-  <p style="margin: 0 0 5px 0; font-size: 14px; color: #6B7280;">Amount</p>
-  <p style="margin: 0; font-size: 32px; font-weight: bold; color: #111827;">{{amount}}</p>
-</div>`,
+  'offer-rejected': {
+    headerTitle: 'Offer Review Update',
+    headerColor: '#6B7280',
+    subject: 'Update on your offer submission',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'info-box', content: 'Your offer "{{offerTitle}}" requires some adjustments before it can be published.', properties: {} },
+      { id: '3', type: 'text', content: 'Please review the feedback and make the necessary changes to resubmit your offer.', properties: {} },
+      { id: '4', type: 'button', content: 'View Offer', properties: { url: '{{linkUrl}}', color: 'gray' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
   },
-  {
-    name: 'Footer',
-    description: 'Standard email footer',
-    content: `<div style="text-align: center; padding: 20px; color: #666; font-size: 14px; border-top: 1px solid #E5E7EB; margin-top: 30px;">
-  <p>This is an automated notification from Affiliate Marketplace.</p>
-  <p>Update your <a href="/settings" style="color: #4F46E5;">notification preferences</a> anytime.</p>
-</div>`,
+  'registration-approved': {
+    headerTitle: 'Welcome to AffiliateXchange!',
+    headerColor: '#4F46E5',
+    subject: 'Your account has been approved!',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'success-box', content: 'Great news! Your company account has been approved.', properties: {} },
+      { id: '3', type: 'text', content: 'You can now start creating offers and connecting with creators on our platform.', properties: {} },
+      { id: '4', type: 'button', content: 'Get Started', properties: { url: '{{linkUrl}}', color: 'primary' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
   },
-];
-
-// Starter templates
-const STARTER_TEMPLATES = [
-  {
-    name: 'Simple Notification',
-    description: 'Basic notification with message and button',
-    subject: 'Notification from Affiliate Marketplace',
-    content: `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-    .header { background-color: #4F46E5; color: #ffffff; padding: 30px 20px; text-align: center; }
-    .content { padding: 30px 20px; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1 style="margin: 0;">Notification</h1>
-    </div>
-    <div class="content">
-      <p>Hi {{userName}},</p>
-      <p>Your notification message goes here.</p>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">View Details</a>
-      </div>
-    </div>
-    <div class="footer">
-      <p>This is an automated notification from Affiliate Marketplace.</p>
-    </div>
-  </div>
-</body>
-</html>`,
+  'registration-rejected': {
+    headerTitle: 'Account Registration Update',
+    headerColor: '#6B7280',
+    subject: 'Update on your registration',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'text', content: 'Thank you for your interest in AffiliateXchange. Unfortunately, we are unable to approve your company account at this time.', properties: {} },
+      { id: '3', type: 'info-box', content: 'If you believe this is an error or would like more information, please contact our support team.', properties: {} },
+      { id: '4', type: 'button', content: 'Contact Support', properties: { url: '{{linkUrl}}', color: 'gray' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.', properties: {} },
+    ],
   },
-  {
-    name: 'Success Notification',
-    description: 'Approval or success message with green theme',
-    subject: 'Great news! {{offerTitle}}',
-    content: `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-    .header { background-color: #10B981; color: #ffffff; padding: 30px 20px; text-align: center; }
-    .content { padding: 30px 20px; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1 style="margin: 0;">Congratulations!</h1>
-    </div>
-    <div class="content">
-      <p>Hi {{userName}},</p>
-      <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;">
-        <p style="margin: 0; color: #065F46;">Your success message here</p>
-      </div>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #10B981; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Get Started</a>
-      </div>
-    </div>
-    <div class="footer">
-      <p>This is an automated notification from Affiliate Marketplace.</p>
-    </div>
-  </div>
-</body>
-</html>`,
+  'new-message': {
+    headerTitle: 'New Message',
+    headerColor: '#4F46E5',
+    subject: 'New message from {{companyName}}',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'text', content: 'You have a new message from {{companyName}} regarding {{offerTitle}}.', properties: {} },
+      { id: '3', type: 'info-box', content: '"{{messagePreview}}"', properties: {} },
+      { id: '4', type: 'button', content: 'View Message', properties: { url: '{{linkUrl}}', color: 'primary' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
   },
-  {
-    name: 'Payment Notification',
-    description: 'Payment received or processed template',
-    subject: 'Payment Update: {{amount}}',
-    content: `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-    .header { background-color: #10B981; color: #ffffff; padding: 30px 20px; text-align: center; }
-    .content { padding: 30px 20px; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1 style="margin: 0;">Payment Update</h1>
-    </div>
-    <div class="content">
-      <p>Hi {{userName}},</p>
-      <p>Your payment has been processed.</p>
-      <div style="background-color: #ECFDF5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-        <p style="margin: 0 0 5px 0; font-size: 14px; color: #065F46;">Amount</p>
-        <p style="margin: 0; font-size: 32px; font-weight: bold; color: #047857;">{{amount}}</p>
-      </div>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #10B981; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">View Payment Details</a>
-      </div>
-    </div>
-    <div class="footer">
-      <p>This is an automated notification from Affiliate Marketplace.</p>
-    </div>
-  </div>
-</body>
-</html>`,
+  'review-received': {
+    headerTitle: 'New Review Received',
+    headerColor: '#4F46E5',
+    subject: 'New review received ({{reviewRating}} stars)',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'text', content: 'You have received a new review for your company!', properties: {} },
+      { id: '3', type: 'info-box', content: '{{reviewRating}} out of 5 stars\n\n"{{reviewText}}"', properties: {} },
+      { id: '4', type: 'button', content: 'View Review', properties: { url: '{{linkUrl}}', color: 'primary' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
   },
-  {
-    name: 'Warning/Action Required',
-    description: 'Urgent action or warning message',
-    subject: 'Action Required',
-    content: `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-    .header { background-color: #F59E0B; color: #ffffff; padding: 30px 20px; text-align: center; }
-    .content { padding: 30px 20px; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1 style="margin: 0;">Action Required</h1>
-    </div>
-    <div class="content">
-      <p>Hi {{userName}},</p>
-      <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
-        <p style="margin: 0; font-weight: 600; color: #92400E;">Important Notice</p>
-        <p style="margin: 10px 0 0 0; color: #78350F;">Your warning message here.</p>
-      </div>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #F59E0B; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Take Action</a>
-      </div>
-    </div>
-    <div class="footer">
-      <p>This is an automated notification from Affiliate Marketplace.</p>
-    </div>
-  </div>
-</body>
-</html>`,
+  'email-verification': {
+    headerTitle: 'Verify Your Email',
+    headerColor: '#4F46E5',
+    subject: 'Verify your email address',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'text', content: 'Thank you for registering with AffiliateXchange. Please verify your email address to complete your registration.', properties: {} },
+      { id: '3', type: 'button', content: 'Verify Email Address', properties: { url: '{{verificationUrl}}', color: 'primary' } },
+      { id: '4', type: 'warning-box', content: 'This verification link will expire in 24 hours.', properties: {} },
+      { id: '5', type: 'text', content: 'If you did not create an account, you can safely ignore this email.', properties: {} },
+      { id: '6', type: 'footer', content: 'This is an automated email from AffiliateXchange.', properties: {} },
+    ],
   },
-  {
-    name: 'Request More Information',
-    description: 'Ask user to provide additional details',
-    subject: 'Additional Information Needed',
-    content: `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-    .header { background-color: #3B82F6; color: #ffffff; padding: 30px 20px; text-align: center; }
-    .content { padding: 30px 20px; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1 style="margin: 0;">Information Needed</h1>
-    </div>
-    <div class="content">
-      <p>Hi {{userName}},</p>
-      <p>Thank you for your submission. To proceed with your request, we need some additional information.</p>
-      <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
-        <p style="margin: 0; font-weight: 600; color: #1E40AF;">What we need:</p>
-        <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #1E3A8A;">
-          <li>Item 1</li>
-          <li>Item 2</li>
-          <li>Item 3</li>
-        </ul>
-      </div>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #3B82F6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Provide Information</a>
-      </div>
-    </div>
-    <div class="footer">
-      <p>This is an automated notification from Affiliate Marketplace.</p>
-    </div>
-  </div>
-</body>
-</html>`,
+  'password-reset': {
+    headerTitle: 'Password Reset Request',
+    headerColor: '#F59E0B',
+    subject: 'Reset your password',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'text', content: 'We received a request to reset your password. Click the button below to create a new password.', properties: {} },
+      { id: '3', type: 'button', content: 'Reset Password', properties: { url: '{{resetUrl}}', color: 'warning' } },
+      { id: '4', type: 'warning-box', content: 'This link will expire in 1 hour.', properties: {} },
+      { id: '5', type: 'text', content: 'If you did not request a password reset, you can safely ignore this email.', properties: {} },
+      { id: '6', type: 'footer', content: 'This is an automated email from AffiliateXchange.', properties: {} },
+    ],
   },
-  {
-    name: 'Rejection Notice',
-    description: 'Polite rejection with reason',
-    subject: 'Update on Your Request',
-    content: `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-    .header { background-color: #6B7280; color: #ffffff; padding: 30px 20px; text-align: center; }
-    .content { padding: 30px 20px; }
-    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1 style="margin: 0;">Request Update</h1>
-    </div>
-    <div class="content">
-      <p>Hi {{userName}},</p>
-      <p>Thank you for your interest. After careful review, we're unable to approve your request at this time.</p>
-      <div style="background-color: #F3F4F6; border-left: 4px solid #6B7280; padding: 15px; margin: 20px 0; border-radius: 4px;">
-        <p style="margin: 0; font-weight: 600; color: #374151;">Reason:</p>
-        <p style="margin: 10px 0 0 0; color: #4B5563;">Please add the specific reason here.</p>
-      </div>
-      <p>If you have questions or would like to discuss this further, please don't hesitate to reach out.</p>
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="{{linkUrl}}" style="display: inline-block; padding: 12px 30px; background-color: #6B7280; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Contact Support</a>
-      </div>
-    </div>
-    <div class="footer">
-      <p>This is an automated notification from Affiliate Marketplace.</p>
-    </div>
-  </div>
-</body>
-</html>`,
+  'account-deletion-otp': {
+    headerTitle: 'Account Deletion Request',
+    headerColor: '#EF4444',
+    subject: 'Account Deletion Verification Code',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'text', content: 'We received a request to delete your account. Use the verification code below to confirm:', properties: {} },
+      { id: '3', type: 'amount-display', content: '{{otpCode}}', properties: { label: 'Verification Code', style: 'warning' } },
+      { id: '4', type: 'error-box', content: 'Warning: Account deletion is permanent and cannot be undone. All your data will be permanently deleted.', properties: {} },
+      { id: '5', type: 'text', content: 'This code will expire in 15 minutes. If you did not request this, please ignore this email.', properties: {} },
+      { id: '6', type: 'footer', content: 'This is an automated email from AffiliateXchange.', properties: {} },
+    ],
   },
-];
+  'password-change-otp': {
+    headerTitle: 'Password Change Request',
+    headerColor: '#F59E0B',
+    subject: 'Password Change Verification Code',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'text', content: 'We received a request to change your password. Use the verification code below to confirm:', properties: {} },
+      { id: '3', type: 'amount-display', content: '{{otpCode}}', properties: { label: 'Verification Code', style: 'warning' } },
+      { id: '4', type: 'warning-box', content: 'This code will expire in 15 minutes. Do not share this code with anyone.', properties: {} },
+      { id: '5', type: 'text', content: 'If you did not request a password change, please secure your account immediately.', properties: {} },
+      { id: '6', type: 'footer', content: 'This is an automated email from AffiliateXchange.', properties: {} },
+    ],
+  },
+  'system-announcement': {
+    headerTitle: 'System Announcement',
+    headerColor: '#4F46E5',
+    subject: '{{announcementTitle}}',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'heading', content: '{{announcementTitle}}', properties: { size: 'medium' } },
+      { id: '3', type: 'text', content: '{{announcementMessage}}', properties: {} },
+      { id: '4', type: 'button', content: 'Learn More', properties: { url: '{{linkUrl}}', color: 'primary' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
+  },
+  'content-flagged': {
+    headerTitle: 'Content Under Review',
+    headerColor: '#F59E0B',
+    subject: 'Your content is under review',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'warning-box', content: 'Your content has been flagged for review by our moderation system.', properties: {} },
+      { id: '3', type: 'text', content: 'Our moderation team will review your content and you will be notified of the outcome.', properties: {} },
+      { id: '4', type: 'info-box', content: 'What happens next:\n- Our team will review your content\n- You will be notified once review is complete\n- If action is required, we will provide details', properties: {} },
+      { id: '5', type: 'button', content: 'View Details', properties: { url: '{{linkUrl}}', color: 'warning' } },
+      { id: '6', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
+  },
+  'work-completion-approval': {
+    headerTitle: 'Work Approved!',
+    headerColor: '#10B981',
+    subject: 'Work approved for {{offerTitle}}',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'success-box', content: 'Congratulations! Your work for "{{offerTitle}}" has been approved.', properties: {} },
+      { id: '3', type: 'amount-display', content: '{{amount}}', properties: { label: 'Your Payment', style: 'success' } },
+      { id: '4', type: 'text', content: 'Your payment has been initiated and will be processed shortly.', properties: {} },
+      { id: '5', type: 'button', content: 'View Details', properties: { url: '{{linkUrl}}', color: 'success' } },
+      { id: '6', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
+  },
+  'priority-listing-expiring': {
+    headerTitle: 'Priority Listing Expiring',
+    headerColor: '#F59E0B',
+    subject: 'Priority listing expiring soon',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'warning-box', content: 'Your priority listing for "{{offerTitle}}" will expire in {{daysUntilExpiration}} days.', properties: {} },
+      { id: '3', type: 'text', content: 'Renew now to keep your offer at the top of search results and maintain maximum visibility.', properties: {} },
+      { id: '4', type: 'button', content: 'Renew Priority Listing', properties: { url: '{{linkUrl}}', color: 'warning' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
+  },
+  'payment-disputed': {
+    headerTitle: 'Payment Dispute',
+    headerColor: '#EF4444',
+    subject: 'Payment dispute initiated',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'error-box', content: 'A payment dispute has been initiated.', properties: {} },
+      { id: '3', type: 'text', content: 'Please review the dispute details and respond as soon as possible.', properties: {} },
+      { id: '4', type: 'button', content: 'View Dispute', properties: { url: '{{linkUrl}}', color: 'danger' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
+  },
+  'payment-dispute-resolved': {
+    headerTitle: 'Dispute Resolved',
+    headerColor: '#10B981',
+    subject: 'Payment dispute resolved',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'success-box', content: 'The payment dispute has been resolved.', properties: {} },
+      { id: '3', type: 'text', content: 'Please log in to view the resolution details.', properties: {} },
+      { id: '4', type: 'button', content: 'View Details', properties: { url: '{{linkUrl}}', color: 'success' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
+  },
+  'payment-refunded': {
+    headerTitle: 'Payment Refunded',
+    headerColor: '#3B82F6',
+    subject: 'Payment has been refunded',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'info-box', content: 'A payment refund has been processed.', properties: {} },
+      { id: '3', type: 'amount-display', content: '{{amount}}', properties: { label: 'Refunded Amount', style: 'default' } },
+      { id: '4', type: 'button', content: 'View Details', properties: { url: '{{linkUrl}}', color: 'primary' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
+  },
+  'payment-failed-insufficient-funds': {
+    headerTitle: 'Payment Processing Alert',
+    headerColor: '#F59E0B',
+    subject: 'Payment Processing Failed - Insufficient Funds',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'warning-box', content: 'Your PayPal business account has insufficient funds to complete a payment.', properties: {} },
+      { id: '3', type: 'amount-display', content: '{{amount}}', properties: { label: 'Required Amount', style: 'warning' } },
+      { id: '4', type: 'numbered-list', content: 'Add funds to your PayPal business account\nWait for funds to become available\nContact admin to retry the payment', properties: {} },
+      { id: '5', type: 'button', content: 'View Payment Details', properties: { url: '{{linkUrl}}', color: 'warning' } },
+      { id: '6', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
+  },
+  'deliverable-rejected': {
+    headerTitle: 'Deliverable Rejected',
+    headerColor: '#EF4444',
+    subject: 'Your deliverable requires changes',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'error-box', content: 'Your deliverable for "{{offerTitle}}" has been rejected and requires changes.', properties: {} },
+      { id: '3', type: 'text', content: 'Please review the feedback and resubmit your work.', properties: {} },
+      { id: '4', type: 'button', content: 'View Feedback', properties: { url: '{{linkUrl}}', color: 'danger' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
+  },
+  'revision-requested': {
+    headerTitle: 'Revision Requested',
+    headerColor: '#F59E0B',
+    subject: 'Revision requested for your submission',
+    blocks: [
+      { id: '1', type: 'greeting', content: 'Hi {{userName}},', properties: {} },
+      { id: '2', type: 'warning-box', content: 'A revision has been requested for your submission on "{{offerTitle}}".', properties: {} },
+      { id: '3', type: 'text', content: 'Please review the revision instructions and resubmit your work.', properties: {} },
+      { id: '4', type: 'button', content: 'View Instructions', properties: { url: '{{linkUrl}}', color: 'warning' } },
+      { id: '5', type: 'footer', content: 'This is an automated notification from AffiliateXchange.\nUpdate your notification preferences anytime.', properties: {} },
+    ],
+  },
+};
 
 export default function AdminEmailTemplates() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { toast } = useToast();
   const [showDialog, setShowDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  const [showStarterDialog, setShowStarterDialog] = useState(false);
+  const [showTypeSelectDialog, setShowTypeSelectDialog] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [previewHtml, setPreviewHtml] = useState("");
   const [previewSubject, setPreviewSubject] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<'visual' | 'code'>('visual');
-  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   // Form state
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [category, setCategory] = useState<string>("system");
   const [subject, setSubject] = useState("");
-  const [htmlContent, setHtmlContent] = useState("");
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [visualData, setVisualData] = useState<VisualEmailData>(createEmptyVisualData());
 
   const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; description: string; errorDetails?: string }>({
     open: false,
@@ -601,75 +604,65 @@ export default function AdminEmailTemplates() {
     },
   });
 
-  // Insert variable at cursor position
-  const insertVariable = useCallback((variableName: string) => {
-    const textarea = contentRef.current;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const text = htmlContent;
-      const before = text.substring(0, start);
-      const after = text.substring(end);
-      const newText = before + `{{${variableName}}}` + after;
-      setHtmlContent(newText);
+  const initializeDefaultsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/admin/email-templates/initialize-defaults", {
+        method: "POST",
+        credentials: "include",
+      });
 
-      // Set cursor position after inserted variable
-      setTimeout(() => {
-        textarea.focus();
-        const newPos = start + variableName.length + 4;
-        textarea.setSelectionRange(newPos, newPos);
-      }, 0);
-    } else {
-      setHtmlContent(htmlContent + `{{${variableName}}}`);
-    }
-  }, [htmlContent]);
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || "Failed to initialize defaults");
+      }
 
-  // Insert content block
-  const insertContentBlock = useCallback((content: string) => {
-    const textarea = contentRef.current;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const text = htmlContent;
-      const before = text.substring(0, start);
-      const after = text.substring(start);
-      setHtmlContent(before + '\n' + content + '\n' + after);
-    } else {
-      setHtmlContent(htmlContent + '\n' + content);
-    }
-  }, [htmlContent]);
-
-  // Insert variable into subject
-  const insertSubjectVariable = useCallback((variableName: string) => {
-    setSubject(subject + `{{${variableName}}}`);
-  }, [subject]);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/email-templates"] });
+      toast({
+        title: "Default Templates Created",
+        description: `${data.created} default email templates have been created.`,
+      });
+    },
+    onError: (error: Error) => {
+      setErrorDialog({
+        open: true,
+        title: "Error",
+        description: "Failed to initialize default templates",
+        errorDetails: error.message,
+      });
+    },
+  });
 
   const handleCreate = () => {
-    setEditingTemplate(null);
-    setName("");
-    setSlug("");
-    setCategory("system");
-    setSubject("");
-    setHtmlContent("");
-    setDescription("");
-    setIsActive(true);
-    setSelectedTemplateType(null);
-    setShowStarterDialog(true);
+    setShowTypeSelectDialog(true);
   };
 
-  const handleSelectStarter = (starter: typeof STARTER_TEMPLATES[0] | null, templateType?: TemplateType) => {
-    setShowStarterDialog(false);
-    if (starter) {
-      setSubject(starter.subject);
-      setHtmlContent(starter.content);
-      setName(starter.name);
+  const handleSelectType = (templateType: TemplateType) => {
+    setShowTypeSelectDialog(false);
+    setEditingTemplate(null);
+    setSelectedTemplateType(templateType);
+
+    // Use pre-built template data if available
+    const defaultData = DEFAULT_TEMPLATE_DATA[templateType.slug];
+    if (defaultData) {
+      setVisualData({
+        blocks: defaultData.blocks.map((b, i) => ({ ...b, id: `block-${Date.now()}-${i}` })),
+        headerTitle: defaultData.headerTitle,
+        headerColor: defaultData.headerColor,
+      });
+      setSubject(defaultData.subject);
+    } else {
+      setVisualData(createEmptyVisualData());
+      setSubject('');
     }
-    if (templateType) {
-      setSelectedTemplateType(templateType);
-      setSlug(templateType.slug);
-      setCategory(templateType.category);
-      setName(templateType.name);
-      setDescription(templateType.description);
-    }
+
+    setName(templateType.name);
+    setSlug(templateType.slug);
+    setCategory(templateType.category);
+    setDescription(templateType.description);
+    setIsActive(true);
     setShowDialog(true);
   };
 
@@ -679,9 +672,25 @@ export default function AdminEmailTemplates() {
     setSlug(template.slug);
     setCategory(template.category);
     setSubject(template.subject);
-    setHtmlContent(template.htmlContent);
     setDescription(template.description || "");
     setIsActive(template.isActive);
+
+    // Load visual data if available, otherwise create from default or empty
+    if (template.visualData) {
+      setVisualData(template.visualData);
+    } else {
+      const defaultData = DEFAULT_TEMPLATE_DATA[template.slug];
+      if (defaultData) {
+        setVisualData({
+          blocks: defaultData.blocks.map((b, i) => ({ ...b, id: `block-${Date.now()}-${i}` })),
+          headerTitle: defaultData.headerTitle,
+          headerColor: defaultData.headerColor,
+        });
+      } else {
+        setVisualData(createEmptyVisualData());
+      }
+    }
+
     // Find matching template type for variable suggestions
     const matchingType = templateTypes.find(t => t.slug === template.slug);
     setSelectedTemplateType(matchingType || null);
@@ -707,27 +716,59 @@ export default function AdminEmailTemplates() {
     duplicateTemplateMutation.mutate(template.id);
   };
 
-  const handlePreview = async (template?: EmailTemplate) => {
-    const templateToPreview = template || { subject, htmlContent: htmlContent };
+  const handlePreview = (template?: EmailTemplate) => {
+    let previewVisualData: VisualEmailData;
+    let previewSubjectText: string;
 
-    // Generate preview with sample data
-    const sampleData: Record<string, string> = {};
-    VARIABLES.forEach(v => {
-      sampleData[v.name] = v.example;
-    });
+    if (template) {
+      previewVisualData = template.visualData || {
+        blocks: [],
+        headerTitle: 'Notification',
+        headerColor: '#4F46E5',
+      };
+      previewSubjectText = template.subject;
+    } else {
+      previewVisualData = visualData;
+      previewSubjectText = subject;
+    }
 
-    let processedSubject = templateToPreview.subject;
-    let processedHtml = templateToPreview.htmlContent;
+    // Sample data for preview
+    const sampleData: Record<string, string> = {
+      userName: 'John Doe',
+      companyName: 'Acme Corp',
+      offerTitle: 'Summer Sale Promotion',
+      amount: '$500.00',
+      grossAmount: '$550.00',
+      platformFee: '$22.00',
+      processingFee: '$16.50',
+      transactionId: 'TXN-12345',
+      trackingLink: 'https://track.example.com/abc123',
+      trackingCode: 'ABC123',
+      linkUrl: 'https://app.example.com/dashboard',
+      reviewRating: '5',
+      reviewText: 'Great service and professional team!',
+      messagePreview: 'Hello, I wanted to discuss the campaign details...',
+      daysUntilExpiration: '7',
+      otpCode: '123456',
+      verificationUrl: 'https://app.example.com/verify/abc',
+      resetUrl: 'https://app.example.com/reset/abc',
+      applicationId: 'APP-12345',
+      announcementTitle: 'New Features Available',
+      announcementMessage: 'We have added exciting new features to improve your experience.',
+    };
 
-    // Replace variables with sample data
+    // Generate HTML and replace variables
+    let html = visualBlocksToHtml(previewVisualData);
+    let subjectWithData = previewSubjectText;
+
     Object.entries(sampleData).forEach(([key, value]) => {
       const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
-      processedSubject = processedSubject.replace(regex, value);
-      processedHtml = processedHtml.replace(regex, value);
+      html = html.replace(regex, value);
+      subjectWithData = subjectWithData.replace(regex, value);
     });
 
-    setPreviewSubject(processedSubject);
-    setPreviewHtml(processedHtml);
+    setPreviewSubject(subjectWithData);
+    setPreviewHtml(html);
     setShowPreviewDialog(true);
   };
 
@@ -750,21 +791,19 @@ export default function AdminEmailTemplates() {
       return;
     }
 
-    if (!htmlContent.trim()) {
+    if (visualData.blocks.length === 0) {
       setErrorDialog({
         open: true,
         title: "Missing Information",
-        description: "Please add email content",
+        description: "Please add at least one content block",
       });
       return;
     }
 
-    // Auto-generate slug from name if not editing
-    const finalSlug = editingTemplate
-      ? slug
-      : (slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
+    // Generate HTML from visual data
+    const htmlContent = visualBlocksToHtml(visualData);
 
-    // Extract used variables from content
+    // Extract used variables
     const usedVariables: string[] = [];
     const variableRegex = /\{\{(\w+)\}\}/g;
     let match;
@@ -777,10 +816,11 @@ export default function AdminEmailTemplates() {
 
     const data = {
       name,
-      slug: finalSlug,
+      slug,
       category,
       subject,
       htmlContent,
+      visualData,
       description: description || null,
       availableVariables: usedVariables,
       isActive,
@@ -800,18 +840,10 @@ export default function AdminEmailTemplates() {
     setSlug("");
     setCategory("system");
     setSubject("");
-    setHtmlContent("");
     setDescription("");
     setIsActive(true);
-    setActiveTab('visual');
+    setVisualData(createEmptyVisualData());
     setSelectedTemplateType(null);
-  };
-
-  const handleNameChange = (value: string) => {
-    setName(value);
-    if (!editingTemplate && !slug) {
-      setSlug(value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
-    }
   };
 
   if (isLoading || templatesLoading) {
@@ -836,6 +868,10 @@ export default function AdminEmailTemplates() {
 
   const activeCount = templates.filter(t => t.isActive).length;
 
+  // Get available template types (not yet created)
+  const createdSlugs = templates.map(t => t.slug);
+  const availableTypes = templateTypes.filter(t => !createdSlugs.includes(t.slug));
+
   return (
     <div className="space-y-6">
       <TopNavBar />
@@ -844,13 +880,25 @@ export default function AdminEmailTemplates() {
         <div>
           <h1 className="text-3xl font-bold">Email Templates</h1>
           <p className="text-muted-foreground mt-2">
-            Create and customize email notifications sent to users
+            Create and customize email notifications using the visual editor
           </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Template
-        </Button>
+        <div className="flex gap-2">
+          {templates.length === 0 && (
+            <Button
+              variant="outline"
+              onClick={() => initializeDefaultsMutation.mutate()}
+              disabled={initializeDefaultsMutation.isPending}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${initializeDefaultsMutation.isPending ? 'animate-spin' : ''}`} />
+              Load Default Templates
+            </Button>
+          )}
+          <Button onClick={handleCreate}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Template
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -873,12 +921,11 @@ export default function AdminEmailTemplates() {
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
+            <CardTitle className="text-sm font-medium">Available Types</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-muted-foreground">
-              {templates.length - activeCount}
-            </div>
+            <div className="text-3xl font-bold text-blue-600">{availableTypes.length}</div>
+            <p className="text-xs text-muted-foreground">notification types without custom templates</p>
           </CardContent>
         </Card>
       </div>
@@ -929,7 +976,11 @@ export default function AdminEmailTemplates() {
               {filteredTemplates.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No templates found. Click "Create Template" to add one.
+                    <div className="space-y-2">
+                      <Mail className="h-8 w-8 mx-auto opacity-50" />
+                      <p>No templates found.</p>
+                      <p className="text-sm">Click "Load Default Templates" to create templates for all notification types.</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -1007,158 +1058,92 @@ export default function AdminEmailTemplates() {
         </CardContent>
       </Card>
 
-      {/* Starter Template Selection Dialog */}
-      <Dialog open={showStarterDialog} onOpenChange={setShowStarterDialog}>
+      {/* Template Type Selection Dialog */}
+      <Dialog open={showTypeSelectDialog} onOpenChange={setShowTypeSelectDialog}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>Choose a Starting Point</DialogTitle>
+            <DialogTitle>Select Notification Type</DialogTitle>
             <DialogDescription>
-              Select a notification type to customize, use a design template, or start from scratch
+              Choose a notification type to create a custom email template for
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto py-4 space-y-6">
-            {/* Notification Types - Grouped by Category */}
-            <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Notification Templates (Recommended)
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Select a notification type to override its default email. The correct variables will be automatically available.
-              </p>
+          <div className="flex-1 overflow-y-auto py-4">
+            {/* Group by category */}
+            {Object.entries(
+              templateTypes.reduce((acc, t) => {
+                if (!acc[t.category]) acc[t.category] = [];
+                acc[t.category].push(t);
+                return acc;
+              }, {} as Record<string, TemplateType[]>)
+            ).map(([cat, types]) => {
+              const catInfo = CATEGORIES.find(c => c.value === cat);
+              const CatIcon = catInfo?.icon || Mail;
 
-              {/* Group template types by category */}
-              {Object.entries(
-                templateTypes.reduce((acc, t) => {
-                  if (!acc[t.category]) acc[t.category] = [];
-                  acc[t.category].push(t);
-                  return acc;
-                }, {} as Record<string, TemplateType[]>)
-              ).map(([cat, types]) => {
-                const catInfo = CATEGORIES.find(c => c.value === cat);
-                const CatIcon = catInfo?.icon || Mail;
-
-                // Check if template already exists for this type
-                const existingForCat = types.filter(t =>
-                  templates.some(template => template.slug === t.slug)
-                );
-
-                return (
-                  <div key={cat} className="mb-4">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                      <CatIcon className="h-3 w-3" />
-                      {catInfo?.label || cat}
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {types.map(templateType => {
-                        const exists = templates.some(t => t.slug === templateType.slug);
-                        return (
-                          <Card
-                            key={templateType.type}
-                            className={`cursor-pointer hover:border-primary transition-colors p-3 ${exists ? 'opacity-60' : ''}`}
-                            onClick={() => {
-                              if (!exists) {
-                                handleSelectStarter(null, templateType);
-                              }
-                            }}
-                          >
+              return (
+                <div key={cat} className="mb-6">
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                    <CatIcon className="h-4 w-4" />
+                    {catInfo?.label || cat}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {types.map(templateType => {
+                      const exists = templates.some(t => t.slug === templateType.slug);
+                      return (
+                        <Card
+                          key={templateType.type}
+                          className={`cursor-pointer transition-colors ${exists ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary'}`}
+                          onClick={() => !exists && handleSelectType(templateType)}
+                        >
+                          <CardContent className="p-4">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{templateType.name}</p>
-                                <p className="text-xs text-muted-foreground line-clamp-2">{templateType.description}</p>
+                                <p className="font-medium">{templateType.name}</p>
+                                <p className="text-sm text-muted-foreground line-clamp-2">{templateType.description}</p>
+                                <p className="text-xs text-blue-600 mt-1">{templateType.variables.length} variables</p>
                               </div>
-                              {exists && (
-                                <Badge variant="secondary" className="text-xs shrink-0">Exists</Badge>
+                              {exists ? (
+                                <Badge variant="secondary" className="shrink-0">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Created
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="shrink-0">Available</Badge>
                               )}
                             </div>
-                          </Card>
-                        );
-                      })}
-                    </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-
-            <Separator />
-
-            {/* Design Templates */}
-            <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Palette className="h-4 w-4" />
-                Design Templates
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Start with a pre-designed layout and customize it
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {/* Blank template option */}
-                <Card
-                  className="cursor-pointer hover:border-primary transition-colors"
-                  onClick={() => handleSelectStarter(null)}
-                >
-                  <CardHeader className="p-3 pb-1">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Blank Template
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-3 pt-1">
-                    <p className="text-xs text-muted-foreground">Start from scratch</p>
-                  </CardContent>
-                </Card>
-
-                {/* Pre-built templates */}
-                {STARTER_TEMPLATES.map((starter, index) => (
-                  <Card
-                    key={index}
-                    className="cursor-pointer hover:border-primary transition-colors"
-                    onClick={() => handleSelectStarter(starter)}
-                  >
-                    <CardHeader className="p-3 pb-1">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <LayoutTemplate className="h-4 w-4" />
-                        {starter.name}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-1">
-                      <p className="text-xs text-muted-foreground">{starter.description}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
+                </div>
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Create/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {editingTemplate ? "Edit Email Template" : "Create Email Template"}
             </DialogTitle>
             <DialogDescription>
-              Design your email using the visual editor or content blocks
+              Design your email using the visual editor - no coding required
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto space-y-6 py-4">
-            {/* Template Type Info Banner */}
+            {/* Template Type Info */}
             {selectedTemplateType && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <Mail className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-blue-900">Customizing: {selectedTemplateType.name}</h4>
+                    <h4 className="font-medium text-blue-900">{selectedTemplateType.name}</h4>
                     <p className="text-sm text-blue-700 mt-1">{selectedTemplateType.description}</p>
-                    <p className="text-xs text-blue-600 mt-2">
-                      Slug: <code className="bg-blue-100 px-1 rounded">{selectedTemplateType.slug}</code>
-                      {" · "}
-                      {selectedTemplateType.variables.length} variables available
-                    </p>
                   </div>
                 </div>
               </div>
@@ -1171,7 +1156,7 @@ export default function AdminEmailTemplates() {
                 <Input
                   placeholder="e.g., Application Approved"
                   value={name}
-                  onChange={(e) => handleNameChange(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                 />
               </div>
 
@@ -1197,37 +1182,14 @@ export default function AdminEmailTemplates() {
 
             {/* Subject Line */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Subject Line *</Label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Plus className="h-3 w-3 mr-1" />
-                      Insert Variable
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64">
-                    <DropdownMenuLabel>Click to insert</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {VARIABLES.slice(0, 5).map(v => (
-                      <DropdownMenuItem key={v.name} onClick={() => insertSubjectVariable(v.name)}>
-                        <v.icon className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">{v.label}</div>
-                          <div className="text-xs text-muted-foreground">Example: {v.example}</div>
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <Label>Subject Line *</Label>
               <Input
                 placeholder="e.g., Your application has been approved!"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                This is what recipients see in their inbox. Use variables like {'{{'} userName {'}}'}
+                Use {'{{variableName}}'} for dynamic content, e.g., {'{{userName}}'}, {'{{offerTitle}}'}
               </p>
             </div>
 
@@ -1243,124 +1205,27 @@ export default function AdminEmailTemplates() {
 
             <Separator />
 
-            {/* Email Content Editor */}
+            {/* Visual Email Builder */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-base font-semibold">Email Content *</Label>
-                <div className="flex items-center gap-2">
-                  {/* Content Blocks Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <LayoutTemplate className="h-4 w-4 mr-2" />
-                        Add Block
-                        <ChevronDown className="h-4 w-4 ml-1" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-64">
-                      <DropdownMenuLabel>Content Blocks</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {CONTENT_BLOCKS.map((block, index) => (
-                        <DropdownMenuItem key={index} onClick={() => insertContentBlock(block.content)}>
-                          <div>
-                            <div className="font-medium">{block.name}</div>
-                            <div className="text-xs text-muted-foreground">{block.description}</div>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  {/* Variables Dropdown - Shows template-specific variables if available */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Type className="h-4 w-4 mr-2" />
-                        Insert Variable
-                        <ChevronDown className="h-4 w-4 ml-1" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
-                      {selectedTemplateType && selectedTemplateType.variables.length > 0 ? (
-                        <>
-                          <DropdownMenuLabel className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            Variables for {selectedTemplateType.name}
-                          </DropdownMenuLabel>
-                          <p className="px-2 pb-2 text-xs text-muted-foreground">
-                            These variables are available for this notification type
-                          </p>
-                          <DropdownMenuSeparator />
-                          {selectedTemplateType.variables.map(v => (
-                            <DropdownMenuItem key={v.name} onClick={() => insertVariable(v.name)}>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium font-mono text-xs bg-muted px-1 rounded">{`{{${v.name}}}`}</span>
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-1">{v.description}</div>
-                                <div className="text-xs text-blue-600 mt-0.5">Example: {v.example}</div>
-                              </div>
-                            </DropdownMenuItem>
-                          ))}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel className="text-xs text-muted-foreground">All Variables</DropdownMenuLabel>
-                          {VARIABLES.map(v => (
-                            <DropdownMenuItem key={v.name} onClick={() => insertVariable(v.name)} className="opacity-70">
-                              <v.icon className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
-                              <div className="min-w-0">
-                                <div className="font-medium text-sm">{v.label}</div>
-                                <div className="text-xs text-muted-foreground truncate">{v.description}</div>
-                              </div>
-                            </DropdownMenuItem>
-                          ))}
-                        </>
-                      ) : (
-                        <>
-                          <DropdownMenuLabel>Dynamic Variables</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {VARIABLES.map(v => (
-                            <DropdownMenuItem key={v.name} onClick={() => insertVariable(v.name)}>
-                              <v.icon className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
-                              <div className="min-w-0">
-                                <div className="font-medium">{v.label}</div>
-                                <div className="text-xs text-muted-foreground truncate">{v.description}</div>
-                              </div>
-                            </DropdownMenuItem>
-                          ))}
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  {/* Preview Button */}
-                  <Button variant="outline" size="sm" onClick={() => handlePreview()}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Preview
-                  </Button>
-                </div>
+                <Button variant="outline" size="sm" onClick={() => handlePreview()}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview Email
+                </Button>
               </div>
 
-              {/* Editor */}
-              <div className="border rounded-lg">
-                <div className="flex items-center gap-1 p-2 border-b bg-muted/50">
-                  <span className="text-xs text-muted-foreground px-2">
-                    Tip: Click "Add Block" to insert pre-formatted sections, or "Insert Variable" for dynamic content
-                  </span>
-                </div>
-                <Textarea
-                  ref={contentRef}
-                  placeholder="Start typing your email content here...
-
-You can:
-• Click 'Add Block' above to insert pre-formatted sections (buttons, alerts, etc.)
-• Click 'Insert Variable' to add dynamic content like {{userName}}
-• Type or paste your HTML content directly"
-                  value={htmlContent}
-                  onChange={(e) => setHtmlContent(e.target.value)}
-                  rows={16}
-                  className="font-mono text-sm border-0 rounded-none focus-visible:ring-0"
-                />
-              </div>
+              <VisualEmailBuilder
+                value={visualData}
+                onChange={setVisualData}
+                templateVariables={selectedTemplateType?.variables.map(v => ({
+                  name: v.name,
+                  label: v.name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+                  description: v.description,
+                  example: v.example,
+                  icon: User,
+                }))}
+              />
             </div>
 
             {/* Active Toggle */}
@@ -1398,7 +1263,7 @@ You can:
           <DialogHeader>
             <DialogTitle>Email Preview</DialogTitle>
             <DialogDescription>
-              This shows how the email will appear with sample data filled in
+              This shows how the email will appear with sample data
             </DialogDescription>
           </DialogHeader>
 
