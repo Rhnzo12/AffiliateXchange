@@ -753,11 +753,11 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
             </div>
           ) : (
             filteredPendingPayouts.map((payout) => (
-              <div key={payout.id} className="p-6 transition hover:bg-gray-50">
-                <div className="mb-4 flex items-start justify-between">
-                  <div>
-                    <div className="mb-2 flex items-center gap-3">
-                      <h4 className="font-bold text-gray-900">
+              <div key={payout.id} className="p-4 sm:p-6 transition hover:bg-gray-50">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="mb-2 flex flex-wrap items-center gap-2 sm:gap-3">
+                      <h4 className="font-bold text-gray-900 break-words">
                         {payout.description || `Payment ${payout.id.slice(0, 8)}`}
                       </h4>
                       <StatusBadge status={payout.status} />
@@ -766,16 +766,16 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                       Created: {new Date(payout.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-left sm:text-right flex-shrink-0">
+                    <div className="text-xl sm:text-2xl font-bold text-gray-900">
                       ${parseFloat(payout.grossAmount).toFixed(2)}
                     </div>
                     <div className="text-xs text-gray-500">Creator payment</div>
                   </div>
                 </div>
 
-                <div className="mb-4 rounded-lg bg-gray-50 p-4">
-                  <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-3">
+                <div className="mb-4 rounded-lg bg-gray-50 p-3 sm:p-4">
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4 text-sm sm:grid-cols-3">
                     <div>
                       <div className="mb-1 text-gray-600">Creator Payment</div>
                       <div className="font-medium text-gray-900">
@@ -797,7 +797,7 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
                   <Button
                     className="flex-1 gap-2 bg-green-600 text-white hover:bg-green-700"
                     onClick={() => approvePaymentMutation.mutate(payout.id)}
