@@ -6,29 +6,66 @@
 import { storage } from "../storage";
 
 interface TemplateData {
+  // User & Company
   userName?: string;
   companyName?: string;
+  companyUserId?: string;
+
+  // Offer & Application
   offerTitle?: string;
+  offerId?: string;
   applicationId?: string;
+  applicationStatus?: string;
   trackingLink?: string;
   trackingCode?: string;
+
+  // Payment
   amount?: string;
   grossAmount?: string;
   platformFee?: string;
   processingFee?: string;
   transactionId?: string;
+  paymentId?: string;
+
+  // Reviews
   reviewRating?: number;
   reviewText?: string;
+
+  // Messages
   messagePreview?: string;
+
+  // Priority Listing
   daysUntilExpiration?: number;
+
+  // Retainer Contracts
+  contractTitle?: string;
+  contractId?: string;
+  monthNumber?: number;
+
+  // Deliverables
+  reason?: string;
+  revisionInstructions?: string;
+
+  // URLs & Links
   linkUrl?: string;
   verificationUrl?: string;
   resetUrl?: string;
+
+  // Authentication
   otpCode?: string;
+
+  // Content Moderation
   contentType?: string;
+  contentId?: string;
   matchedKeywords?: string[];
   reviewStatus?: string;
   actionTaken?: string;
+
+  // System Announcements
+  announcementTitle?: string;
+  announcementMessage?: string;
+
+  // Catch-all for any additional data
   [key: string]: any;
 }
 
@@ -99,6 +136,9 @@ export function getTemplateSlugForNotificationType(type: string): string | null 
     'payment_pending': 'payment-pending',
     'payment_approved': 'payment-approved',
     'payment_failed_insufficient_funds': 'payment-failed-insufficient-funds',
+    'payment_disputed': 'payment-disputed',
+    'payment_dispute_resolved': 'payment-dispute-resolved',
+    'payment_refunded': 'payment-refunded',
 
     // Offer templates
     'offer_approved': 'offer-approved',
@@ -115,6 +155,10 @@ export function getTemplateSlugForNotificationType(type: string): string | null 
     'work_completion_approval': 'work-completion-approval',
     'priority_listing_expiring': 'priority-listing-expiring',
 
+    // Retainer/Deliverable templates
+    'deliverable_rejected': 'deliverable-rejected',
+    'revision_requested': 'revision-requested',
+
     // Moderation templates
     'content_flagged': 'content-flagged',
 
@@ -126,6 +170,193 @@ export function getTemplateSlugForNotificationType(type: string): string | null 
   };
 
   return typeToSlugMap[type] || null;
+}
+
+/**
+ * Get the list of available variables for a specific template type/slug
+ * This helps the admin UI show the correct variables for each template
+ */
+export function getAvailableVariablesForTemplate(slug: string): Array<{
+  name: string;
+  description: string;
+  example: string;
+}> {
+  const variablesByTemplate: Record<string, Array<{ name: string; description: string; example: string }>> = {
+    // Application templates
+    'application-status-change': [
+      { name: 'userName', description: 'Creator\'s name', example: 'John' },
+      { name: 'offerTitle', description: 'Title of the offer', example: 'Premium SEO Package' },
+      { name: 'applicationId', description: 'Application ID', example: 'app_123abc' },
+      { name: 'applicationStatus', description: 'New status (approved/rejected/pending)', example: 'approved' },
+      { name: 'trackingLink', description: 'Creator\'s tracking link (for approved)', example: 'https://example.com/go/ABC123' },
+      { name: 'trackingCode', description: 'Tracking code (for approved)', example: 'ABC123' },
+      { name: 'linkUrl', description: 'Link to application details', example: '/applications/app_123' },
+    ],
+    'new-application': [
+      { name: 'userName', description: 'Recipient\'s name (admin or company)', example: 'Admin' },
+      { name: 'companyName', description: 'Company name (for admin notifications)', example: 'Acme Corp' },
+      { name: 'offerTitle', description: 'Title of the offer', example: 'Premium SEO Package' },
+      { name: 'applicationId', description: 'Application ID', example: 'app_123abc' },
+      { name: 'offerId', description: 'Offer ID', example: 'offer_456def' },
+      { name: 'linkUrl', description: 'Link to review the application', example: '/admin/offers' },
+    ],
+
+    // Payment templates
+    'payment-received': [
+      { name: 'userName', description: 'Creator\'s name', example: 'John' },
+      { name: 'offerTitle', description: 'Offer or contract title', example: 'Monthly SEO Package' },
+      { name: 'amount', description: 'Net amount received', example: '$930.00' },
+      { name: 'grossAmount', description: 'Gross amount before fees', example: '$1,000.00' },
+      { name: 'platformFee', description: 'Platform fee (4%)', example: '$40.00' },
+      { name: 'processingFee', description: 'Processing fee (3%)', example: '$30.00' },
+      { name: 'transactionId', description: 'Payment transaction ID', example: 'tr_abc123xyz' },
+      { name: 'paymentId', description: 'Internal payment ID', example: 'pay_789' },
+      { name: 'linkUrl', description: 'Link to payment details', example: '/payments/pay_789' },
+    ],
+    'payment-pending': [
+      { name: 'userName', description: 'Recipient\'s name', example: 'John' },
+      { name: 'offerTitle', description: 'Offer or contract title', example: 'Monthly SEO Package' },
+      { name: 'amount', description: 'Payment amount', example: '$930.00' },
+      { name: 'paymentId', description: 'Payment ID', example: 'pay_789' },
+      { name: 'linkUrl', description: 'Link to payment or settings', example: '/settings/payment' },
+    ],
+    'payment-approved': [
+      { name: 'userName', description: 'Recipient\'s name', example: 'John' },
+      { name: 'companyName', description: 'Company name (for company notifications)', example: 'Acme Corp' },
+      { name: 'offerTitle', description: 'Offer or contract title', example: 'Monthly SEO Package' },
+      { name: 'amount', description: 'Net amount', example: '$930.00' },
+      { name: 'grossAmount', description: 'Gross amount', example: '$1,000.00' },
+      { name: 'platformFee', description: 'Platform fee', example: '$40.00' },
+      { name: 'processingFee', description: 'Processing fee', example: '$30.00' },
+      { name: 'transactionId', description: 'Transaction ID', example: 'tr_abc123xyz' },
+      { name: 'paymentId', description: 'Payment ID', example: 'pay_789' },
+      { name: 'linkUrl', description: 'Link to payment details', example: '/payments/pay_789' },
+    ],
+    'payment-failed-insufficient-funds': [
+      { name: 'userName', description: 'Company contact name', example: 'Jane' },
+      { name: 'companyName', description: 'Company name', example: 'Acme Corp' },
+      { name: 'amount', description: 'Payment amount', example: '$930.00' },
+      { name: 'grossAmount', description: 'Gross amount', example: '$1,000.00' },
+      { name: 'platformFee', description: 'Platform fee', example: '$40.00' },
+      { name: 'processingFee', description: 'Processing fee', example: '$30.00' },
+      { name: 'paymentId', description: 'Payment ID', example: 'pay_789' },
+      { name: 'linkUrl', description: 'Link to payment details', example: '/payments/pay_789' },
+    ],
+    'payment-disputed': [
+      { name: 'userName', description: 'Creator\'s name', example: 'John' },
+      { name: 'offerTitle', description: 'Offer or contract title', example: 'Monthly SEO Package' },
+      { name: 'amount', description: 'Disputed amount', example: '$930.00' },
+      { name: 'paymentId', description: 'Payment ID', example: 'pay_789' },
+      { name: 'linkUrl', description: 'Link to messages', example: '/messages' },
+    ],
+    'payment-dispute-resolved': [
+      { name: 'paymentId', description: 'Payment ID', example: 'pay_789' },
+    ],
+    'payment-refunded': [
+      { name: 'paymentId', description: 'Payment ID', example: 'pay_789' },
+    ],
+
+    // Offer templates
+    'offer-approved': [
+      { name: 'userName', description: 'Company contact name', example: 'Jane' },
+      { name: 'offerTitle', description: 'Title of the approved offer', example: 'Premium SEO Package' },
+      { name: 'linkUrl', description: 'Link to the offer', example: '/company/offers/offer_123' },
+    ],
+    'offer-rejected': [
+      { name: 'userName', description: 'Company contact name', example: 'Jane' },
+      { name: 'offerTitle', description: 'Title of the offer', example: 'Premium SEO Package' },
+      { name: 'linkUrl', description: 'Link to the offer', example: '/company/offers/offer_123' },
+    ],
+
+    // Company/Registration templates
+    'registration-approved': [
+      { name: 'userName', description: 'User\'s name', example: 'Jane' },
+      { name: 'linkUrl', description: 'Link to dashboard', example: '/company/dashboard' },
+    ],
+    'registration-rejected': [
+      { name: 'userName', description: 'User\'s name', example: 'Jane' },
+      { name: 'linkUrl', description: 'Link to contact support', example: '/contact' },
+    ],
+
+    // System templates
+    'system-announcement': [
+      { name: 'userName', description: 'Recipient\'s name', example: 'John' },
+      { name: 'announcementTitle', description: 'Announcement title', example: 'New Feature Launch' },
+      { name: 'announcementMessage', description: 'Announcement content', example: 'We have exciting news...' },
+      { name: 'linkUrl', description: 'Learn more link', example: '/blog/new-feature' },
+    ],
+    'new-message': [
+      { name: 'userName', description: 'Recipient\'s name', example: 'John' },
+      { name: 'companyName', description: 'Sender company name', example: 'Acme Corp' },
+      { name: 'offerTitle', description: 'Related offer title', example: 'Premium SEO Package' },
+      { name: 'messagePreview', description: 'Preview of the message', example: 'Hi, I wanted to discuss...' },
+      { name: 'linkUrl', description: 'Link to conversation', example: '/messages/conv_123' },
+    ],
+    'review-received': [
+      { name: 'userName', description: 'Company contact name', example: 'Jane' },
+      { name: 'reviewRating', description: 'Star rating (1-5)', example: '5' },
+      { name: 'reviewText', description: 'Review content', example: 'Great experience working with this company!' },
+      { name: 'linkUrl', description: 'Link to review', example: '/company/reviews' },
+    ],
+    'work-completion-approval': [
+      { name: 'userName', description: 'Creator\'s name', example: 'John' },
+      { name: 'offerTitle', description: 'Offer title', example: 'Premium SEO Package' },
+      { name: 'amount', description: 'Payment amount', example: '$500.00' },
+      { name: 'linkUrl', description: 'Link to details', example: '/applications/app_123' },
+    ],
+    'priority-listing-expiring': [
+      { name: 'userName', description: 'Company contact name', example: 'Jane' },
+      { name: 'offerTitle', description: 'Offer title', example: 'Premium SEO Package' },
+      { name: 'daysUntilExpiration', description: 'Days until expiration', example: '3' },
+      { name: 'offerId', description: 'Offer ID', example: 'offer_123' },
+      { name: 'linkUrl', description: 'Link to renew', example: '/company/offers/offer_123' },
+    ],
+
+    // Retainer/Deliverable templates
+    'deliverable-rejected': [
+      { name: 'userName', description: 'Creator\'s name', example: 'John' },
+      { name: 'contractTitle', description: 'Retainer contract title', example: 'Monthly Content Package' },
+      { name: 'reason', description: 'Rejection reason/feedback', example: 'Please revise the intro section' },
+      { name: 'linkUrl', description: 'Link to deliverable', example: '/retainers/contract_123' },
+    ],
+    'revision-requested': [
+      { name: 'userName', description: 'Creator\'s name', example: 'John' },
+      { name: 'contractTitle', description: 'Retainer contract title', example: 'Monthly Content Package' },
+      { name: 'revisionInstructions', description: 'Revision instructions', example: 'Please update the call-to-action' },
+      { name: 'linkUrl', description: 'Link to deliverable', example: '/retainers/contract_123' },
+    ],
+
+    // Moderation templates
+    'content-flagged': [
+      { name: 'userName', description: 'User\'s name', example: 'John' },
+      { name: 'contentType', description: 'Type of content (review, message)', example: 'review' },
+      { name: 'contentId', description: 'Content ID', example: 'review_123' },
+      { name: 'matchedKeywords', description: 'Flagged keywords (comma-separated)', example: 'spam, inappropriate' },
+      { name: 'reviewStatus', description: 'Review status', example: 'pending' },
+      { name: 'actionTaken', description: 'Action taken by moderator', example: 'Content removed' },
+      { name: 'linkUrl', description: 'Link to notifications', example: '/notifications' },
+    ],
+
+    // Authentication templates
+    'email-verification': [
+      { name: 'userName', description: 'User\'s name', example: 'John' },
+      { name: 'verificationUrl', description: 'Email verification link', example: 'https://example.com/verify?token=abc123' },
+    ],
+    'password-reset': [
+      { name: 'userName', description: 'User\'s name', example: 'John' },
+      { name: 'resetUrl', description: 'Password reset link', example: 'https://example.com/reset?token=abc123' },
+    ],
+    'account-deletion-otp': [
+      { name: 'userName', description: 'User\'s name', example: 'John' },
+      { name: 'otpCode', description: '6-digit verification code', example: '123456' },
+    ],
+    'password-change-otp': [
+      { name: 'userName', description: 'User\'s name', example: 'John' },
+      { name: 'otpCode', description: '6-digit verification code', example: '123456' },
+    ],
+  };
+
+  return variablesByTemplate[slug] || [];
 }
 
 /**
