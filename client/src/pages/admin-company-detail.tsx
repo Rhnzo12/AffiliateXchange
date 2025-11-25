@@ -29,6 +29,7 @@ import {
   Globe,
   Briefcase,
   Eye,
+  Download,
 } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
@@ -171,6 +172,44 @@ export default function AdminCompanyDetail() {
       });
     } finally {
       setIsLoadingDocument(false);
+    }
+  };
+
+  // Function to download verification document
+  const handleDownloadDocument = async (documentUrl: string, documentName: string) => {
+    if (!documentUrl) return;
+
+    try {
+      // Extract the file path from the GCS URL
+      const url = new URL(documentUrl);
+      const pathParts = url.pathname.split('/');
+      const filePath = pathParts.slice(2).join('/');
+
+      // Fetch signed URL with download flag from the API
+      const response = await fetch(`/api/get-signed-url/${filePath}?download=true&name=${encodeURIComponent(documentName)}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get download URL');
+      }
+
+      const data = await response.json();
+
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = data.url;
+      link.download = documentName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download document. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -654,15 +693,27 @@ export default function AdminCompanyDetail() {
                               )}
                             </p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewDocument(doc.documentUrl)}
-                            disabled={isLoadingDocument}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewDocument(doc.documentUrl)}
+                              disabled={isLoadingDocument}
+                              title="View document"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownloadDocument(doc.documentUrl, doc.documentName)}
+                              title="Download document"
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Download
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>

@@ -28,7 +28,8 @@ import {
   CreditCard,
   Plus,
   Trash2,
-  Eye
+  Eye,
+  Download
 } from "lucide-react";
 
 const STEPS = [
@@ -343,6 +344,41 @@ export default function CompanyOnboarding() {
       toast({
         title: "Error",
         description: "Failed to view document. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadDocument = async (documentUrl: string, documentName: string) => {
+    try {
+      // Extract the file path from the GCS URL
+      const url = new URL(documentUrl);
+      const pathParts = url.pathname.split('/');
+      const filePath = pathParts.slice(2).join('/');
+
+      // Fetch signed URL with download flag from the API
+      const response = await fetch(`/api/get-signed-url/${filePath}?download=true&name=${encodeURIComponent(documentName)}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get download URL');
+      }
+
+      const data = await response.json();
+
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = data.url;
+      link.download = documentName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download document. Please try again.",
         variant: "destructive",
       });
     }
@@ -905,6 +941,7 @@ export default function CompanyOnboarding() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => handleViewDocument(doc.documentUrl)}
+                          title="View document"
                         >
                           <Eye className="h-4 w-4 text-green-600" />
                         </Button>
@@ -913,7 +950,18 @@ export default function CompanyOnboarding() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
+                          onClick={() => handleDownloadDocument(doc.documentUrl, doc.documentName)}
+                          title="Download document"
+                        >
+                          <Download className="h-4 w-4 text-blue-600" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
                           onClick={() => handleRemoveDocument(doc.id)}
+                          title="Delete document"
                         >
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
