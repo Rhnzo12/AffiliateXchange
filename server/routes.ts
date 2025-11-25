@@ -6164,6 +6164,14 @@ res.json(approved);
             attachments: message.attachments || [],
           });
 
+          // Auto-moderate message for banned content
+          try {
+            await moderateMessage(savedMessage.id);
+          } catch (moderationError) {
+            console.error('[WebSocket] Error auto-moderating message:', moderationError);
+            // Don't fail the message if moderation fails
+          }
+
           // Find all participants in the conversation
           const conversation = await storage.getConversation(message.conversationId);
           const companyProfile = conversation?.companyId
