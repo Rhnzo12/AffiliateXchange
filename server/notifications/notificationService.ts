@@ -329,6 +329,7 @@ export class NotificationService {
 
       // If no custom template found, fall back to hardcoded templates
       if (!emailContent) {
+        console.log(`[Notifications] No custom template available for ${type}, using hardcoded default`);
         switch (type) {
           case 'application_status_change':
             emailContent = emailTemplates.applicationStatusChangeEmail(

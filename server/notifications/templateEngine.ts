@@ -110,10 +110,17 @@ export async function getProcessedTemplate(
   try {
     const template = await storage.getEmailTemplateBySlug(slug);
 
-    if (!template || !template.isActive) {
+    if (!template) {
+      console.log(`[TemplateEngine] No custom template found for slug '${slug}', will use default`);
       return null;
     }
 
+    if (!template.isActive) {
+      console.log(`[TemplateEngine] Template '${slug}' exists but is INACTIVE (isActive: false), will use default`);
+      return null;
+    }
+
+    console.log(`[TemplateEngine] Found active custom template for slug '${slug}'`);
     return processEmailTemplate(template.subject, template.htmlContent, data);
   } catch (error) {
     console.error(`[TemplateEngine] Error fetching template '${slug}':`, error);
@@ -369,9 +376,11 @@ export async function getTemplateForType(
   const slug = getTemplateSlugForNotificationType(type);
 
   if (!slug) {
+    console.log(`[TemplateEngine] No slug mapping found for notification type '${type}'`);
     return null;
   }
 
+  console.log(`[TemplateEngine] Looking up template for type '${type}' -> slug '${slug}'`);
   return await getProcessedTemplate(slug, data);
 }
 
