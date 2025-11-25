@@ -488,6 +488,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to delete this document" });
       }
 
+      // Delete from cloud storage first
+      if (document.documentUrl) {
+        try {
+          const objectStorageService = new ObjectStorageService();
+          // Extract file path from GCS URL
+          // URL format: https://storage.googleapis.com/bucket-name/path/to/file
+          const url = new URL(document.documentUrl);
+          const pathParts = url.pathname.split('/');
+          // Remove empty string and bucket name, keep the rest as file path
+          const filePath = pathParts.slice(2).join('/');
+
+          if (filePath) {
+            await objectStorageService.deleteResource(filePath, 'raw');
+            console.log('[Verification Documents] Deleted file from GCS:', filePath);
+          }
+        } catch (storageError) {
+          console.error('[Verification Documents] Error deleting from cloud storage:', storageError);
+          // Continue with database deletion even if storage deletion fails
+        }
+      }
+
       const deleted = await storage.deleteVerificationDocument(documentId);
       if (deleted) {
         return res.json({ success: true });
@@ -5508,9 +5529,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Endpoint to generate signed URL for reading an existing file
+  // Query params: download=true (forces download with Content-Disposition), name=filename (custom download name)
   app.get("/api/get-signed-url/:filename(*)", requireAuth, async (req, res) => {
     try {
       const filename = req.params.filename;
+      const isDownload = req.query.download === 'true';
+      const customName = req.query.name as string | undefined;
       const objectStorageService = new ObjectStorageService();
 
       // Import Storage from @google-cloud/storage
@@ -5542,18 +5566,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gcsStorage = new Storage({ projectId });
       }
 
-      const options = {
+      // Build options with optional Content-Disposition for download
+      const options: any = {
         version: 'v4' as const,
         action: 'read' as const,
         expires: Date.now() + 60 * 60 * 1000, // 1 hour from now
       };
+
+      // If download mode, set Content-Disposition to force download
+      if (isDownload) {
+        const downloadName = customName || filename.split('/').pop() || 'download';
+        options.responseDisposition = `attachment; filename="${downloadName}"`;
+      }
 
       const [url] = await gcsStorage
         .bucket(bucketName)
         .file(filename)
         .getSignedUrl(options);
 
-      console.log('[Signed URL API] Generated signed URL for:', filename);
+      console.log('[Signed URL API] Generated signed URL for:', filename, isDownload ? '(download)' : '(view)');
       res.json({ url });
     } catch (error: any) {
       console.error('Error generating signed URL:', error);
