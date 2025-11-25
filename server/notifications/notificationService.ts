@@ -255,20 +255,39 @@ export class NotificationService {
       const linkUrl = this.generateLinkUrl(type, data, user.role);
       console.log(`[Notifications] Generated linkUrl: ${linkUrl}`);
 
+      // FIRST: Check for custom email template before creating any notifications
+      // If a custom template exists, use its subject as the notification title
+      let customTemplate: { subject: string; html: string } | null = null;
+      let effectiveTitle = title;
+      let effectiveMessage = message;
+
+      try {
+        customTemplate = await getTemplateForType(type, { ...data, linkUrl });
+        if (customTemplate) {
+          console.log(`[Notifications] Found custom template for ${type}, using template subject as notification title`);
+          effectiveTitle = customTemplate.subject;
+          // Keep original message for in-app since HTML isn't suitable
+        } else {
+          console.log(`[Notifications] No custom template found for ${type}, using default title/message`);
+        }
+      } catch (error) {
+        console.warn(`[Notifications] Error fetching custom template for ${type}:`, error);
+      }
+
       console.log(`[Notifications] Checking in-app notifications: preferences?.inAppNotifications = ${preferences?.inAppNotifications}, will send = ${preferences?.inAppNotifications !== false}`);
       if (preferences?.inAppNotifications !== false) {
-        await this.sendInAppNotification(userId, type, title, message, linkUrl, data);
+        await this.sendInAppNotification(userId, type, effectiveTitle, effectiveMessage, linkUrl, data);
       } else {
         console.log(`[Notifications] Skipping in-app notification (disabled by preferences)`);
       }
 
       if (preferences?.emailNotifications !== false && this.shouldSendEmail(type, preferences)) {
-        // Pass linkUrl in data for email templates
-        await this.sendEmailNotification(user.email, type, { ...data, linkUrl });
+        // Pass linkUrl in data for email templates, and the pre-fetched custom template
+        await this.sendEmailNotificationWithTemplate(user.email, type, { ...data, linkUrl }, customTemplate);
       }
 
       if (preferences?.pushNotifications !== false && this.shouldSendPush(type, preferences)) {
-        await this.sendPushNotification(preferences, title, message, { ...data, linkUrl });
+        await this.sendPushNotification(preferences, effectiveTitle, effectiveMessage, { ...data, linkUrl });
       }
     } catch (error) {
       console.error('[Notifications] Error sending notification:', error);
@@ -304,6 +323,115 @@ export class NotificationService {
     }
   }
 
+  /**
+   * Send email notification with an optional pre-fetched custom template
+   * This avoids double-fetching when the template was already fetched for in-app notification
+   */
+  private async sendEmailNotificationWithTemplate(
+    email: string,
+    type: NotificationType,
+    data: NotificationData,
+    customTemplate: { subject: string; html: string } | null
+  ): Promise<void> {
+    if (!sendGridConfigured) {
+      console.warn('[Notifications] SendGrid not configured, skipping email');
+      return;
+    }
+
+    try {
+      let emailContent: { subject: string; html: string } | null = customTemplate;
+
+      // If custom template was provided (already fetched), use it
+      if (emailContent) {
+        console.log(`[Notifications] Using pre-fetched custom template for ${type}`);
+      } else {
+        // Fall back to hardcoded templates
+        console.log(`[Notifications] No custom template available for ${type}, using hardcoded default`);
+        emailContent = this.getHardcodedEmailTemplate(type, data);
+        if (!emailContent) {
+          console.warn(`[Notifications] Unknown email type: ${type}`);
+          return;
+        }
+      }
+
+      const msg = {
+        to: email,
+        from: process.env.SENDGRID_FROM_EMAIL || 'notifications@affiliatemarketplace.com',
+        subject: emailContent.subject,
+        html: emailContent.html,
+      };
+
+      await sgMail.send(msg);
+      console.log(`[Notifications] Email sent to ${email}: ${type}`);
+    } catch (error) {
+      console.error('[Notifications] Error sending email:', error);
+    }
+  }
+
+  /**
+   * Get hardcoded email template for a notification type
+   */
+  private getHardcodedEmailTemplate(
+    type: NotificationType,
+    data: NotificationData
+  ): { subject: string; html: string } | null {
+    switch (type) {
+      case 'application_status_change':
+        return emailTemplates.applicationStatusChangeEmail(
+          data.applicationStatus || 'updated',
+          data
+        );
+      case 'new_message':
+        return emailTemplates.newMessageEmail(data);
+      case 'payment_received':
+        return emailTemplates.paymentReceivedEmail(data);
+      case 'payment_approved':
+        return emailTemplates.paymentApprovedEmail(data);
+      case 'payment_failed_insufficient_funds':
+        return emailTemplates.paymentFailedInsufficientFundsEmail(data);
+      case 'offer_approved':
+        return emailTemplates.offerApprovedEmail(data);
+      case 'offer_rejected':
+        return emailTemplates.offerRejectedEmail(data);
+      case 'new_application':
+        return emailTemplates.newApplicationEmail(data);
+      case 'review_received':
+        return emailTemplates.reviewReceivedEmail(data);
+      case 'system_announcement':
+        return emailTemplates.systemAnnouncementEmail(
+          data.announcementTitle || 'System Announcement',
+          data.announcementMessage || '',
+          data
+        );
+      case 'registration_approved':
+        return emailTemplates.registrationApprovedEmail(data);
+      case 'registration_rejected':
+        return emailTemplates.registrationRejectedEmail(data);
+      case 'work_completion_approval':
+        return emailTemplates.workCompletionApprovalEmail(data);
+      case 'priority_listing_expiring':
+        return emailTemplates.priorityListingExpiringEmail(data);
+      case 'payment_pending':
+        return emailTemplates.paymentPendingEmail(data);
+      case 'email_verification':
+        return emailTemplates.emailVerificationEmail(data);
+      case 'password_reset':
+        return emailTemplates.passwordResetEmail(data);
+      case 'account_deletion_otp':
+        return emailTemplates.accountDeletionOtpEmail(data);
+      case 'password_change_otp':
+        return emailTemplates.passwordChangeOtpEmail(data);
+      case 'content_flagged':
+        return emailTemplates.contentFlaggedEmail(data);
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Public method for sending email notifications (for external callers)
+   * This will look up the custom template if not pre-fetched
+   */
   async sendEmailNotification(
     email: string,
     type: NotificationType,
@@ -330,77 +458,10 @@ export class NotificationService {
       // If no custom template found, fall back to hardcoded templates
       if (!emailContent) {
         console.log(`[Notifications] No custom template available for ${type}, using hardcoded default`);
-        switch (type) {
-          case 'application_status_change':
-            emailContent = emailTemplates.applicationStatusChangeEmail(
-              data.applicationStatus || 'updated',
-              data
-            );
-            break;
-          case 'new_message':
-            emailContent = emailTemplates.newMessageEmail(data);
-            break;
-          case 'payment_received':
-            emailContent = emailTemplates.paymentReceivedEmail(data);
-            break;
-          case 'payment_approved':
-            emailContent = emailTemplates.paymentApprovedEmail(data);
-            break;
-          case 'payment_failed_insufficient_funds':
-            emailContent = emailTemplates.paymentFailedInsufficientFundsEmail(data);
-            break;
-          case 'offer_approved':
-            emailContent = emailTemplates.offerApprovedEmail(data);
-            break;
-          case 'offer_rejected':
-            emailContent = emailTemplates.offerRejectedEmail(data);
-            break;
-          case 'new_application':
-            emailContent = emailTemplates.newApplicationEmail(data);
-            break;
-          case 'review_received':
-            emailContent = emailTemplates.reviewReceivedEmail(data);
-            break;
-          case 'system_announcement':
-            emailContent = emailTemplates.systemAnnouncementEmail(
-              data.announcementTitle || 'System Announcement',
-              data.announcementMessage || '',
-              data
-            );
-            break;
-          case 'registration_approved':
-            emailContent = emailTemplates.registrationApprovedEmail(data);
-            break;
-          case 'registration_rejected':
-            emailContent = emailTemplates.registrationRejectedEmail(data);
-            break;
-          case 'work_completion_approval':
-            emailContent = emailTemplates.workCompletionApprovalEmail(data);
-            break;
-          case 'priority_listing_expiring':
-            emailContent = emailTemplates.priorityListingExpiringEmail(data);
-            break;
-          case 'payment_pending':
-            emailContent = emailTemplates.paymentPendingEmail(data);
-            break;
-          case 'email_verification':
-            emailContent = emailTemplates.emailVerificationEmail(data);
-            break;
-          case 'password_reset':
-            emailContent = emailTemplates.passwordResetEmail(data);
-            break;
-          case 'account_deletion_otp':
-            emailContent = emailTemplates.accountDeletionOtpEmail(data);
-            break;
-          case 'password_change_otp':
-            emailContent = emailTemplates.passwordChangeOtpEmail(data);
-            break;
-          case 'content_flagged':
-            emailContent = emailTemplates.contentFlaggedEmail(data);
-            break;
-          default:
-            console.warn(`[Notifications] Unknown email type: ${type}`);
-            return;
+        emailContent = this.getHardcodedEmailTemplate(type, data);
+        if (!emailContent) {
+          console.warn(`[Notifications] Unknown email type: ${type}`);
+          return;
         }
       }
 
