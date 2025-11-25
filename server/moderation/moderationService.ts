@@ -192,24 +192,43 @@ export async function moderateReview(reviewId: string): Promise<void> {
  * Check and flag a message if it contains banned content
  */
 export async function moderateMessage(messageId: string): Promise<void> {
+  console.log(`[Moderation] Checking message: ${messageId}`);
+
   const message = await db.query.messages.findFirst({
     where: eq(messages.id, messageId),
   });
 
-  if (!message || !message.content) {
+  if (!message) {
+    console.log(`[Moderation] Message not found: ${messageId}`);
     return;
   }
 
+  if (!message.content) {
+    console.log(`[Moderation] Message has no content: ${messageId}`);
+    return;
+  }
+
+  console.log(`[Moderation] Checking content: "${message.content.substring(0, 50)}..."`);
   const contentCheck = await checkContent(message.content, 'message');
+  console.log(`[Moderation] Content check result:`, JSON.stringify(contentCheck));
 
   if (contentCheck.isFlagged) {
-    await flagContent(
-      'message',
-      messageId,
-      message.senderId,
-      contentCheck.reasons.join(', '),
-      contentCheck.matchedKeywords
-    );
+    console.log(`[Moderation] Flagging message ${messageId} - Reasons: ${contentCheck.reasons.join(', ')}`);
+    try {
+      await flagContent(
+        'message',
+        messageId,
+        message.senderId,
+        contentCheck.reasons.join(', '),
+        contentCheck.matchedKeywords
+      );
+      console.log(`[Moderation] Successfully flagged message ${messageId}`);
+    } catch (flagError) {
+      console.error(`[Moderation] Failed to flag message ${messageId}:`, flagError);
+      throw flagError;
+    }
+  } else {
+    console.log(`[Moderation] Message ${messageId} passed moderation check`);
   }
 }
 
