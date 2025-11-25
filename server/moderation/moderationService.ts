@@ -1,9 +1,50 @@
 import { Filter } from 'bad-words';
 import { db } from '../db';
 import { bannedKeywords, contentFlags, reviews, messages, notifications } from '../../shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, count } from 'drizzle-orm';
 
 const profanityFilter = new Filter();
+
+// Default keywords to seed if table is empty
+const defaultKeywords = [
+  { keyword: 'scam', category: 'spam' as const, severity: 4, description: 'Potential scam-related content' },
+  { keyword: 'fraud', category: 'legal' as const, severity: 5, description: 'Fraud-related term' },
+  { keyword: 'guaranteed money', category: 'spam' as const, severity: 3, description: 'Misleading financial claims' },
+  { keyword: 'get rich quick', category: 'spam' as const, severity: 3, description: 'Misleading financial claims' },
+  { keyword: 'free money', category: 'spam' as const, severity: 3, description: 'Spam-like promotional content' },
+  { keyword: 'testbadword', category: 'custom' as const, severity: 2, description: 'Test keyword for moderation testing' },
+];
+
+/**
+ * Initialize moderation system with default keywords if none exist
+ */
+export async function initializeModerationKeywords(): Promise<void> {
+  try {
+    const result = await db.select({ count: count() }).from(bannedKeywords);
+    const keywordCount = result[0]?.count || 0;
+
+    if (keywordCount === 0) {
+      console.log('[Moderation] No banned keywords found, seeding defaults...');
+
+      for (const kw of defaultKeywords) {
+        await db.insert(bannedKeywords).values({
+          keyword: kw.keyword,
+          category: kw.category,
+          severity: kw.severity,
+          description: kw.description,
+          isActive: true,
+        });
+      }
+
+      console.log(`[Moderation] Seeded ${defaultKeywords.length} default banned keywords`);
+    } else {
+      console.log(`[Moderation] Found ${keywordCount} existing banned keywords`);
+    }
+  } catch (error) {
+    console.error('[Moderation] Error initializing keywords:', error);
+    // Don't throw - let the app continue even if seeding fails
+  }
+}
 
 interface CheckContentResult {
   isFlagged: boolean;

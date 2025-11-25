@@ -3,6 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { runAutoMigrations } from "./auto-migrate";
+import { initializeModerationKeywords } from "./moderation/moderationService";
 
 const app = express();
 app.disable('x-powered-by'); // Security: Hide Express server information
@@ -45,6 +46,14 @@ app.use((req, res, next) => {
     await runAutoMigrations();
   } catch (error) {
     log('Warning: Auto-migration failed. Some features may not work correctly.');
+    console.error(error);
+  }
+
+  // Initialize content moderation with default keywords
+  try {
+    await initializeModerationKeywords();
+  } catch (error) {
+    log('Warning: Moderation initialization failed. Content moderation may not work correctly.');
     console.error(error);
   }
 
