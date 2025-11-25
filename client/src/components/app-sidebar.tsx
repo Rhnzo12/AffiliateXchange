@@ -33,6 +33,7 @@ import {
   Tags,
   ShieldAlert,
   Ban,
+  Mail,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -189,6 +190,11 @@ export function AppSidebar() {
       title: "Niche Categories",
       url: "/admin/niches",
       icon: Tags,
+    },
+    {
+      title: "Email Templates",
+      url: "/admin/email-templates",
+      icon: Mail,
     },
     {
       title: "Audit Trail",

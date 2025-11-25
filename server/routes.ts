@@ -4920,6 +4920,277 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // =====================================================
+  // Email Templates Management Routes
+  // =====================================================
+
+  // Get all email templates (admin only)
+  app.get("/api/admin/email-templates", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const templates = await storage.getEmailTemplates();
+      res.json(templates);
+    } catch (error: any) {
+      console.error('[Email Templates] Error fetching templates:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get email template by ID
+  app.get("/api/admin/email-templates/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const template = await storage.getEmailTemplateById(req.params.id);
+      if (!template) {
+        return res.status(404).send("Email template not found");
+      }
+      res.json(template);
+    } catch (error: any) {
+      console.error('[Email Templates] Error fetching template:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get email template by slug (for internal use)
+  app.get("/api/admin/email-templates/slug/:slug", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const template = await storage.getEmailTemplateBySlug(req.params.slug);
+      if (!template) {
+        return res.status(404).send("Email template not found");
+      }
+      res.json(template);
+    } catch (error: any) {
+      console.error('[Email Templates] Error fetching template by slug:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Create new email template
+  app.post("/api/admin/email-templates", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { name, slug, category, subject, htmlContent, description, availableVariables, isActive, isSystem } = req.body;
+
+      // Validate required fields
+      if (!name || !slug || !category || !subject || !htmlContent) {
+        return res.status(400).send("Missing required fields: name, slug, category, subject, htmlContent");
+      }
+
+      // Check if slug already exists
+      const existingTemplate = await storage.getEmailTemplateBySlug(slug);
+      if (existingTemplate) {
+        return res.status(400).send("A template with this slug already exists");
+      }
+
+      const template = await storage.createEmailTemplate({
+        name,
+        slug,
+        category,
+        subject,
+        htmlContent,
+        description: description || null,
+        availableVariables: availableVariables || [],
+        isActive: isActive !== false,
+        isSystem: isSystem || false,
+        createdBy: userId,
+        updatedBy: userId,
+      });
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.CREATE_EMAIL_TEMPLATE || 'create_email_template',
+        entityType: EntityTypes.EMAIL_TEMPLATE || 'email_template',
+        entityId: template.id,
+        changes: { name, slug, category },
+        reason: 'Created new email template',
+      }, req);
+
+      res.json(template);
+    } catch (error: any) {
+      console.error('[Email Templates] Error creating template:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Update email template
+  app.put("/api/admin/email-templates/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const templateId = req.params.id;
+      const { name, slug, category, subject, htmlContent, description, availableVariables, isActive } = req.body;
+
+      // Check if template exists
+      const existingTemplate = await storage.getEmailTemplateById(templateId);
+      if (!existingTemplate) {
+        return res.status(404).send("Email template not found");
+      }
+
+      // If slug is being changed, check for uniqueness
+      if (slug && slug !== existingTemplate.slug) {
+        const slugExists = await storage.getEmailTemplateBySlug(slug);
+        if (slugExists) {
+          return res.status(400).send("A template with this slug already exists");
+        }
+      }
+
+      const updates: any = {};
+      if (name !== undefined) updates.name = name;
+      if (slug !== undefined) updates.slug = slug;
+      if (category !== undefined) updates.category = category;
+      if (subject !== undefined) updates.subject = subject;
+      if (htmlContent !== undefined) updates.htmlContent = htmlContent;
+      if (description !== undefined) updates.description = description;
+      if (availableVariables !== undefined) updates.availableVariables = availableVariables;
+      if (isActive !== undefined) updates.isActive = isActive;
+
+      const template = await storage.updateEmailTemplate(templateId, updates, userId);
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.UPDATE_EMAIL_TEMPLATE || 'update_email_template',
+        entityType: EntityTypes.EMAIL_TEMPLATE || 'email_template',
+        entityId: templateId,
+        changes: updates,
+        reason: 'Updated email template',
+      }, req);
+
+      res.json(template);
+    } catch (error: any) {
+      console.error('[Email Templates] Error updating template:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Delete email template
+  app.delete("/api/admin/email-templates/:id", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const templateId = req.params.id;
+
+      // Check if template exists
+      const existingTemplate = await storage.getEmailTemplateById(templateId);
+      if (!existingTemplate) {
+        return res.status(404).send("Email template not found");
+      }
+
+      if (existingTemplate.isSystem) {
+        return res.status(403).send("Cannot delete system templates");
+      }
+
+      await storage.deleteEmailTemplate(templateId);
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.DELETE_EMAIL_TEMPLATE || 'delete_email_template',
+        entityType: EntityTypes.EMAIL_TEMPLATE || 'email_template',
+        entityId: templateId,
+        reason: 'Deleted email template',
+      }, req);
+
+      res.json({ success: true, message: 'Email template deleted successfully' });
+    } catch (error: any) {
+      console.error('[Email Templates] Error deleting template:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Get templates by category
+  app.get("/api/admin/email-templates/category/:category", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const templates = await storage.getEmailTemplatesByCategory(req.params.category);
+      res.json(templates);
+    } catch (error: any) {
+      console.error('[Email Templates] Error fetching templates by category:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Preview email template with sample data
+  app.post("/api/admin/email-templates/:id/preview", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const template = await storage.getEmailTemplateById(req.params.id);
+      if (!template) {
+        return res.status(404).send("Email template not found");
+      }
+
+      const sampleData = req.body.sampleData || {};
+
+      // Process template variables
+      let processedSubject = template.subject;
+      let processedHtml = template.htmlContent;
+
+      // Replace all {{variable}} patterns with sample data or placeholder
+      const variableRegex = /\{\{(\w+)\}\}/g;
+
+      processedSubject = processedSubject.replace(variableRegex, (match, variable) => {
+        return sampleData[variable] || `[${variable}]`;
+      });
+
+      processedHtml = processedHtml.replace(variableRegex, (match, variable) => {
+        return sampleData[variable] || `<span style="background-color: #FEF3C7; padding: 2px 4px; border-radius: 2px;">[${variable}]</span>`;
+      });
+
+      res.json({
+        subject: processedSubject,
+        html: processedHtml,
+        originalTemplate: template,
+      });
+    } catch (error: any) {
+      console.error('[Email Templates] Error previewing template:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Duplicate an email template
+  app.post("/api/admin/email-templates/:id/duplicate", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const sourceTemplate = await storage.getEmailTemplateById(req.params.id);
+
+      if (!sourceTemplate) {
+        return res.status(404).send("Email template not found");
+      }
+
+      // Generate a unique slug
+      let newSlug = `${sourceTemplate.slug}-copy`;
+      let counter = 1;
+      while (await storage.getEmailTemplateBySlug(newSlug)) {
+        newSlug = `${sourceTemplate.slug}-copy-${counter}`;
+        counter++;
+      }
+
+      const newTemplate = await storage.createEmailTemplate({
+        name: `${sourceTemplate.name} (Copy)`,
+        slug: newSlug,
+        category: sourceTemplate.category,
+        subject: sourceTemplate.subject,
+        htmlContent: sourceTemplate.htmlContent,
+        description: sourceTemplate.description,
+        availableVariables: sourceTemplate.availableVariables || [],
+        isActive: false, // Start as inactive
+        isSystem: false, // Copies are never system templates
+        createdBy: userId,
+        updatedBy: userId,
+      });
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.DUPLICATE_EMAIL_TEMPLATE || 'duplicate_email_template',
+        entityType: EntityTypes.EMAIL_TEMPLATE || 'email_template',
+        entityId: newTemplate.id,
+        changes: { sourceTemplateId: sourceTemplate.id },
+        reason: 'Duplicated email template',
+      }, req);
+
+      res.json(newTemplate);
+    } catch (error: any) {
+      console.error('[Email Templates] Error duplicating template:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Platform Funding Accounts routes
   app.get("/api/admin/funding-accounts", requireAuth, requireRole('admin'), async (req, res) => {
     try {
