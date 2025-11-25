@@ -4161,6 +4161,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/reviews/:id/unhide", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const review = await storage.unhideReview(req.params.id);
+      res.json(review);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
   app.delete("/api/admin/reviews/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       await storage.deleteReview(req.params.id);
