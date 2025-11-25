@@ -2701,6 +2701,27 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async unhideReview(id: string): Promise<Review | undefined> {
+    try {
+      const result = await db
+        .update(reviews)
+        .set({ isHidden: false, updatedAt: new Date() })
+        .where(eq(reviews.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      if (isLegacyReviewColumnError(error)) {
+        console.warn("[Storage] reviews column mismatch while unhiding review - treating as no-op.");
+        return undefined;
+      }
+      if (isMissingRelationError(error, "reviews")) {
+        console.warn("[Storage] reviews relation missing while unhiding review - treating as no-op.");
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
   async deleteReview(id: string): Promise<void> {
     try {
       await db.delete(reviews).where(eq(reviews.id, id));
