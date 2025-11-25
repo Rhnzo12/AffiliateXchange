@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS email_templates (
   category email_template_category NOT NULL,
   subject VARCHAR(200) NOT NULL,
   html_content TEXT NOT NULL,
+  visual_data JSONB, -- Visual email builder data (blocks, header, etc.)
   description TEXT,
   available_variables TEXT[] DEFAULT ARRAY[]::text[],
   is_active BOOLEAN NOT NULL DEFAULT true,
