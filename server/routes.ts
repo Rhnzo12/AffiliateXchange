@@ -5566,17 +5566,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gcsStorage = new Storage({ projectId });
       }
 
-      // Build options with optional Content-Disposition for download
+      // Determine content type based on file extension
+      const ext = filename.split('.').pop()?.toLowerCase();
+      const contentTypeMap: { [key: string]: string } = {
+        'pdf': 'application/pdf',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'mp4': 'video/mp4',
+        'webm': 'video/webm',
+        'mov': 'video/quicktime',
+      };
+      const contentType = contentTypeMap[ext || ''] || 'application/octet-stream';
+
+      // Build options with Content-Type and optional Content-Disposition
       const options: any = {
         version: 'v4' as const,
         action: 'read' as const,
         expires: Date.now() + 60 * 60 * 1000, // 1 hour from now
+        responseType: contentType,
       };
 
-      // If download mode, set Content-Disposition to force download
+      // Set Content-Disposition based on mode
       if (isDownload) {
         const downloadName = customName || filename.split('/').pop() || 'download';
         options.responseDisposition = `attachment; filename="${downloadName}"`;
+      } else {
+        // For viewing, set inline to display in browser
+        options.responseDisposition = 'inline';
       }
 
       const [url] = await gcsStorage
@@ -5584,7 +5603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .file(filename)
         .getSignedUrl(options);
 
-      console.log('[Signed URL API] Generated signed URL for:', filename, isDownload ? '(download)' : '(view)');
+      console.log('[Signed URL API] Generated signed URL for:', filename, isDownload ? '(download)' : '(view)', 'contentType:', contentType);
       res.json({ url });
     } catch (error: any) {
       console.error('Error generating signed URL:', error);
