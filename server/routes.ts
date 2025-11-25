@@ -5586,16 +5586,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         version: 'v4' as const,
         action: 'read' as const,
         expires: Date.now() + 60 * 60 * 1000, // 1 hour from now
-        responseType: contentType,
+        responseContentType: contentType,
       };
 
       // Set Content-Disposition based on mode
       if (isDownload) {
         const downloadName = customName || filename.split('/').pop() || 'download';
-        options.responseDisposition = `attachment; filename="${downloadName}"`;
+        options.responseContentDisposition = `attachment; filename="${downloadName}"`;
       } else {
         // For viewing, set inline to display in browser
-        options.responseDisposition = 'inline';
+        options.responseContentDisposition = 'inline';
       }
 
       const [url] = await gcsStorage
