@@ -65,6 +65,15 @@ export const notificationTypeEnum = pgEnum('notification_type', [
 export const keywordCategoryEnum = pgEnum('keyword_category', ['profanity', 'spam', 'legal', 'harassment', 'custom']);
 export const contentTypeEnum = pgEnum('content_type', ['message', 'review']);
 export const flagStatusEnum = pgEnum('flag_status', ['pending', 'reviewed', 'dismissed', 'action_taken']);
+export const emailTemplateCategoryEnum = pgEnum('email_template_category', [
+  'application',
+  'payment',
+  'offer',
+  'company',
+  'system',
+  'moderation',
+  'authentication'
+]);
 
 // Session storage table (Required for Replit Auth)
 export const sessions = pgTable(
@@ -876,6 +885,35 @@ export const platformFundingAccountsRelations = relations(platformFundingAccount
   }),
 }));
 
+// Email Templates (for admin-managed email templates)
+export const emailTemplates = pgTable("email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull(),
+  slug: varchar("slug", { length: 100 }).notNull().unique(), // Unique identifier for template lookup
+  category: emailTemplateCategoryEnum("category").notNull(),
+  subject: varchar("subject", { length: 200 }).notNull(),
+  htmlContent: text("html_content").notNull(),
+  description: text("description"), // Admin-facing description of when this template is used
+  availableVariables: text("available_variables").array().default(sql`ARRAY[]::text[]`), // List of variables like {{userName}}, {{offerTitle}}
+  isActive: boolean("is_active").notNull().default(true),
+  isSystem: boolean("is_system").notNull().default(false), // System templates cannot be deleted
+  createdBy: varchar("created_by").references(() => users.id, { onDelete: 'set null' }),
+  updatedBy: varchar("updated_by").references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const emailTemplatesRelations = relations(emailTemplates, ({ one }) => ({
+  creator: one(users, {
+    fields: [emailTemplates.createdBy],
+    references: [users.id],
+  }),
+  updater: one(users, {
+    fields: [emailTemplates.updatedBy],
+    references: [users.id],
+  }),
+}));
+
 // Type exports for Replit Auth
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -968,6 +1006,7 @@ export const insertPlatformFundingAccountSchema = createInsertSchema(platformFun
 export const insertBannedKeywordSchema = createInsertSchema(bannedKeywords).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertContentFlagSchema = createInsertSchema(contentFlags).omit({ id: true, createdAt: true });
 export const insertCompanyVerificationDocumentSchema = createInsertSchema(companyVerificationDocuments).omit({ id: true, createdAt: true, uploadedAt: true });
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -1021,3 +1060,5 @@ export type ContentFlag = typeof contentFlags.$inferSelect;
 export type InsertContentFlag = z.infer<typeof insertContentFlagSchema>;
 export type CompanyVerificationDocument = typeof companyVerificationDocuments.$inferSelect;
 export type InsertCompanyVerificationDocument = z.infer<typeof insertCompanyVerificationDocumentSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;

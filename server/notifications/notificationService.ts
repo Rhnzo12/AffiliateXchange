@@ -3,6 +3,7 @@ import webpush from 'web-push';
 import type { DatabaseStorage } from '../storage';
 import type { InsertNotification, UserNotificationPreferences } from '../../shared/schema';
 import * as emailTemplates from './emailTemplates';
+import { getTemplateForType } from './templateEngine';
 
 let sendGridConfigured = false;
 let webPushConfigured = false;
@@ -314,79 +315,92 @@ export class NotificationService {
     }
 
     try {
-      let emailContent: { subject: string; html: string };
+      let emailContent: { subject: string; html: string } | null = null;
 
-      switch (type) {
-        case 'application_status_change':
-          emailContent = emailTemplates.applicationStatusChangeEmail(
-            data.applicationStatus || 'updated',
-            data
-          );
-          break;
-        case 'new_message':
-          emailContent = emailTemplates.newMessageEmail(data);
-          break;
-        case 'payment_received':
-          emailContent = emailTemplates.paymentReceivedEmail(data);
-          break;
-        case 'payment_approved':
-          emailContent = emailTemplates.paymentApprovedEmail(data);
-          break;
-        case 'payment_failed_insufficient_funds':
-          emailContent = emailTemplates.paymentFailedInsufficientFundsEmail(data);
-          break;
-        case 'offer_approved':
-          emailContent = emailTemplates.offerApprovedEmail(data);
-          break;
-        case 'offer_rejected':
-          emailContent = emailTemplates.offerRejectedEmail(data);
-          break;
-        case 'new_application':
-          emailContent = emailTemplates.newApplicationEmail(data);
-          break;
-        case 'review_received':
-          emailContent = emailTemplates.reviewReceivedEmail(data);
-          break;
-        case 'system_announcement':
-          emailContent = emailTemplates.systemAnnouncementEmail(
-            data.announcementTitle || 'System Announcement',
-            data.announcementMessage || '',
-            data
-          );
-          break;
-        case 'registration_approved':
-          emailContent = emailTemplates.registrationApprovedEmail(data);
-          break;
-        case 'registration_rejected':
-          emailContent = emailTemplates.registrationRejectedEmail(data);
-          break;
-        case 'work_completion_approval':
-          emailContent = emailTemplates.workCompletionApprovalEmail(data);
-          break;
-        case 'priority_listing_expiring':
-          emailContent = emailTemplates.priorityListingExpiringEmail(data);
-          break;
-        case 'payment_pending':
-          emailContent = emailTemplates.paymentPendingEmail(data);
-          break;
-        case 'email_verification':
-          emailContent = emailTemplates.emailVerificationEmail(data);
-          break;
-        case 'password_reset':
-          emailContent = emailTemplates.passwordResetEmail(data);
-          break;
-        case 'account_deletion_otp':
-          emailContent = emailTemplates.accountDeletionOtpEmail(data);
-          break;
-        case 'password_change_otp':
-          emailContent = emailTemplates.passwordChangeOtpEmail(data);
-          break;
-        case 'content_flagged':
-          emailContent = emailTemplates.contentFlaggedEmail(data);
-          break;
-        default:
-          console.warn(`[Notifications] Unknown email type: ${type}`);
-          return;
+      // First, try to get a custom template from the database
+      try {
+        emailContent = await getTemplateForType(type, data);
+        if (emailContent) {
+          console.log(`[Notifications] Using custom template for ${type}`);
+        }
+      } catch (error) {
+        console.warn(`[Notifications] Error fetching custom template for ${type}, falling back to hardcoded:`, error);
+      }
+
+      // If no custom template found, fall back to hardcoded templates
+      if (!emailContent) {
+        switch (type) {
+          case 'application_status_change':
+            emailContent = emailTemplates.applicationStatusChangeEmail(
+              data.applicationStatus || 'updated',
+              data
+            );
+            break;
+          case 'new_message':
+            emailContent = emailTemplates.newMessageEmail(data);
+            break;
+          case 'payment_received':
+            emailContent = emailTemplates.paymentReceivedEmail(data);
+            break;
+          case 'payment_approved':
+            emailContent = emailTemplates.paymentApprovedEmail(data);
+            break;
+          case 'payment_failed_insufficient_funds':
+            emailContent = emailTemplates.paymentFailedInsufficientFundsEmail(data);
+            break;
+          case 'offer_approved':
+            emailContent = emailTemplates.offerApprovedEmail(data);
+            break;
+          case 'offer_rejected':
+            emailContent = emailTemplates.offerRejectedEmail(data);
+            break;
+          case 'new_application':
+            emailContent = emailTemplates.newApplicationEmail(data);
+            break;
+          case 'review_received':
+            emailContent = emailTemplates.reviewReceivedEmail(data);
+            break;
+          case 'system_announcement':
+            emailContent = emailTemplates.systemAnnouncementEmail(
+              data.announcementTitle || 'System Announcement',
+              data.announcementMessage || '',
+              data
+            );
+            break;
+          case 'registration_approved':
+            emailContent = emailTemplates.registrationApprovedEmail(data);
+            break;
+          case 'registration_rejected':
+            emailContent = emailTemplates.registrationRejectedEmail(data);
+            break;
+          case 'work_completion_approval':
+            emailContent = emailTemplates.workCompletionApprovalEmail(data);
+            break;
+          case 'priority_listing_expiring':
+            emailContent = emailTemplates.priorityListingExpiringEmail(data);
+            break;
+          case 'payment_pending':
+            emailContent = emailTemplates.paymentPendingEmail(data);
+            break;
+          case 'email_verification':
+            emailContent = emailTemplates.emailVerificationEmail(data);
+            break;
+          case 'password_reset':
+            emailContent = emailTemplates.passwordResetEmail(data);
+            break;
+          case 'account_deletion_otp':
+            emailContent = emailTemplates.accountDeletionOtpEmail(data);
+            break;
+          case 'password_change_otp':
+            emailContent = emailTemplates.passwordChangeOtpEmail(data);
+            break;
+          case 'content_flagged':
+            emailContent = emailTemplates.contentFlaggedEmail(data);
+            break;
+          default:
+            console.warn(`[Notifications] Unknown email type: ${type}`);
+            return;
+        }
       }
 
       const msg = {

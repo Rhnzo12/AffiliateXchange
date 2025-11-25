@@ -29,6 +29,7 @@ import {
   platformSettings,
   niches,
   platformFundingAccounts,
+  emailTemplates,
   type User,
   type UpsertUser,
   type InsertUser,
@@ -75,6 +76,8 @@ import {
   type InsertPlatformFundingAccount,
   type CompanyVerificationDocument,
   type InsertCompanyVerificationDocument,
+  type EmailTemplate,
+  type InsertEmailTemplate,
 } from "../shared/schema";
 
 /**
@@ -5267,6 +5270,125 @@ async deleteAllVerificationDocumentsForCompany(companyId: string): Promise<boole
     return false;
   }
 }
+
+  // Email Templates Management
+  async getEmailTemplates(): Promise<EmailTemplate[]> {
+    try {
+      return await db
+        .select()
+        .from(emailTemplates)
+        .orderBy(emailTemplates.category, emailTemplates.name);
+    } catch (error) {
+      if (isMissingRelationError(error, "email_templates")) {
+        console.warn("[getEmailTemplates] Table does not exist yet");
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getActiveEmailTemplates(): Promise<EmailTemplate[]> {
+    try {
+      return await db
+        .select()
+        .from(emailTemplates)
+        .where(eq(emailTemplates.isActive, true))
+        .orderBy(emailTemplates.category, emailTemplates.name);
+    } catch (error) {
+      if (isMissingRelationError(error, "email_templates")) {
+        console.warn("[getActiveEmailTemplates] Table does not exist yet");
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getEmailTemplateById(id: string): Promise<EmailTemplate | null> {
+    try {
+      const result = await db
+        .select()
+        .from(emailTemplates)
+        .where(eq(emailTemplates.id, id))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      if (isMissingRelationError(error, "email_templates")) {
+        console.warn("[getEmailTemplateById] Table does not exist yet");
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async getEmailTemplateBySlug(slug: string): Promise<EmailTemplate | null> {
+    try {
+      const result = await db
+        .select()
+        .from(emailTemplates)
+        .where(eq(emailTemplates.slug, slug))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      if (isMissingRelationError(error, "email_templates")) {
+        console.warn("[getEmailTemplateBySlug] Table does not exist yet");
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async createEmailTemplate(data: InsertEmailTemplate): Promise<EmailTemplate> {
+    const result = await db.insert(emailTemplates).values(data).returning();
+    return result[0];
+  }
+
+  async updateEmailTemplate(
+    id: string,
+    updates: Partial<InsertEmailTemplate>,
+    userId?: string
+  ): Promise<EmailTemplate | null> {
+    const result = await db
+      .update(emailTemplates)
+      .set({ ...updates, updatedBy: userId, updatedAt: new Date() })
+      .where(eq(emailTemplates.id, id))
+      .returning();
+    return result[0] || null;
+  }
+
+  async deleteEmailTemplate(id: string): Promise<boolean> {
+    // Check if it's a system template first
+    const template = await this.getEmailTemplateById(id);
+    if (template?.isSystem) {
+      throw new Error('Cannot delete system templates');
+    }
+
+    const result = await db
+      .delete(emailTemplates)
+      .where(eq(emailTemplates.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getEmailTemplatesByCategory(category: string): Promise<EmailTemplate[]> {
+    try {
+      return await db
+        .select()
+        .from(emailTemplates)
+        .where(
+          and(
+            eq(emailTemplates.category, category as any),
+            eq(emailTemplates.isActive, true)
+          )
+        )
+        .orderBy(emailTemplates.name);
+    } catch (error) {
+      if (isMissingRelationError(error, "email_templates")) {
+        console.warn("[getEmailTemplatesByCategory] Table does not exist yet");
+        return [];
+      }
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
