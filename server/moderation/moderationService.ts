@@ -131,20 +131,21 @@ export async function flagContent(
     where: (users, { eq }) => eq(users.role, 'admin'),
   });
 
-  // Create notifications for all admins - link to moderation dashboard
+  // Create notifications for all admins - link to notification detail page
   for (const admin of admins) {
     await db.insert(notifications).values({
       userId: admin.id,
       type: 'content_flagged',
       title: 'Content Flagged for Review',
       message: `A ${contentType} has been flagged for moderation: ${reason}`,
-      linkUrl: `/admin/moderation`,
+      linkUrl: `/notifications`,
       metadata: {
         contentType,
         contentId,
         flagId: flag.id,
         flaggedUserId: userId,
         matchedKeywords,
+        moderationUrl: `/admin/moderation`,
       },
       isRead: false,
     });
