@@ -2665,10 +2665,10 @@ export default function PaymentSettings() {
         {role === "creator" && (
           <>
             <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
-              <div className="flex border-b border-gray-200">
+              <div className="flex overflow-x-auto border-b border-gray-200">
                 <button
                   onClick={() => setActiveTab("overview")}
-                  className={`px-6 py-4 text-sm font-medium transition-colors ${
+                  className={`whitespace-nowrap px-3 sm:px-6 py-3 sm:py-4 text-sm font-medium transition-colors ${
                     activeTab === "overview"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600 hover:text-gray-900"
@@ -2678,7 +2678,7 @@ export default function PaymentSettings() {
                 </button>
                 <button
                   onClick={() => setActiveTab("settings")}
-                  className={`px-6 py-4 text-sm font-medium transition-colors ${
+                  className={`whitespace-nowrap px-3 sm:px-6 py-3 sm:py-4 text-sm font-medium transition-colors ${
                     activeTab === "settings"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600 hover:text-gray-900"
@@ -2719,10 +2719,10 @@ export default function PaymentSettings() {
         {role === "company" && (
           <>
             <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
-              <div className="flex border-b border-gray-200">
+              <div className="flex overflow-x-auto border-b border-gray-200">
                 <button
                   onClick={() => setActiveTab("overview")}
-                  className={`px-6 py-4 text-sm font-medium transition-colors ${
+                  className={`whitespace-nowrap px-3 sm:px-6 py-3 sm:py-4 text-sm font-medium transition-colors ${
                     activeTab === "overview"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600 hover:text-gray-900"
@@ -2732,7 +2732,7 @@ export default function PaymentSettings() {
                 </button>
                 <button
                   onClick={() => setActiveTab("settings")}
-                  className={`px-6 py-4 text-sm font-medium transition-colors ${
+                  className={`whitespace-nowrap px-3 sm:px-6 py-3 sm:py-4 text-sm font-medium transition-colors ${
                     activeTab === "settings"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600 hover:text-gray-900"
@@ -2742,7 +2742,7 @@ export default function PaymentSettings() {
                 </button>
                 <button
                   onClick={() => setActiveTab("approvals")}
-                  className={`relative px-6 py-4 text-sm font-medium transition-colors ${
+                  className={`relative whitespace-nowrap px-3 sm:px-6 py-3 sm:py-4 text-sm font-medium transition-colors ${
                     activeTab === "approvals"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600 hover:text-gray-900"
@@ -2790,10 +2790,10 @@ export default function PaymentSettings() {
         {role === "admin" && (
           <>
             <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
-              <div className="flex border-b border-gray-200">
+              <div className="flex overflow-x-auto border-b border-gray-200">
                 <button
                   onClick={() => setActiveTab("dashboard")}
-                  className={`px-6 py-4 text-sm font-medium transition-colors ${
+                  className={`whitespace-nowrap px-3 sm:px-6 py-3 sm:py-4 text-sm font-medium transition-colors ${
                     activeTab === "dashboard"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600 hover:text-gray-900"
@@ -2803,7 +2803,7 @@ export default function PaymentSettings() {
                 </button>
                 <button
                   onClick={() => setActiveTab("settings")}
-                  className={`px-6 py-4 text-sm font-medium transition-colors ${
+                  className={`whitespace-nowrap px-3 sm:px-6 py-3 sm:py-4 text-sm font-medium transition-colors ${
                     activeTab === "settings"
                       ? "border-b-2 border-blue-600 text-blue-600"
                       : "text-gray-600 hover:text-gray-900"
