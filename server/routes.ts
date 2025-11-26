@@ -3793,6 +3793,322 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get comprehensive admin analytics (admin only)
+  app.get("/api/admin/analytics", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const range = (req.query.range as string) || '30d';
+
+      // Calculate date range
+      const now = new Date();
+      let startDate: Date;
+      switch (range) {
+        case '7d':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '90d':
+          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case 'all':
+          startDate = new Date(0);
+          break;
+        default:
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      }
+
+      // Get all users
+      const allUsers = await storage.getAllUsers();
+      const creators = allUsers.filter(user => user.role === 'creator');
+      const companies = allUsers.filter(user => user.role === 'company');
+      const admins = allUsers.filter(user => user.role === 'admin');
+
+      // Calculate new users this week
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const newCreatorsThisWeek = creators.filter(user =>
+        user.createdAt && new Date(user.createdAt) >= oneWeekAgo
+      ).length;
+      const newCompaniesThisWeek = companies.filter(user =>
+        user.createdAt && new Date(user.createdAt) >= oneWeekAgo
+      ).length;
+
+      // Get all payments for financial data
+      const allPayments = await db
+        .select()
+        .from(payments);
+
+      const filteredPayments = allPayments.filter(p =>
+        !p.initiatedAt || new Date(p.initiatedAt) >= startDate
+      );
+
+      // Calculate financial metrics
+      let totalPayouts = 0;
+      let pendingPayouts = 0;
+      let completedPayouts = 0;
+      let disputedPaymentsAmt = 0;
+      let platformFees = 0;
+      let processingFees = 0;
+
+      for (const payment of filteredPayments) {
+        const platform = Number(payment.platformFeeAmount || 0);
+        const processing = Number(payment.stripeFeeAmount || 0);
+        const net = Number(payment.netAmount || 0);
+
+        totalPayouts += net;
+        platformFees += platform;
+        processingFees += processing;
+
+        if (payment.status === 'pending' || payment.status === 'processing') {
+          pendingPayouts += net;
+        } else if (payment.status === 'completed') {
+          completedPayouts += net;
+        } else if (payment.status === 'failed') {
+          disputedPaymentsAmt += net;
+        }
+      }
+
+      // Get offers for listing fees
+      const allOffers = await storage.getOffers({});
+      const filteredOffers = allOffers.filter((o: any) =>
+        !o.createdAt || new Date(o.createdAt) >= startDate
+      );
+      const listingFees = filteredOffers.reduce((sum: number, o: any) => sum + Number(o.listingFee || 0), 0);
+
+      const totalRevenue = listingFees + platformFees + processingFees;
+
+      // Calculate growth (compare to previous period)
+      const previousStartDate = new Date(startDate.getTime() - (now.getTime() - startDate.getTime()));
+      const previousPayments = allPayments.filter(p =>
+        p.initiatedAt && new Date(p.initiatedAt) >= previousStartDate && new Date(p.initiatedAt) < startDate
+      );
+      const previousRevenue = previousPayments.reduce((sum, p) =>
+        sum + Number(p.platformFeeAmount || 0) + Number(p.stripeFeeAmount || 0), 0);
+      const revenueGrowth = previousRevenue > 0
+        ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
+        : 0;
+
+      // Get applications data directly from db
+      const allApplications = await db.select().from(applications);
+      const filteredApplications = allApplications.filter(a =>
+        !a.createdAt || new Date(a.createdAt) >= startDate
+      );
+
+      // Get analytics data for clicks and conversions
+      const allAnalytics = await db.select().from(analytics);
+      const filteredAnalytics = allAnalytics.filter(a =>
+        !a.createdAt || new Date(a.createdAt) >= startDate
+      );
+      const totalClicks = filteredAnalytics.reduce((sum, a) => sum + (a.clicks || 0), 0);
+      const totalConversions = filteredAnalytics.reduce((sum, a) => sum + (a.conversions || 0), 0);
+      const averageConversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0;
+
+      // Group applications by status
+      const applicationsByStatus = ['pending', 'approved', 'active', 'paused', 'completed', 'rejected'].map(status => ({
+        status: status.charAt(0).toUpperCase() + status.slice(1),
+        count: filteredApplications.filter(a => a.status === status).length,
+      })).filter(s => s.count > 0);
+
+      // Get niches data (use primaryNiche)
+      const nicheMap = new Map<string, number>();
+      for (const offer of filteredOffers) {
+        const primaryNiche = (offer as any).primaryNiche;
+        if (primaryNiche) {
+          nicheMap.set(primaryNiche, (nicheMap.get(primaryNiche) || 0) + 1);
+        }
+      }
+      const offersByNiche = Array.from(nicheMap.entries())
+        .map(([niche, count]) => ({ niche, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      // Calculate revenue by period (group by week/day)
+      const revenueByPeriod: Array<{ period: string; listingFees: number; platformFees: number; processingFees: number; total: number }> = [];
+      const periodMap = new Map<string, { listingFees: number; platformFees: number; processingFees: number }>();
+
+      for (const payment of filteredPayments) {
+        const date = payment.initiatedAt ? new Date(payment.initiatedAt) : new Date();
+        const periodKey = date.toISOString().split('T')[0];
+        const existing = periodMap.get(periodKey) || { listingFees: 0, platformFees: 0, processingFees: 0 };
+        existing.platformFees += Number(payment.platformFeeAmount || 0);
+        existing.processingFees += Number(payment.stripeFeeAmount || 0);
+        periodMap.set(periodKey, existing);
+      }
+
+      for (const offer of filteredOffers) {
+        const date = offer.createdAt ? new Date(offer.createdAt) : new Date();
+        const periodKey = date.toISOString().split('T')[0];
+        const existing = periodMap.get(periodKey) || { listingFees: 0, platformFees: 0, processingFees: 0 };
+        existing.listingFees += Number(offer.listingFee || 0);
+        periodMap.set(periodKey, existing);
+      }
+
+      const sortedPeriods = Array.from(periodMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      for (const [period, data] of sortedPeriods.slice(-14)) {
+        revenueByPeriod.push({
+          period: new Date(period).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          listingFees: data.listingFees,
+          platformFees: data.platformFees,
+          processingFees: data.processingFees,
+          total: data.listingFees + data.platformFees + data.processingFees,
+        });
+      }
+
+      // User growth by period
+      const userGrowthMap = new Map<string, { creators: number; companies: number; total: number }>();
+      for (const user of allUsers) {
+        if (!user.createdAt || new Date(user.createdAt) < startDate) continue;
+        const date = new Date(user.createdAt);
+        const periodKey = date.toISOString().split('T')[0];
+        const existing = userGrowthMap.get(periodKey) || { creators: 0, companies: 0, total: 0 };
+        if (user.role === 'creator') existing.creators++;
+        else if (user.role === 'company') existing.companies++;
+        existing.total++;
+        userGrowthMap.set(periodKey, existing);
+      }
+
+      const userGrowth = Array.from(userGrowthMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .slice(-14)
+        .map(([period, data]) => ({
+          period: new Date(period).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          ...data,
+        }));
+
+      // Get top creators by earnings
+      const creatorEarnings = new Map<string, { earnings: number; clicks: number; conversions: number }>();
+      for (const analytic of filteredAnalytics) {
+        if (!analytic.creatorId) continue;
+        const existing = creatorEarnings.get(analytic.creatorId) || { earnings: 0, clicks: 0, conversions: 0 };
+        existing.earnings += Number(analytic.earnings || 0);
+        existing.clicks += analytic.clicks || 0;
+        existing.conversions += analytic.conversions || 0;
+        creatorEarnings.set(analytic.creatorId, existing);
+      }
+
+      const topCreators = await Promise.all(
+        Array.from(creatorEarnings.entries())
+          .sort((a, b) => b[1].earnings - a[1].earnings)
+          .slice(0, 10)
+          .map(async ([creatorId, data]) => {
+            const user = await storage.getUserById(creatorId);
+            return {
+              id: creatorId,
+              name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown',
+              email: user?.email || '',
+              earnings: data.earnings,
+              clicks: data.clicks,
+              conversions: data.conversions,
+            };
+          })
+      );
+
+      // Get top companies by spend
+      const companySpend = new Map<string, { spend: number; offers: number; creators: number }>();
+      for (const offer of filteredOffers) {
+        if (!offer.companyId) continue;
+        const existing = companySpend.get(offer.companyId) || { spend: 0, offers: 0, creators: 0 };
+        existing.offers++;
+        companySpend.set(offer.companyId, existing);
+      }
+
+      for (const payment of filteredPayments) {
+        if (!payment.companyId) continue;
+        const existing = companySpend.get(payment.companyId) || { spend: 0, offers: 0, creators: 0 };
+        existing.spend += Number(payment.grossAmount || 0);
+        companySpend.set(payment.companyId, existing);
+      }
+
+      // Count unique creators per company
+      for (const app of filteredApplications) {
+        const offer = allOffers.find(o => o.id === app.offerId);
+        if (!offer?.companyId) continue;
+        const existing = companySpend.get(offer.companyId) || { spend: 0, offers: 0, creators: 0 };
+        existing.creators++;
+        companySpend.set(offer.companyId, existing);
+      }
+
+      const topCompanies = await Promise.all(
+        Array.from(companySpend.entries())
+          .sort((a, b) => b[1].spend - a[1].spend)
+          .slice(0, 10)
+          .map(async ([companyId, data]) => {
+            const profile = await storage.getCompanyProfileById(companyId);
+            return {
+              id: companyId,
+              name: profile?.legalName || profile?.tradeName || 'Unknown',
+              offers: data.offers,
+              spend: data.spend,
+              creators: data.creators,
+            };
+          })
+      );
+
+      // Count active users
+      const activeApplications = allApplications.filter(a => a.status === 'active' || a.status === 'approved');
+      const activeCreatorIds = new Set(activeApplications.map(a => a.creatorId).filter(Boolean));
+      const activeCompanyIds = new Set(filteredOffers.filter((o: any) => o.status === 'approved').map((o: any) => o.companyId).filter(Boolean));
+
+      // Get pending companies count
+      const pendingCompanyProfiles = await db.select().from(companyProfiles);
+      const pendingCompaniesCount = pendingCompanyProfiles.filter((c: any) => c.verificationStatus === 'pending').length;
+
+      // Get suspended users (those without active status)
+      const suspendedUsersCount = allUsers.filter((u: any) => u.isSuspended).length;
+
+      const response = {
+        financial: {
+          totalRevenue,
+          listingFees,
+          platformFees,
+          processingFees,
+          totalPayouts,
+          pendingPayouts,
+          completedPayouts,
+          disputedPayments: disputedPaymentsAmt,
+          revenueGrowth,
+          payoutGrowth: 0,
+          revenueByPeriod,
+          payoutsByPeriod: [],
+          revenueBySource: [
+            { source: 'Listing Fees', amount: listingFees },
+            { source: 'Platform Fees (4%)', amount: platformFees },
+            { source: 'Processing Fees (3%)', amount: processingFees },
+          ].filter(s => s.amount > 0),
+        },
+        users: {
+          totalUsers: allUsers.length,
+          totalCreators: creators.length,
+          totalCompanies: companies.length,
+          totalAdmins: admins.length,
+          newUsersThisWeek: newCreatorsThisWeek + newCompaniesThisWeek,
+          newCreatorsThisWeek,
+          newCompaniesThisWeek,
+          activeCreators: activeCreatorIds.size,
+          activeCompanies: activeCompanyIds.size,
+          pendingCompanies: pendingCompaniesCount,
+          suspendedUsers: suspendedUsersCount,
+          userGrowth,
+          topCreators,
+          topCompanies,
+        },
+        platform: {
+          totalOffers: allOffers.length,
+          activeOffers: allOffers.filter((o: any) => o.status === 'approved').length,
+          pendingOffers: allOffers.filter((o: any) => o.status === 'pending_review').length,
+          totalApplications: filteredApplications.length,
+          totalConversions,
+          totalClicks,
+          averageConversionRate,
+          offersByNiche,
+          applicationsByStatus,
+        },
+      };
+
+      res.json(response);
+    } catch (error: any) {
+      console.error('[Admin Analytics Error]:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Notify admins about existing pending offers and payments (admin only)
   app.post("/api/admin/notify-pending-items", requireAuth, requireRole('admin'), async (req, res) => {
     try {
