@@ -8,6 +8,7 @@ import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
+import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import {
@@ -36,6 +37,7 @@ import {
   Code,
   Server,
   Clock,
+  Percent,
 } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
@@ -71,6 +73,8 @@ type CompanyDetail = {
   websiteVerified?: boolean;
   websiteVerificationMethod?: 'meta_tag' | 'dns_txt';
   websiteVerifiedAt?: string;
+  // Per-company fee override
+  customPlatformFeePercentage?: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   approvedAt?: string;
   rejectionReason?: string;
@@ -85,6 +89,20 @@ type CompanyDetail = {
   };
 };
 
+type CompanyFeeInfo = {
+  companyId: string;
+  companyName: string;
+  customPlatformFeePercentage: number | null;
+  customPlatformFeeDisplay: string | null;
+  defaultPlatformFeePercentage: number;
+  defaultPlatformFeeDisplay: string;
+  processingFeePercentage: number;
+  processingFeeDisplay: string;
+  effectivePlatformFee: number;
+  effectiveTotalFee: number;
+  isUsingCustomFee: boolean;
+};
+
 export default function AdminCompanyDetail() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
@@ -96,6 +114,8 @@ export default function AdminCompanyDetail() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [activeTab, setActiveTab] = useState("details");
   const [isLoadingDocument, setIsLoadingDocument] = useState(false);
+  const [isFeeDialogOpen, setIsFeeDialogOpen] = useState(false);
+  const [feeInputValue, setFeeInputValue] = useState("");
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     title: string;
@@ -276,6 +296,19 @@ export default function AdminCompanyDetail() {
     enabled: isAuthenticated && !!companyId,
   });
 
+  // Fetch company fee info
+  const { data: feeInfo, isLoading: loadingFeeInfo } = useQuery<CompanyFeeInfo>({
+    queryKey: [`/api/admin/companies/${companyId}/fee`],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/companies/${companyId}/fee`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch company fee info");
+      return response.json();
+    },
+    enabled: isAuthenticated && !!companyId,
+  });
+
   // Helper function to format file size
   const formatFileSize = (bytes: number | null): string => {
     if (!bytes) return 'Unknown size';
@@ -373,6 +406,54 @@ export default function AdminCompanyDetail() {
         open: true,
         title: "Error",
         description: error.message || "Failed to unsuspend company",
+      });
+    },
+  });
+
+  // Update company fee mutation
+  const updateFeeMutation = useMutation({
+    mutationFn: async (platformFeePercentage: number) => {
+      const response = await apiRequest("PUT", `/api/admin/companies/${companyId}/fee`, { platformFeePercentage });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${companyId}/fee`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${companyId}`] });
+      toast({
+        title: "Success",
+        description: data.message || "Platform fee updated successfully",
+      });
+      setIsFeeDialogOpen(false);
+      setFeeInputValue("");
+    },
+    onError: (error: any) => {
+      setErrorDialog({
+        open: true,
+        title: "Error",
+        description: error.message || "Failed to update platform fee",
+      });
+    },
+  });
+
+  // Reset company fee mutation
+  const resetFeeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", `/api/admin/companies/${companyId}/fee`);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${companyId}/fee`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${companyId}`] });
+      toast({
+        title: "Success",
+        description: data.message || "Custom fee removed, using default",
+      });
+    },
+    onError: (error: any) => {
+      setErrorDialog({
+        open: true,
+        title: "Error",
+        description: error.message || "Failed to reset platform fee",
       });
     },
   });
@@ -919,6 +1000,93 @@ export default function AdminCompanyDetail() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Platform Fee Override Card */}
+            <Card className="border-card-border md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Percent className="h-5 w-5" />
+                  Platform Fee Override
+                  {feeInfo?.isUsingCustomFee ? (
+                    <Badge className="bg-blue-100 text-blue-800 border-blue-200 ml-2">
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      Custom Fee
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="ml-2">
+                      Default Fee
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {loadingFeeInfo ? (
+                  <div className="text-center py-4 text-muted-foreground">Loading fee information...</div>
+                ) : feeInfo ? (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <div className="text-xs text-muted-foreground mb-1">Platform Fee</div>
+                        <div className="text-2xl font-bold text-primary">
+                          {feeInfo.isUsingCustomFee ? feeInfo.customPlatformFeeDisplay : feeInfo.defaultPlatformFeeDisplay}
+                        </div>
+                        {feeInfo.isUsingCustomFee && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Default: {feeInfo.defaultPlatformFeeDisplay}
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <div className="text-xs text-muted-foreground mb-1">Processing Fee (Stripe)</div>
+                        <div className="text-2xl font-bold">{feeInfo.processingFeeDisplay}</div>
+                        <div className="text-xs text-muted-foreground mt-1">Fixed rate</div>
+                      </div>
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <div className="text-xs text-muted-foreground mb-1">Total Fee</div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {(feeInfo.effectiveTotalFee * 100).toFixed(2)}%
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">Creator receives {((1 - feeInfo.effectiveTotalFee) * 100).toFixed(0)}%</div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setFeeInputValue(feeInfo.isUsingCustomFee && feeInfo.customPlatformFeePercentage !== null
+                            ? (feeInfo.customPlatformFeePercentage * 100).toString()
+                            : "");
+                          setIsFeeDialogOpen(true);
+                        }}
+                      >
+                        <Percent className="h-4 w-4 mr-2" />
+                        {feeInfo.isUsingCustomFee ? 'Edit Custom Fee' : 'Set Custom Fee'}
+                      </Button>
+
+                      {feeInfo.isUsingCustomFee && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm('Are you sure you want to remove the custom fee and revert to the default platform fee?')) {
+                              resetFeeMutation.mutate();
+                            }
+                          }}
+                          disabled={resetFeeMutation.isPending}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          {resetFeeMutation.isPending ? 'Resetting...' : 'Reset to Default'}
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">Failed to load fee information</div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
@@ -1122,6 +1290,77 @@ export default function AdminCompanyDetail() {
               disabled={!rejectionReason.trim() || rejectMutation.isPending}
             >
               {rejectMutation.isPending ? "Rejecting..." : "Reject Company"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom Fee Dialog */}
+      <Dialog open={isFeeDialogOpen} onOpenChange={setIsFeeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Custom Platform Fee</DialogTitle>
+            <DialogDescription>
+              Set a custom platform fee percentage for this company. This will override the default 4% fee.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="feePercentage">Platform Fee Percentage</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="feePercentage"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="50"
+                  placeholder="e.g., 2.5"
+                  value={feeInputValue}
+                  onChange={(e) => setFeeInputValue(e.target.value)}
+                  className="flex-1"
+                />
+                <span className="text-muted-foreground">%</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enter a value between 0 and 50. Default is 4%.
+              </p>
+            </div>
+            {feeInputValue && !isNaN(parseFloat(feeInputValue)) && (
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <div className="text-sm text-muted-foreground mb-2">Preview:</div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>Platform Fee:</div>
+                  <div className="font-medium">{parseFloat(feeInputValue).toFixed(2)}%</div>
+                  <div>Processing Fee:</div>
+                  <div className="font-medium">3% (Stripe)</div>
+                  <div>Total Fee:</div>
+                  <div className="font-bold text-primary">{(parseFloat(feeInputValue) + 3).toFixed(2)}%</div>
+                  <div>Creator Receives:</div>
+                  <div className="font-bold text-green-600">{(100 - parseFloat(feeInputValue) - 3).toFixed(2)}%</div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsFeeDialogOpen(false);
+                setFeeInputValue("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                const feeValue = parseFloat(feeInputValue);
+                if (!isNaN(feeValue) && feeValue >= 0 && feeValue <= 50) {
+                  updateFeeMutation.mutate(feeValue / 100); // Convert from percentage to decimal
+                }
+              }}
+              disabled={!feeInputValue || isNaN(parseFloat(feeInputValue)) || parseFloat(feeInputValue) < 0 || parseFloat(feeInputValue) > 50 || updateFeeMutation.isPending}
+            >
+              {updateFeeMutation.isPending ? "Saving..." : "Save Custom Fee"}
             </Button>
           </DialogFooter>
         </DialogContent>

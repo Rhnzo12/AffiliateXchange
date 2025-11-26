@@ -4,6 +4,12 @@ import { eq, and, or, desc, asc, sql, count, inArray, gte, lte } from "drizzle-o
 import { db, pool } from "./db";
 import geoip from "geoip-lite";
 import {
+  calculateFees,
+  DEFAULT_PLATFORM_FEE_PERCENTAGE,
+  STRIPE_PROCESSING_FEE_PERCENTAGE,
+  formatFeePercentage,
+} from "./feeCalculator";
+import {
   users,
   creatorProfiles,
   companyProfiles,
@@ -1106,6 +1112,26 @@ export class DatabaseStorage implements IStorage {
       .where(eq(companyProfiles.userId, userId))
       .returning();
     return result[0];
+  }
+
+  async updateCompanyProfileById(
+    companyId: string,
+    updates: Partial<InsertCompanyProfile>,
+  ): Promise<CompanyProfile | undefined> {
+    const result = await db
+      .update(companyProfiles)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(companyProfiles.id, companyId))
+      .returning();
+    return result[0];
+  }
+
+  async getCompaniesWithCustomFees(): Promise<CompanyProfile[]> {
+    return await db
+      .select()
+      .from(companyProfiles)
+      .where(sql`${companyProfiles.customPlatformFeePercentage} IS NOT NULL`)
+      .orderBy(desc(companyProfiles.updatedAt));
   }
 
   async getPendingCompanies(): Promise<CompanyProfile[]> {
@@ -3387,26 +3413,25 @@ export class DatabaseStorage implements IStorage {
       });
     }
 
-    // Calculate fees according to spec: 7% total (4% platform + 3% Stripe)
-    const platformFee = earnings * 0.04; // 4% platform fee
-    const stripeFee = earnings * 0.03;   // 3% Stripe processing fee
-    const netAmount = earnings - platformFee - stripeFee;
+    // Calculate fees with per-company override support (Section 4.3.H)
+    const fees = await calculateFees(earnings, offer.companyId);
 
     await this.createPayment({
       applicationId: applicationId,
       creatorId: application.creatorId,
       companyId: offer.companyId,
       offerId: application.offerId,
-      grossAmount: earnings.toFixed(2),
-      platformFeeAmount: platformFee.toFixed(2),
-      stripeFeeAmount: stripeFee.toFixed(2),
-      netAmount: netAmount.toFixed(2),
+      grossAmount: fees.grossAmount.toFixed(2),
+      platformFeeAmount: fees.platformFeeAmount.toFixed(2),
+      stripeFeeAmount: fees.stripeFeeAmount.toFixed(2),
+      netAmount: fees.netAmount.toFixed(2),
       status: "pending",
       description: `Commission for ${offer.commissionType} conversion`,
     });
 
+    const feeLabel = fees.isCustomFee ? `Custom ${formatFeePercentage(fees.platformFeePercentage)}` : `${formatFeePercentage(DEFAULT_PLATFORM_FEE_PERCENTAGE)}`;
     console.log(
-      `[Conversion] Recorded conversion for application ${applicationId} - Gross: $${earnings.toFixed(2)}, Platform Fee (4%): $${platformFee.toFixed(2)}, Stripe Fee (3%): $${stripeFee.toFixed(2)}, Net: $${netAmount.toFixed(2)}`,
+      `[Conversion] Recorded conversion for application ${applicationId} - Gross: $${fees.grossAmount.toFixed(2)}, Platform Fee (${feeLabel}): $${fees.platformFeeAmount.toFixed(2)}, Stripe Fee (${formatFeePercentage(STRIPE_PROCESSING_FEE_PERCENTAGE)}): $${fees.stripeFeeAmount.toFixed(2)}, Net: $${fees.netAmount.toFixed(2)}`,
     );
   }
 
@@ -3491,11 +3516,12 @@ export class DatabaseStorage implements IStorage {
     const retainerPayment = await db.select().from(retainerPayments).where(eq(retainerPayments.id, id)).limit(1);
     if (retainerPayment[0]) {
       const p = retainerPayment[0];
-      // Format retainer payment to match payment structure
+      // Format retainer payment to match payment structure (use defaults for legacy records)
       const netAmount = p.netAmount || p.amount || '0';
-      const grossAmount = p.grossAmount || (parseFloat(netAmount.toString()) / 0.93).toFixed(2);
-      const platformFeeAmount = p.platformFeeAmount || (parseFloat(grossAmount) * 0.04).toFixed(2);
-      const stripeFeeAmount = p.processingFeeAmount || (parseFloat(grossAmount) * 0.03).toFixed(2);
+      const defaultTotalFee = DEFAULT_PLATFORM_FEE_PERCENTAGE + STRIPE_PROCESSING_FEE_PERCENTAGE;
+      const grossAmount = p.grossAmount || (parseFloat(netAmount.toString()) / (1 - defaultTotalFee)).toFixed(2);
+      const platformFeeAmount = p.platformFeeAmount || (parseFloat(grossAmount) * DEFAULT_PLATFORM_FEE_PERCENTAGE).toFixed(2);
+      const stripeFeeAmount = p.processingFeeAmount || (parseFloat(grossAmount) * STRIPE_PROCESSING_FEE_PERCENTAGE).toFixed(2);
 
       return {
         ...p,
@@ -3558,11 +3584,12 @@ export class DatabaseStorage implements IStorage {
       })),
       ...retainerPaymentsList.map(p => {
         // Retainer amount is the net amount (what creator receives)
-        // Calculate fee breakdown (platform 4% + processing 3% = 7% total)
+        // Calculate fee breakdown using default rates for legacy records
+        const defaultTotalFee = DEFAULT_PLATFORM_FEE_PERCENTAGE + STRIPE_PROCESSING_FEE_PERCENTAGE;
         const netAmount = p.amount ? parseFloat(p.amount.toString()) : 0;
-        const grossAmount = netAmount > 0 ? netAmount / 0.93 : 0; // Reverse calculate: net = gross * 0.93
-        const platformFeeAmount = grossAmount * 0.04;
-        const stripeFeeAmount = grossAmount * 0.03;
+        const grossAmount = netAmount > 0 ? netAmount / (1 - defaultTotalFee) : 0;
+        const platformFeeAmount = grossAmount * DEFAULT_PLATFORM_FEE_PERCENTAGE;
+        const stripeFeeAmount = grossAmount * STRIPE_PROCESSING_FEE_PERCENTAGE;
 
         return {
           ...p,
@@ -3611,11 +3638,12 @@ export class DatabaseStorage implements IStorage {
       })),
       ...retainerPaymentsList.map(p => {
         // Retainer amount is the net amount (what creator receives)
-        // Calculate fee breakdown (platform 4% + processing 3% = 7% total)
+        // Calculate fee breakdown using default rates for legacy records
+        const defaultTotalFee = DEFAULT_PLATFORM_FEE_PERCENTAGE + STRIPE_PROCESSING_FEE_PERCENTAGE;
         const netAmount = p.amount ? parseFloat(p.amount.toString()) : 0;
-        const grossAmount = netAmount > 0 ? netAmount / 0.93 : 0; // Reverse calculate: net = gross * 0.93
-        const platformFeeAmount = grossAmount * 0.04;
-        const stripeFeeAmount = grossAmount * 0.03;
+        const grossAmount = netAmount > 0 ? netAmount / (1 - defaultTotalFee) : 0;
+        const platformFeeAmount = grossAmount * DEFAULT_PLATFORM_FEE_PERCENTAGE;
+        const stripeFeeAmount = grossAmount * STRIPE_PROCESSING_FEE_PERCENTAGE;
 
         return {
           ...p,
@@ -3662,11 +3690,12 @@ export class DatabaseStorage implements IStorage {
       })),
       ...retainerPaymentsList.map(p => {
         // Retainer amount is the net amount (what creator receives)
-        // Calculate fee breakdown (platform 4% + processing 3% = 7% total)
+        // Calculate fee breakdown using default rates for legacy records
+        const defaultTotalFee = DEFAULT_PLATFORM_FEE_PERCENTAGE + STRIPE_PROCESSING_FEE_PERCENTAGE;
         const netAmount = p.amount ? parseFloat(p.amount.toString()) : 0;
-        const grossAmount = netAmount > 0 ? netAmount / 0.93 : 0; // Reverse calculate: net = gross * 0.93
-        const platformFeeAmount = grossAmount * 0.04;
-        const stripeFeeAmount = grossAmount * 0.03;
+        const grossAmount = netAmount > 0 ? netAmount / (1 - defaultTotalFee) : 0;
+        const platformFeeAmount = grossAmount * DEFAULT_PLATFORM_FEE_PERCENTAGE;
+        const stripeFeeAmount = grossAmount * STRIPE_PROCESSING_FEE_PERCENTAGE;
 
         return {
           ...p,
