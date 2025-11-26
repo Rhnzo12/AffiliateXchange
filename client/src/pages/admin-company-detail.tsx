@@ -1489,7 +1489,7 @@ export default function AdminCompanyDetail() {
           <DialogHeader>
             <DialogTitle>Set Custom Platform Fee</DialogTitle>
             <DialogDescription>
-              Set a custom platform fee percentage for this company. This will override the default 4% fee.
+              Set a custom platform fee percentage for this company. This will override the default platform fee and apply to all future payments.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1510,7 +1510,7 @@ export default function AdminCompanyDetail() {
                 <span className="text-muted-foreground">%</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Enter a value between 0 and 50. Default is 4%.
+                Enter a value between 0 and 50. The default platform fee is {feeInfo?.defaultPlatformFeeDisplay || '4%'}.
               </p>
             </div>
             {feeInputValue && !isNaN(parseFloat(feeInputValue)) && (

@@ -276,7 +276,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
                     Gross
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Platform Fee (4%)
+                    Platform Fee
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Processing (3%)
@@ -614,7 +614,7 @@ function PaymentMethodSettings({
           <div className="space-y-2 text-sm text-blue-800">
             <div className="flex justify-between">
               <span>Platform Fee:</span>
-              <span className="font-medium">4% of gross earnings</span>
+              <span className="font-medium">Varies by company (default 4%)</span>
             </div>
             <div className="flex justify-between">
               <span>Processing Fee:</span>
@@ -622,8 +622,11 @@ function PaymentMethodSettings({
             </div>
             <div className="mt-2 flex justify-between border-t-2 border-blue-300 pt-2 font-bold">
               <span>Total Deduction:</span>
-              <span>7% of gross earnings</span>
+              <span>Platform fee + 3% processing</span>
             </div>
+            <p className="mt-2 text-xs text-blue-600">
+              Note: Platform fees may vary by company partnership agreements.
+            </p>
           </div>
         </div>
       )}
@@ -822,13 +825,17 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                       </div>
                     </div>
                     <div>
-                      <div className="mb-1 text-gray-600">Platform Fee (4%)</div>
+                      <div className="mb-1 text-gray-600">
+                        Platform Fee ({parseFloat(payout.grossAmount) > 0 ? ((parseFloat(payout.platformFeeAmount) / parseFloat(payout.grossAmount)) * 100).toFixed(0) : '4'}%)
+                      </div>
                       <div className="font-medium text-gray-900">
                         ${parseFloat(payout.platformFeeAmount).toFixed(2)}
                       </div>
                     </div>
                     <div>
-                      <div className="mb-1 text-gray-600">Processing (3%)</div>
+                      <div className="mb-1 text-gray-600">
+                        Processing ({parseFloat(payout.grossAmount) > 0 ? ((parseFloat(payout.stripeFeeAmount) / parseFloat(payout.grossAmount)) * 100).toFixed(0) : '3'}%)
+                      </div>
                       <div className="font-medium text-gray-900">
                         ${parseFloat(payout.stripeFeeAmount).toFixed(2)}
                       </div>

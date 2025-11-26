@@ -12,7 +12,7 @@ import { offerVideos, applications, analytics, offers, companyProfiles, payments
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
-import { calculateFees, formatFeePercentage, DEFAULT_PLATFORM_FEE_PERCENTAGE, STRIPE_PROCESSING_FEE_PERCENTAGE } from "./feeCalculator";
+import { calculateFees, formatFeePercentage, DEFAULT_PLATFORM_FEE_PERCENTAGE, STRIPE_PROCESSING_FEE_PERCENTAGE, getCompanyPlatformFeePercentage } from "./feeCalculator";
 import { NotificationService } from "./notifications/notificationService";
 import bcrypt from "bcrypt";
 import { PriorityListingScheduler } from "./priorityListingScheduler";
@@ -423,6 +423,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Get company profile error:", error);
       res.status(500).json({ error: error.message || "Failed to get company profile" });
+    }
+  });
+
+  // ===== Company Fee Info Route =====
+
+  // Get fee info for the logged-in company
+  app.get("/api/company/fee", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const companyProfile = await storage.getCompanyProfile(userId);
+
+      if (!companyProfile) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+
+      const { percentage: platformFeePercentage, isCustom } = await getCompanyPlatformFeePercentage(companyProfile.id);
+      const totalFeePercentage = platformFeePercentage + STRIPE_PROCESSING_FEE_PERCENTAGE;
+      const creatorPayoutPercentage = 1 - totalFeePercentage;
+
+      return res.json({
+        platformFeePercentage,
+        platformFeeDisplay: formatFeePercentage(platformFeePercentage),
+        processingFeePercentage: STRIPE_PROCESSING_FEE_PERCENTAGE,
+        processingFeeDisplay: formatFeePercentage(STRIPE_PROCESSING_FEE_PERCENTAGE),
+        totalFeePercentage,
+        totalFeeDisplay: formatFeePercentage(totalFeePercentage),
+        creatorPayoutPercentage,
+        creatorPayoutDisplay: formatFeePercentage(creatorPayoutPercentage),
+        isCustomFee: isCustom,
+        defaultPlatformFeePercentage: DEFAULT_PLATFORM_FEE_PERCENTAGE,
+        defaultPlatformFeeDisplay: formatFeePercentage(DEFAULT_PLATFORM_FEE_PERCENTAGE),
+      });
+    } catch (error: any) {
+      console.error("Get company fee info error:", error);
+      res.status(500).json({ error: error.message || "Failed to get company fee info" });
     }
   });
 
@@ -3059,6 +3094,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         if (creator) {
+          // Calculate fee percentages from payment data
+          const grossAmt = parseFloat(payment.grossAmount);
+          const platformFeeAmt = parseFloat(payment.platformFeeAmount);
+          const processingFeeAmt = parseFloat(payment.stripeFeeAmount);
+          const platformFeePercent = grossAmt > 0 ? formatFeePercentage(platformFeeAmt / grossAmt) : '4%';
+          const processingFeePercent = grossAmt > 0 ? formatFeePercentage(processingFeeAmt / grossAmt) : '3%';
+
           await notificationService.sendNotification(
             payment.creatorId,
             'payment_received',
@@ -3071,6 +3113,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               grossAmount: `$${payment.grossAmount}`,
               platformFee: `$${payment.platformFeeAmount}`,
               processingFee: `$${payment.stripeFeeAmount}`,
+              platformFeePercentage: platformFeePercent,
+              processingFeePercentage: processingFeePercent,
               transactionId: paymentResult.transactionId,
               paymentId: payment.id,
               linkUrl: `/payments/${payment.id}`,
@@ -3085,6 +3129,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (companyProfile) {
             const companyUser = await storage.getUserById(companyProfile.userId);
             if (companyUser) {
+              // Reuse calculated fee percentages from above
+              const grossAmtCompany = parseFloat(payment.grossAmount);
+              const platformFeeAmtCompany = parseFloat(payment.platformFeeAmount);
+              const processingFeeAmtCompany = parseFloat(payment.stripeFeeAmount);
+              const platformFeePercentCompany = grossAmtCompany > 0 ? formatFeePercentage(platformFeeAmtCompany / grossAmtCompany) : '4%';
+              const processingFeePercentCompany = grossAmtCompany > 0 ? formatFeePercentage(processingFeeAmtCompany / grossAmtCompany) : '3%';
+
               await notificationService.sendNotification(
                 companyUser.id,
                 'payment_approved',
@@ -3098,6 +3149,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   grossAmount: `$${payment.grossAmount}`,
                   platformFee: `$${payment.platformFeeAmount}`,
                   processingFee: `$${payment.stripeFeeAmount}`,
+                  platformFeePercentage: platformFeePercentCompany,
+                  processingFeePercentage: processingFeePercentCompany,
                   transactionId: paymentResult.transactionId,
                   paymentId: payment.id,
                   linkUrl: `/payments/${payment.id}`,
@@ -3234,6 +3287,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (creator) {
+        // Calculate fee percentages from payment data
+        const grossAmtApproved = parseFloat(payment.grossAmount);
+        const platformFeeAmtApproved = parseFloat(payment.platformFeeAmount);
+        const processingFeeAmtApproved = parseFloat(payment.stripeFeeAmount);
+        const platformFeePercentApproved = grossAmtApproved > 0 ? formatFeePercentage(platformFeeAmtApproved / grossAmtApproved) : '4%';
+        const processingFeePercentApproved = grossAmtApproved > 0 ? formatFeePercentage(processingFeeAmtApproved / grossAmtApproved) : '3%';
+
         await notificationService.sendNotification(
           payment.creatorId,
           'payment_approved',
@@ -3246,6 +3306,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             grossAmount: `$${payment.grossAmount}`,
             platformFee: `$${payment.platformFeeAmount}`,
             processingFee: `$${payment.stripeFeeAmount}`,
+            platformFeePercentage: platformFeePercentApproved,
+            processingFeePercentage: processingFeePercentApproved,
             paymentId: payment.id,
             linkUrl: `/payments/${payment.id}`,
           }

@@ -9,6 +9,8 @@ interface EmailTemplateData {
   grossAmount?: string;
   platformFee?: string;
   processingFee?: string;
+  platformFeePercentage?: string;  // e.g., "4%"
+  processingFeePercentage?: string; // e.g., "3%"
   transactionId?: string;
   reviewRating?: number;
   reviewText?: string;
@@ -209,11 +211,11 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
                   <td style="padding: 12px 0; font-weight: 600; color: #111827; text-align: right;">${data.grossAmount}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #D1D5DB;">
-                  <td style="padding: 12px 0; color: #DC2626;">Platform Fee (4%)</td>
+                  <td style="padding: 12px 0; color: #DC2626;">Platform Fee (${data.platformFeePercentage || '4%'})</td>
                   <td style="padding: 12px 0; font-weight: 600; color: #DC2626; text-align: right;">-${data.platformFee}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #D1D5DB;">
-                  <td style="padding: 12px 0; color: #DC2626;">Processing Fee (3%)</td>
+                  <td style="padding: 12px 0; color: #DC2626;">Processing Fee (${data.processingFeePercentage || '3%'})</td>
                   <td style="padding: 12px 0; font-weight: 600; color: #DC2626; text-align: right;">-${data.processingFee}</td>
                 </tr>
                 <tr style="background-color: #ECFDF5;">
@@ -226,7 +228,7 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
             <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
               <p style="margin: 0; font-size: 14px; color: #1E40AF;">
                 💡 <strong>How fees are calculated:</strong><br>
-                Platform fee (4%) and processing fee (3%) are automatically deducted from your gross earnings. The remaining amount is what you receive.
+                Platform fee (${data.platformFeePercentage || '4%'}) and processing fee (${data.processingFeePercentage || '3%'}) are automatically deducted from your gross earnings. The remaining amount is what you receive.
               </p>
             </div>
           ` : ''}
@@ -289,11 +291,11 @@ export function paymentApprovedEmail(data: EmailTemplateData): { subject: string
                   <td style="padding: 12px 0; font-weight: 600; color: #111827; text-align: right;">${data.grossAmount}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #D1D5DB;">
-                  <td style="padding: 12px 0; color: #7C3AED;">Platform Fee (4%)</td>
+                  <td style="padding: 12px 0; color: #7C3AED;">Platform Fee (${data.platformFeePercentage || '4%'})</td>
                   <td style="padding: 12px 0; font-weight: 600; color: #7C3AED; text-align: right;">${data.platformFee}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #D1D5DB;">
-                  <td style="padding: 12px 0; color: #7C3AED;">Processing Fee (3%)</td>
+                  <td style="padding: 12px 0; color: #7C3AED;">Processing Fee (${data.processingFeePercentage || '3%'})</td>
                   <td style="padding: 12px 0; font-weight: 600; color: #7C3AED; text-align: right;">${data.processingFee}</td>
                 </tr>
                 <tr style="background-color: #ECFDF5;">

@@ -214,7 +214,7 @@ export function getAvailableVariablesForTemplate(slug: string): Array<{
       { name: 'offerTitle', description: 'Offer or contract title', example: 'Monthly SEO Package' },
       { name: 'amount', description: 'Net amount received', example: '$930.00' },
       { name: 'grossAmount', description: 'Gross amount before fees', example: '$1,000.00' },
-      { name: 'platformFee', description: 'Platform fee (4%)', example: '$40.00' },
+      { name: 'platformFee', description: 'Platform fee (varies by company)', example: '$40.00' },
       { name: 'processingFee', description: 'Processing fee (3%)', example: '$30.00' },
       { name: 'transactionId', description: 'Payment transaction ID', example: 'tr_abc123xyz' },
       { name: 'paymentId', description: 'Internal payment ID', example: 'pay_789' },
