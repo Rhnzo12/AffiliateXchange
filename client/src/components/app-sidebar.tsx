@@ -32,6 +32,7 @@ import {
   AlertCircle,
   Tags,
   ShieldAlert,
+  ShieldCheck,
   Ban,
   Mail,
 } from "lucide-react";
@@ -127,6 +128,11 @@ export function AppSidebar() {
       title: "Reviews",
       url: "/company/reviews",
       icon: Star,
+    },
+    {
+      title: "Website Verification",
+      url: "/company/website-verification",
+      icon: ShieldCheck,
     },
     {
       title: "Payment Management",

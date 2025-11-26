@@ -30,6 +30,12 @@ import {
   Briefcase,
   Eye,
   Download,
+  ShieldCheck,
+  RefreshCw,
+  Copy,
+  Code,
+  Server,
+  Clock,
 } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
@@ -60,6 +66,11 @@ type CompanyDetail = {
   phoneNumber?: string;
   businessAddress?: string;
   verificationDocumentUrl?: string;
+  // Website verification fields
+  websiteVerificationToken?: string;
+  websiteVerified?: boolean;
+  websiteVerificationMethod?: 'meta_tag' | 'dns_txt';
+  websiteVerifiedAt?: string;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   approvedAt?: string;
   rejectionReason?: string;
@@ -728,6 +739,183 @@ export default function AdminCompanyDetail() {
                       <ExternalLink className="h-3 w-3" />
                     </button>
                   ) : null}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Website Verification Card */}
+            {company.websiteUrl && (
+              <Card className="border-card-border md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5" />
+                    Website Verification
+                    {company.websiteVerified ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-200 ml-2">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Verified
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="ml-2">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Not Verified
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {company.websiteVerified && company.websiteVerifiedAt && (
+                    <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-green-800 dark:text-green-200">Website Ownership Verified</p>
+                          <p className="text-sm text-green-700 dark:text-green-300">
+                            Verified via {company.websiteVerificationMethod === 'meta_tag' ? 'Meta Tag' : 'DNS TXT Record'} on{' '}
+                            {new Date(company.websiteVerifiedAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {company.websiteVerificationToken && (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">Verification Token:</p>
+                      <div className="p-3 bg-muted rounded-lg font-mono text-sm break-all">
+                        {company.websiteVerificationToken}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const response = await apiRequest("POST", `/api/admin/companies/${companyId}/generate-verification-token`);
+                          const data = await response.json();
+                          queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${companyId}`] });
+                          toast({
+                            title: "Token Generated",
+                            description: "Verification token has been generated",
+                          });
+                        } catch (error: any) {
+                          setErrorDialog({
+                            open: true,
+                            title: "Error",
+                            description: error.message || "Failed to generate token",
+                          });
+                        }
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      {company.websiteVerificationToken ? 'Regenerate Token' : 'Generate Token'}
+                    </Button>
+
+                    {company.websiteVerificationToken && !company.websiteVerified && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const response = await apiRequest("POST", `/api/admin/companies/${companyId}/verify-website`, { method: 'meta_tag' });
+                              const data = await response.json();
+                              if (data.success) {
+                                queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${companyId}`] });
+                                toast({
+                                  title: "Verification Successful",
+                                  description: "Website verified via Meta Tag",
+                                });
+                              } else {
+                                toast({
+                                  title: "Verification Failed",
+                                  description: data.error || "Could not verify website",
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error: any) {
+                              toast({
+                                title: "Verification Failed",
+                                description: error.message || "Could not verify website",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          <Code className="h-4 w-4 mr-2" />
+                          Verify Meta Tag
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const response = await apiRequest("POST", `/api/admin/companies/${companyId}/verify-website`, { method: 'dns_txt' });
+                              const data = await response.json();
+                              if (data.success) {
+                                queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${companyId}`] });
+                                toast({
+                                  title: "Verification Successful",
+                                  description: "Website verified via DNS TXT Record",
+                                });
+                              } else {
+                                toast({
+                                  title: "Verification Failed",
+                                  description: data.error || "Could not verify website",
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error: any) {
+                              toast({
+                                title: "Verification Failed",
+                                description: error.message || "Could not verify website",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          <Server className="h-4 w-4 mr-2" />
+                          Verify DNS TXT
+                        </Button>
+                      </>
+                    )}
+
+                    {company.websiteVerified && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          if (confirm('Are you sure you want to reset the website verification status?')) {
+                            try {
+                              await apiRequest("POST", `/api/admin/companies/${companyId}/reset-website-verification`);
+                              queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${companyId}`] });
+                              toast({
+                                title: "Verification Reset",
+                                description: "Website verification status has been reset",
+                              });
+                            } catch (error: any) {
+                              setErrorDialog({
+                                open: true,
+                                title: "Error",
+                                description: error.message || "Failed to reset verification",
+                              });
+                            }
+                          }
+                        }}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Reset Verification
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             )}

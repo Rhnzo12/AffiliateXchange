@@ -53,6 +53,7 @@ import Onboarding from "./pages/onboarding";
 import CreatorOnboarding from "./pages/creator-onboarding";
 import CompanyOnboarding from "./pages/company-onboarding";
 import CompanyProfile from "./pages/company-profile";
+import CompanyWebsiteVerification from "./pages/company-website-verification";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import SelectRole from "./pages/select-role";
@@ -147,6 +148,7 @@ function ProtectedRouter() {
                     <Route path="/company/analytics" component={Analytics} />
                     <Route path="/company/messages" component={Messages} />
                     <Route path="/company/reviews" component={CompanyReviews} />
+                    <Route path="/company/website-verification" component={CompanyWebsiteVerification} />
                     <Route path="/company/payment-settings" component={PaymentSettings} />
                     <Route path="/payments/:id" component={PaymentDetail} />
                   </>
