@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { Users, Building2, TrendingUp, AlertCircle, CheckCircle2, Bell, AlertTriangle, ShieldAlert } from "lucide-react";
+import { Users, Building2, TrendingUp, AlertCircle, CheckCircle2, Bell, AlertTriangle, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
 import { TopNavBar } from "../components/TopNavBar";
 import { StatsGridSkeleton } from "../components/skeletons";
@@ -206,14 +206,25 @@ export default function AdminDashboard() {
 
           <Card className="border-card-border">
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">High Risk Companies</CardTitle>
-              <ShieldAlert className="h-4 w-4 text-red-500" />
+              <CardTitle className="text-sm font-medium">Company Risk</CardTitle>
+              <ShieldAlert className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{riskData?.summary?.highRisk || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Require attention
-              </p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1" title="High Risk">
+                  <ShieldAlert className="h-4 w-4 text-red-500" />
+                  <span className="text-lg font-bold text-red-600">{riskData?.summary?.highRisk || 0}</span>
+                </div>
+                <div className="flex items-center gap-1" title="Medium Risk">
+                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  <span className="text-lg font-bold text-yellow-600">{riskData?.summary?.mediumRisk || 0}</span>
+                </div>
+                <div className="flex items-center gap-1" title="Low Risk">
+                  <ShieldCheck className="h-4 w-4 text-green-500" />
+                  <span className="text-lg font-bold text-green-600">{riskData?.summary?.lowRisk || 0}</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">High / Medium / Low</p>
             </CardContent>
           </Card>
         </div>
