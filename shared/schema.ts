@@ -149,6 +149,9 @@ export const creatorProfilesRelations = relations(creatorProfiles, ({ one }) => 
   }),
 }));
 
+// Website verification method enum
+export const websiteVerificationMethodEnum = pgEnum('website_verification_method', ['meta_tag', 'dns_txt']);
+
 // Company profiles
 export const companyProfiles = pgTable("company_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -170,6 +173,11 @@ export const companyProfiles = pgTable("company_profiles", {
   twitterUrl: varchar("twitter_url"),
   facebookUrl: varchar("facebook_url"),
   instagramUrl: varchar("instagram_url"),
+  // Website verification fields
+  websiteVerificationToken: varchar("website_verification_token"),
+  websiteVerified: boolean("website_verified").notNull().default(false),
+  websiteVerificationMethod: websiteVerificationMethodEnum("website_verification_method"),
+  websiteVerifiedAt: timestamp("website_verified_at"),
   status: companyStatusEnum("status").notNull().default('pending'),
   approvedAt: timestamp("approved_at"),
   rejectionReason: text("rejection_reason"),

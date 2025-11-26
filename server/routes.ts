@@ -4010,6 +4010,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Website Verification - Generate verification token
+  app.post("/api/admin/companies/:id/generate-verification-token", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      const company = await storage.generateWebsiteVerificationToken(companyId);
+
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      res.json({
+        success: true,
+        verificationToken: company.websiteVerificationToken,
+        instructions: {
+          meta_tag: `Add this meta tag to the <head> section of your website's homepage:\n<meta name="affiliatexchange-site-verification" content="${company.websiteVerificationToken}">`,
+          dns_txt: `Add this TXT record to your domain's DNS settings:\n${company.websiteVerificationToken}`,
+        },
+      });
+    } catch (error: any) {
+      console.error('[generate-verification-token] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Website Verification - Verify website ownership
+  app.post("/api/admin/companies/:id/verify-website", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      const { method } = req.body;
+
+      if (!method || !['meta_tag', 'dns_txt'].includes(method)) {
+        return res.status(400).json({ error: "Invalid verification method. Use 'meta_tag' or 'dns_txt'." });
+      }
+
+      const result = await storage.verifyWebsiteOwnership(companyId, method);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: `Website verified successfully via ${method === 'meta_tag' ? 'Meta Tag' : 'DNS TXT Record'}`,
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error,
+        });
+      }
+    } catch (error: any) {
+      console.error('[verify-website] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Website Verification - Reset verification status (admin)
+  app.post("/api/admin/companies/:id/reset-website-verification", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      const company = await storage.updateWebsiteVerificationStatus(companyId, false);
+
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      res.json({
+        success: true,
+        message: "Website verification status has been reset",
+      });
+    } catch (error: any) {
+      console.error('[reset-website-verification] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Company self-service - Get verification token (for company users)
+  app.get("/api/company/website-verification", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const company = await storage.getCompanyProfile(userId);
+
+      if (!company) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+
+      res.json({
+        websiteUrl: company.websiteUrl,
+        websiteVerified: company.websiteVerified,
+        websiteVerificationToken: company.websiteVerificationToken,
+        websiteVerificationMethod: company.websiteVerificationMethod,
+        websiteVerifiedAt: company.websiteVerifiedAt,
+        instructions: company.websiteVerificationToken ? {
+          meta_tag: `Add this meta tag to the <head> section of your website's homepage:\n<meta name="affiliatexchange-site-verification" content="${company.websiteVerificationToken}">`,
+          dns_txt: `Add this TXT record to your domain's DNS settings:\n${company.websiteVerificationToken}`,
+        } : null,
+      });
+    } catch (error: any) {
+      console.error('[get-website-verification] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Company self-service - Generate verification token
+  app.post("/api/company/generate-verification-token", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      let company = await storage.getCompanyProfile(userId);
+
+      if (!company) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+
+      if (!company.websiteUrl) {
+        return res.status(400).json({ error: "Please add a website URL to your company profile first" });
+      }
+
+      company = await storage.generateWebsiteVerificationToken(company.id);
+
+      res.json({
+        success: true,
+        verificationToken: company?.websiteVerificationToken,
+        instructions: {
+          meta_tag: `Add this meta tag to the <head> section of your website's homepage:\n<meta name="affiliatexchange-site-verification" content="${company?.websiteVerificationToken}">`,
+          dns_txt: `Add this TXT record to your domain's DNS settings:\n${company?.websiteVerificationToken}`,
+        },
+      });
+    } catch (error: any) {
+      console.error('[company-generate-verification-token] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Company self-service - Request verification check
+  app.post("/api/company/verify-website", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { method } = req.body;
+
+      if (!method || !['meta_tag', 'dns_txt'].includes(method)) {
+        return res.status(400).json({ error: "Invalid verification method. Use 'meta_tag' or 'dns_txt'." });
+      }
+
+      const company = await storage.getCompanyProfile(userId);
+
+      if (!company) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+
+      const result = await storage.verifyWebsiteOwnership(company.id, method);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: `Website verified successfully via ${method === 'meta_tag' ? 'Meta Tag' : 'DNS TXT Record'}`,
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error,
+        });
+      }
+    } catch (error: any) {
+      console.error('[company-verify-website] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Admin Offer Management
   app.get("/api/admin/offers", requireAuth, requireRole('admin'), async (req, res) => {
     try {

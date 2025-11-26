@@ -627,6 +627,11 @@ export interface IStorage {
     endDate?: Date;
   }): Promise<any[]>;
 
+  // Website Verification
+  generateWebsiteVerificationToken(companyId: string): Promise<CompanyProfile | undefined>;
+  verifyWebsiteOwnership(companyId: string, method: 'meta_tag' | 'dns_txt'): Promise<{ success: boolean; error?: string }>;
+  updateWebsiteVerificationStatus(companyId: string, verified: boolean, method?: 'meta_tag' | 'dns_txt'): Promise<CompanyProfile | undefined>;
+
   // Offers
   getOffer(id: string): Promise<Offer | undefined>;
   getOffers(filters?: any): Promise<Offer[]>;
@@ -1194,6 +1199,130 @@ export class DatabaseStorage implements IStorage {
         !!row.user?.email &&
         (row.user.email.startsWith("deleted-") || row.user.email.includes("@deleted.user")),
     }));
+  }
+
+  // Website Verification Methods
+  async generateWebsiteVerificationToken(companyId: string): Promise<CompanyProfile | undefined> {
+    // Generate a unique verification token
+    const token = `affiliatexchange-site-verification=${randomUUID().replace(/-/g, '')}`;
+
+    const result = await db
+      .update(companyProfiles)
+      .set({
+        websiteVerificationToken: token,
+        updatedAt: new Date()
+      })
+      .where(eq(companyProfiles.id, companyId))
+      .returning();
+
+    return result[0];
+  }
+
+  async verifyWebsiteOwnership(companyId: string, method: 'meta_tag' | 'dns_txt'): Promise<{ success: boolean; error?: string }> {
+    const company = await this.getCompanyProfileById(companyId);
+
+    if (!company) {
+      return { success: false, error: 'Company not found' };
+    }
+
+    if (!company.websiteUrl) {
+      return { success: false, error: 'Company has no website URL configured' };
+    }
+
+    if (!company.websiteVerificationToken) {
+      return { success: false, error: 'No verification token generated. Please generate a token first.' };
+    }
+
+    try {
+      const url = new URL(company.websiteUrl);
+      const domain = url.hostname;
+
+      if (method === 'meta_tag') {
+        // Verify via meta tag
+        const response = await fetch(company.websiteUrl, {
+          headers: {
+            'User-Agent': 'AffiliateXchange-Verification-Bot/1.0',
+          },
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        });
+
+        if (!response.ok) {
+          return { success: false, error: `Failed to fetch website: HTTP ${response.status}` };
+        }
+
+        const html = await response.text();
+
+        // Look for meta tag: <meta name="affiliatexchange-site-verification" content="TOKEN">
+        const metaTagPattern = /<meta\s+name=["']affiliatexchange-site-verification["']\s+content=["']([^"']+)["']/i;
+        const metaTagPatternAlt = /<meta\s+content=["']([^"']+)["']\s+name=["']affiliatexchange-site-verification["']/i;
+
+        const match = html.match(metaTagPattern) || html.match(metaTagPatternAlt);
+
+        if (match && match[1] === company.websiteVerificationToken) {
+          // Verification successful
+          await this.updateWebsiteVerificationStatus(companyId, true, 'meta_tag');
+          return { success: true };
+        } else if (match) {
+          return { success: false, error: 'Meta tag found but token does not match' };
+        } else {
+          return { success: false, error: 'Meta tag not found on the website homepage' };
+        }
+
+      } else if (method === 'dns_txt') {
+        // Verify via DNS TXT record
+        const dns = await import('dns').then(m => m.promises);
+
+        try {
+          const records = await dns.resolveTxt(domain);
+          const flatRecords = records.flat();
+
+          if (flatRecords.includes(company.websiteVerificationToken)) {
+            // Verification successful
+            await this.updateWebsiteVerificationStatus(companyId, true, 'dns_txt');
+            return { success: true };
+          } else {
+            return { success: false, error: 'DNS TXT record not found or does not match the verification token' };
+          }
+        } catch (dnsError: any) {
+          if (dnsError.code === 'ENODATA' || dnsError.code === 'ENOTFOUND') {
+            return { success: false, error: 'No DNS TXT records found for this domain' };
+          }
+          return { success: false, error: `DNS lookup failed: ${dnsError.message}` };
+        }
+      }
+
+      return { success: false, error: 'Invalid verification method' };
+    } catch (error: any) {
+      console.error('[verifyWebsiteOwnership] Error:', error);
+      return { success: false, error: `Verification failed: ${error.message}` };
+    }
+  }
+
+  async updateWebsiteVerificationStatus(
+    companyId: string,
+    verified: boolean,
+    method?: 'meta_tag' | 'dns_txt'
+  ): Promise<CompanyProfile | undefined> {
+    const updateData: any = {
+      websiteVerified: verified,
+      updatedAt: new Date(),
+    };
+
+    if (verified && method) {
+      updateData.websiteVerificationMethod = method;
+      updateData.websiteVerifiedAt = new Date();
+    } else if (!verified) {
+      updateData.websiteVerificationMethod = null;
+      updateData.websiteVerifiedAt = null;
+    }
+
+    const result = await db
+      .update(companyProfiles)
+      .set(updateData)
+      .where(eq(companyProfiles.id, companyId))
+      .returning();
+
+    return result[0];
   }
 
   async getCompanyById(companyId: string): Promise<any | undefined> {
