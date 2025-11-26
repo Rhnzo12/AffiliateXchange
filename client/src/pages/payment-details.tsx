@@ -150,6 +150,10 @@ export default function PaymentDetail() {
   const processingFee = parseFloat(payment.stripeFeeAmount);
   const netAmount = parseFloat(payment.netAmount);
 
+  // Calculate actual platform fee percentage from payment data
+  const platformFeePercentage = grossAmount > 0 ? ((platformFee / grossAmount) * 100).toFixed(platformFee / grossAmount % 0.01 === 0 ? 0 : 1) : '4';
+  const processingFeePercentage = grossAmount > 0 ? ((processingFee / grossAmount) * 100).toFixed(processingFee / grossAmount % 0.01 === 0 ? 0 : 1) : '3';
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <TopNavBar />
@@ -230,13 +234,13 @@ export default function PaymentDetail() {
                 </p>
               </div>
               <div className="bg-red-50 rounded-lg p-4">
-                <p className="text-sm text-red-600 mb-1">Platform Fee (4%)</p>
+                <p className="text-sm text-red-600 mb-1">Platform Fee ({platformFeePercentage}%)</p>
                 <p className="text-2xl font-bold text-red-700">
                   -${platformFee.toFixed(2)}
                 </p>
               </div>
               <div className="bg-red-50 rounded-lg p-4">
-                <p className="text-sm text-red-600 mb-1">Processing (3%)</p>
+                <p className="text-sm text-red-600 mb-1">Processing ({processingFeePercentage}%)</p>
                 <p className="text-2xl font-bold text-red-700">
                   -${processingFee.toFixed(2)}
                 </p>
@@ -254,11 +258,11 @@ export default function PaymentDetail() {
                   <span className="font-medium">${grossAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Platform fee (4%):</span>
+                  <span>Platform fee ({platformFeePercentage}%):</span>
                   <span className="font-medium">-${platformFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Processing fee (3%):</span>
+                  <span>Processing fee ({processingFeePercentage}%):</span>
                   <span className="font-medium">-${processingFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-blue-300">

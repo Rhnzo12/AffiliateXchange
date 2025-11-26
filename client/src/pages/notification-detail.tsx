@@ -107,6 +107,8 @@ export default function NotificationDetail() {
         const grossAmount = meta.grossAmount;
         const platformFee = meta.platformFee;
         const processingFee = meta.processingFee;
+        const platformFeePercentage = meta.platformFeePercentage || '4%';
+        const processingFeePercentage = meta.processingFeePercentage || '3%';
         const transactionId = meta.transactionId;
         const isApproved = n.type === 'payment_approved';
         const hasBreakdown = grossAmount && platformFee && processingFee;
@@ -145,11 +147,11 @@ export default function NotificationDetail() {
                     <span className="font-semibold text-gray-900 dark:text-gray-100">{grossAmount}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-red-600 dark:text-red-400">Platform Fee (4%)</span>
+                    <span className="text-red-600 dark:text-red-400">Platform Fee ({platformFeePercentage})</span>
                     <span className="font-semibold text-red-600 dark:text-red-400">-{platformFee}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-red-600 dark:text-red-400">Processing Fee (3%)</span>
+                    <span className="text-red-600 dark:text-red-400">Processing Fee ({processingFeePercentage})</span>
                     <span className="font-semibold text-red-600 dark:text-red-400">-{processingFee}</span>
                   </div>
                   <div className="pt-2 border-t border-gray-300 dark:border-gray-700 flex justify-between">
@@ -164,7 +166,7 @@ export default function NotificationDetail() {
             {hasBreakdown && (
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>💡 How fees work:</strong> Platform fee (4%) and processing fee (3%) are automatically deducted from your gross earnings. The net amount is what you receive in your payment method.
+                  <strong>💡 How fees work:</strong> Platform fee ({platformFeePercentage}) and processing fee ({processingFeePercentage}) are automatically deducted from your gross earnings. The net amount is what you receive in your payment method.
                 </p>
               </div>
             )}
