@@ -926,6 +926,108 @@ export const emailTemplatesRelations = relations(emailTemplates, ({ one }) => ({
   }),
 }));
 
+// Platform Health Monitoring Tables (Section 4.3.G)
+
+// API Metrics - aggregated API performance data
+export const apiMetrics = pgTable("api_metrics", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  endpoint: varchar("endpoint", { length: 255 }).notNull(),
+  method: varchar("method", { length: 10 }).notNull(),
+  date: timestamp("date").notNull(),
+  hour: integer("hour").notNull().default(0),
+  totalRequests: integer("total_requests").notNull().default(0),
+  successfulRequests: integer("successful_requests").notNull().default(0),
+  errorRequests: integer("error_requests").notNull().default(0),
+  avgResponseTimeMs: decimal("avg_response_time_ms", { precision: 10, scale: 2 }).default('0'),
+  minResponseTimeMs: integer("min_response_time_ms").default(0),
+  maxResponseTimeMs: integer("max_response_time_ms").default(0),
+  p50ResponseTimeMs: integer("p50_response_time_ms").default(0),
+  p95ResponseTimeMs: integer("p95_response_time_ms").default(0),
+  p99ResponseTimeMs: integer("p99_response_time_ms").default(0),
+  error4xxCount: integer("error_4xx_count").default(0),
+  error5xxCount: integer("error_5xx_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// API Error Logs - individual error occurrences
+export const apiErrorLogs = pgTable("api_error_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  endpoint: varchar("endpoint", { length: 255 }).notNull(),
+  method: varchar("method", { length: 10 }).notNull(),
+  statusCode: integer("status_code").notNull(),
+  errorMessage: text("error_message"),
+  errorStack: text("error_stack"),
+  requestId: varchar("request_id", { length: 100 }),
+  userId: varchar("user_id", { length: 255 }),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  requestBody: jsonb("request_body"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const apiErrorLogsRelations = relations(apiErrorLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [apiErrorLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+// Storage Metrics - daily storage usage tracking
+export const storageMetrics = pgTable("storage_metrics", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: timestamp("date").notNull().unique(),
+  totalFiles: integer("total_files").notNull().default(0),
+  totalStorageBytes: decimal("total_storage_bytes", { precision: 20, scale: 0 }).notNull().default('0'),
+  videoFiles: integer("video_files").notNull().default(0),
+  videoStorageBytes: decimal("video_storage_bytes", { precision: 20, scale: 0 }).notNull().default('0'),
+  imageFiles: integer("image_files").notNull().default(0),
+  imageStorageBytes: decimal("image_storage_bytes", { precision: 20, scale: 0 }).notNull().default('0'),
+  documentFiles: integer("document_files").notNull().default(0),
+  documentStorageBytes: decimal("document_storage_bytes", { precision: 20, scale: 0 }).notNull().default('0'),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Video Hosting Costs - daily cost tracking
+export const videoHostingCosts = pgTable("video_hosting_costs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: timestamp("date").notNull().unique(),
+  totalVideos: integer("total_videos").notNull().default(0),
+  totalVideoStorageGb: decimal("total_video_storage_gb", { precision: 12, scale: 4 }).notNull().default('0'),
+  totalBandwidthGb: decimal("total_bandwidth_gb", { precision: 12, scale: 4 }).notNull().default('0'),
+  storageCostUsd: decimal("storage_cost_usd", { precision: 10, scale: 4 }).notNull().default('0'),
+  bandwidthCostUsd: decimal("bandwidth_cost_usd", { precision: 10, scale: 4 }).notNull().default('0'),
+  transcodingCostUsd: decimal("transcoding_cost_usd", { precision: 10, scale: 4 }).notNull().default('0'),
+  totalCostUsd: decimal("total_cost_usd", { precision: 10, scale: 4 }).notNull().default('0'),
+  costPerVideoUsd: decimal("cost_per_video_usd", { precision: 10, scale: 4 }).notNull().default('0'),
+  viewsCount: integer("views_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Platform Health Snapshots - periodic health status
+export const platformHealthSnapshots = pgTable("platform_health_snapshots", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  overallHealthScore: integer("overall_health_score").notNull().default(100),
+  apiHealthScore: integer("api_health_score").notNull().default(100),
+  storageHealthScore: integer("storage_health_score").notNull().default(100),
+  databaseHealthScore: integer("database_health_score").notNull().default(100),
+  avgResponseTimeMs: decimal("avg_response_time_ms", { precision: 10, scale: 2 }).default('0'),
+  errorRatePercent: decimal("error_rate_percent", { precision: 5, scale: 2 }).default('0'),
+  activeUsersCount: integer("active_users_count").default(0),
+  requestsPerMinute: integer("requests_per_minute").default(0),
+  memoryUsagePercent: decimal("memory_usage_percent", { precision: 5, scale: 2 }).default('0'),
+  cpuUsagePercent: decimal("cpu_usage_percent", { precision: 5, scale: 2 }).default('0'),
+  diskUsagePercent: decimal("disk_usage_percent", { precision: 5, scale: 2 }).default('0'),
+  databaseConnections: integer("database_connections").default(0),
+  uptimeSeconds: decimal("uptime_seconds", { precision: 20, scale: 0 }).default('0'),
+  alerts: jsonb("alerts").default(sql`'[]'::jsonb`),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Type exports for Replit Auth
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -1020,6 +1122,13 @@ export const insertContentFlagSchema = createInsertSchema(contentFlags).omit({ i
 export const insertCompanyVerificationDocumentSchema = createInsertSchema(companyVerificationDocuments).omit({ id: true, createdAt: true, uploadedAt: true });
 export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({ id: true, createdAt: true, updatedAt: true });
 
+// Platform Health Monitoring insert schemas
+export const insertApiMetricsSchema = createInsertSchema(apiMetrics).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertApiErrorLogSchema = createInsertSchema(apiErrorLogs).omit({ id: true, timestamp: true });
+export const insertStorageMetricsSchema = createInsertSchema(storageMetrics).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertVideoHostingCostsSchema = createInsertSchema(videoHostingCosts).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPlatformHealthSnapshotSchema = createInsertSchema(platformHealthSnapshots).omit({ id: true, createdAt: true });
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type CreatorProfile = typeof creatorProfiles.$inferSelect;
@@ -1074,3 +1183,13 @@ export type CompanyVerificationDocument = typeof companyVerificationDocuments.$i
 export type InsertCompanyVerificationDocument = z.infer<typeof insertCompanyVerificationDocumentSchema>;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type ApiMetrics = typeof apiMetrics.$inferSelect;
+export type InsertApiMetrics = z.infer<typeof insertApiMetricsSchema>;
+export type ApiErrorLog = typeof apiErrorLogs.$inferSelect;
+export type InsertApiErrorLog = z.infer<typeof insertApiErrorLogSchema>;
+export type StorageMetrics = typeof storageMetrics.$inferSelect;
+export type InsertStorageMetrics = z.infer<typeof insertStorageMetricsSchema>;
+export type VideoHostingCosts = typeof videoHostingCosts.$inferSelect;
+export type InsertVideoHostingCosts = z.infer<typeof insertVideoHostingCostsSchema>;
+export type PlatformHealthSnapshot = typeof platformHealthSnapshots.$inferSelect;
+export type InsertPlatformHealthSnapshot = z.infer<typeof insertPlatformHealthSnapshotSchema>;

@@ -61,6 +61,21 @@ import {
   getPendingFlags,
   getFlagStatistics,
 } from "./moderation/moderationService";
+import {
+  getPlatformHealthReport,
+  getRecentApiMetrics,
+  getApiMetricsTimeSeries,
+  getStorageMetricsTimeSeries,
+  getVideoCostsTimeSeries,
+  getRecentErrorLogs,
+  getLatestHealthSnapshot,
+  calculateStorageUsage,
+  calculateVideoHostingCosts,
+  createHealthSnapshot,
+  recordDailyStorageMetrics,
+  recordDailyVideoCosts,
+  flushMetrics,
+} from "./platformHealthService";
 
 // Alias for convenience
 const requireAuth = isAuthenticated;
@@ -8401,6 +8416,151 @@ res.json(approved);
 
   // Run once immediately on startup
   runAutoApprovalScheduler();
+
+  // ============ Platform Health Monitoring Endpoints (Section 4.3.G) ============
+
+  // Get comprehensive platform health report
+  app.get("/api/admin/platform-health", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const report = await getPlatformHealthReport();
+      res.json(report);
+    } catch (error: any) {
+      console.error('[Platform Health] Error getting health report:', error);
+      res.status(500).json({ error: "Failed to get platform health report", details: error.message });
+    }
+  });
+
+  // Get latest health snapshot
+  app.get("/api/admin/platform-health/snapshot", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const snapshot = await getLatestHealthSnapshot();
+      res.json(snapshot || { message: "No health snapshots available" });
+    } catch (error: any) {
+      console.error('[Platform Health] Error getting snapshot:', error);
+      res.status(500).json({ error: "Failed to get health snapshot", details: error.message });
+    }
+  });
+
+  // Get API metrics summary
+  app.get("/api/admin/platform-health/api-metrics", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const hours = parseInt(req.query.hours as string) || 24;
+      const metrics = await getRecentApiMetrics(hours);
+      res.json(metrics);
+    } catch (error: any) {
+      console.error('[Platform Health] Error getting API metrics:', error);
+      res.status(500).json({ error: "Failed to get API metrics", details: error.message });
+    }
+  });
+
+  // Get API metrics time series for charts
+  app.get("/api/admin/platform-health/api-metrics/timeseries", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 7;
+      const timeSeries = await getApiMetricsTimeSeries(days);
+      res.json(timeSeries);
+    } catch (error: any) {
+      console.error('[Platform Health] Error getting API metrics time series:', error);
+      res.status(500).json({ error: "Failed to get API metrics time series", details: error.message });
+    }
+  });
+
+  // Get storage metrics
+  app.get("/api/admin/platform-health/storage", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const storage = await calculateStorageUsage();
+      res.json(storage);
+    } catch (error: any) {
+      console.error('[Platform Health] Error getting storage metrics:', error);
+      res.status(500).json({ error: "Failed to get storage metrics", details: error.message });
+    }
+  });
+
+  // Get storage metrics time series
+  app.get("/api/admin/platform-health/storage/timeseries", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const timeSeries = await getStorageMetricsTimeSeries(days);
+      res.json(timeSeries);
+    } catch (error: any) {
+      console.error('[Platform Health] Error getting storage time series:', error);
+      res.status(500).json({ error: "Failed to get storage time series", details: error.message });
+    }
+  });
+
+  // Get video hosting costs
+  app.get("/api/admin/platform-health/video-costs", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const costs = await calculateVideoHostingCosts();
+      res.json(costs);
+    } catch (error: any) {
+      console.error('[Platform Health] Error getting video costs:', error);
+      res.status(500).json({ error: "Failed to get video costs", details: error.message });
+    }
+  });
+
+  // Get video costs time series
+  app.get("/api/admin/platform-health/video-costs/timeseries", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const timeSeries = await getVideoCostsTimeSeries(days);
+      res.json(timeSeries);
+    } catch (error: any) {
+      console.error('[Platform Health] Error getting video costs time series:', error);
+      res.status(500).json({ error: "Failed to get video costs time series", details: error.message });
+    }
+  });
+
+  // Get recent error logs
+  app.get("/api/admin/platform-health/errors", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const errors = await getRecentErrorLogs(limit);
+      res.json(errors);
+    } catch (error: any) {
+      console.error('[Platform Health] Error getting error logs:', error);
+      res.status(500).json({ error: "Failed to get error logs", details: error.message });
+    }
+  });
+
+  // Manually trigger health snapshot (for testing/admin)
+  app.post("/api/admin/platform-health/snapshot", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      await createHealthSnapshot();
+      const snapshot = await getLatestHealthSnapshot();
+      res.json({ message: "Health snapshot created", snapshot });
+    } catch (error: any) {
+      console.error('[Platform Health] Error creating snapshot:', error);
+      res.status(500).json({ error: "Failed to create health snapshot", details: error.message });
+    }
+  });
+
+  // Manually trigger metrics flush (for testing/admin)
+  app.post("/api/admin/platform-health/flush-metrics", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      await flushMetrics();
+      res.json({ message: "Metrics flushed successfully" });
+    } catch (error: any) {
+      console.error('[Platform Health] Error flushing metrics:', error);
+      res.status(500).json({ error: "Failed to flush metrics", details: error.message });
+    }
+  });
+
+  // Manually record daily metrics (for testing/admin)
+  app.post("/api/admin/platform-health/record-daily", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      await Promise.all([
+        recordDailyStorageMetrics(),
+        recordDailyVideoCosts(),
+      ]);
+      res.json({ message: "Daily metrics recorded successfully" });
+    } catch (error: any) {
+      console.error('[Platform Health] Error recording daily metrics:', error);
+      res.status(500).json({ error: "Failed to record daily metrics", details: error.message });
+    }
+  });
+
+  // ============ End Platform Health Monitoring Endpoints ============
 
   // Debug endpoint to check database URLs
   app.get("/api/admin/debug-urls", requireAuth, async (req, res) => {
