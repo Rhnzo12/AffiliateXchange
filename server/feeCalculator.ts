@@ -11,7 +11,7 @@
  */
 
 import { db } from './db';
-import { companyProfiles } from '@shared/schema';
+import { companyProfiles } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 
 // Default fee constants
