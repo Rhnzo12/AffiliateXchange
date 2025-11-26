@@ -20,6 +20,11 @@ interface EmailTemplateData {
   verificationUrl?: string;
   resetUrl?: string;
   otpCode?: string;
+  // High-risk company fields
+  companyId?: string;
+  riskScore?: number;
+  riskLevel?: string;
+  riskIndicators?: string[];
 }
 
 const baseStyles = `
@@ -1025,6 +1030,74 @@ export function contentFlaggedEmail(data: ContentFlaggedEmailData): { subject: s
           <p>Hi ${data.userName},</p>
           ${bodyContent}
           <a href="${data.linkUrl || '/notifications'}" class="button" style="background-color: ${headerColor};">View Details</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function highRiskCompanyEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const riskLevel = data.riskLevel || 'high';
+  const riskScore = data.riskScore || 0;
+  const companyName = data.companyName || 'Unknown Company';
+
+  const subject = `High Risk Alert: ${companyName} requires fee review`;
+
+  const indicatorsList = data.riskIndicators && data.riskIndicators.length > 0
+    ? data.riskIndicators.map(ind => `<li style="margin-bottom: 8px;">${ind}</li>`).join('')
+    : '<li>Multiple risk factors detected</li>';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #EF4444;">
+          <h1>High Risk Company Alert</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>A company has been flagged as <strong>high risk</strong> and may require a platform fee adjustment.</p>
+
+          <div style="background-color: #FEE2E2; border-left: 4px solid #EF4444; padding: 20px; margin: 20px 0; border-radius: 4px;">
+            <h3 style="margin: 0 0 10px 0; color: #991B1B;">Company: ${companyName}</h3>
+            <div style="display: flex; align-items: center; gap: 15px;">
+              <div>
+                <p style="margin: 0 0 5px 0; font-size: 14px; color: #7F1D1D;">Risk Score</p>
+                <p style="margin: 0; font-size: 28px; font-weight: bold; color: #DC2626;">${riskScore}/100</p>
+              </div>
+              <div style="flex: 1;">
+                <div style="background-color: #FCA5A5; border-radius: 4px; height: 8px; overflow: hidden;">
+                  <div style="background-color: #EF4444; height: 100%; width: ${riskScore}%;"></div>
+                </div>
+              </div>
+              <span class="badge badge-danger">${riskLevel.toUpperCase()} RISK</span>
+            </div>
+          </div>
+
+          <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #374151;">Risk Indicators:</h3>
+            <ul style="margin: 0; padding-left: 20px; color: #6B7280;">
+              ${indicatorsList}
+            </ul>
+          </div>
+
+          <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; font-weight: 600; color: #92400E;">Recommended Action:</p>
+            <p style="margin: 10px 0 0 0; color: #78350F;">Review this company's risk indicators and consider adjusting their platform fee to mitigate risk.</p>
+          </div>
+
+          <a href="${data.linkUrl || '/admin/companies'}" class="button" style="background-color: #EF4444;">Review Company</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>

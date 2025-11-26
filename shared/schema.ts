@@ -60,7 +60,8 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'revision_requested',
   'email_verification',
   'password_reset',
-  'content_flagged'
+  'content_flagged',
+  'high_risk_company'
 ]);
 export const keywordCategoryEnum = pgEnum('keyword_category', ['profanity', 'spam', 'legal', 'harassment', 'custom']);
 export const contentTypeEnum = pgEnum('content_type', ['message', 'review']);
