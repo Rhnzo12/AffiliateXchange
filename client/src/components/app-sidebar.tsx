@@ -36,7 +36,6 @@ import {
   Ban,
   Mail,
   BarChart3,
-  Activity,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -153,11 +152,6 @@ export function AppSidebar() {
       title: "Analytics & Reports",
       url: "/admin/analytics",
       icon: BarChart3,
-    },
-    {
-      title: "Platform Health",
-      url: "/admin/platform-health",
-      icon: Activity,
     },
     {
       title: "Company Management",

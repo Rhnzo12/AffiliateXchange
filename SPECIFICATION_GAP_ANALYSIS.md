@@ -734,12 +734,13 @@
 - Storage usage calculation (videos, images, documents)
 - Video hosting cost estimation (storage, bandwidth, transcoding)
 - Health snapshot generation with overall health scores
-- Admin UI at `/admin/platform-health` with:
+- Admin UI integrated as "Health" tab in `/admin/analytics` with:
   - Health score dashboard (overall, API, storage, database)
+  - System resources (memory, CPU, uptime)
   - API performance charts and endpoint statistics
-  - Storage distribution pie charts and trends
+  - Storage breakdown and metrics
   - Video hosting costs breakdown
-  - Error log viewer
+  - Recent error log viewer
 - Automated periodic health snapshots (every 5 minutes)
 - Daily metrics recording
 
