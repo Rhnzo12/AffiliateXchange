@@ -178,6 +178,7 @@ function ProtectedRouter() {
                     <Route path="/admin/keyword-management" component={AdminKeywordManagement} />
                     <Route path="/admin/email-templates" component={AdminEmailTemplates} />
                     <Route path="/admin/analytics" component={AdminAnalytics} />
+                    <Route path="/admin/platform-health">{() => { window.location.href = "/admin/analytics"; return null; }}</Route>
                     <Route path="/admin/users" component={AdminDashboard} />
                     <Route path="/admin/payment-settings" component={PaymentSettings} />
                     <Route path="/payments/:id" component={PaymentDetail} />
