@@ -143,28 +143,28 @@ export async function flushMetrics(): Promise<void> {
           p50_response_time_ms, p95_response_time_ms, p99_response_time_ms,
           error_4xx_count, error_5xx_count, updated_at
         ) VALUES (
-          ${buffer.endpoint}, ${buffer.method}, ${date}, ${hour},
-          ${totalRequests}, ${buffer.successCount}, ${buffer.errorCount},
-          ${stats.avg}, ${stats.min}, ${stats.max},
-          ${stats.p50}, ${stats.p95}, ${stats.p99},
-          ${buffer.error4xxCount}, ${buffer.error5xxCount}, NOW()
+          ${buffer.endpoint}, ${buffer.method}, ${date}::DATE, ${hour}::INTEGER,
+          ${totalRequests}::INTEGER, ${buffer.successCount}::INTEGER, ${buffer.errorCount}::INTEGER,
+          ${stats.avg}::DECIMAL, ${stats.min}::INTEGER, ${stats.max}::INTEGER,
+          ${stats.p50}::INTEGER, ${stats.p95}::INTEGER, ${stats.p99}::INTEGER,
+          ${buffer.error4xxCount}::INTEGER, ${buffer.error5xxCount}::INTEGER, NOW()
         )
         ON CONFLICT (endpoint, method, date, hour)
         DO UPDATE SET
-          total_requests = api_metrics.total_requests + ${totalRequests},
-          successful_requests = api_metrics.successful_requests + ${buffer.successCount},
-          error_requests = api_metrics.error_requests + ${buffer.errorCount},
+          total_requests = api_metrics.total_requests + ${totalRequests}::INTEGER,
+          successful_requests = api_metrics.successful_requests + ${buffer.successCount}::INTEGER,
+          error_requests = api_metrics.error_requests + ${buffer.errorCount}::INTEGER,
           avg_response_time_ms = (
-            (api_metrics.avg_response_time_ms * api_metrics.total_requests + ${stats.avg} * ${totalRequests}) /
-            (api_metrics.total_requests + ${totalRequests})
+            (api_metrics.avg_response_time_ms * api_metrics.total_requests::DECIMAL + ${stats.avg}::DECIMAL * ${totalRequests}::DECIMAL) /
+            NULLIF(api_metrics.total_requests + ${totalRequests}::INTEGER, 0)
           ),
-          min_response_time_ms = LEAST(api_metrics.min_response_time_ms, ${stats.min}),
-          max_response_time_ms = GREATEST(api_metrics.max_response_time_ms, ${stats.max}),
-          p50_response_time_ms = ${stats.p50},
-          p95_response_time_ms = ${stats.p95},
-          p99_response_time_ms = ${stats.p99},
-          error_4xx_count = api_metrics.error_4xx_count + ${buffer.error4xxCount},
-          error_5xx_count = api_metrics.error_5xx_count + ${buffer.error5xxCount},
+          min_response_time_ms = LEAST(api_metrics.min_response_time_ms, ${stats.min}::INTEGER),
+          max_response_time_ms = GREATEST(api_metrics.max_response_time_ms, ${stats.max}::INTEGER),
+          p50_response_time_ms = ${stats.p50}::INTEGER,
+          p95_response_time_ms = ${stats.p95}::INTEGER,
+          p99_response_time_ms = ${stats.p99}::INTEGER,
+          error_4xx_count = api_metrics.error_4xx_count + ${buffer.error4xxCount}::INTEGER,
+          error_5xx_count = api_metrics.error_5xx_count + ${buffer.error5xxCount}::INTEGER,
           updated_at = NOW()
       `);
     }
