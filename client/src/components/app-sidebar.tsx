@@ -35,6 +35,7 @@ import {
   ShieldCheck,
   Ban,
   Mail,
+  BarChart3,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -146,6 +147,11 @@ export function AppSidebar() {
       title: "Dashboard",
       url: "/admin",
       icon: Home,
+    },
+    {
+      title: "Analytics & Reports",
+      url: "/admin/analytics",
+      icon: BarChart3,
     },
     {
       title: "Company Management",
