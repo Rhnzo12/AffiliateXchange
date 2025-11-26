@@ -3983,6 +3983,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all companies with their risk assessments (for dashboard and company management)
+  // NOTE: This route must be defined BEFORE /api/admin/companies/:id to avoid route conflict
+  app.get("/api/admin/companies/risk-assessments", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      // Get all approved companies
+      const approvedCompanies = await storage.getAllCompanies({ status: 'approved' });
+
+      // Calculate risk assessment for each company
+      const companiesWithRisk = await Promise.all(
+        approvedCompanies.map(async (company: any) => {
+          const companyPayments = await storage.getPaymentsByCompany(company.id);
+
+          // Calculate risk indicators (simplified version of the detailed endpoint)
+          const disputedPayments = companyPayments.filter(p =>
+            p.description?.toLowerCase().includes('disputed')
+          );
+          const disputeRate = companyPayments.length > 0
+            ? (disputedPayments.length / companyPayments.length) * 100
+            : 0;
+
+          const failedPayments = companyPayments.filter(p =>
+            p.status === 'failed' && !p.description?.toLowerCase().includes('disputed')
+          );
+          const failureRate = companyPayments.length > 0
+            ? (failedPayments.length / companyPayments.length) * 100
+            : 0;
+
+          const refundedPayments = companyPayments.filter(p => p.status === 'refunded');
+          const refundRate = companyPayments.length > 0
+            ? (refundedPayments.length / companyPayments.length) * 100
+            : 0;
+
+          const completedPayments = companyPayments.filter(p => p.status === 'completed');
+
+          // Calculate risk score
+          let riskScore = 50; // Start neutral
+          const riskIndicators: string[] = [];
+
+          // High dispute rate
+          if (disputeRate >= 10) {
+            riskScore += 15;
+            riskIndicators.push(`High dispute rate (${disputeRate.toFixed(1)}%)`);
+          }
+
+          // High failure rate
+          if (failedPayments.length >= 3 || failureRate >= 15) {
+            riskScore += 15;
+            riskIndicators.push(`High payment failure rate (${failedPayments.length} failed)`);
+          }
+
+          // High refund rate
+          if (refundRate >= 20) {
+            riskScore += 15;
+            riskIndicators.push(`High refund rate (${refundRate.toFixed(1)}%)`);
+          }
+
+          // Website not verified
+          if (!company.websiteVerified) {
+            riskScore += 15;
+            riskIndicators.push('Website not verified');
+          }
+
+          // Positive indicators
+          if (completedPayments.length >= 50 && disputeRate < 2 && failureRate < 5) {
+            riskScore -= 10;
+          }
+
+          riskScore = Math.max(0, Math.min(100, riskScore));
+
+          const riskLevel = riskScore >= 70 ? 'high' : riskScore >= 40 ? 'medium' : 'low';
+
+          return {
+            id: company.id,
+            legalName: company.legalName,
+            tradeName: company.tradeName,
+            industry: company.industry,
+            websiteUrl: company.websiteUrl,
+            websiteVerified: company.websiteVerified,
+            customPlatformFeePercentage: company.customPlatformFeePercentage,
+            status: company.status,
+            createdAt: company.createdAt,
+            riskScore,
+            riskLevel,
+            riskIndicators,
+            stats: {
+              totalPayments: companyPayments.length,
+              completedPayments: completedPayments.length,
+              failedPayments: failedPayments.length,
+              disputedPayments: disputedPayments.length,
+              refundedPayments: refundedPayments.length,
+            },
+          };
+        })
+      );
+
+      // Sort by risk score (highest first)
+      companiesWithRisk.sort((a: any, b: any) => b.riskScore - a.riskScore);
+
+      res.json({
+        companies: companiesWithRisk,
+        summary: {
+          total: companiesWithRisk.length,
+          highRisk: companiesWithRisk.filter((c: any) => c.riskLevel === 'high').length,
+          mediumRisk: companiesWithRisk.filter((c: any) => c.riskLevel === 'medium').length,
+          lowRisk: companiesWithRisk.filter((c: any) => c.riskLevel === 'low').length,
+        },
+      });
+    } catch (error: any) {
+      console.error('[get-companies-risk-assessments] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Get individual company details
   app.get("/api/admin/companies/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
@@ -4515,118 +4628,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[get-company-risk-indicators] Error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Get all companies with their risk assessments (for dashboard and company management)
-  app.get("/api/admin/companies/risk-assessments", requireAuth, requireRole('admin'), async (req, res) => {
-    try {
-      // Get all approved companies
-      const approvedCompanies = await storage.getAllCompanies({ status: 'approved' });
-
-      // Calculate risk assessment for each company
-      const companiesWithRisk = await Promise.all(
-        approvedCompanies.map(async (company: any) => {
-          const companyPayments = await storage.getPaymentsByCompany(company.id);
-
-          // Calculate risk indicators (simplified version of the detailed endpoint)
-          const disputedPayments = companyPayments.filter(p =>
-            p.description?.toLowerCase().includes('disputed')
-          );
-          const disputeRate = companyPayments.length > 0
-            ? (disputedPayments.length / companyPayments.length) * 100
-            : 0;
-
-          const failedPayments = companyPayments.filter(p =>
-            p.status === 'failed' && !p.description?.toLowerCase().includes('disputed')
-          );
-          const failureRate = companyPayments.length > 0
-            ? (failedPayments.length / companyPayments.length) * 100
-            : 0;
-
-          const refundedPayments = companyPayments.filter(p => p.status === 'refunded');
-          const refundRate = companyPayments.length > 0
-            ? (refundedPayments.length / companyPayments.length) * 100
-            : 0;
-
-          const completedPayments = companyPayments.filter(p => p.status === 'completed');
-
-          // Calculate risk score
-          let riskScore = 50; // Start neutral
-          const riskIndicators: string[] = [];
-
-          // High dispute rate
-          if (disputeRate >= 10) {
-            riskScore += 15;
-            riskIndicators.push(`High dispute rate (${disputeRate.toFixed(1)}%)`);
-          }
-
-          // High failure rate
-          if (failedPayments.length >= 3 || failureRate >= 15) {
-            riskScore += 15;
-            riskIndicators.push(`High payment failure rate (${failedPayments.length} failed)`);
-          }
-
-          // High refund rate
-          if (refundRate >= 20) {
-            riskScore += 15;
-            riskIndicators.push(`High refund rate (${refundRate.toFixed(1)}%)`);
-          }
-
-          // Website not verified
-          if (!company.websiteVerified) {
-            riskScore += 15;
-            riskIndicators.push('Website not verified');
-          }
-
-          // Positive indicators
-          if (completedPayments.length >= 50 && disputeRate < 2 && failureRate < 5) {
-            riskScore -= 10;
-          }
-
-          riskScore = Math.max(0, Math.min(100, riskScore));
-
-          const riskLevel = riskScore >= 70 ? 'high' : riskScore >= 40 ? 'medium' : 'low';
-
-          return {
-            id: company.id,
-            legalName: company.legalName,
-            tradeName: company.tradeName,
-            industry: company.industry,
-            websiteUrl: company.websiteUrl,
-            websiteVerified: company.websiteVerified,
-            customPlatformFeePercentage: company.customPlatformFeePercentage,
-            status: company.status,
-            createdAt: company.createdAt,
-            riskScore,
-            riskLevel,
-            riskIndicators,
-            stats: {
-              totalPayments: companyPayments.length,
-              completedPayments: completedPayments.length,
-              failedPayments: failedPayments.length,
-              disputedPayments: disputedPayments.length,
-              refundedPayments: refundedPayments.length,
-            },
-          };
-        })
-      );
-
-      // Sort by risk score (highest first)
-      companiesWithRisk.sort((a: any, b: any) => b.riskScore - a.riskScore);
-
-      res.json({
-        companies: companiesWithRisk,
-        summary: {
-          total: companiesWithRisk.length,
-          highRisk: companiesWithRisk.filter((c: any) => c.riskLevel === 'high').length,
-          mediumRisk: companiesWithRisk.filter((c: any) => c.riskLevel === 'medium').length,
-          lowRisk: companiesWithRisk.filter((c: any) => c.riskLevel === 'low').length,
-        },
-      });
-    } catch (error: any) {
-      console.error('[get-companies-risk-assessments] Error:', error);
       res.status(500).json({ error: error.message });
     }
   });
