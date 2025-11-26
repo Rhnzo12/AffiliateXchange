@@ -4254,6 +4254,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get company risk indicators for fee adjustment decisions
+  app.get("/api/admin/companies/:id/risk-indicators", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      const company = await storage.getCompanyById(companyId);
+
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      // Get company payments to analyze
+      const companyPayments = await storage.getPaymentsByCompany(companyId);
+
+      // Calculate risk indicators
+      const indicators: Array<{
+        type: 'warning' | 'info' | 'success';
+        category: string;
+        title: string;
+        description: string;
+        recommendation: 'increase' | 'decrease' | 'neutral';
+      }> = [];
+
+      // 1. Check dispute rate
+      const disputedPayments = companyPayments.filter(p =>
+        p.description?.toLowerCase().includes('disputed')
+      );
+      const disputeRate = companyPayments.length > 0
+        ? (disputedPayments.length / companyPayments.length) * 100
+        : 0;
+
+      if (disputedPayments.length > 0) {
+        if (disputeRate >= 10) {
+          indicators.push({
+            type: 'warning',
+            category: 'Disputes',
+            title: 'High Dispute Rate',
+            description: `${disputedPayments.length} disputed payments (${disputeRate.toFixed(1)}% of total). High dispute rates increase platform risk.`,
+            recommendation: 'increase',
+          });
+        } else if (disputeRate >= 5) {
+          indicators.push({
+            type: 'info',
+            category: 'Disputes',
+            title: 'Moderate Dispute Rate',
+            description: `${disputedPayments.length} disputed payments (${disputeRate.toFixed(1)}% of total). Monitor for potential issues.`,
+            recommendation: 'neutral',
+          });
+        }
+      }
+
+      // 2. Check failed payments
+      const failedPayments = companyPayments.filter(p =>
+        p.status === 'failed' && !p.description?.toLowerCase().includes('disputed')
+      );
+      const failureRate = companyPayments.length > 0
+        ? (failedPayments.length / companyPayments.length) * 100
+        : 0;
+
+      if (failedPayments.length >= 3 || failureRate >= 15) {
+        indicators.push({
+          type: 'warning',
+          category: 'Payment Issues',
+          title: 'High Payment Failure Rate',
+          description: `${failedPayments.length} failed payments (${failureRate.toFixed(1)}% failure rate). May indicate payment reliability issues.`,
+          recommendation: 'increase',
+        });
+      }
+
+      // 3. Check refund rate
+      const refundedPayments = companyPayments.filter(p => p.status === 'refunded');
+      const refundRate = companyPayments.length > 0
+        ? (refundedPayments.length / companyPayments.length) * 100
+        : 0;
+
+      if (refundRate >= 20) {
+        indicators.push({
+          type: 'warning',
+          category: 'Refunds',
+          title: 'High Refund Rate',
+          description: `${refundedPayments.length} refunded payments (${refundRate.toFixed(1)}% of total). High refund rates may indicate issues.`,
+          recommendation: 'increase',
+        });
+      }
+
+      // 4. Check website verification status
+      if (!company.websiteVerified) {
+        indicators.push({
+          type: 'warning',
+          category: 'Verification',
+          title: 'Website Not Verified',
+          description: 'Company website has not been verified. Unverified companies pose higher risk.',
+          recommendation: 'increase',
+        });
+      } else {
+        indicators.push({
+          type: 'success',
+          category: 'Verification',
+          title: 'Website Verified',
+          description: `Website verified on ${company.websiteVerifiedAt ? new Date(company.websiteVerifiedAt).toLocaleDateString() : 'N/A'}`,
+          recommendation: 'neutral',
+        });
+      }
+
+      // 5. Check account age (new accounts are higher risk)
+      const accountAgeDays = Math.floor(
+        (Date.now() - new Date(company.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (accountAgeDays < 30) {
+        indicators.push({
+          type: 'info',
+          category: 'Account Age',
+          title: 'New Account',
+          description: `Account created ${accountAgeDays} days ago. New accounts may require closer monitoring.`,
+          recommendation: 'neutral',
+        });
+      } else if (accountAgeDays >= 180) {
+        indicators.push({
+          type: 'success',
+          category: 'Account Age',
+          title: 'Established Account',
+          description: `Account is ${Math.floor(accountAgeDays / 30)} months old with established history.`,
+          recommendation: 'neutral',
+        });
+      }
+
+      // 6. Check payment volume (high volume trusted partners may warrant lower fees)
+      const completedPayments = companyPayments.filter(p => p.status === 'completed');
+      const totalVolume = completedPayments.reduce((sum, p) => sum + parseFloat(p.grossAmount?.toString() || '0'), 0);
+
+      if (completedPayments.length >= 50 && disputeRate < 2 && failureRate < 5) {
+        indicators.push({
+          type: 'success',
+          category: 'Payment History',
+          title: 'High-Volume Trusted Partner',
+          description: `${completedPayments.length} successful payments totaling $${totalVolume.toFixed(2)} with low dispute/failure rates. Consider reduced fees.`,
+          recommendation: 'decrease',
+        });
+      } else if (completedPayments.length >= 20 && disputeRate < 5) {
+        indicators.push({
+          type: 'success',
+          category: 'Payment History',
+          title: 'Good Payment History',
+          description: `${completedPayments.length} successful payments with acceptable dispute rate.`,
+          recommendation: 'neutral',
+        });
+      } else if (companyPayments.length === 0) {
+        indicators.push({
+          type: 'info',
+          category: 'Payment History',
+          title: 'No Payment History',
+          description: 'Company has no payment history yet. Default fee recommended until track record is established.',
+          recommendation: 'neutral',
+        });
+      }
+
+      // Calculate overall risk score (0-100)
+      let riskScore = 50; // Start neutral
+      indicators.forEach(ind => {
+        if (ind.recommendation === 'increase') riskScore += 15;
+        if (ind.recommendation === 'decrease') riskScore -= 10;
+      });
+      riskScore = Math.max(0, Math.min(100, riskScore));
+
+      // Generate overall recommendation
+      const increaseIndicators = indicators.filter(i => i.recommendation === 'increase').length;
+      const decreaseIndicators = indicators.filter(i => i.recommendation === 'decrease').length;
+
+      let overallRecommendation: 'increase' | 'decrease' | 'maintain' = 'maintain';
+      let recommendationText = 'Current fee appears appropriate based on company profile.';
+
+      if (increaseIndicators >= 2) {
+        overallRecommendation = 'increase';
+        recommendationText = 'Multiple risk indicators suggest considering a fee increase.';
+      } else if (decreaseIndicators > 0 && increaseIndicators === 0) {
+        overallRecommendation = 'decrease';
+        recommendationText = 'Strong payment history suggests this company may qualify for reduced fees.';
+      }
+
+      res.json({
+        companyId: company.id,
+        companyName: company.legalName,
+        riskScore,
+        riskLevel: riskScore >= 70 ? 'high' : riskScore >= 40 ? 'medium' : 'low',
+        overallRecommendation,
+        recommendationText,
+        indicators,
+        stats: {
+          totalPayments: companyPayments.length,
+          completedPayments: completedPayments.length,
+          failedPayments: failedPayments.length,
+          refundedPayments: refundedPayments.length,
+          disputedPayments: disputedPayments.length,
+          totalVolume: totalVolume.toFixed(2),
+          accountAgeDays,
+        },
+      });
+    } catch (error: any) {
+      console.error('[get-company-risk-indicators] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Company self-service - Get verification token (for company users)
   app.get("/api/company/website-verification", requireAuth, requireRole('company'), async (req, res) => {
     try {

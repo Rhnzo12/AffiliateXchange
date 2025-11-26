@@ -23,6 +23,7 @@ import {
   DollarSign,
   Users,
   TrendingUp,
+  TrendingDown,
   Calendar,
   Mail,
   Phone,
@@ -38,6 +39,9 @@ import {
   Server,
   Clock,
   Percent,
+  AlertTriangle,
+  Info,
+  Shield,
 } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
@@ -101,6 +105,33 @@ type CompanyFeeInfo = {
   effectivePlatformFee: number;
   effectiveTotalFee: number;
   isUsingCustomFee: boolean;
+};
+
+type RiskIndicator = {
+  type: 'warning' | 'info' | 'success';
+  category: string;
+  title: string;
+  description: string;
+  recommendation: 'increase' | 'decrease' | 'neutral';
+};
+
+type CompanyRiskInfo = {
+  companyId: string;
+  companyName: string;
+  riskScore: number;
+  riskLevel: 'high' | 'medium' | 'low';
+  overallRecommendation: 'increase' | 'decrease' | 'maintain';
+  recommendationText: string;
+  indicators: RiskIndicator[];
+  stats: {
+    totalPayments: number;
+    completedPayments: number;
+    failedPayments: number;
+    refundedPayments: number;
+    disputedPayments: number;
+    totalVolume: string;
+    accountAgeDays: number;
+  };
 };
 
 export default function AdminCompanyDetail() {
@@ -304,6 +335,19 @@ export default function AdminCompanyDetail() {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch company fee info");
+      return response.json();
+    },
+    enabled: isAuthenticated && !!companyId,
+  });
+
+  // Fetch company risk indicators
+  const { data: riskInfo, isLoading: loadingRiskInfo } = useQuery<CompanyRiskInfo>({
+    queryKey: [`/api/admin/companies/${companyId}/risk-indicators`],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/companies/${companyId}/risk-indicators`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch risk indicators");
       return response.json();
     },
     enabled: isAuthenticated && !!companyId,
@@ -1000,6 +1044,150 @@ export default function AdminCompanyDetail() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Risk Indicators Card - Fee Adjustment Hints */}
+            <Card className="border-card-border md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Fee Adjustment Indicators
+                  {riskInfo && (
+                    <Badge
+                      className={`ml-2 ${
+                        riskInfo.riskLevel === 'high'
+                          ? 'bg-red-100 text-red-800 border-red-200'
+                          : riskInfo.riskLevel === 'medium'
+                          ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                          : 'bg-green-100 text-green-800 border-green-200'
+                      }`}
+                    >
+                      {riskInfo.riskLevel === 'high' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                      {riskInfo.riskLevel === 'medium' && <Info className="h-3 w-3 mr-1" />}
+                      {riskInfo.riskLevel === 'low' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                      {riskInfo.riskLevel.charAt(0).toUpperCase() + riskInfo.riskLevel.slice(1)} Risk
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {loadingRiskInfo ? (
+                  <div className="text-center py-4 text-muted-foreground">Loading risk indicators...</div>
+                ) : riskInfo ? (
+                  <>
+                    {/* Overall Recommendation */}
+                    <div className={`p-4 rounded-lg border-2 ${
+                      riskInfo.overallRecommendation === 'increase'
+                        ? 'bg-red-50 border-red-200'
+                        : riskInfo.overallRecommendation === 'decrease'
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        {riskInfo.overallRecommendation === 'increase' && (
+                          <>
+                            <TrendingUp className="h-5 w-5 text-red-600" />
+                            <span className="font-semibold text-red-700">Consider Fee Increase</span>
+                          </>
+                        )}
+                        {riskInfo.overallRecommendation === 'decrease' && (
+                          <>
+                            <TrendingDown className="h-5 w-5 text-green-600" />
+                            <span className="font-semibold text-green-700">Eligible for Fee Reduction</span>
+                          </>
+                        )}
+                        {riskInfo.overallRecommendation === 'maintain' && (
+                          <>
+                            <CheckCircle2 className="h-5 w-5 text-gray-600" />
+                            <span className="font-semibold text-gray-700">Maintain Current Fee</span>
+                          </>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{riskInfo.recommendationText}</p>
+                    </div>
+
+                    {/* Risk Score */}
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm text-muted-foreground">Risk Score:</div>
+                      <div className="flex-1 bg-gray-200 rounded-full h-3">
+                        <div
+                          className={`h-3 rounded-full transition-all ${
+                            riskInfo.riskScore >= 70 ? 'bg-red-500' :
+                            riskInfo.riskScore >= 40 ? 'bg-yellow-500' : 'bg-green-500'
+                          }`}
+                          style={{ width: `${riskInfo.riskScore}%` }}
+                        />
+                      </div>
+                      <div className="text-sm font-medium">{riskInfo.riskScore}/100</div>
+                    </div>
+
+                    {/* Indicators List */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-muted-foreground">Indicators:</div>
+                      {riskInfo.indicators.map((indicator, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-3 rounded-lg flex items-start gap-3 ${
+                            indicator.type === 'warning'
+                              ? 'bg-red-50 border border-red-100'
+                              : indicator.type === 'success'
+                              ? 'bg-green-50 border border-green-100'
+                              : 'bg-blue-50 border border-blue-100'
+                          }`}
+                        >
+                          <div className="mt-0.5">
+                            {indicator.type === 'warning' && <AlertTriangle className="h-4 w-4 text-red-500" />}
+                            {indicator.type === 'success' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                            {indicator.type === 'info' && <Info className="h-4 w-4 text-blue-500" />}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">{indicator.title}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {indicator.category}
+                              </Badge>
+                              {indicator.recommendation !== 'neutral' && (
+                                <Badge
+                                  className={`text-xs ${
+                                    indicator.recommendation === 'increase'
+                                      ? 'bg-red-100 text-red-700'
+                                      : 'bg-green-100 text-green-700'
+                                  }`}
+                                >
+                                  {indicator.recommendation === 'increase' ? '↑ Fee' : '↓ Fee'}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">{indicator.description}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Stats Summary */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t">
+                      <div className="text-center p-2">
+                        <div className="text-lg font-bold">{riskInfo.stats.totalPayments}</div>
+                        <div className="text-xs text-muted-foreground">Total Payments</div>
+                      </div>
+                      <div className="text-center p-2">
+                        <div className="text-lg font-bold text-green-600">{riskInfo.stats.completedPayments}</div>
+                        <div className="text-xs text-muted-foreground">Completed</div>
+                      </div>
+                      <div className="text-center p-2">
+                        <div className="text-lg font-bold text-red-600">{riskInfo.stats.disputedPayments}</div>
+                        <div className="text-xs text-muted-foreground">Disputed</div>
+                      </div>
+                      <div className="text-center p-2">
+                        <div className="text-lg font-bold">${riskInfo.stats.totalVolume}</div>
+                        <div className="text-xs text-muted-foreground">Total Volume</div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">Failed to load risk indicators</div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Platform Fee Override Card */}
             <Card className="border-card-border md:col-span-2">
