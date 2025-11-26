@@ -53,7 +53,8 @@ export type NotificationType =
   | 'password_reset'
   | 'account_deletion_otp'
   | 'password_change_otp'
-  | 'content_flagged';
+  | 'content_flagged'
+  | 'high_risk_company';
 
 interface NotificationData {
   userName?: string;
@@ -96,6 +97,11 @@ interface NotificationData {
   matchedKeywords?: string[];
   reviewStatus?: string;
   actionTaken?: string;
+  // High-risk company fields
+  companyId?: string;
+  riskScore?: number;
+  riskLevel?: string;
+  riskIndicators?: string[];
 }
 
 export class NotificationService {
@@ -218,6 +224,13 @@ export class NotificationService {
         // For users, link to notifications page to see details
         // The content itself might be removed/modified, so we don't link directly to it
         return '/notifications';
+
+      case 'high_risk_company':
+        // Admin notification - link to the company detail page for review
+        if (data.companyId) {
+          return `/admin/companies/${data.companyId}`;
+        }
+        return '/admin/companies';
 
       default:
         // Default fallback based on user role
@@ -423,6 +436,8 @@ export class NotificationService {
         return emailTemplates.passwordChangeOtpEmail(data);
       case 'content_flagged':
         return emailTemplates.contentFlaggedEmail(data);
+      case 'high_risk_company':
+        return emailTemplates.highRiskCompanyEmail(data);
       default:
         return null;
     }
@@ -550,6 +565,7 @@ export class NotificationService {
       case 'registration_rejected':
       case 'priority_listing_expiring':
       case 'content_flagged':
+      case 'high_risk_company':
         return preferences.emailSystem;
       default:
         return true;
