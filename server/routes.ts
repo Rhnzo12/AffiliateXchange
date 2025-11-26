@@ -12,6 +12,7 @@ import { offerVideos, applications, analytics, offers, companyProfiles, payments
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
+import { calculateFees, formatFeePercentage, DEFAULT_PLATFORM_FEE_PERCENTAGE, STRIPE_PROCESSING_FEE_PERCENTAGE } from "./feeCalculator";
 import { NotificationService } from "./notifications/notificationService";
 import bcrypt from "bcrypt";
 import { PriorityListingScheduler } from "./priorityListingScheduler";
@@ -1627,10 +1628,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         grossAmount = parseFloat(offer.commissionAmount.toString());
       }
 
-      // Calculate fees (platform 4%, processing 3%)
-      const platformFeeAmount = grossAmount * 0.04;
-      const stripeFeeAmount = grossAmount * 0.03;
-      const netAmount = grossAmount - platformFeeAmount - stripeFeeAmount;
+      // Calculate fees with per-company override support (Section 4.3.H)
+      const fees = await calculateFees(grossAmount, companyProfile.id);
 
       // Create payment record
       const payment = await storage.createPayment({
@@ -1638,15 +1637,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         creatorId: application.creatorId,
         companyId: companyProfile.id,
         offerId: offer.id,
-        grossAmount: grossAmount.toFixed(2),
-        platformFeeAmount: platformFeeAmount.toFixed(2),
-        stripeFeeAmount: stripeFeeAmount.toFixed(2),
-        netAmount: netAmount.toFixed(2),
+        grossAmount: fees.grossAmount.toFixed(2),
+        platformFeeAmount: fees.platformFeeAmount.toFixed(2),
+        stripeFeeAmount: fees.stripeFeeAmount.toFixed(2),
+        netAmount: fees.netAmount.toFixed(2),
         status: 'pending',
         description: `Payment for ${offer.title}`,
       });
 
-      console.log(`[Payment] Created payment ${payment.id} for application ${application.id}`);
+      const feeLabel = fees.isCustomFee ? `Custom ${formatFeePercentage(fees.platformFeePercentage)}` : formatFeePercentage(DEFAULT_PLATFORM_FEE_PERCENTAGE);
+      console.log(`[Payment] Created payment ${payment.id} for application ${application.id} - Platform Fee: ${feeLabel}`);
 
       // Send notification to creator
       const creator = await storage.getUserById(application.creatorId);
@@ -1656,11 +1656,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           application.creatorId,
           'payment_pending',
           'Work Completed - Payment Pending 💰',
-          `Your work for "${offer.title}" has been marked as complete! Payment of $${netAmount.toFixed(2)} is pending company approval.`,
+          `Your work for "${offer.title}" has been marked as complete! Payment of $${fees.netAmount.toFixed(2)} is pending company approval.`,
           {
             userName: creator.firstName || creator.username,
             offerTitle: offer.title,
-            amount: `$${netAmount.toFixed(2)}`,
+            amount: `$${fees.netAmount.toFixed(2)}`,
             paymentId: payment.id, // ✅ ADDED
           }
         );
@@ -1673,11 +1673,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           admin.id,
           'payment_pending',
           'New Affiliate Payment Ready for Processing',
-          `A payment of $${netAmount.toFixed(2)} for creator ${creator?.username || 'Unknown'} on "${offer.title}" is ready for processing.`,
+          `A payment of $${fees.netAmount.toFixed(2)} for creator ${creator?.username || 'Unknown'} on "${offer.title}" is ready for processing.`,
           {
             userName: admin.firstName || admin.username,
             offerTitle: offer.title,
-            amount: `$${netAmount.toFixed(2)}`,
+            amount: `$${fees.netAmount.toFixed(2)}`,
             paymentId: payment.id,
             linkUrl: `/payments/${payment.id}`, // Link to specific payment detail page
           }
@@ -4079,6 +4079,177 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[reset-website-verification] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================
+  // Per-Company Platform Fee Override Endpoints (Section 4.3.H)
+  // ============================================================
+
+  // Get company's custom platform fee percentage
+  app.get("/api/admin/companies/:id/fee", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      const company = await storage.getCompanyById(companyId);
+
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      const customFee = company.customPlatformFeePercentage;
+      const hasCustomFee = customFee !== null && customFee !== undefined;
+
+      res.json({
+        companyId: company.id,
+        companyName: company.legalName,
+        customPlatformFeePercentage: hasCustomFee ? parseFloat(customFee.toString()) : null,
+        customPlatformFeeDisplay: hasCustomFee ? `${(parseFloat(customFee.toString()) * 100).toFixed(2)}%` : null,
+        defaultPlatformFeePercentage: DEFAULT_PLATFORM_FEE_PERCENTAGE,
+        defaultPlatformFeeDisplay: `${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
+        processingFeePercentage: STRIPE_PROCESSING_FEE_PERCENTAGE,
+        processingFeeDisplay: `${(STRIPE_PROCESSING_FEE_PERCENTAGE * 100)}%`,
+        effectivePlatformFee: hasCustomFee ? parseFloat(customFee.toString()) : DEFAULT_PLATFORM_FEE_PERCENTAGE,
+        effectiveTotalFee: (hasCustomFee ? parseFloat(customFee.toString()) : DEFAULT_PLATFORM_FEE_PERCENTAGE) + STRIPE_PROCESSING_FEE_PERCENTAGE,
+        isUsingCustomFee: hasCustomFee,
+      });
+    } catch (error: any) {
+      console.error('[get-company-fee] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update company's custom platform fee percentage
+  app.put("/api/admin/companies/:id/fee", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      const { platformFeePercentage } = req.body;
+
+      // Validate input
+      if (platformFeePercentage === undefined || platformFeePercentage === null) {
+        return res.status(400).json({ error: "platformFeePercentage is required" });
+      }
+
+      const feeValue = parseFloat(platformFeePercentage);
+
+      // Validate fee percentage is between 0% and 50%
+      if (isNaN(feeValue) || feeValue < 0 || feeValue > 0.5) {
+        return res.status(400).json({
+          error: "Platform fee percentage must be between 0 and 0.5 (0% to 50%)",
+          received: platformFeePercentage,
+        });
+      }
+
+      const company = await storage.getCompanyById(companyId);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      // Update company profile with custom fee
+      const updatedCompany = await storage.updateCompanyProfileById(companyId, {
+        customPlatformFeePercentage: feeValue.toFixed(4),
+      });
+
+      // Log audit event
+      const adminUser = req.user as any;
+      await storage.createAuditLog({
+        userId: adminUser.id,
+        action: 'update_company_fee',
+        entityType: 'company',
+        entityId: companyId,
+        description: `Updated platform fee for ${company.legalName} to ${(feeValue * 100).toFixed(2)}%`,
+        metadata: {
+          previousFee: company.customPlatformFeePercentage,
+          newFee: feeValue,
+          companyName: company.legalName,
+        },
+      });
+
+      console.log(`[Admin] Updated platform fee for company ${companyId} (${company.legalName}) to ${(feeValue * 100).toFixed(2)}%`);
+
+      res.json({
+        success: true,
+        message: `Platform fee updated to ${(feeValue * 100).toFixed(2)}% for ${company.legalName}`,
+        companyId: companyId,
+        customPlatformFeePercentage: feeValue,
+        customPlatformFeeDisplay: `${(feeValue * 100).toFixed(2)}%`,
+        effectiveTotalFee: feeValue + STRIPE_PROCESSING_FEE_PERCENTAGE,
+      });
+    } catch (error: any) {
+      console.error('[update-company-fee] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Remove company's custom platform fee (revert to default)
+  app.delete("/api/admin/companies/:id/fee", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const companyId = req.params.id;
+
+      const company = await storage.getCompanyById(companyId);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      const previousFee = company.customPlatformFeePercentage;
+
+      // Update company profile to remove custom fee
+      await storage.updateCompanyProfileById(companyId, {
+        customPlatformFeePercentage: null,
+      });
+
+      // Log audit event
+      const adminUser = req.user as any;
+      await storage.createAuditLog({
+        userId: adminUser.id,
+        action: 'remove_company_fee',
+        entityType: 'company',
+        entityId: companyId,
+        description: `Removed custom platform fee for ${company.legalName}, reverting to default ${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
+        metadata: {
+          previousFee: previousFee,
+          companyName: company.legalName,
+        },
+      });
+
+      console.log(`[Admin] Removed custom platform fee for company ${companyId} (${company.legalName}), reverted to default`);
+
+      res.json({
+        success: true,
+        message: `Custom platform fee removed for ${company.legalName}. Now using default ${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
+        companyId: companyId,
+        defaultPlatformFeePercentage: DEFAULT_PLATFORM_FEE_PERCENTAGE,
+        defaultPlatformFeeDisplay: `${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
+        effectiveTotalFee: DEFAULT_PLATFORM_FEE_PERCENTAGE + STRIPE_PROCESSING_FEE_PERCENTAGE,
+      });
+    } catch (error: any) {
+      console.error('[remove-company-fee] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all companies with custom fees (for admin dashboard)
+  app.get("/api/admin/companies-with-custom-fees", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const companies = await storage.getCompaniesWithCustomFees();
+
+      res.json({
+        count: companies.length,
+        defaultPlatformFeePercentage: DEFAULT_PLATFORM_FEE_PERCENTAGE,
+        defaultPlatformFeeDisplay: `${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
+        companies: companies.map(company => ({
+          id: company.id,
+          legalName: company.legalName,
+          tradeName: company.tradeName,
+          customPlatformFeePercentage: company.customPlatformFeePercentage ? parseFloat(company.customPlatformFeePercentage.toString()) : null,
+          customPlatformFeeDisplay: company.customPlatformFeePercentage ? `${(parseFloat(company.customPlatformFeePercentage.toString()) * 100).toFixed(2)}%` : null,
+          effectiveTotalFee: company.customPlatformFeePercentage
+            ? parseFloat(company.customPlatformFeePercentage.toString()) + STRIPE_PROCESSING_FEE_PERCENTAGE
+            : DEFAULT_PLATFORM_FEE_PERCENTAGE + STRIPE_PROCESSING_FEE_PERCENTAGE,
+        })),
+      });
+    } catch (error: any) {
+      console.error('[get-companies-with-custom-fees] Error:', error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -6993,11 +7164,8 @@ const monthlyAmount = parseFloat(contract.monthlyAmount);
 const videosPerMonth = contract.videosPerMonth || 1;
 const paymentPerVideo = monthlyAmount / videosPerMonth;
 
-// Calculate fees (platform 4%, processing 3%)
-const grossAmount = paymentPerVideo;
-const platformFeeAmount = grossAmount * 0.04;
-const processingFeeAmount = grossAmount * 0.03;
-const netAmount = grossAmount - platformFeeAmount - processingFeeAmount;
+// Calculate fees with per-company override support (Section 4.3.H)
+const retainerFees = await calculateFees(paymentPerVideo, contract.companyId);
 
 // Create payment for the approved deliverable with 'pending' status
 // This puts it in the admin queue for processing
@@ -7007,16 +7175,17 @@ const payment = await storage.createRetainerPayment({
   creatorId: deliverable.creatorId,
   companyId: contract.companyId,
   amount: paymentPerVideo.toFixed(2),
-  grossAmount: grossAmount.toFixed(2),
-  platformFeeAmount: platformFeeAmount.toFixed(2),
-  processingFeeAmount: processingFeeAmount.toFixed(2),
-  netAmount: netAmount.toFixed(2),
+  grossAmount: retainerFees.grossAmount.toFixed(2),
+  platformFeeAmount: retainerFees.platformFeeAmount.toFixed(2),
+  processingFeeAmount: retainerFees.stripeFeeAmount.toFixed(2),
+  netAmount: retainerFees.netAmount.toFixed(2),
   status: 'pending', // ✅ FIXED: Changed from 'completed' to 'pending' for admin review
   description: `Retainer payment for ${contract.title} - Month ${deliverable.monthNumber}, Video ${deliverable.videoNumber}`,
   initiatedAt: new Date(),
 });
 
-console.log(`[Retainer Payment] Created pending payment of $${netAmount.toFixed(2)} (net) for creator ${deliverable.creatorId}`);
+const retainerFeeLabel = retainerFees.isCustomFee ? `Custom ${formatFeePercentage(retainerFees.platformFeePercentage)}` : formatFeePercentage(DEFAULT_PLATFORM_FEE_PERCENTAGE);
+console.log(`[Retainer Payment] Created pending payment of $${retainerFees.netAmount.toFixed(2)} (net) for creator ${deliverable.creatorId} - Platform Fee: ${retainerFeeLabel}`);
 
 // 🆕 SEND NOTIFICATION TO CREATOR ABOUT PENDING PAYMENT
 const creatorUser = await storage.getUserById(deliverable.creatorId);
@@ -7025,11 +7194,11 @@ if (creatorUser) {
     deliverable.creatorId,
     'payment_pending',
     'Deliverable Approved - Payment Pending 💰',
-    `Your deliverable for "${contract.title}" has been approved! Payment of $${netAmount.toFixed(2)} is pending admin processing.`,
+    `Your deliverable for "${contract.title}" has been approved! Payment of $${retainerFees.netAmount.toFixed(2)} is pending admin processing.`,
     {
       userName: creatorUser.firstName || creatorUser.username,
       offerTitle: contract.title,
-      amount: `$${netAmount.toFixed(2)}`,
+      amount: `$${retainerFees.netAmount.toFixed(2)}`,
       paymentId: payment.id,
     }
   );
@@ -7044,10 +7213,10 @@ for (const admin of adminUsers) {
     admin.id,
     'payment_pending',
     'New Retainer Payment Ready for Processing',
-    `A retainer payment of $${netAmount.toFixed(2)} for creator ${creatorUser?.username || 'Unknown'} on "${contract.title}" is ready for processing.`,
+    `A retainer payment of $${retainerFees.netAmount.toFixed(2)} for creator ${creatorUser?.username || 'Unknown'} on "${contract.title}" is ready for processing.`,
     {
       offerTitle: contract.title,
-      amount: `$${netAmount.toFixed(2)}`,
+      amount: `$${retainerFees.netAmount.toFixed(2)}`,
       paymentId: payment.id,
     }
   );

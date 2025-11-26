@@ -178,6 +178,8 @@ export const companyProfiles = pgTable("company_profiles", {
   websiteVerified: boolean("website_verified").notNull().default(false),
   websiteVerificationMethod: websiteVerificationMethodEnum("website_verification_method"),
   websiteVerifiedAt: timestamp("website_verified_at"),
+  // Per-company fee override (null means use default platform fee)
+  customPlatformFeePercentage: decimal("custom_platform_fee_percentage", { precision: 5, scale: 4 }),
   status: companyStatusEnum("status").notNull().default('pending'),
   approvedAt: timestamp("approved_at"),
   rejectionReason: text("rejection_reason"),
