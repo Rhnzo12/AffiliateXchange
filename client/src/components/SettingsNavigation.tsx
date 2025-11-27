@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { cn } from "../lib/utils";
 
 export interface SettingsSection {
@@ -14,46 +14,79 @@ interface SettingsNavigationProps {
 
 export function SettingsNavigation({ sections, className }: SettingsNavigationProps) {
   const [activeSection, setActiveSection] = useState<string>(sections[0]?.id || "");
-  const isScrollingRef = useRef(false);
+  const isClickScrollingRef = useRef(false);
+  const sectionsRef = useRef(sections);
 
-  const handleScroll = useCallback(() => {
-    // Don't update during programmatic scroll
-    if (isScrollingRef.current) return;
+  // Keep sections ref updated
+  useEffect(() => {
+    sectionsRef.current = sections;
+  }, [sections]);
 
-    const viewportHeight = window.innerHeight;
-    const scrollTop = window.scrollY;
-
-    // Find which section is currently in the viewport
-    let currentSection = sections[0]?.id || "";
-
-    for (let i = 0; i < sections.length; i++) {
-      const section = sections[i];
-      const element = document.getElementById(section.id);
-      if (element) {
-        const rect = element.getBoundingClientRect();
-        // Check if the top of the section is within the top half of the viewport
-        // or if the section takes up most of the viewport
-        if (rect.top <= viewportHeight * 0.4) {
-          currentSection = section.id;
-        }
-      }
+  // Update active section when sections prop changes
+  useEffect(() => {
+    if (sections.length > 0) {
+      setActiveSection(sections[0].id);
     }
-
-    setActiveSection(currentSection);
   }, [sections]);
 
   useEffect(() => {
+    const updateActiveSection = () => {
+      // Skip if we're in the middle of a click-triggered scroll
+      if (isClickScrollingRef.current) return;
+
+      const currentSections = sectionsRef.current;
+      if (currentSections.length === 0) return;
+
+      const viewportHeight = window.innerHeight;
+      let currentSection = currentSections[0]?.id || "";
+
+      // Go through each section and find the one currently in view
+      for (let i = 0; i < currentSections.length; i++) {
+        const section = currentSections[i];
+        const element = document.getElementById(section.id);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          // If the top of the section is above 40% of viewport, it's the current section
+          if (rect.top <= viewportHeight * 0.4) {
+            currentSection = section.id;
+          }
+        }
+      }
+
+      setActiveSection(currentSection);
+    };
+
+    // Throttle scroll events for better performance
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          updateActiveSection();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
-    // Initial check
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
+
+    // Initial check after a short delay to ensure DOM is ready
+    const timeoutId = setTimeout(() => {
+      updateActiveSection();
+    }, 100);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      // Set scrolling flag to prevent scroll handler from interfering
-      isScrollingRef.current = true;
+      // Mark that we're doing a click-triggered scroll
+      isClickScrollingRef.current = true;
       setActiveSection(sectionId);
 
       element.scrollIntoView({
@@ -61,9 +94,9 @@ export function SettingsNavigation({ sections, className }: SettingsNavigationPr
         block: "start",
       });
 
-      // Reset the flag after scroll animation completes
+      // Reset after scroll animation completes
       setTimeout(() => {
-        isScrollingRef.current = false;
+        isClickScrollingRef.current = false;
       }, 1000);
     }
   };
