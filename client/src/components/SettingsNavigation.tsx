@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { cn } from "../lib/utils";
 
 export interface SettingsSection {
@@ -14,23 +14,32 @@ interface SettingsNavigationProps {
 
 export function SettingsNavigation({ sections, className }: SettingsNavigationProps) {
   const [activeSection, setActiveSection] = useState<string>(sections[0]?.id || "");
+  const isScrollingRef = useRef(false);
 
   const handleScroll = useCallback(() => {
-    const scrollPosition = window.scrollY + 150; // Offset for header
+    // Don't update during programmatic scroll
+    if (isScrollingRef.current) return;
 
-    // Find the current section based on scroll position
-    for (let i = sections.length - 1; i >= 0; i--) {
+    const viewportHeight = window.innerHeight;
+    const scrollTop = window.scrollY;
+
+    // Find which section is currently in the viewport
+    let currentSection = sections[0]?.id || "";
+
+    for (let i = 0; i < sections.length; i++) {
       const section = sections[i];
       const element = document.getElementById(section.id);
       if (element) {
         const rect = element.getBoundingClientRect();
-        const offsetTop = rect.top + window.scrollY;
-        if (scrollPosition >= offsetTop) {
-          setActiveSection(section.id);
-          break;
+        // Check if the top of the section is within the top half of the viewport
+        // or if the section takes up most of the viewport
+        if (rect.top <= viewportHeight * 0.4) {
+          currentSection = section.id;
         }
       }
     }
+
+    setActiveSection(currentSection);
   }, [sections]);
 
   useEffect(() => {
@@ -43,13 +52,19 @@ export function SettingsNavigation({ sections, className }: SettingsNavigationPr
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      const rect = element.getBoundingClientRect();
-      const offsetTop = rect.top + window.scrollY - 100; // Offset for header
-      window.scrollTo({
-        top: offsetTop,
-        behavior: "smooth",
-      });
+      // Set scrolling flag to prevent scroll handler from interfering
+      isScrollingRef.current = true;
       setActiveSection(sectionId);
+
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+
+      // Reset the flag after scroll animation completes
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 1000);
     }
   };
 
