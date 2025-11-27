@@ -1327,17 +1327,16 @@ export default function Settings() {
     <div className="min-h-screen bg-background">
       <TopNavBar />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:pl-2 lg:pr-8 py-8">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-8 lg:pl-52">
-          <div>
-            <h1 className="text-3xl font-bold">Settings</h1>
-            <p className="text-muted-foreground mt-1">Manage your account preferences</p>
-          </div>
-        </div>
-
         <div className="flex gap-6">
           <SettingsNavigation sections={settingsSections} />
 
           <div className="flex-1 space-y-8 min-w-0 max-w-4xl">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h1 className="text-3xl font-bold">Settings</h1>
+                <p className="text-muted-foreground mt-1">Manage your account preferences</p>
+              </div>
+            </div>
 
       <Card id="profile-info" className="border-card-border scroll-mt-24">
         <CardHeader>
