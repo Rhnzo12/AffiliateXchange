@@ -4124,6 +4124,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get churn analytics for admin dashboard (admin only)
+  app.get("/api/admin/churn-analytics", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const range = (req.query.range as string) || '30d';
+      const churnData = await storage.getChurnAnalytics(range);
+      res.json(churnData);
+    } catch (error: any) {
+      console.error('[Churn Analytics Error]:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Notify admins about existing pending offers and payments (admin only)
   app.post("/api/admin/notify-pending-items", requireAuth, requireRole('admin'), async (req, res) => {
     try {
