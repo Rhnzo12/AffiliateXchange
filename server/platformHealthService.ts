@@ -424,10 +424,11 @@ export async function createHealthSnapshot(): Promise<void> {
     const errorRate = recentMetrics.errorRate || 0;
 
     // Health score calculation (0-100)
-    // - Response time: <100ms = 100, >1000ms = 0
+    // - Response time: <100ms = 100, 2500ms = 50, >5000ms = 0
     // - Error rate: 0% = 100, >10% = 0
+    // Using /50 divisor for more gradual degradation (was /10 which was too aggressive)
     const apiHealthScore = Math.max(0, Math.min(100,
-      100 - (avgResponseTime / 10) - (errorRate * 10)
+      100 - (avgResponseTime / 50) - (errorRate * 10)
     ));
 
     // Get system metrics
