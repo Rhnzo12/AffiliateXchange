@@ -11,7 +11,8 @@ import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye, ShieldCheck } from "lucide-react";
+import { TwoFactorSetup } from "../components/TwoFactorSetup";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -2417,6 +2418,9 @@ export default function Settings() {
             )}
           </CardContent>
         </Card>
+
+      {/* Two-Factor Authentication Section */}
+      <TwoFactorSetup />
 
       <Card className="border-card-border">
         <CardHeader>
