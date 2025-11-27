@@ -108,6 +108,10 @@ export const users = pgTable("users", {
   accountDeletionOtpExpiry: timestamp("account_deletion_otp_expiry"),
   passwordChangeOtp: varchar("password_change_otp"),
   passwordChangeOtpExpiry: timestamp("password_change_otp_expiry"),
+  // Two-Factor Authentication fields
+  twoFactorSecret: varchar("two_factor_secret", { length: 64 }),
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+  twoFactorBackupCodes: text("two_factor_backup_codes"), // JSON array of hashed backup codes
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
