@@ -163,8 +163,8 @@ export default function AdminPlatformSettings() {
   return (
     <div className="min-h-screen bg-background">
       <TopNavBar />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:pl-2 lg:pr-8 py-8">
+        <div className="mb-8 lg:pl-52">
           <h1 className="text-3xl font-bold">Platform Settings</h1>
           <p className="text-muted-foreground mt-1">
             Configure platform-wide settings and policies
@@ -180,10 +180,10 @@ export default function AdminPlatformSettings() {
             No settings found
           </div>
         ) : (
-          <div className="flex gap-8">
+          <div className="flex gap-6">
             <SettingsNavigation sections={adminSettingsSections} />
 
-            <div className="flex-1 space-y-6 min-w-0">
+            <div className="flex-1 space-y-6 min-w-0 max-w-4xl">
               {Object.entries(groupedSettings).map(([category, categorySettings]) => (
                 <Card key={category} id={`admin-${category}`} className="scroll-mt-24">
                   <CardHeader>
