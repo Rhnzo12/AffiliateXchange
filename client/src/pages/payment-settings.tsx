@@ -105,7 +105,7 @@ const statusConfig: Record<PaymentStatus, { bg: string; text: string; icon: type
 // Helper to check if a payment is disputed (failed with "Disputed:" in description)
 function isDisputedPayment(payment: CreatorPayment): boolean {
   return payment.status === "failed" &&
-    payment.description?.toLowerCase().includes("disputed:");
+    (payment.description?.toLowerCase().includes("disputed:") ?? false);
 }
 
 function StatusBadge({ status, isDisputed = false }: { status: PaymentStatus; isDisputed?: boolean }) {

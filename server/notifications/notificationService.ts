@@ -76,6 +76,8 @@ interface NotificationData {
   grossAmount?: string;
   platformFee?: string;
   processingFee?: string;
+  platformFeePercentage?: string;
+  processingFeePercentage?: string;
   transactionId?: string;
   reviewRating?: number;
   reviewText?: string;

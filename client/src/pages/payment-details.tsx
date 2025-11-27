@@ -98,7 +98,7 @@ const statusConfig = {
 // Helper to check if a payment is disputed
 function isDisputedPayment(payment: Payment): boolean {
   return payment.status === "failed" &&
-    payment.description?.toLowerCase().includes("disputed:");
+    (payment.description?.toLowerCase().includes("disputed:") ?? false);
 }
 
 export default function PaymentDetail() {
