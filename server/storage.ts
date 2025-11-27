@@ -671,6 +671,7 @@ export interface IStorage {
 
   // Messages & Conversations
   getConversation(id: string): Promise<any>;
+  getConversationWithDetails(id: string): Promise<any>;
   getConversationsByUser(
     userId: string,
     userRole: string,
@@ -2288,6 +2289,31 @@ export class DatabaseStorage implements IStorage {
   // Messages & Conversations
   async getConversation(id: string): Promise<any> {
     const result = await db.select().from(conversations).where(eq(conversations.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getConversationWithDetails(id: string): Promise<any> {
+    const result = await db
+      .select({
+        id: conversations.id,
+        applicationId: conversations.applicationId,
+        creatorId: conversations.creatorId,
+        companyId: conversations.companyId,
+        offerId: conversations.offerId,
+        lastMessageAt: conversations.lastMessageAt,
+        creatorUnreadCount: conversations.creatorUnreadCount,
+        companyUnreadCount: conversations.companyUnreadCount,
+        resolved: conversations.resolved,
+        resolvedAt: conversations.resolvedAt,
+        resolvedBy: conversations.resolvedBy,
+        createdAt: conversations.createdAt,
+        updatedAt: conversations.updatedAt,
+        offerTitle: offers.title,
+      })
+      .from(conversations)
+      .leftJoin(offers, eq(conversations.offerId, offers.id))
+      .where(eq(conversations.id, id))
+      .limit(1);
     return result[0];
   }
 

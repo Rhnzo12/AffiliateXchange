@@ -5846,6 +5846,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin conversation export for legal compliance/dispute resolution
+  app.get("/api/admin/conversations/:conversationId/export", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { conversationId } = req.params;
+      const format = (req.query.format as string) || 'json';
+
+      if (!['json', 'csv'].includes(format)) {
+        return res.status(400).send("Invalid format. Supported formats: json, csv");
+      }
+
+      // Get conversation details
+      const conversation = await storage.getConversationWithDetails(conversationId);
+      if (!conversation) {
+        return res.status(404).send("Conversation not found");
+      }
+
+      // Get all messages
+      const messages = await storage.getMessages(conversationId);
+
+      // Get user details for sender names
+      const creatorUser = await storage.getUser(conversation.creatorId);
+      const companyProfile = await storage.getCompanyProfile(conversation.companyId);
+      const companyUser = companyProfile ? await storage.getUser(companyProfile.userId) : null;
+
+      const creatorName = creatorUser
+        ? `${creatorUser.firstName || ''} ${creatorUser.lastName || ''}`.trim() || creatorUser.email
+        : 'Unknown Creator';
+      const companyName = companyProfile?.tradeName || companyProfile?.legalName || 'Unknown Company';
+
+      // Format messages with sender info
+      const formattedMessages = messages.map(msg => ({
+        id: msg.id,
+        senderId: msg.senderId,
+        senderName: msg.senderId === conversation.creatorId ? creatorName : companyName,
+        senderType: msg.senderId === conversation.creatorId ? 'creator' : 'company',
+        content: msg.content,
+        attachments: msg.attachments || [],
+        createdAt: msg.createdAt,
+        isRead: msg.isRead,
+      }));
+
+      const exportData = {
+        exportMetadata: {
+          exportDate: new Date().toISOString(),
+          exportedBy: (req.user as any).id,
+          exportPurpose: 'Legal compliance and dispute resolution',
+          platform: 'AffiliateXchange',
+        },
+        conversation: {
+          id: conversationId,
+          offerTitle: conversation.offerTitle || 'Unknown Offer',
+          creator: {
+            id: conversation.creatorId,
+            name: creatorName,
+            email: creatorUser?.email || '',
+          },
+          company: {
+            id: conversation.companyId,
+            name: companyName,
+          },
+          createdAt: conversation.createdAt,
+          lastMessageAt: conversation.lastMessageAt,
+          totalMessages: messages.length,
+        },
+        messages: formattedMessages,
+      };
+
+      if (format === 'csv') {
+        // Generate CSV format
+        const csvHeaders = ['Message ID', 'Timestamp', 'Sender Name', 'Sender Type', 'Message Content', 'Has Attachments', 'Attachment Count', 'Is Read'];
+        const csvRows = [
+          ['--- CONVERSATION METADATA ---', '', '', '', '', '', '', ''],
+          ['Conversation ID', conversationId, '', '', '', '', '', ''],
+          ['Offer', exportData.conversation.offerTitle, '', '', '', '', '', ''],
+          ['Creator', creatorName, creatorUser?.email || '', '', '', '', '', ''],
+          ['Company', companyName, '', '', '', '', '', ''],
+          ['Started', exportData.conversation.createdAt?.toString() || '', '', '', '', '', '', ''],
+          ['Last Message', exportData.conversation.lastMessageAt?.toString() || '', '', '', '', '', '', ''],
+          ['Total Messages', messages.length.toString(), '', '', '', '', '', ''],
+          ['Export Date', new Date().toISOString(), '', '', '', '', '', ''],
+          ['--- MESSAGE HISTORY ---', '', '', '', '', '', '', ''],
+          csvHeaders,
+          ...formattedMessages.map(msg => [
+            msg.id,
+            new Date(msg.createdAt!).toISOString(),
+            msg.senderName,
+            msg.senderType,
+            msg.content || '',
+            msg.attachments.length > 0 ? 'Yes' : 'No',
+            msg.attachments.length.toString(),
+            msg.isRead ? 'Yes' : 'No',
+          ]),
+        ];
+
+        const csvContent = csvRows
+          .map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+          .join('\n');
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="conversation-${conversationId}-export.csv"`);
+        return res.send(csvContent);
+      }
+
+      // Default to JSON
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="conversation-${conversationId}-export.json"`);
+      res.json(exportData);
+    } catch (error: any) {
+      console.error('[Admin Conversation Export] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Admin payment disputes routes
   app.get("/api/admin/payments/disputed", requireAuth, requireRole('admin'), async (req, res) => {
     try {

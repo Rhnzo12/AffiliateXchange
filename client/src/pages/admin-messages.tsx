@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../hooks/use-toast";
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
@@ -8,17 +9,36 @@ import { ScrollArea } from "../components/ui/scroll-area";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "../components/ui/dropdown-menu";
+import {
   MessageSquare,
   Search,
   Check,
   CheckCheck,
   ArrowLeft,
   Building2,
-  User
+  User,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  FileJson,
+  Loader2
 } from "lucide-react";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
 import { proxiedSrc } from "../lib/image";
+import {
+  exportConversationPDF,
+  exportConversationCSV,
+  exportConversationJSON,
+  ConversationExportData,
+  ConversationMessage,
+} from "../lib/export-utils";
 
 interface EnhancedMessage {
   id: string;
@@ -31,8 +51,10 @@ interface EnhancedMessage {
 
 export default function AdminMessages() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const { toast } = useToast();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -105,6 +127,77 @@ export default function AdminMessages() {
   const currentConversation = conversations?.find((c: any) => c.id === selectedConversation);
   const creator = currentConversation?.creator;
   const company = currentConversation?.company;
+
+  // Export conversation function
+  const handleExport = async (exportFormat: 'pdf' | 'csv' | 'json') => {
+    if (!currentConversation || !messages || messages.length === 0) {
+      toast({
+        title: "Export failed",
+        description: "No messages to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      // Prepare export data
+      const exportData: ConversationExportData = {
+        id: currentConversation.id,
+        offerTitle: currentConversation.offerTitle || 'Unknown Offer',
+        creator: {
+          id: creator?.id || '',
+          name: creator?.name || 'Unknown Creator',
+          email: creator?.email || '',
+        },
+        company: {
+          id: company?.id || currentConversation.companyId || '',
+          name: company?.name || 'Unknown Company',
+        },
+        messages: messages.map((msg): ConversationMessage => ({
+          id: msg.id,
+          senderId: msg.senderId,
+          senderName: msg.senderId === creator?.id ? (creator?.name || 'Creator') : (company?.name || 'Company'),
+          senderType: msg.senderId === creator?.id ? 'creator' : 'company',
+          content: msg.content,
+          attachments: msg.attachments,
+          createdAt: msg.createdAt,
+          isRead: msg.isRead,
+        })),
+        createdAt: currentConversation.createdAt,
+        lastMessageAt: currentConversation.lastMessageAt || currentConversation.createdAt,
+        totalMessages: messages.length,
+      };
+
+      // Export based on format
+      switch (exportFormat) {
+        case 'pdf':
+          exportConversationPDF(exportData);
+          break;
+        case 'csv':
+          exportConversationCSV(exportData);
+          break;
+        case 'json':
+          exportConversationJSON(exportData);
+          break;
+      }
+
+      toast({
+        title: "Export successful",
+        description: `Conversation exported as ${exportFormat.toUpperCase()}`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export conversation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
@@ -268,9 +361,43 @@ export default function AdminMessages() {
                         </p>
                       </div>
                     </div>
-                    <Badge variant="secondary">
-                      {messages.length} messages
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">
+                        {messages.length} messages
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={isExporting || messages.length === 0}
+                            className="gap-2"
+                          >
+                            {isExporting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                            Export
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Export as PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleExport('csv')}>
+                            <FileSpreadsheet className="h-4 w-4 mr-2" />
+                            Export as CSV
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleExport('json')}>
+                            <FileJson className="h-4 w-4 mr-2" />
+                            Export as JSON
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </div>
 
