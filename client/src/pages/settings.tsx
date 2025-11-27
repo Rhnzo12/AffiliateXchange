@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -11,8 +11,9 @@ import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye, ShieldCheck } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye, ShieldCheck, User, Mail, Key, KeyRound, LogOut } from "lucide-react";
 import { TwoFactorSetup } from "../components/TwoFactorSetup";
+import { SettingsNavigation, SettingsSection } from "../components/SettingsNavigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1307,18 +1308,38 @@ export default function Settings() {
     updateProfileMutation.mutate();
   };
 
+  // Define navigation sections based on user role
+  const settingsSections: SettingsSection[] = useMemo(() => {
+    const sections: SettingsSection[] = [
+      { id: "profile-info", label: "Profile Information", icon: <User className="h-4 w-4" /> },
+      { id: "account-info", label: "Account Information", icon: <User className="h-4 w-4" /> },
+      { id: "change-email", label: "Change Email", icon: <Mail className="h-4 w-4" /> },
+      { id: "change-password-otp", label: "Password (Email Verify)", icon: <Key className="h-4 w-4" /> },
+      { id: "change-password-legacy", label: "Password (Legacy)", icon: <KeyRound className="h-4 w-4" /> },
+      { id: "two-factor-auth", label: "Two-Factor Auth", icon: <ShieldCheck className="h-4 w-4" /> },
+      { id: "privacy-data", label: "Privacy & Data", icon: <Shield className="h-4 w-4" /> },
+      { id: "logout-section", label: "Logout", icon: <LogOut className="h-4 w-4" /> },
+    ];
+    return sections;
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <TopNavBar />
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">Settings</h1>
             <p className="text-muted-foreground mt-1">Manage your account preferences</p>
           </div>
         </div>
 
-      <Card className="border-card-border">
+        <div className="flex gap-8">
+          <SettingsNavigation sections={settingsSections} />
+
+          <div className="flex-1 space-y-8 min-w-0">
+
+      <Card id="profile-info" className="border-card-border scroll-mt-24">
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
         </CardHeader>
@@ -2041,7 +2062,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="border-card-border">
+      <Card id="account-info" className="border-card-border scroll-mt-24">
         <CardHeader>
           <CardTitle>Account Information</CardTitle>
         </CardHeader>
@@ -2098,7 +2119,7 @@ export default function Settings() {
       </Card>
 
       {/* Email Change Section */}
-      <Card className="border-card-border">
+      <Card id="change-email" className="border-card-border scroll-mt-24">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Change Email Address
@@ -2237,7 +2258,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="border-card-border">
+      <Card id="change-password-otp" className="border-card-border scroll-mt-24">
         <CardHeader>
           <CardTitle>Change Password with Email Verification</CardTitle>
           <CardDescription>
@@ -2353,7 +2374,7 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-      <Card className="border-card-border">
+      <Card id="change-password-legacy" className="border-card-border scroll-mt-24">
         <CardHeader>
           <CardTitle>Change Password (Legacy)</CardTitle>
           <CardDescription>
@@ -2420,9 +2441,11 @@ export default function Settings() {
         </Card>
 
       {/* Two-Factor Authentication Section */}
-      <TwoFactorSetup />
+      <div id="two-factor-auth" className="scroll-mt-24">
+        <TwoFactorSetup />
+      </div>
 
-      <Card className="border-card-border">
+      <Card id="privacy-data" className="border-card-border scroll-mt-24">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -2488,7 +2511,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="border-card-border">
+      <Card id="logout-section" className="border-card-border scroll-mt-24">
         <CardHeader>
           <CardTitle>Account</CardTitle>
         </CardHeader>
@@ -2818,6 +2841,8 @@ export default function Settings() {
         title={errorDialog?.title || "Error"}
         description={errorDialog?.message || "An error occurred"}
       />
+          </div>
+        </div>
       </div>
     </div>
   );
