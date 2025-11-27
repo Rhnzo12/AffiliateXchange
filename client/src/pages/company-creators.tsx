@@ -298,7 +298,120 @@ export default function CompanyCreators() {
     },
   });
 
-  // Selection helper functions
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      setErrorDialog({
+        title: "Unauthorized",
+        message: "You are logged out. Logging in again...",
+      });
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 500);
+    }
+  }, [isAuthenticated, isLoading]);
+
+  const { data: applications = [], isLoading: loadingCreators } = useQuery<CompanyApplication[]>({
+    queryKey: ["/api/company/applications"],
+    enabled: isAuthenticated,
+  });
+
+  const normalizedApplications: NormalizedApplication[] = useMemo(() => {
+    return applications.map((application) => {
+      const clicks = Number(application.clickCount || 0);
+      const conversions = Number(application.conversionCount || 0);
+      const earnings = Number(application.totalEarnings || 0);
+      const joinDate = application.createdAt ? new Date(application.createdAt) : null;
+
+      return {
+        ...application,
+        clicks,
+        conversions,
+        earnings,
+        conversionRate: clicks > 0 ? conversions / clicks : 0,
+        performanceTier: computePerformanceTier(clicks, conversions, earnings),
+        joinDate,
+      };
+    });
+  }, [applications]);
+
+  const uniqueOfferOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    normalizedApplications.forEach((app) => {
+      if (app.offer?.id && app.offer?.title) {
+        map.set(app.offer.id, app.offer.title);
+      }
+    });
+    return Array.from(map.entries());
+  }, [normalizedApplications]);
+
+  const filteredApplications = useMemo(() => {
+    const searchValue = searchTerm.trim().toLowerCase();
+
+    return normalizedApplications.filter((application) => {
+      const haystack = [
+        `${application.creator?.firstName || ""} ${application.creator?.lastName || ""}`.trim(),
+        application.creator?.email || "",
+        application.creator?.bio || "",
+        application.offer?.title || "",
+      ].filter((value): value is string => Boolean(value));
+
+      const matchesSearch = searchValue
+        ? haystack.some((value) => value.toLowerCase().includes(searchValue))
+        : true;
+
+      const matchesOffer =
+        offerFilter === "all" || (application.offer?.id && application.offer.id === offerFilter);
+
+      const matchesPlatform = (() => {
+        if (platformFilter === "all") return true;
+        if (platformFilter === "youtube") return Boolean(application.creator?.youtubeUrl);
+        if (platformFilter === "tiktok") return Boolean(application.creator?.tiktokUrl);
+        if (platformFilter === "instagram") return Boolean(application.creator?.instagramUrl);
+        return true;
+      })();
+
+      const matchesStatus = statusFilter === "all" || application.status === statusFilter;
+
+      const matchesPerformance =
+        performanceFilter === "all" || application.performanceTier === performanceFilter;
+
+      const matchesJoinDate = (() => {
+        if (joinDateFilter === "all" || !application.joinDate) return true;
+        const diffDays = (Date.now() - application.joinDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (joinDateFilter === "7d") return diffDays <= 7;
+        if (joinDateFilter === "30d") return diffDays <= 30;
+        if (joinDateFilter === "90d") return diffDays <= 90;
+        return true;
+      })();
+
+      return (
+        matchesSearch &&
+        matchesOffer &&
+        matchesPlatform &&
+        matchesStatus &&
+        matchesPerformance &&
+        matchesJoinDate
+      );
+    });
+  }, [normalizedApplications, searchTerm, offerFilter, platformFilter, statusFilter, performanceFilter, joinDateFilter]);
+
+  const groupedOffers = useMemo(() => {
+    const map = new Map<string, { offerTitle: string; items: NormalizedApplication[] }>();
+
+    filteredApplications.forEach((application) => {
+      if (!application.offer?.id || !application.offer?.title) return;
+      if (!map.has(application.offer.id)) {
+        map.set(application.offer.id, { offerTitle: application.offer.title, items: [] });
+      }
+      map.get(application.offer.id)!.items.push(application);
+    });
+
+    return Array.from(map.entries())
+      .map(([offerId, value]) => ({ offerId, ...value }))
+      .sort((a, b) => a.offerTitle.localeCompare(b.offerTitle));
+  }, [filteredApplications]);
+
+  // Selection helper functions (must be after filteredApplications is defined)
   const toggleApplicationSelection = useCallback((applicationId: string) => {
     setSelectedApplications((prev) => {
       const next = new Set(prev);
@@ -446,119 +559,6 @@ export default function CompanyCreators() {
         return null;
     }
   }, [bulkActionDialog, selectedApplications.size, selectedPendingPayouts]);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      setErrorDialog({
-        title: "Unauthorized",
-        message: "You are logged out. Logging in again...",
-      });
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 500);
-    }
-  }, [isAuthenticated, isLoading]);
-
-  const { data: applications = [], isLoading: loadingCreators } = useQuery<CompanyApplication[]>({
-    queryKey: ["/api/company/applications"],
-    enabled: isAuthenticated,
-  });
-
-  const normalizedApplications: NormalizedApplication[] = useMemo(() => {
-    return applications.map((application) => {
-      const clicks = Number(application.clickCount || 0);
-      const conversions = Number(application.conversionCount || 0);
-      const earnings = Number(application.totalEarnings || 0);
-      const joinDate = application.createdAt ? new Date(application.createdAt) : null;
-
-      return {
-        ...application,
-        clicks,
-        conversions,
-        earnings,
-        conversionRate: clicks > 0 ? conversions / clicks : 0,
-        performanceTier: computePerformanceTier(clicks, conversions, earnings),
-        joinDate,
-      };
-    });
-  }, [applications]);
-
-  const uniqueOfferOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    normalizedApplications.forEach((app) => {
-      if (app.offer?.id && app.offer?.title) {
-        map.set(app.offer.id, app.offer.title);
-      }
-    });
-    return Array.from(map.entries());
-  }, [normalizedApplications]);
-
-  const filteredApplications = useMemo(() => {
-    const searchValue = searchTerm.trim().toLowerCase();
-
-    return normalizedApplications.filter((application) => {
-      const haystack = [
-        `${application.creator?.firstName || ""} ${application.creator?.lastName || ""}`.trim(),
-        application.creator?.email || "",
-        application.creator?.bio || "",
-        application.offer?.title || "",
-      ].filter((value): value is string => Boolean(value));
-
-      const matchesSearch = searchValue
-        ? haystack.some((value) => value.toLowerCase().includes(searchValue))
-        : true;
-
-      const matchesOffer =
-        offerFilter === "all" || (application.offer?.id && application.offer.id === offerFilter);
-
-      const matchesPlatform = (() => {
-        if (platformFilter === "all") return true;
-        if (platformFilter === "youtube") return Boolean(application.creator?.youtubeUrl);
-        if (platformFilter === "tiktok") return Boolean(application.creator?.tiktokUrl);
-        if (platformFilter === "instagram") return Boolean(application.creator?.instagramUrl);
-        return true;
-      })();
-
-      const matchesStatus = statusFilter === "all" || application.status === statusFilter;
-
-      const matchesPerformance =
-        performanceFilter === "all" || application.performanceTier === performanceFilter;
-
-      const matchesJoinDate = (() => {
-        if (joinDateFilter === "all" || !application.joinDate) return true;
-        const diffDays = (Date.now() - application.joinDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (joinDateFilter === "7d") return diffDays <= 7;
-        if (joinDateFilter === "30d") return diffDays <= 30;
-        if (joinDateFilter === "90d") return diffDays <= 90;
-        return true;
-      })();
-
-      return (
-        matchesSearch &&
-        matchesOffer &&
-        matchesPlatform &&
-        matchesStatus &&
-        matchesPerformance &&
-        matchesJoinDate
-      );
-    });
-  }, [normalizedApplications, searchTerm, offerFilter, platformFilter, statusFilter, performanceFilter, joinDateFilter]);
-
-  const groupedOffers = useMemo(() => {
-    const map = new Map<string, { offerTitle: string; items: NormalizedApplication[] }>();
-
-    filteredApplications.forEach((application) => {
-      if (!application.offer?.id || !application.offer?.title) return;
-      if (!map.has(application.offer.id)) {
-        map.set(application.offer.id, { offerTitle: application.offer.title, items: [] });
-      }
-      map.get(application.offer.id)!.items.push(application);
-    });
-
-    return Array.from(map.entries())
-      .map(([offerId, value]) => ({ offerId, ...value }))
-      .sort((a, b) => a.offerTitle.localeCompare(b.offerTitle));
-  }, [filteredApplications]);
 
   const totalVisibleCreators = filteredApplications.length;
   const totalCreators = normalizedApplications.length;
