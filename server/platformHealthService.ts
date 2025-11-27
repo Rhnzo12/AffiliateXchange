@@ -128,7 +128,7 @@ export async function flushMetrics(): Promise<void> {
   const hour = now.getHours();
 
   try {
-    for (const [, buffer] of metricsBuffer) {
+    for (const [, buffer] of Array.from(metricsBuffer)) {
       if (buffer.responseTimes.length === 0) continue;
 
       const stats = calculateStats(buffer.responseTimes);

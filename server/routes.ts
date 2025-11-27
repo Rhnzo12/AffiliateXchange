@@ -4663,8 +4663,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         action: 'update_company_fee',
         entityType: 'company',
         entityId: companyId,
-        description: `Updated platform fee for ${company.legalName} to ${(feeValue * 100).toFixed(2)}%`,
-        metadata: {
+        reason: `Updated platform fee for ${company.legalName} to ${(feeValue * 100).toFixed(2)}%`,
+        changes: {
           previousFee: company.customPlatformFeePercentage,
           newFee: feeValue,
           companyName: company.legalName,
@@ -4711,8 +4711,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         action: 'remove_company_fee',
         entityType: 'company',
         entityId: companyId,
-        description: `Removed custom platform fee for ${company.legalName}, reverting to default ${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
-        metadata: {
+        reason: `Removed custom platform fee for ${company.legalName}, reverting to default ${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
+        changes: {
           previousFee: previousFee,
           companyName: company.legalName,
         },
@@ -5098,7 +5098,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Company self-service - Get verification token (for company users)
   app.get("/api/company/website-verification", requireAuth, requireRole('company'), async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = (req.user as any).id;
       const company = await storage.getCompanyProfile(userId);
 
       if (!company) {
@@ -5125,7 +5125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Company self-service - Generate verification token
   app.post("/api/company/generate-verification-token", requireAuth, requireRole('company'), async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = (req.user as any).id;
       let company = await storage.getCompanyProfile(userId);
 
       if (!company) {
@@ -5155,7 +5155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Company self-service - Request verification check
   app.post("/api/company/verify-website", requireAuth, requireRole('company'), async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const userId = (req.user as any).id;
       const { method } = req.body;
 
       if (!method || !['meta_tag', 'dns_txt'].includes(method)) {
@@ -6411,7 +6411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category: sourceTemplate.category,
         subject: sourceTemplate.subject,
         htmlContent: sourceTemplate.htmlContent,
-        visualData: sourceTemplate.visualData,
+        visualData: sourceTemplate.visualData as Record<string, unknown> | undefined,
         description: sourceTemplate.description,
         availableVariables: sourceTemplate.availableVariables || [],
         isActive: false, // Start as inactive
