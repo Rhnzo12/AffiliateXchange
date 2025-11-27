@@ -164,6 +164,13 @@ export default function AdminPlatformSettings() {
     <div className="min-h-screen bg-background">
       <TopNavBar />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:pl-2 lg:pr-8 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">Platform Settings</h1>
+          <p className="text-muted-foreground mt-1">
+            Configure platform-wide settings and policies
+          </p>
+        </div>
+
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">
             Loading settings...
@@ -177,12 +184,6 @@ export default function AdminPlatformSettings() {
             <SettingsNavigation sections={adminSettingsSections} />
 
             <div className="flex-1 space-y-6 min-w-0 max-w-4xl">
-              <div className="mb-2">
-                <h1 className="text-3xl font-bold">Platform Settings</h1>
-                <p className="text-muted-foreground mt-1">
-                  Configure platform-wide settings and policies
-                </p>
-              </div>
               {Object.entries(groupedSettings).map(([category, categorySettings]) => (
                 <Card key={category} id={`admin-${category}`} className="scroll-mt-24">
                   <CardHeader>
