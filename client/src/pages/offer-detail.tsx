@@ -1400,18 +1400,18 @@ export default function OfferDetail() {
       {/* Sticky Apply Button */}
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-lg shadow-2xl p-3 sm:p-4 z-50">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div>
-              <div className="text-xs text-muted-foreground">Earn Commission</div>
-              <div className="text-lg sm:text-2xl font-bold text-green-600">
+          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+            <div className="min-w-0">
+              <div className="text-xs text-muted-foreground whitespace-nowrap">Earn Commission</div>
+              <div className="text-lg sm:text-2xl font-bold text-green-600 whitespace-nowrap">
                 {formatCommission(offer)}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {hasApplied && existingApplication?.createdAt && (
-              <Badge variant="secondary" className="hidden md:flex text-xs">
+              <Badge variant="secondary" className="hidden lg:flex text-xs whitespace-nowrap">
                 Applied {new Date(existingApplication.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </Badge>
             )}
