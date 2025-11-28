@@ -4883,7 +4883,7 @@ export class DatabaseStorage implements IStorage {
 
   // Niche Categories Management
   async getNiches(): Promise<Niche[]> {
-    return await db.select().from(niches).orderBy(niches.name);
+    return await db.select().from(niches).orderBy(niches.displayOrder, niches.name);
   }
 
   async getActiveNiches(): Promise<Niche[]> {
@@ -4891,7 +4891,16 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(niches)
       .where(eq(niches.isActive, true))
-      .orderBy(niches.name);
+      .orderBy(niches.displayOrder, niches.name);
+  }
+
+  async getPrimaryNiche(): Promise<Niche | null> {
+    const result = await db
+      .select()
+      .from(niches)
+      .where(eq(niches.isPrimary, true))
+      .limit(1);
+    return result[0] || null;
   }
 
   async getNicheById(id: string): Promise<Niche | null> {
@@ -4904,10 +4913,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addNiche(name: string, description?: string, isActive: boolean = true, userId?: string): Promise<Niche> {
+    // Get the max displayOrder to append new niche at the end
+    const existingNiches = await this.getNiches();
+    const maxOrder = existingNiches.reduce((max, n) => Math.max(max, n.displayOrder || 0), 0);
+
     const nicheData: InsertNiche = {
       name,
       description: description || null,
       isActive,
+      displayOrder: maxOrder + 1,
     };
 
     const result = await db.insert(niches).values(nicheData).returning();
@@ -4937,6 +4951,120 @@ export class DatabaseStorage implements IStorage {
     if (!result[0]) {
       throw new Error('Niche not found');
     }
+  }
+
+  async reorderNiches(orderedIds: string[], userId?: string): Promise<Niche[]> {
+    // Update display_order for each niche based on the new order
+    const updates = orderedIds.map((id, index) =>
+      db.update(niches)
+        .set({ displayOrder: index + 1, updatedAt: new Date() })
+        .where(eq(niches.id, id))
+    );
+
+    await Promise.all(updates);
+
+    return await this.getNiches();
+  }
+
+  async setNicheAsPrimary(id: string, userId?: string): Promise<Niche> {
+    // First, unset all primary flags
+    await db.update(niches)
+      .set({ isPrimary: false, updatedAt: new Date() });
+
+    // Then set the specified niche as primary
+    const result = await db.update(niches)
+      .set({ isPrimary: true, updatedAt: new Date() })
+      .where(eq(niches.id, id))
+      .returning();
+
+    if (!result[0]) {
+      throw new Error('Niche not found');
+    }
+
+    return result[0];
+  }
+
+  async mergeNiches(sourceId: string, targetId: string, userId?: string): Promise<{
+    updatedOffers: number;
+    updatedCreators: number;
+    targetNiche: Niche
+  }> {
+    // Get source and target niches
+    const sourceNiche = await this.getNicheById(sourceId);
+    const targetNiche = await this.getNicheById(targetId);
+
+    if (!sourceNiche) {
+      throw new Error('Source niche not found');
+    }
+    if (!targetNiche) {
+      throw new Error('Target niche not found');
+    }
+
+    let updatedOffers = 0;
+    let updatedCreators = 0;
+
+    // Update offers: replace source niche with target in primaryNiche
+    const offersWithPrimaryNiche = await db.select().from(offers)
+      .where(eq(offers.primaryNiche, sourceNiche.name));
+
+    for (const offer of offersWithPrimaryNiche) {
+      await db.update(offers)
+        .set({ primaryNiche: targetNiche.name, updatedAt: new Date() })
+        .where(eq(offers.id, offer.id));
+      updatedOffers++;
+    }
+
+    // Update offers: replace source niche in additionalNiches arrays
+    const allOffers = await db.select().from(offers);
+    for (const offer of allOffers) {
+      if (offer.additionalNiches && Array.isArray(offer.additionalNiches)) {
+        const additionalNiches = offer.additionalNiches as string[];
+        if (additionalNiches.includes(sourceNiche.name)) {
+          const updatedNiches = additionalNiches
+            .filter(n => n !== sourceNiche.name)
+            .concat(additionalNiches.includes(targetNiche.name) ? [] : [targetNiche.name]);
+
+          await db.update(offers)
+            .set({ additionalNiches: updatedNiches, updatedAt: new Date() })
+            .where(eq(offers.id, offer.id));
+
+          // Only count if not already counted for primaryNiche
+          if (offer.primaryNiche !== sourceNiche.name) {
+            updatedOffers++;
+          }
+        }
+      }
+    }
+
+    // Update creator profiles: replace source niche in niches arrays
+    const allCreatorProfiles = await db.select().from(creatorProfiles);
+    for (const profile of allCreatorProfiles) {
+      if (profile.niches && Array.isArray(profile.niches)) {
+        const profileNiches = profile.niches as string[];
+        if (profileNiches.includes(sourceNiche.name)) {
+          const updatedNiches = profileNiches
+            .filter(n => n !== sourceNiche.name)
+            .concat(profileNiches.includes(targetNiche.name) ? [] : [targetNiche.name]);
+
+          await db.update(creatorProfiles)
+            .set({ niches: updatedNiches, updatedAt: new Date() })
+            .where(eq(creatorProfiles.userId, profile.userId));
+          updatedCreators++;
+        }
+      }
+    }
+
+    // Delete the source niche
+    await this.deleteNiche(sourceId, userId);
+
+    // Return the updated target niche
+    const updatedTargetNiche = await this.getNicheById(targetId);
+
+    return {
+      updatedOffers,
+      updatedCreators,
+      targetNiche: updatedTargetNiche!
+    };
   }
 
   // Platform Funding Accounts

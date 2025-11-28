@@ -6211,6 +6211,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reorder niches (drag-and-drop)
+  app.put("/api/admin/niches/reorder", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { orderedIds } = req.body;
+
+      if (!orderedIds || !Array.isArray(orderedIds)) {
+        return res.status(400).send("orderedIds array is required");
+      }
+
+      const niches = await storage.reorderNiches(orderedIds, userId);
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.REORDER_NICHES,
+        entityType: EntityTypes.NICHE,
+        changes: { orderedIds },
+        reason: 'Reordered niche categories',
+      }, req);
+
+      res.json(niches);
+    } catch (error: any) {
+      console.error('[Admin Niches] Error reordering niches:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Set a niche as primary
+  app.put("/api/admin/niches/:id/set-primary", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const nicheId = req.params.id;
+
+      const niche = await storage.setNicheAsPrimary(nicheId, userId);
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.SET_PRIMARY_NICHE,
+        entityType: EntityTypes.NICHE,
+        entityId: nicheId,
+        changes: { isPrimary: true },
+        reason: 'Set niche as primary',
+      }, req);
+
+      res.json(niche);
+    } catch (error: any) {
+      console.error('[Admin Niches] Error setting primary niche:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Merge niches
+  app.post("/api/admin/niches/merge", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { sourceId, targetId } = req.body;
+
+      if (!sourceId || !targetId) {
+        return res.status(400).send("sourceId and targetId are required");
+      }
+
+      if (sourceId === targetId) {
+        return res.status(400).send("Cannot merge a niche with itself");
+      }
+
+      const result = await storage.mergeNiches(sourceId, targetId, userId);
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.MERGE_NICHES,
+        entityType: EntityTypes.NICHE,
+        entityId: targetId,
+        changes: {
+          sourceId,
+          targetId,
+          updatedOffers: result.updatedOffers,
+          updatedCreators: result.updatedCreators
+        },
+        reason: 'Merged niche categories',
+      }, req);
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('[Admin Niches] Error merging niches:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Public endpoint to get active niches
   app.get("/api/niches", async (req, res) => {
     try {
