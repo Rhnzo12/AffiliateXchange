@@ -935,7 +935,7 @@ export interface ConversationMessage {
   id: string;
   senderId: string;
   senderName: string;
-  senderType: 'creator' | 'company';
+  senderType: 'creator' | 'company' | 'platform';
   content: string;
   attachments?: string[];
   createdAt: string;
@@ -1021,8 +1021,14 @@ export function exportConversationPDF(data: ConversationExportData): void {
     // Sender info with role badge
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...(message.senderType === 'creator' ? COLORS.primary : COLORS.success));
-    doc.text(`${message.senderName} (${message.senderType === 'creator' ? 'Creator' : 'Company'})`, margin, y);
+    const senderColor = message.senderType === 'platform'
+      ? COLORS.warning
+      : (message.senderType === 'creator' ? COLORS.primary : COLORS.success);
+    const senderLabel = message.senderType === 'platform'
+      ? 'Platform'
+      : (message.senderType === 'creator' ? 'Creator' : 'Company');
+    doc.setTextColor(...senderColor);
+    doc.text(`${message.senderName} (${senderLabel})`, margin, y);
 
     // Timestamp
     doc.setFont('helvetica', 'normal');

@@ -371,6 +371,7 @@ export const messages = pgTable("messages", {
   attachments: text("attachments").array().default(sql`ARRAY[]::text[]`),
   isRead: boolean("is_read").default(false),
   deletedFor: text("deleted_for").array().default(sql`ARRAY[]::text[]`), // Array of user IDs who deleted "for me"
+  senderType: varchar("sender_type", { length: 20 }).default("user"), // 'user' | 'platform' - platform messages are from admin
   createdAt: timestamp("created_at").defaultNow(),
 });
 
