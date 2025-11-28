@@ -868,6 +868,8 @@ export const niches = pgTable("niches", {
   name: varchar("name", { length: 100 }).notNull().unique(),
   description: text("description"),
   isActive: boolean("is_active").notNull().default(true),
+  displayOrder: integer("display_order"),
+  isPrimary: boolean("is_primary").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
