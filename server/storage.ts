@@ -679,6 +679,7 @@ export interface IStorage {
   ): Promise<any[]>;
   createConversation(data: any): Promise<any>;
   createMessage(message: InsertMessage): Promise<Message>;
+  createAdminMessage(conversationId: string, adminId: string, content: string): Promise<Message>;
   getMessages(conversationId: string): Promise<Message[]>;
   markMessagesAsRead(conversationId: string, userId: string): Promise<void>;
 
@@ -2562,6 +2563,35 @@ export class DatabaseStorage implements IStorage {
       return result[0];
     } catch (error) {
       console.error("[createMessage] Error:", error);
+      throw error;
+    }
+  }
+
+  async createAdminMessage(conversationId: string, adminId: string, content: string): Promise<Message> {
+    try {
+      // Create message with senderType = 'platform'
+      const result = await db.insert(messages).values({
+        conversationId,
+        senderId: adminId,
+        content,
+        senderType: 'platform',
+      }).returning();
+
+      // Update conversation lastMessageAt and increment unread counts for both parties
+      // Platform messages should be visible to both creator and company
+      await db
+        .update(conversations)
+        .set({
+          lastMessageAt: new Date(),
+          updatedAt: new Date(),
+          creatorUnreadCount: sql`${conversations.creatorUnreadCount} + 1`,
+          companyUnreadCount: sql`${conversations.companyUnreadCount} + 1`,
+        })
+        .where(eq(conversations.id, conversationId));
+
+      return result[0];
+    } catch (error) {
+      console.error("[createAdminMessage] Error:", error);
       throw error;
     }
   }

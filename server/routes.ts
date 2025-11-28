@@ -5858,6 +5858,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin send message as platform - allows admins to join conversations and send messages
+  app.post("/api/admin/messages", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { conversationId, content } = req.body;
+      const adminId = (req.user as any).id;
+
+      if (!conversationId || !content?.trim()) {
+        return res.status(400).send("Conversation ID and content are required");
+      }
+
+      // Verify conversation exists
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).send("Conversation not found");
+      }
+
+      // Create the message as platform
+      const message = await storage.createAdminMessage(conversationId, adminId, content.trim());
+
+      // Log admin action for audit trail
+      await storage.createAuditLog({
+        userId: adminId,
+        action: 'admin_message_sent',
+        entityType: 'message',
+        entityId: message.id,
+        metadata: JSON.stringify({
+          conversationId,
+          messagePreview: content.substring(0, 100),
+        }),
+      });
+
+      res.status(201).json(message);
+    } catch (error: any) {
+      console.error('[Admin Messages] Error sending message:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Admin conversation export for legal compliance/dispute resolution
   app.get("/api/admin/conversations/:conversationId/export", requireAuth, requireRole('admin'), async (req, res) => {
     try {
@@ -5888,16 +5926,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companyName = companyProfile?.tradeName || companyProfile?.legalName || 'Unknown Company';
 
       // Format messages with sender info
-      const formattedMessages = messages.map(msg => ({
-        id: msg.id,
-        senderId: msg.senderId,
-        senderName: msg.senderId === conversation.creatorId ? creatorName : companyName,
-        senderType: msg.senderId === conversation.creatorId ? 'creator' : 'company',
-        content: msg.content,
-        attachments: msg.attachments || [],
-        createdAt: msg.createdAt,
-        isRead: msg.isRead,
-      }));
+      const formattedMessages = messages.map(msg => {
+        // Check if this is a platform/admin message
+        const isPlatformMessage = (msg as any).senderType === 'platform';
+
+        let senderName: string;
+        let senderType: string;
+
+        if (isPlatformMessage) {
+          senderName = 'Platform';
+          senderType = 'platform';
+        } else if (msg.senderId === conversation.creatorId) {
+          senderName = creatorName;
+          senderType = 'creator';
+        } else {
+          senderName = companyName;
+          senderType = 'company';
+        }
+
+        return {
+          id: msg.id,
+          senderId: msg.senderId,
+          senderName,
+          senderType,
+          content: msg.content,
+          attachments: msg.attachments || [],
+          createdAt: msg.createdAt,
+          isRead: msg.isRead,
+        };
+      });
 
       const exportData = {
         exportMetadata: {
