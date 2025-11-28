@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "./components/ui/dropdown-menu";
-import { Settings, ChevronDown, LogOut, MessageSquare } from "lucide-react";
+import { Settings as SettingsIcon, ChevronDown, LogOut, MessageSquare } from "lucide-react";
 import { proxiedSrc } from "./lib/image";
 import NotFound from "./pages/not-found";
 import Landing from "./pages/landing";
@@ -216,7 +216,7 @@ function ProtectedRouter() {
                   </div>
                   <DropdownMenuItem asChild className="hover:bg-primary/20 hover:text-primary hover:font-bold hover:scale-105 transition-all duration-200 cursor-pointer">
                     <Link href="/settings">
-                      <Settings className="mr-2 h-4 w-4" />
+                      <SettingsIcon className="mr-2 h-4 w-4" />
                       <span>Settings</span>
                     </Link>
                   </DropdownMenuItem>
