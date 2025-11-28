@@ -624,6 +624,7 @@ export interface IStorage {
   getPendingCompanies(): Promise<CompanyProfile[]>;
   approveCompany(companyId: string): Promise<CompanyProfile | undefined>;
   rejectCompany(companyId: string, reason: string): Promise<CompanyProfile | undefined>;
+  canCompanyReapply(companyId: string): Promise<{ canReapply: boolean; daysRemaining: number; message: string }>;
   suspendCompany(companyId: string): Promise<CompanyProfile | undefined>;
   unsuspendCompany(companyId: string): Promise<CompanyProfile | undefined>;
   getAllCompanies(filters?: {
@@ -666,6 +667,7 @@ export interface IStorage {
   createApplication(application: InsertApplication): Promise<Application>;
   updateApplication(id: string, updates: Partial<InsertApplication>): Promise<Application | undefined>;
   approveApplication(id: string, trackingLink: string, trackingCode: string): Promise<Application | undefined>;
+  setAutoApprovalTime(id: string, autoApprovalTime: Date): Promise<Application | undefined>;
   completeApplication(id: string): Promise<Application | undefined>;
   getApplicationsByCompany(companyId: string): Promise<any[]>;
 
@@ -1154,12 +1156,69 @@ export class DatabaseStorage implements IStorage {
   }
 
   async rejectCompany(companyId: string, reason: string): Promise<CompanyProfile | undefined> {
+    // Get current rejection count
+    const current = await db.select({ rejectionCount: companyProfiles.rejectionCount })
+      .from(companyProfiles)
+      .where(eq(companyProfiles.id, companyId))
+      .limit(1);
+
+    const currentCount = current[0]?.rejectionCount || 0;
+
     const result = await db
       .update(companyProfiles)
-      .set({ status: "rejected", rejectionReason: reason, updatedAt: new Date() })
+      .set({
+        status: "rejected",
+        rejectionReason: reason,
+        lastRejectedAt: new Date(),
+        rejectionCount: currentCount + 1,
+        updatedAt: new Date()
+      })
       .where(eq(companyProfiles.id, companyId))
       .returning();
     return result[0];
+  }
+
+  /**
+   * Check if a rejected company can re-apply (90-day restriction)
+   */
+  async canCompanyReapply(companyId: string): Promise<{ canReapply: boolean; daysRemaining: number; message: string }> {
+    const company = await db.select({
+      status: companyProfiles.status,
+      lastRejectedAt: companyProfiles.lastRejectedAt,
+      rejectionCount: companyProfiles.rejectionCount
+    })
+      .from(companyProfiles)
+      .where(eq(companyProfiles.id, companyId))
+      .limit(1);
+
+    if (!company[0]) {
+      return { canReapply: true, daysRemaining: 0, message: "Company not found" };
+    }
+
+    const { status, lastRejectedAt, rejectionCount } = company[0];
+
+    if (status !== 'rejected') {
+      return { canReapply: true, daysRemaining: 0, message: "Company is not rejected" };
+    }
+
+    if (!lastRejectedAt) {
+      return { canReapply: true, daysRemaining: 0, message: "No rejection date recorded" };
+    }
+
+    const now = new Date();
+    const daysSinceRejection = Math.floor((now.getTime() - lastRejectedAt.getTime()) / (1000 * 60 * 60 * 24));
+    const restrictionDays = 90;
+    const daysRemaining = Math.max(0, restrictionDays - daysSinceRejection);
+
+    if (daysRemaining > 0) {
+      return {
+        canReapply: false,
+        daysRemaining,
+        message: `You can re-apply in ${daysRemaining} days. Your application was rejected on ${lastRejectedAt.toDateString()}.`
+      };
+    }
+
+    return { canReapply: true, daysRemaining: 0, message: "You can re-apply now" };
   }
 
   async suspendCompany(companyId: string): Promise<CompanyProfile | undefined> {
@@ -2185,6 +2244,18 @@ export class DatabaseStorage implements IStorage {
         trackingLink,
         trackingCode,
         approvedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(applications.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async setAutoApprovalTime(id: string, autoApprovalTime: Date): Promise<Application | undefined> {
+    const result = await db
+      .update(applications)
+      .set({
+        autoApprovalScheduledAt: autoApprovalTime,
         updatedAt: new Date(),
       })
       .where(eq(applications.id, id))
