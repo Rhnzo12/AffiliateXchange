@@ -187,6 +187,12 @@ export const companyProfiles = pgTable("company_profiles", {
   websiteVerifiedAt: timestamp("website_verified_at"),
   // Per-company fee override (null means use default platform fee)
   customPlatformFeePercentage: decimal("custom_platform_fee_percentage", { precision: 5, scale: 4 }),
+  // API key for postback/tracking integrations
+  trackingApiKey: varchar("tracking_api_key", { length: 64 }),
+  trackingApiKeyCreatedAt: timestamp("tracking_api_key_created_at"),
+  // Rejection retry restriction
+  lastRejectedAt: timestamp("last_rejected_at"),
+  rejectionCount: integer("rejection_count").default(0),
   status: companyStatusEnum("status").notNull().default('pending'),
   approvedAt: timestamp("approved_at"),
   rejectionReason: text("rejection_reason"),
