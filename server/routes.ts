@@ -5902,10 +5902,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         action: 'admin_message_sent',
         entityType: 'message',
         entityId: message.id,
-        metadata: JSON.stringify({
+        changes: {
           conversationId,
           messagePreview: content.substring(0, 100),
-        }),
+        },
       });
 
       res.status(201).json(message);
