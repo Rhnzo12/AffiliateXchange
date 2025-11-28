@@ -6163,6 +6163,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reorder niches (drag-and-drop) - MUST be before /:id route to avoid matching "reorder" as an id
+  app.put("/api/admin/niches/reorder", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { orderedIds } = req.body;
+
+      if (!orderedIds || !Array.isArray(orderedIds)) {
+        return res.status(400).send("orderedIds array is required");
+      }
+
+      const niches = await storage.reorderNiches(orderedIds, userId);
+
+      // Log the action
+      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
+      await logAuditAction(userId, {
+        action: AuditActions.REORDER_NICHES,
+        entityType: EntityTypes.NICHE,
+        changes: { orderedIds },
+        reason: 'Reordered niche categories',
+      }, req);
+
+      res.json(niches);
+    } catch (error: any) {
+      console.error('[Admin Niches] Error reordering niches:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   app.put("/api/admin/niches/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const userId = (req.user as any).id;
@@ -6207,34 +6235,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: 'Niche deleted successfully' });
     } catch (error: any) {
       console.error('[Admin Niches] Error deleting niche:', error);
-      res.status(500).send(error.message);
-    }
-  });
-
-  // Reorder niches (drag-and-drop)
-  app.put("/api/admin/niches/reorder", requireAuth, requireRole('admin'), async (req, res) => {
-    try {
-      const userId = (req.user as any).id;
-      const { orderedIds } = req.body;
-
-      if (!orderedIds || !Array.isArray(orderedIds)) {
-        return res.status(400).send("orderedIds array is required");
-      }
-
-      const niches = await storage.reorderNiches(orderedIds, userId);
-
-      // Log the action
-      const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
-      await logAuditAction(userId, {
-        action: AuditActions.REORDER_NICHES,
-        entityType: EntityTypes.NICHE,
-        changes: { orderedIds },
-        reason: 'Reordered niche categories',
-      }, req);
-
-      res.json(niches);
-    } catch (error: any) {
-      console.error('[Admin Niches] Error reordering niches:', error);
       res.status(500).send(error.message);
     }
   });
