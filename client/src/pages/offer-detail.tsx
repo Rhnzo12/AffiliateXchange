@@ -64,6 +64,7 @@ import {
 import { proxiedSrc } from "../lib/image";
 import { VideoPlayer } from "../components/VideoPlayer";
 import { DetailPageSkeleton } from "../components/skeletons";
+import { useSidebar } from "../components/ui/sidebar";
 
 // Helper function to format duration in seconds to MM:SS
 function formatDuration(seconds: number | string): string {
@@ -133,6 +134,7 @@ export default function OfferDetail() {
   const { isAuthenticated, isLoading } = useAuth();
   const [, params] = useRoute("/offers/:id");
   const [, setLocation] = useLocation();
+  const { state: sidebarState, isMobile } = useSidebar();
   const offerId = params?.id;
 
   const [showApplyDialog, setShowApplyDialog] = useState(false);
@@ -1398,7 +1400,12 @@ export default function OfferDetail() {
       </div>
 
       {/* Sticky Apply Button */}
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-lg shadow-2xl p-3 sm:p-4 z-50">
+      <div
+        className="fixed bottom-0 right-0 border-t bg-background/95 backdrop-blur-lg shadow-2xl p-3 sm:p-4 z-50"
+        style={{
+          left: isMobile ? 0 : sidebarState === 'expanded' ? 'var(--sidebar-width, 16rem)' : 'var(--sidebar-width-icon, 3rem)'
+        }}
+      >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
             <div className="min-w-0">
