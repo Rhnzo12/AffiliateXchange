@@ -937,18 +937,28 @@ export default function Browse() {
 
             {/* Main Offers Grid */}
             <div className="space-y-8">
-              {/* Regular Offers Section */}
-              {selectedCategory !== "monthly_retainers" && (
-                <div className="space-y-4">
-                  {/* Section header */}
-                  {selectedCategory === "all" && regularOffers.length > 0 && trendingOffers.length > 0 && (
-                    <h2 className="text-xl sm:text-2xl font-bold text-foreground">All Offers</h2>
-                  )}
-                  {selectedCategory === "trending" && regularOffers.length > 0 && (
-                    <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>
-                  )}
+              {/* Main Offers Section */}
+              <div className="space-y-4">
+                {/* Section header based on selected category */}
+                {selectedCategory === "all" && regularOffers.length > 0 && trendingOffers.length > 0 && (
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">All Offers</h2>
+                )}
+                {selectedCategory === "trending" && sortedOffers.length > 0 && (
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>
+                )}
+                {selectedCategory === "monthly_retainers" && sortedOffers.length > 0 && (
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">Monthly Retainer Contracts</h2>
+                )}
+                {selectedCategory !== "all" && selectedCategory !== "trending" && selectedCategory !== "monthly_retainers" && sortedOffers.length > 0 && (
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground capitalize">{selectedCategory.replace(/_/g, ' ')} Offers</h2>
+                )}
 
-                  {!regularOffers || regularOffers.length === 0 ? (
+                {/* Use sortedOffers for monthly_retainers, regularOffers for others when showing "all" */}
+                {(() => {
+                  const displayOffers = selectedCategory === "monthly_retainers" ? sortedOffers :
+                    (selectedCategory === "all" ? regularOffers : sortedOffers);
+
+                  return !displayOffers || displayOffers.length === 0 ? (
             <Card className="border-dashed border-2">
               <CardContent className="p-8 sm:p-12 md:p-16 text-center">
                 <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted/50 flex items-center justify-center mb-4 sm:mb-6">
@@ -963,7 +973,7 @@ export default function Browse() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
-              {regularOffers.map((offer) => {
+              {displayOffers.map((offer) => {
                 const isFavorite = favorites.some(f => f.offerId === offer.id);
                 const category = getOfferCategory(offer);
                 const isRetainer = offer.commissionType === 'monthly_retainer';
@@ -1100,9 +1110,9 @@ export default function Browse() {
                 );
               })}
             </div>
-          )}
-                </div>
-              )}
+          );
+        })()}
+              </div>
 
               {/* Monthly Retainers Section - Only show when on "all" category */}
               {selectedCategory === "all" && monthlyRetainerOffers.length > 0 && (
