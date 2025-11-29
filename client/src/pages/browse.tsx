@@ -183,7 +183,7 @@ export default function Browse() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [commissionType, setCommissionType] = useState<string>("");
   const [commissionRange, setCommissionRange] = useState([0, 10000]);
   const [minimumPayout, setMinimumPayout] = useState([0]);
@@ -268,10 +268,17 @@ export default function Browse() {
   );
 
   useEffect(() => {
-    if (selectedCategory !== "all" && !categoryOptions.some((option) => option.value === selectedCategory)) {
-      setSelectedCategory("all");
+    if (selectedCategories.length === 0) {
+      return;
     }
-  }, [categoryOptions, selectedCategory]);
+    const validCategories = new Set(
+      categoryOptions.map((option) => option.value),
+    );
+    const filteredSelections = selectedCategories.filter((cat) => validCategories.has(cat));
+    if (filteredSelections.length !== selectedCategories.length) {
+      setSelectedCategories(filteredSelections);
+    }
+  }, [categoryOptions, selectedCategories]);
 
   useEffect(() => {
     if (selectedNiches.length === 0) {
@@ -291,30 +298,60 @@ export default function Browse() {
     }
   }, [categoryOptions, selectedNiches]);
 
-  // Get current offers
+  // Get current offers based on selected categories
   const getCurrentOffers = () => {
     const currentOffers = offers || [];
+    const retainers = retainerContracts || [];
 
-    // If "Monthly Retainers" category is selected, show only retainer contracts
-    if (selectedCategory === "monthly_retainers") {
-      return retainerContracts || [];
+    // If no categories selected, show all offers including retainers
+    if (selectedCategories.length === 0) {
+      return [...currentOffers, ...retainers];
     }
 
-    // If "Trending" category is selected, show only trending offers
-    if (selectedCategory === "trending") {
-      return currentOffers.filter(offer =>
+    // Check for special categories
+    const hasMonthlyRetainers = selectedCategories.includes("monthly_retainers");
+    const hasTrending = selectedCategories.includes("trending");
+    const hasAll = selectedCategories.includes("all");
+
+    // Get niche categories (exclude special ones)
+    const nicheCategories = selectedCategories.filter(
+      cat => cat !== "all" && cat !== "trending" && cat !== "monthly_retainers"
+    );
+
+    // If "All" is selected along with other categories, treat as if no filter
+    if (hasAll) {
+      return [...currentOffers, ...retainers];
+    }
+
+    let result: any[] = [];
+
+    // Add trending offers if trending is selected
+    if (hasTrending) {
+      const trendingResults = currentOffers.filter(offer =>
         offer.commissionType !== 'monthly_retainer' &&
         (isPriorityOffer(offer) || getCommissionValue(offer) > 15)
       );
+      result = [...result, ...trendingResults];
     }
 
-    // For "All" category, merge both regular offers and retainer contracts
-    if (selectedCategory === "all") {
-      return [...currentOffers, ...(retainerContracts || [])];
+    // Add monthly retainers if selected
+    if (hasMonthlyRetainers) {
+      result = [...result, ...retainers];
     }
 
-    // For other categories, return only regular offers (no retainer contracts)
-    return currentOffers;
+    // For niche categories, include regular offers (filtering happens in filteredOffers)
+    if (nicheCategories.length > 0) {
+      // Add all regular offers - actual niche filtering happens in filteredOffers
+      result = [...result, ...currentOffers];
+    }
+
+    // Remove duplicates by id
+    const seen = new Set<string>();
+    return result.filter(offer => {
+      if (seen.has(offer.id)) return false;
+      seen.add(offer.id);
+      return true;
+    });
   };
 
   // Get loading state
@@ -340,14 +377,36 @@ export default function Browse() {
 
     const offerNiches = getOfferNicheValues(offer);
 
-    // Category filter (from category pills)
-    if (selectedCategory !== "all") {
-      // Handle Monthly Retainers special category
-      if (selectedCategory === "monthly_retainers") {
-        if (offer.commissionType !== "monthly_retainer") {
-          return false;
+    // Category filter (from category pills) - now supports multiple selections
+    if (selectedCategories.length > 0 && !selectedCategories.includes("all")) {
+      const hasMonthlyRetainers = selectedCategories.includes("monthly_retainers");
+      const hasTrending = selectedCategories.includes("trending");
+      const nicheCategories = selectedCategories.filter(
+        cat => cat !== "all" && cat !== "trending" && cat !== "monthly_retainers"
+      );
+
+      let matchesAnyCategory = false;
+
+      // Check if offer matches monthly retainers category
+      if (hasMonthlyRetainers && offer.commissionType === "monthly_retainer") {
+        matchesAnyCategory = true;
+      }
+
+      // Check if offer matches trending category
+      if (hasTrending && offer.commissionType !== 'monthly_retainer' &&
+          (isPriorityOffer(offer) || getCommissionValue(offer) > 15)) {
+        matchesAnyCategory = true;
+      }
+
+      // Check if offer matches any niche category
+      if (nicheCategories.length > 0) {
+        const matchesNiche = nicheCategories.some(cat => offerNiches.includes(cat));
+        if (matchesNiche) {
+          matchesAnyCategory = true;
         }
-      } else if (!offerNiches.includes(selectedCategory)) {
+      }
+
+      if (!matchesAnyCategory) {
         return false;
       }
     }
@@ -444,7 +503,11 @@ export default function Browse() {
   }, [filteredOffers, sortBy]);
 
   // Get trending offers for the trending section (exclude monthly retainers, hide when trending category is selected)
-  const trendingOffers = (selectedCategory !== "monthly_retainers" && selectedCategory !== "trending") ? sortedOffers
+  // Show trending section when no specific category selected or when viewing niche categories (not monthly_retainers or trending alone)
+  const showTrendingSection = selectedCategories.length === 0 ||
+    (selectedCategories.length > 0 && !selectedCategories.includes("monthly_retainers") && !selectedCategories.includes("trending")) ||
+    (selectedCategories.length > 1);
+  const trendingOffers = showTrendingSection ? sortedOffers
     ?.filter(offer => offer.commissionType !== 'monthly_retainer' && (isPriorityOffer(offer) || getCommissionValue(offer) > 15))
     ?.slice(0, 4) || [] : [];
 
@@ -458,6 +521,22 @@ export default function Browse() {
     );
   };
 
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => {
+      // If "All" is clicked, clear all selections (show everything)
+      if (category === "all") {
+        return [];
+      }
+      // Toggle the category
+      if (prev.includes(category)) {
+        return prev.filter(c => c !== category);
+      } else {
+        // Remove "all" if it was selected and add the new category
+        return [...prev.filter(c => c !== "all"), category];
+      }
+    });
+  };
+
   const clearFilters = () => {
     setSelectedNiches([]);
     setCommissionType("");
@@ -467,7 +546,7 @@ export default function Browse() {
     setShowTrending(false);
     setShowPriority(false);
     setSearchTerm("");
-    setSelectedCategory("all");
+    setSelectedCategories([]);
   };
 
   const { data: favorites = [] } = useQuery<any[]>({
@@ -552,23 +631,29 @@ export default function Browse() {
           <p className="text-muted-foreground text-sm sm:text-base">Discover exclusive affiliate opportunities from verified brands</p>
         </div>
 
-        {/* Category Pills - Horizontal Scroll */}
+        {/* Category Pills - Horizontal Scroll with Multi-Select */}
         <ScrollArea orientation="horizontal" className="w-full pb-3">
   <div className="flex gap-2 pb-1 pr-4 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-    {categoryOptions.map(({ label, value }) => (
-      <button
-        key={value || label}
-        onClick={() => setSelectedCategory(value)}
-        className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-          selectedCategory === value
-            ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-            : 'bg-secondary/50 hover:bg-secondary text-secondary-foreground'
-        }`}
-        aria-pressed={selectedCategory === value}
-      >
-        {label}
-      </button>
-    ))}
+    {categoryOptions.map(({ label, value }) => {
+      // "All" is selected when no categories are selected
+      const isSelected = value === "all"
+        ? selectedCategories.length === 0
+        : selectedCategories.includes(value);
+      return (
+        <button
+          key={value || label}
+          onClick={() => toggleCategory(value)}
+          className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+            isSelected
+              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+              : 'bg-secondary/50 hover:bg-secondary text-secondary-foreground'
+          }`}
+          aria-pressed={isSelected}
+        >
+          {label}
+        </button>
+      );
+    })}
   </div>
 </ScrollArea>
 
@@ -769,8 +854,8 @@ export default function Browse() {
           </div>
         ) : (
           <>
-            {/* Trending Offers Section - Not on monthly retainers or trending category */}
-            {selectedCategory !== "monthly_retainers" && selectedCategory !== "trending" && trendingOffers.length > 0 && (
+            {/* Trending Offers Section - Not on monthly retainers or trending only */}
+            {showTrendingSection && trendingOffers.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
@@ -939,25 +1024,46 @@ export default function Browse() {
             <div className="space-y-8">
               {/* Main Offers Section */}
               <div className="space-y-4">
-                {/* Section header based on selected category */}
-                {selectedCategory === "all" && regularOffers.length > 0 && trendingOffers.length > 0 && (
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">All Offers</h2>
-                )}
-                {selectedCategory === "trending" && sortedOffers.length > 0 && (
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>
-                )}
-                {selectedCategory !== "all" && selectedCategory !== "trending" && selectedCategory !== "monthly_retainers" && sortedOffers.length > 0 && (
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground capitalize">{selectedCategory.replace(/_/g, ' ')} Offers</h2>
-                )}
+                {/* Section header based on selected categories */}
+                {(() => {
+                  // Get niche categories for display
+                  const nicheCategories = selectedCategories.filter(
+                    cat => cat !== "all" && cat !== "trending" && cat !== "monthly_retainers"
+                  );
+                  const onlyMonthlyRetainers = selectedCategories.length === 1 && selectedCategories.includes("monthly_retainers");
+                  const onlyTrending = selectedCategories.length === 1 && selectedCategories.includes("trending");
+
+                  if (onlyMonthlyRetainers) return null; // Headers shown in monthly retainers section
+
+                  if (selectedCategories.length === 0 && regularOffers.length > 0 && trendingOffers.length > 0) {
+                    return <h2 className="text-xl sm:text-2xl font-bold text-foreground">All Offers</h2>;
+                  }
+
+                  if (onlyTrending && sortedOffers.length > 0) {
+                    return <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>;
+                  }
+
+                  if (nicheCategories.length > 0 && sortedOffers.length > 0) {
+                    const categoryNames = nicheCategories.map(cat => cat.replace(/_/g, ' ')).join(', ');
+                    return (
+                      <h2 className="text-xl sm:text-2xl font-bold text-foreground capitalize">
+                        {nicheCategories.length === 1 ? `${categoryNames} Offers` : `Filtered Offers (${categoryNames})`}
+                      </h2>
+                    );
+                  }
+
+                  return null;
+                })()}
 
                 {/* Use regularOffers for all category, sortedOffers for niche categories, skip for monthly_retainers (shown separately) */}
                 {(() => {
-                  // Skip this section entirely for monthly_retainers - they are shown in their own section below
-                  if (selectedCategory === "monthly_retainers") {
+                  // Skip this section entirely for monthly_retainers only - they are shown in their own section below
+                  const onlyMonthlyRetainers = selectedCategories.length === 1 && selectedCategories.includes("monthly_retainers");
+                  if (onlyMonthlyRetainers) {
                     return null;
                   }
 
-                  const displayOffers = selectedCategory === "all" ? regularOffers : sortedOffers;
+                  const displayOffers = selectedCategories.length === 0 ? regularOffers : sortedOffers;
 
                   return !displayOffers || displayOffers.length === 0 ? (
             <Card className="border-dashed border-2">
@@ -1115,8 +1221,8 @@ export default function Browse() {
         })()}
               </div>
 
-              {/* Show monthly retainers when "monthly_retainers" category is selected */}
-              {selectedCategory === "monthly_retainers" && (
+              {/* Show monthly retainers section when "monthly_retainers" category is selected (alone or with others) */}
+              {selectedCategories.includes("monthly_retainers") && (
                 <div className="space-y-4">
                   {!monthlyRetainerOffers || monthlyRetainerOffers.length === 0 ? (
                     <Card className="border-dashed border-2">
