@@ -260,6 +260,7 @@ export default function Browse() {
   const categoryOptions = useMemo(
     () => [
       { label: "All", value: "all" },
+      { label: "Trending", value: "trending" },
       { label: "Monthly Retainers", value: "monthly_retainers" },
       ...niches.map((niche) => ({ label: niche.name, value: normalizeNicheValue(niche.name) })),
     ],
@@ -297,6 +298,14 @@ export default function Browse() {
     // If "Monthly Retainers" category is selected, show only retainer contracts
     if (selectedCategory === "monthly_retainers") {
       return retainerContracts || [];
+    }
+
+    // If "Trending" category is selected, show only trending offers
+    if (selectedCategory === "trending") {
+      return currentOffers.filter(offer =>
+        offer.commissionType !== 'monthly_retainer' &&
+        (isPriorityOffer(offer) || getCommissionValue(offer) > 15)
+      );
     }
 
     // For "All" category, merge both regular offers and retainer contracts
@@ -434,8 +443,8 @@ export default function Browse() {
     return offersToSort;
   }, [filteredOffers, sortBy]);
 
-  // Get trending offers for the trending section (exclude monthly retainers)
-  const trendingOffers = selectedCategory !== "monthly_retainers" ? sortedOffers
+  // Get trending offers for the trending section (exclude monthly retainers, hide when trending category is selected)
+  const trendingOffers = (selectedCategory !== "monthly_retainers" && selectedCategory !== "trending") ? sortedOffers
     ?.filter(offer => offer.commissionType !== 'monthly_retainer' && (isPriorityOffer(offer) || getCommissionValue(offer) > 15))
     ?.slice(0, 4) || [] : [];
 
@@ -760,8 +769,8 @@ export default function Browse() {
           </div>
         ) : (
           <>
-            {/* Trending Offers Section - Not on monthly retainers category */}
-            {selectedCategory !== "monthly_retainers" && trendingOffers.length > 0 && (
+            {/* Trending Offers Section - Not on monthly retainers or trending category */}
+            {selectedCategory !== "monthly_retainers" && selectedCategory !== "trending" && trendingOffers.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
@@ -934,6 +943,9 @@ export default function Browse() {
                   {/* Section header */}
                   {selectedCategory === "all" && regularOffers.length > 0 && trendingOffers.length > 0 && (
                     <h2 className="text-xl sm:text-2xl font-bold text-foreground">All Offers</h2>
+                  )}
+                  {selectedCategory === "trending" && regularOffers.length > 0 && (
+                    <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>
                   )}
 
                   {!regularOffers || regularOffers.length === 0 ? (
