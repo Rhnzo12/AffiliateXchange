@@ -1221,8 +1221,8 @@ export default function Browse() {
         })()}
               </div>
 
-              {/* Show monthly retainers section when "monthly_retainers" category is selected (alone or with others) */}
-              {selectedCategories.includes("monthly_retainers") && (
+              {/* Show monthly retainers section ONLY when "monthly_retainers" is the only selected category */}
+              {selectedCategories.length === 1 && selectedCategories.includes("monthly_retainers") && (
                 <div className="space-y-4">
                   {!monthlyRetainerOffers || monthlyRetainerOffers.length === 0 ? (
                     <Card className="border-dashed border-2">
