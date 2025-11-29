@@ -9,7 +9,6 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Slider } from "../components/ui/slider";
 import { Checkbox } from "../components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Switch } from "../components/ui/switch";
 import { ScrollArea } from "../components/ui/scroll-area";
 import {
@@ -27,7 +26,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../components/ui/sheet";
-import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, ArrowRight, Users, Sparkles, Award, Percent } from "lucide-react";
+import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, ArrowRight, Users } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { proxiedSrc } from "../lib/image";
@@ -182,7 +181,6 @@ const formatApplicationDate = (date: string | Date): string => {
 export default function Browse() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
-  const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -230,7 +228,7 @@ export default function Browse() {
 
       return data;
     },
-    enabled: isAuthenticated && activeTab === "all",
+    enabled: isAuthenticated,
   });
 
   // Fetch monthly retainer contracts
@@ -258,37 +256,6 @@ export default function Browse() {
     enabled: isAuthenticated,
   });
 
-  // Trending offers query (most applied in last 7 days)
-  const { data: trendingOffersData, isLoading: trendingLoading } = useQuery<any[]>({
-    queryKey: ["/api/offers/trending"],
-    queryFn: async () => {
-      const res = await fetch('/api/offers/trending', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch trending offers');
-      return res.json();
-    },
-    enabled: isAuthenticated && activeTab === "trending",
-  });
-
-  // Recommended offers query (based on creator niches)
-  const { data: recommendedOffersData, isLoading: recommendedLoading } = useQuery<any[]>({
-    queryKey: ["/api/offers/recommended"],
-    queryFn: async () => {
-      const res = await fetch('/api/offers/recommended', { credentials: 'include' });
-      if (!res.ok) {
-        if (res.status === 404) {
-          return [];
-        }
-        throw new Error('Failed to fetch recommended offers');
-      }
-      const data = await res.json();
-      // Handle error responses from backend
-      if (data.error) {
-        return [];
-      }
-      return data;
-    },
-    enabled: isAuthenticated && activeTab === "recommended",
-  });
 
   const categoryOptions = useMemo(
     () => [
@@ -323,48 +290,9 @@ export default function Browse() {
     }
   }, [categoryOptions, selectedNiches]);
 
-  // New listings query (recently approved)
-  const { data: newListingsData, isLoading: newListingsLoading } = useQuery<any[]>({
-    queryKey: ["/api/offers/new"],
-    queryFn: async () => {
-      const res = await fetch('/api/offers?sortBy=newest', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch new listings');
-      return res.json();
-    },
-    enabled: isAuthenticated && activeTab === "new",
-  });
-
-  // Highest commission query
-  const { data: highestCommissionData, isLoading: highestCommissionLoading } = useQuery<any[]>({
-    queryKey: ["/api/offers/highest-commission"],
-    queryFn: async () => {
-      const res = await fetch('/api/offers?sortBy=highest_commission', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch highest commission offers');
-      return res.json();
-    },
-    enabled: isAuthenticated && activeTab === "highest-commission",
-  });
-
-  // Get current data based on active tab
+  // Get current offers
   const getCurrentOffers = () => {
-    let currentOffers: any[] = [];
-
-    switch (activeTab) {
-      case "trending":
-        currentOffers = trendingOffersData || [];
-        break;
-      case "recommended":
-        currentOffers = recommendedOffersData || [];
-        break;
-      case "new":
-        currentOffers = newListingsData || [];
-        break;
-      case "highest-commission":
-        currentOffers = highestCommissionData || [];
-        break;
-      default:
-        currentOffers = offers || [];
-    }
+    const currentOffers = offers || [];
 
     // If "Monthly Retainers" category is selected, show only retainer contracts
     if (selectedCategory === "monthly_retainers") {
@@ -380,29 +308,9 @@ export default function Browse() {
     return currentOffers;
   };
 
-  // Get loading state based on active tab
+  // Get loading state
   const isCurrentLoading = () => {
-    let tabLoading = false;
-
-    switch (activeTab) {
-      case "trending":
-        tabLoading = trendingLoading;
-        break;
-      case "recommended":
-        tabLoading = recommendedLoading;
-        break;
-      case "new":
-        tabLoading = newListingsLoading;
-        break;
-      case "highest-commission":
-        tabLoading = highestCommissionLoading;
-        break;
-      default:
-        tabLoading = offersLoading;
-    }
-
-    // Include retainer loading state
-    return tabLoading || retainersLoading;
+    return offersLoading || retainersLoading;
   };
 
   // Apply client-side filters
@@ -526,8 +434,8 @@ export default function Browse() {
     return offersToSort;
   }, [filteredOffers, sortBy]);
 
-  // Get trending offers for the trending section (only on "all" tab, exclude monthly retainers)
-  const trendingOffers = activeTab === "all" && selectedCategory !== "monthly_retainers" ? sortedOffers
+  // Get trending offers for the trending section (exclude monthly retainers)
+  const trendingOffers = selectedCategory !== "monthly_retainers" ? sortedOffers
     ?.filter(offer => offer.commissionType !== 'monthly_retainer' && (isPriorityOffer(offer) || getCommissionValue(offer) > 15))
     ?.slice(0, 4) || [] : [];
 
@@ -634,38 +542,6 @@ export default function Browse() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Browse Offers</h1>
           <p className="text-muted-foreground text-sm sm:text-base">Discover exclusive affiliate opportunities from verified brands</p>
         </div>
-
-        {/* Tabs Navigation */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 h-auto p-1 gap-1">
-            <TabsTrigger value="all" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4">
-              <Star className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline text-xs sm:text-sm">All Offers</span>
-              <span className="sm:hidden text-xs">All</span>
-            </TabsTrigger>
-            <TabsTrigger value="trending" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4">
-              <TrendingUp className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden md:inline text-xs sm:text-sm">Trending</span>
-              <span className="md:hidden text-xs">Top</span>
-            </TabsTrigger>
-            <TabsTrigger value="highest-commission" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-1 sm:px-4">
-              <DollarSign className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden lg:inline text-xs sm:text-sm">Highest Commission</span>
-              <span className="hidden md:inline lg:hidden text-xs">High $</span>
-              <span className="md:hidden text-xs">$$$</span>
-            </TabsTrigger>
-            <TabsTrigger value="new" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4">
-              <Clock className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline text-xs sm:text-sm">New Listings</span>
-              <span className="sm:hidden text-xs">New</span>
-            </TabsTrigger>
-            <TabsTrigger value="recommended" className="flex items-center gap-1 sm:gap-2 py-2 sm:py-3 px-2 sm:px-4">
-              <Sparkles className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline text-xs sm:text-sm">For You</span>
-              <span className="sm:hidden text-xs">You</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
 
         {/* Category Pills - Horizontal Scroll */}
         <ScrollArea orientation="horizontal" className="w-full pb-3">
@@ -884,8 +760,8 @@ export default function Browse() {
           </div>
         ) : (
           <>
-            {/* Trending Offers Section - Only on "all" tab and not on monthly retainers category */}
-            {activeTab === "all" && selectedCategory !== "monthly_retainers" && trendingOffers.length > 0 && (
+            {/* Trending Offers Section - Not on monthly retainers category */}
+            {selectedCategory !== "monthly_retainers" && trendingOffers.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
@@ -1055,21 +931,9 @@ export default function Browse() {
               {/* Regular Offers Section */}
               {selectedCategory !== "monthly_retainers" && (
                 <div className="space-y-4">
-                  {/* Tab-specific headers */}
-                  {activeTab === "all" && selectedCategory === "all" && regularOffers.length > 0 && trendingOffers.length > 0 && (
+                  {/* Section header */}
+                  {selectedCategory === "all" && regularOffers.length > 0 && trendingOffers.length > 0 && (
                     <h2 className="text-xl sm:text-2xl font-bold text-foreground">All Offers</h2>
-                  )}
-                  {activeTab === "trending" && regularOffers.length > 0 && (
-                    <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>
-                  )}
-                  {activeTab === "highest-commission" && regularOffers.length > 0 && (
-                    <h2 className="text-xl sm:text-2xl font-bold text-foreground">Highest Commission</h2>
-                  )}
-                  {activeTab === "new" && regularOffers.length > 0 && (
-                    <h2 className="text-xl sm:text-2xl font-bold text-foreground">New Listings</h2>
-                  )}
-                  {activeTab === "recommended" && regularOffers.length > 0 && (
-                    <h2 className="text-xl sm:text-2xl font-bold text-foreground">Recommended For You</h2>
                   )}
 
                   {!regularOffers || regularOffers.length === 0 ? (
@@ -1229,7 +1093,7 @@ export default function Browse() {
               )}
 
               {/* Monthly Retainers Section - Only show when on "all" category */}
-              {activeTab === "all" && selectedCategory === "all" && monthlyRetainerOffers.length > 0 && (
+              {selectedCategory === "all" && monthlyRetainerOffers.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
