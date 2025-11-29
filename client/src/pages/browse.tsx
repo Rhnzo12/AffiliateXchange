@@ -714,12 +714,13 @@ export default function Browse() {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent>
+            <SheetContent className="flex flex-col">
               <SheetHeader>
                 <SheetTitle>Filter Offers</SheetTitle>
                 <SheetDescription>Refine your search with advanced filters</SheetDescription>
               </SheetHeader>
 
+              <ScrollArea className="flex-1 -mx-6 px-6">
               <div className="space-y-6 mt-6">
                 {/* Niche Filter */}
                 <div className="space-y-3">
@@ -860,12 +861,13 @@ export default function Browse() {
                   />
                 </div>
 
-                <div className="pt-4 flex gap-3">
+                <div className="pt-4 pb-6 flex gap-3">
                   <Button onClick={clearFilters} variant="outline" className="flex-1" data-testid="button-clear-filters">
                     Clear All
                   </Button>
                 </div>
               </div>
+              </ScrollArea>
             </SheetContent>
           </Sheet>
         </div>
