@@ -21,6 +21,7 @@ import {
   messages,
   reviews,
   favorites,
+  savedSearches,
   analytics,
   clickEvents,
   paymentSettings,
@@ -55,6 +56,8 @@ import {
   type InsertReview,
   type Favorite,
   type InsertFavorite,
+  type SavedSearch,
+  type InsertSavedSearch,
   type Analytics,
   type PaymentSetting,
   type InsertPaymentSetting,
@@ -697,6 +700,17 @@ export interface IStorage {
   isFavorite(creatorId: string, offerId: string): Promise<boolean>;
   createFavorite(favorite: InsertFavorite): Promise<Favorite>;
   deleteFavorite(creatorId: string, offerId: string): Promise<void>;
+
+  // Saved Searches
+  getSavedSearchesByCreator(creatorId: string): Promise<SavedSearch[]>;
+  getSavedSearch(id: string, creatorId: string): Promise<SavedSearch | null>;
+  createSavedSearch(savedSearch: InsertSavedSearch & { creatorId: string }): Promise<SavedSearch>;
+  updateSavedSearch(
+    id: string,
+    creatorId: string,
+    updates: Partial<Omit<InsertSavedSearch, "creatorId">>,
+  ): Promise<SavedSearch | null>;
+  deleteSavedSearch(id: string, creatorId: string): Promise<void>;
 
   // Analytics
   getAnalyticsByCreator(creatorId: string): Promise<any>;
@@ -3151,6 +3165,64 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(favorites)
       .where(and(eq(favorites.creatorId, creatorId), eq(favorites.offerId, offerId)));
+  }
+
+  // Saved Searches
+  async getSavedSearchesByCreator(creatorId: string): Promise<SavedSearch[]> {
+    const result = await db
+      .select()
+      .from(savedSearches)
+      .where(eq(savedSearches.creatorId, creatorId))
+      .orderBy(desc(savedSearches.updatedAt));
+
+    return result || [];
+  }
+
+  async getSavedSearch(id: string, creatorId: string): Promise<SavedSearch | null> {
+    const result = await db
+      .select()
+      .from(savedSearches)
+      .where(and(eq(savedSearches.id, id), eq(savedSearches.creatorId, creatorId)))
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  async createSavedSearch(savedSearch: InsertSavedSearch & { creatorId: string }): Promise<SavedSearch> {
+    const [created] = await db
+      .insert(savedSearches)
+      .values({
+        ...savedSearch,
+        id: randomUUID(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    return created;
+  }
+
+  async updateSavedSearch(
+    id: string,
+    creatorId: string,
+    updates: Partial<Omit<InsertSavedSearch, "creatorId">>,
+  ): Promise<SavedSearch | null> {
+    const [updated] = await db
+      .update(savedSearches)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(savedSearches.id, id), eq(savedSearches.creatorId, creatorId)))
+      .returning();
+
+    return updated ?? null;
+  }
+
+  async deleteSavedSearch(id: string, creatorId: string): Promise<void> {
+    await db
+      .delete(savedSearches)
+      .where(and(eq(savedSearches.id, id), eq(savedSearches.creatorId, creatorId)));
   }
 
   // Analytics
