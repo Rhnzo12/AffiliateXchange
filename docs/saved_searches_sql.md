@@ -7,8 +7,8 @@ The saved searches feature uses the following SQL schema to store creator filter
 -- Provides reusable filter presets on the browse page.
 
 CREATE TABLE IF NOT EXISTS saved_searches (
-  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-  creator_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name VARCHAR NOT NULL,
   filters JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMP DEFAULT NOW(),
