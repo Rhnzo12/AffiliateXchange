@@ -26,7 +26,23 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../components/ui/sheet";
-import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, ArrowRight, Users, Video, Calendar, Eye, Send } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, ArrowRight, Users, Video, Calendar, Eye, Send, Bookmark, BookmarkPlus, RefreshCcw, Trash2, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { proxiedSrc } from "../lib/image";
@@ -178,6 +194,43 @@ const formatApplicationDate = (date: string | Date): string => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+type SavedSearchFilters = {
+  searchTerm?: string;
+  selectedNiches?: string[];
+  selectedCategories?: string[];
+  commissionType?: string;
+  commissionRange?: number[];
+  minimumPayout?: number[];
+  minRating?: number;
+  showTrending?: boolean;
+  showPriority?: boolean;
+  sortBy?: string;
+};
+
+type SavedSearch = {
+  id: string;
+  name: string;
+  filters: SavedSearchFilters;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+const summarizeSavedSearch = (filters: SavedSearchFilters): string => {
+  const parts: string[] = [];
+
+  if (filters.searchTerm) parts.push(`"${filters.searchTerm}"`);
+  if (filters.selectedNiches?.length) parts.push(`${filters.selectedNiches.length} niche${filters.selectedNiches.length > 1 ? "s" : ""}`);
+  if (filters.selectedCategories?.length) parts.push(`${filters.selectedCategories.length} category filter${filters.selectedCategories.length > 1 ? "s" : ""}`);
+  if (filters.commissionType) parts.push(`Type: ${filters.commissionType.replace(/_/g, " ")}`);
+  if (filters.minimumPayout?.[0]) parts.push(`Min payout: $${filters.minimumPayout[0]}`);
+  if (filters.minRating && filters.minRating > 0) parts.push(`${filters.minRating}+ stars`);
+  if (filters.showTrending) parts.push("Trending only");
+  if (filters.showPriority) parts.push("Priority only");
+  if (filters.sortBy && filters.sortBy !== "newest") parts.push(`Sort: ${filters.sortBy.replace(/_/g, " ")}`);
+
+  return parts.length > 0 ? parts.join(" • ") : "No filters applied";
+};
+
 export default function Browse() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -191,6 +244,8 @@ export default function Browse() {
   const [showTrending, setShowTrending] = useState(false);
   const [showPriority, setShowPriority] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
+  const [saveSearchDialogOpen, setSaveSearchDialogOpen] = useState(false);
+  const [savedSearchName, setSavedSearchName] = useState("");
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     title: string;
@@ -206,6 +261,30 @@ export default function Browse() {
       window.location.href = "/login";
     }
   }, [isAuthenticated, isLoading]);
+
+  const currentFilters = useMemo<SavedSearchFilters>(() => ({
+    searchTerm,
+    selectedNiches,
+    selectedCategories,
+    commissionType,
+    commissionRange,
+    minimumPayout,
+    minRating,
+    showTrending,
+    showPriority,
+    sortBy,
+  }), [
+    commissionRange,
+    commissionType,
+    minRating,
+    minimumPayout,
+    searchTerm,
+    selectedCategories,
+    selectedNiches,
+    showPriority,
+    showTrending,
+    sortBy,
+  ]);
 
   // Fetch niches from API
   const { data: niches = [], isLoading: nichesLoading } = useQuery<Array<{ id: string; name: string; description: string | null; isActive: boolean }>>({
@@ -574,6 +653,11 @@ export default function Browse() {
     enabled: isAuthenticated,
   });
 
+  const { data: savedSearches = [], isLoading: savedSearchesLoading } = useQuery<SavedSearch[]>({
+    queryKey: ["/api/saved-searches"],
+    enabled: isAuthenticated,
+  });
+
   const favoriteMutation = useMutation({
     mutationFn: async ({ offerId, isFav }: { offerId: string; isFav: boolean }) => {
       if (isFav) {
@@ -599,6 +683,103 @@ export default function Browse() {
     e.stopPropagation();
     const isFav = favorites.some(f => f.offerId === offerId);
     favoriteMutation.mutate({ offerId, isFav });
+  };
+
+  const createSavedSearchMutation = useMutation({
+    mutationFn: async (payload: { name: string; filters: SavedSearchFilters }) => {
+      const res = await apiRequest("POST", "/api/saved-searches", payload);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-searches"] });
+      toast({ title: "Saved search created", description: "Your filters were saved for quick access." });
+      setSaveSearchDialogOpen(false);
+      setSavedSearchName("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Unable to save search",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateSavedSearchMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: Partial<{ name: string; filters: SavedSearchFilters }> }) => {
+      const res = await apiRequest("PUT", `/api/saved-searches/${id}`, payload);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-searches"] });
+      toast({ title: "Saved search updated", description: "Filters have been refreshed." });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Unable to update search",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteSavedSearchMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/saved-searches/${id}`);
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-searches"] });
+      toast({ title: "Saved search removed" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Unable to remove search",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveSearch = () => {
+    const trimmedName = savedSearchName.trim();
+    if (!trimmedName) {
+      toast({
+        title: "Name your search",
+        description: "Add a name to quickly recognize this filter set.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createSavedSearchMutation.mutate({ name: trimmedName, filters: currentFilters });
+  };
+
+  const handleApplySavedSearch = (savedSearch: SavedSearch) => {
+    const filters = savedSearch.filters || {};
+    setSearchTerm(filters.searchTerm ?? "");
+    setSelectedNiches(filters.selectedNiches ?? []);
+    setSelectedCategories(filters.selectedCategories ?? []);
+    setCommissionType(filters.commissionType ?? "");
+    setCommissionRange(filters.commissionRange && filters.commissionRange.length === 2 ? filters.commissionRange : [0, 10000]);
+    setMinimumPayout(filters.minimumPayout && filters.minimumPayout.length > 0 ? filters.minimumPayout : [0]);
+    setMinRating(filters.minRating ?? 0);
+    setShowTrending(Boolean(filters.showTrending));
+    setShowPriority(Boolean(filters.showPriority));
+    setSortBy(filters.sortBy ?? "newest");
+
+    toast({
+      title: "Saved search applied",
+      description: `Applied "${savedSearch.name}" filters.`,
+    });
+  };
+
+  const handleUpdateSavedSearch = (id: string) => {
+    updateSavedSearchMutation.mutate({ id, payload: { filters: currentFilters } });
+  };
+
+  const handleDeleteSavedSearch = (id: string) => {
+    deleteSavedSearchMutation.mutate(id);
   };
 
   if (isLoading) {
@@ -840,6 +1021,107 @@ export default function Browse() {
               </ScrollArea>
             </SheetContent>
           </Sheet>
+
+          <Button
+            variant="outline"
+            className="flex-shrink-0 gap-2"
+            onClick={() => setSaveSearchDialogOpen(true)}
+          >
+            <BookmarkPlus className="h-4 w-4" />
+            Save search
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex-shrink-0 gap-2">
+                <Bookmark className="h-4 w-4" />
+                Saved searches
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-80">
+              <DropdownMenuLabel>Saved searches</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {savedSearchesLoading ? (
+                <DropdownMenuItem className="pointer-events-none text-muted-foreground">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Loading...
+                </DropdownMenuItem>
+              ) : savedSearches.length === 0 ? (
+                <DropdownMenuItem className="pointer-events-none text-muted-foreground">
+                  No saved searches yet
+                </DropdownMenuItem>
+              ) : (
+                savedSearches.map((search) => (
+                  <DropdownMenuItem
+                    key={search.id}
+                    className="whitespace-normal py-3 flex flex-col items-start gap-2"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      handleApplySavedSearch(search);
+                    }}
+                  >
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium leading-tight">{search.name}</p>
+                        <p className="text-xs text-muted-foreground leading-tight">{new Date(search.updatedAt || search.createdAt || new Date()).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="h-8"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleApplySavedSearch(search);
+                          }}
+                        >
+                          Apply
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleUpdateSavedSearch(search.id);
+                          }}
+                          title="Update with current filters"
+                        >
+                          {updateSavedSearchMutation.isPending && updateSavedSearchMutation.variables?.id === search.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <RefreshCcw className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDeleteSavedSearch(search.id);
+                          }}
+                          title="Delete saved search"
+                        >
+                          {deleteSavedSearchMutation.isPending && deleteSavedSearchMutation.variables === search.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
+                      {summarizeSavedSearch(search.filters || {})}
+                    </p>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Loading State */}
@@ -1411,6 +1693,54 @@ export default function Browse() {
         description={errorDialog.description}
         variant="error"
       />
+
+      <Dialog
+        open={saveSearchDialogOpen}
+        onOpenChange={(open) => {
+          setSaveSearchDialogOpen(open);
+          if (!open) {
+            setSavedSearchName("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save this search</DialogTitle>
+            <DialogDescription>Store your current keywords and filters for quick reuse.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="saved-search-name">Search name</Label>
+              <Input
+                id="saved-search-name"
+                value={savedSearchName}
+                onChange={(e) => setSavedSearchName(e.target.value)}
+                placeholder="e.g. High commission SaaS"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Current search term, selected niches, and filters will be saved.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSaveSearchDialogOpen(false);
+                setSavedSearchName("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveSearch} disabled={createSavedSearchMutation.isPending}>
+              {createSavedSearchMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save search
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
