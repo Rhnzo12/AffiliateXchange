@@ -43,6 +43,7 @@ import { Badge } from "../components/ui/badge";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { proxiedSrc } from "../lib/image";
+import { uploadFileToCloudinary } from "../lib/cloudinaryUpload";
 
 type VerificationDocument = {
   id: string;
@@ -361,23 +362,16 @@ export default function Settings() {
       
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "image/jpeg",
-        },
-        body: file,
-      });
-
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        console.error("GCS upload error:", errorText);
-        throw new Error("Failed to upload file to storage");
-      }
-
-      // Construct the public URL from the upload response
-      const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      // Upload file to Cloudinary (GCS temporarily disabled; previous logic kept below for easy re-enable)
+      const uploadedUrl = await uploadFileToCloudinary(uploadData, file);
+      // const uploadResult = await fetch(uploadData.uploadUrl, {
+      //   method: "PUT",
+      //   headers: {
+      //     "Content-Type": uploadData.contentType || file.type || "image/jpeg",
+      //   },
+      //   body: file,
+      // });
+      // const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
 
       // Set the logo URL
       setLogoUrl(uploadedUrl);
@@ -442,23 +436,16 @@ export default function Settings() {
 
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "image/jpeg",
-        },
-        body: file,
-      });
-
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        console.error("GCS upload error:", errorText);
-        throw new Error("Failed to upload file to storage");
-      }
-
-      // Construct the public URL from the upload response
-      const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      // Upload file to Cloudinary (GCS temporarily disabled; previous logic kept below for easy re-enable)
+      const uploadedUrl = await uploadFileToCloudinary(uploadData, file);
+      // const uploadResult = await fetch(uploadData.uploadUrl, {
+      //   method: "PUT",
+      //   headers: {
+      //     "Content-Type": uploadData.contentType || file.type || "image/jpeg",
+      //   },
+      //   body: file,
+      // });
+      // const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
       setProfileImageUrl(uploadedUrl);
 
       toast({
@@ -536,23 +523,16 @@ export default function Settings() {
 
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "application/octet-stream",
-        },
-        body: file,
-      });
-
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        console.error("GCS upload error:", errorText);
-        throw new Error("Failed to upload file to storage");
-      }
-
-      // Construct the public URL from the upload response
-      const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      // Upload file to Cloudinary (GCS temporarily disabled; previous logic kept below for easy re-enable)
+      const uploadedUrl = await uploadFileToCloudinary(uploadData, file);
+      // const uploadResult = await fetch(uploadData.uploadUrl, {
+      //   method: "PUT",
+      //   headers: {
+      //     "Content-Type": uploadData.contentType || file.type || "application/octet-stream",
+      //   },
+      //   body: file,
+      // });
+      // const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
 
       // Determine document type
       const documentType = file.type === 'application/pdf' ? 'pdf' : 'image';
@@ -650,6 +630,11 @@ export default function Settings() {
       setDocumentViewerType(documentType);
       setShowDocumentViewer(true);
 
+      if (documentUrl.includes('cloudinary.com')) {
+        setDocumentViewerUrl(documentUrl);
+        return;
+      }
+
       // Extract the file path from the GCS URL
       const url = new URL(documentUrl);
       const pathParts = url.pathname.split('/');
@@ -681,6 +666,16 @@ export default function Settings() {
 
   const handleDownloadDocument = async (documentUrl: string, documentName: string) => {
     try {
+      if (documentUrl.includes('cloudinary.com')) {
+        const link = document.createElement('a');
+        link.href = documentUrl;
+        link.download = documentName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+
       // Extract the file path from the GCS URL
       const url = new URL(documentUrl);
       const pathParts = url.pathname.split('/');
