@@ -35,6 +35,9 @@ import { PriorityListingScheduler } from "./priorityListingScheduler";
 import * as QRCode from "qrcode";
 // @ts-ignore - multer may not have types in all environments
 import multer from "multer";
+// === CLOUDINARY (ACTIVE) ===
+import { v2 as cloudinary } from 'cloudinary';
+// === END CLOUDINARY ===
 
 // Define multer file interface for type safety
 interface MulterFile {
@@ -7751,9 +7754,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('[Upload API] Requested contentType:', contentType);
     console.log('[Upload API] Requested fileName:', fileName);
     console.log('[Upload API] Folder parameter passed to service:', folder);
-    const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType, contentType, fileName);
-    console.log('[Upload API] Upload params returned:', uploadParams);
-    res.json(uploadParams);
+    try {
+      const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType, contentType, fileName);
+      console.log('[Upload API] Upload params returned:', uploadParams);
+      res.json(uploadParams);
+    } catch (error: any) {
+      console.error('[Upload API] Failed to generate upload params:', error);
+      res.status(500).json({ error: error?.message || 'Failed to generate upload parameters' });
+    }
   });
 
   // Configure multer for file uploads (store in memory as buffer)
@@ -7771,75 +7779,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filename = req.params.filename;
       const isDownload = req.query.download === 'true';
       const customName = req.query.name as string | undefined;
-      const objectStorageService = new ObjectStorageService();
+      // === GOOGLE CLOUD STORAGE (COMMENTED) ===
+      // const { Storage } = await import('@google-cloud/storage');
+      // const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'tool-development-478707';
+      // const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
+      //
+      // let gcsStorage: any;
+      // const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
+      // if (credentialsJson) {
+      //   const credentials = JSON.parse(credentialsJson);
+      //   gcsStorage = new Storage({
+      //     projectId: projectId || credentials.project_id,
+      //     credentials,
+      //   });
+      // } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+      //   gcsStorage = new Storage({
+      //     projectId,
+      //     keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+      //   });
+      // } else {
+      //   gcsStorage = new Storage({ projectId });
+      // }
+      //
+      // const ext = filename.split('.').pop()?.toLowerCase();
+      // const contentTypeMap: { [key: string]: string } = {
+      //   'pdf': 'application/pdf',
+      //   'jpg': 'image/jpeg',
+      //   'jpeg': 'image/jpeg',
+      //   'png': 'image/png',
+      //   'gif': 'image/gif',
+      //   'webp': 'image/webp',
+      //   'mp4': 'video/mp4',
+      //   'webm': 'video/webm',
+      //   'mov': 'video/quicktime',
+      // };
+      // const contentType = contentTypeMap[ext || ''] || 'application/octet-stream';
+      //
+      // const options: any = {
+      //   version: 'v4' as const,
+      //   action: 'read' as const,
+      //   expires: Date.now() + 60 * 60 * 1000, // 1 hour from now
+      //   responseContentType: contentType,
+      // };
+      //
+      // if (isDownload) {
+      //   const downloadName = customName || filename.split('/').pop() || 'download';
+      //   options.responseContentDisposition = `attachment; filename="${downloadName}"`;
+      // } else {
+      //   options.responseContentDisposition = 'inline';
+      // }
+      //
+      // const [url] = await gcsStorage
+      //   .bucket(bucketName)
+      //   .file(filename)
+      //   .getSignedUrl(options);
+      //
+      // console.log('[Signed URL API] Generated signed URL for:', filename, isDownload ? '(download)' : '(view)', 'contentType:', contentType);
+      // res.json({ url });
+      // === END GOOGLE CLOUD STORAGE ===
 
-      // Import Storage from @google-cloud/storage
-      const { Storage } = await import('@google-cloud/storage');
-
-      // Initialize Google Cloud Storage with service account key
-      const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'tool-development-478707';
-      const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
-
-      let gcsStorage: any;
-      // Option 1: Use credentials from JSON string (best for production/Render)
-      const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-      if (credentialsJson) {
-        const credentials = JSON.parse(credentialsJson);
-        gcsStorage = new Storage({
-          projectId: projectId || credentials.project_id,
-          credentials,
-        });
-      }
-      // Option 2: Use key file path (for local development)
-      else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-        gcsStorage = new Storage({
-          projectId,
-          keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-        });
-      }
-      // Option 3: Fallback to default credentials (useful for GCP environments)
-      else {
-        gcsStorage = new Storage({ projectId });
-      }
-
-      // Determine content type based on file extension
       const ext = filename.split('.').pop()?.toLowerCase();
-      const contentTypeMap: { [key: string]: string } = {
-        'pdf': 'application/pdf',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'webp': 'image/webp',
-        'mp4': 'video/mp4',
-        'webm': 'video/webm',
-        'mov': 'video/quicktime',
-      };
-      const contentType = contentTypeMap[ext || ''] || 'application/octet-stream';
+      const resourceType = ext && ['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext) ? 'video' :
+                          ext && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext) ? 'image' : 'raw';
+      const publicId = filename.replace(/\.[^/.]+$/, '');
+      const downloadName = customName || filename.split('/').pop() || 'download';
 
-      // Build options with Content-Type and optional Content-Disposition
-      const options: any = {
-        version: 'v4' as const,
-        action: 'read' as const,
-        expires: Date.now() + 60 * 60 * 1000, // 1 hour from now
-        responseContentType: contentType,
-      };
+      const url = cloudinary.url(publicId, {
+        resource_type: resourceType as any,
+        format: ext,
+        secure: true,
+        sign_url: true,
+        type: 'authenticated',
+        attachment: isDownload ? downloadName : undefined,
+      });
 
-      // Set Content-Disposition based on mode
-      if (isDownload) {
-        const downloadName = customName || filename.split('/').pop() || 'download';
-        options.responseContentDisposition = `attachment; filename="${downloadName}"`;
-      } else {
-        // For viewing, set inline to display in browser
-        options.responseContentDisposition = 'inline';
-      }
-
-      const [url] = await gcsStorage
-        .bucket(bucketName)
-        .file(filename)
-        .getSignedUrl(options);
-
-      console.log('[Signed URL API] Generated signed URL for:', filename, isDownload ? '(download)' : '(view)', 'contentType:', contentType);
+      console.log('[Signed URL API] Generated Cloudinary signed URL for:', filename, isDownload ? '(download)' : '(view)');
       res.json({ url });
     } catch (error: any) {
       console.error('Error generating signed URL:', error);
@@ -7860,80 +7874,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const file = multerReq.file;
       const folder = req.body.folder || 'affiliatexchange/uploads';
       const resourceType = req.body.resourceType || 'auto';
+      const objectStorageService = new ObjectStorageService();
+      // === GOOGLE CLOUD STORAGE (COMMENTED) ===
+      // const { Storage } = await import('@google-cloud/storage');
+      // const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'tool-development-478707';
+      // const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
+      //
+      // let gcsStorage: any;
+      // const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
+      // if (credentialsJson) {
+      //   const credentials = JSON.parse(credentialsJson);
+      //   gcsStorage = new Storage({
+      //     projectId: projectId || credentials.project_id,
+      //     credentials,
+      //   });
+      // }
+      // else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+      //   gcsStorage = new Storage({
+      //     projectId,
+      //     keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+      //   });
+      // }
+      // else {
+      //   gcsStorage = new Storage({ projectId });
+      // }
+      //
+      // const { randomUUID } = await import('crypto');
+      // const ext = file.originalname.split('.').pop();
+      // const filename = `${randomUUID()}.${ext}`;
+      // const destination = `${folder}/${filename}`;
+      //
+      // const blob = gcsStorage.bucket(bucketName).file(destination);
+      //
+      // const blobStream = blob.createWriteStream({
+      //   resumable: false,
+      //   metadata: {
+      //     contentType: file.mimetype
+      //   }
+      // });
+      //
+      // blobStream.on('error', (err: any) => {
+      //   console.error('Error uploading file:', err);
+      //   res.status(500).json({ error: err.message });
+      // });
+      //
+      // blobStream.on('finish', async () => {
+      //   try {
+      //     const [url] = await blob.getSignedUrl({
+      //       version: 'v4',
+      //       action: 'read',
+      //       expires: Date.now() + 60 * 60 * 1000,
+      //     });
+      //
+      //     console.log('[Direct Upload API] File uploaded successfully:', destination);
+      //     res.json({
+      //       message: 'File uploaded successfully',
+      //       filename: destination,
+      //       originalName: file.originalname,
+      //       url: url,
+      //       publicUrl: `https://storage.googleapis.com/${bucketName}/${destination}`
+      //     });
+      //   } catch (error: any) {
+      //     console.error('Error generating signed URL after upload:', error);
+      //     res.status(500).json({ error: 'File uploaded but failed to generate signed URL' });
+      //   }
+      // });
+      //
+      // blobStream.end(file.buffer);
+      // === END GOOGLE CLOUD STORAGE ===
 
-      // Import Storage from @google-cloud/storage
-      const { Storage } = await import('@google-cloud/storage');
-
-      // Initialize Google Cloud Storage
-      const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'tool-development-478707';
-      const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
-
-      let gcsStorage: any;
-      // Option 1: Use credentials from JSON string (best for production/Render)
-      const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-      if (credentialsJson) {
-        const credentials = JSON.parse(credentialsJson);
-        gcsStorage = new Storage({
-          projectId: projectId || credentials.project_id,
-          credentials,
-        });
-      }
-      // Option 2: Use key file path (for local development)
-      else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-        gcsStorage = new Storage({
-          projectId,
-          keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-        });
-      }
-      // Option 3: Fallback to default credentials (useful for GCP environments)
-      else {
-        gcsStorage = new Storage({ projectId });
-      }
-
-      // Generate unique filename with original extension
-      const { randomUUID } = await import('crypto');
-      const ext = file.originalname.split('.').pop();
-      const filename = `${randomUUID()}.${ext}`;
-      const destination = `${folder}/${filename}`;
-
-      const blob = gcsStorage.bucket(bucketName).file(destination);
-
-      const blobStream = blob.createWriteStream({
-        resumable: false,
-        metadata: {
-          contentType: file.mimetype
-        }
+      const uploadResult = await objectStorageService.uploadBuffer(file.buffer, {
+        folder,
+        resourceType,
       });
 
-      blobStream.on('error', (err: any) => {
-        console.error('Error uploading file:', err);
-        res.status(500).json({ error: err.message });
+      console.log('[Direct Upload API] File uploaded successfully to Cloudinary:', uploadResult.public_id);
+      res.json({
+        message: 'File uploaded successfully',
+        filename: uploadResult.public_id,
+        originalName: file.originalname,
+        url: uploadResult.secure_url || uploadResult.url,
+        publicUrl: uploadResult.secure_url || uploadResult.url,
       });
-
-      blobStream.on('finish', async () => {
-        try {
-          // Generate signed URL for the uploaded file
-          const [url] = await blob.getSignedUrl({
-            version: 'v4',
-            action: 'read',
-            expires: Date.now() + 60 * 60 * 1000,
-          });
-
-          console.log('[Direct Upload API] File uploaded successfully:', destination);
-          res.json({
-            message: 'File uploaded successfully',
-            filename: destination,
-            originalName: file.originalname,
-            url: url,
-            publicUrl: `https://storage.googleapis.com/${bucketName}/${destination}`
-          });
-        } catch (error: any) {
-          console.error('Error generating signed URL after upload:', error);
-          res.status(500).json({ error: 'File uploaded but failed to generate signed URL' });
-        }
-      });
-
-      blobStream.end(file.buffer);
     } catch (error: any) {
       console.error('Error in direct upload:', error);
       res.status(500).json({ error: error.message });
