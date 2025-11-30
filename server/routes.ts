@@ -58,6 +58,8 @@ import {
   insertMessageSchema,
   insertReviewSchema,
   insertFavoriteSchema,
+  insertSavedSearchSchema,
+  savedSearchFiltersSchema,
   insertPaymentSettingSchema,
   adminReviewUpdateSchema,
   adminNoteSchema,
@@ -1898,6 +1900,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteFavorite(userId, req.params.offerId);
       res.json({ success: true });
     } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Saved searches routes
+  const savedSearchUpdateSchema = z.object({
+    name: z.string().trim().min(1).max(200).optional(),
+    filters: savedSearchFiltersSchema.optional(),
+  });
+
+  app.get("/api/saved-searches", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const savedSearches = await storage.getSavedSearchesByCreator(userId);
+      res.json(savedSearches);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/saved-searches", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const validated = insertSavedSearchSchema
+        .omit({ creatorId: true })
+        .parse({ ...req.body });
+
+      const savedSearch = await storage.createSavedSearch({ ...validated, creatorId: userId });
+      res.json(savedSearch);
+    } catch (error: any) {
+      console.error("[Create Saved Search] Error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid saved search payload" });
+      }
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.put("/api/saved-searches/:id", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const updates = savedSearchUpdateSchema.parse(req.body);
+
+      const existing = await storage.getSavedSearch(req.params.id, userId);
+      if (!existing) {
+        return res.status(404).json({ error: "Saved search not found" });
+      }
+
+      const updated = await storage.updateSavedSearch(req.params.id, userId, updates);
+      if (!updated) {
+        return res.status(404).json({ error: "Saved search not found" });
+      }
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("[Update Saved Search] Error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid saved search payload" });
+      }
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.delete("/api/saved-searches/:id", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const existing = await storage.getSavedSearch(req.params.id, userId);
+      if (!existing) {
+        return res.status(404).json({ error: "Saved search not found" });
+      }
+
+      await storage.deleteSavedSearch(req.params.id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[Delete Saved Search] Error:", error);
       res.status(500).send(error.message);
     }
   });
