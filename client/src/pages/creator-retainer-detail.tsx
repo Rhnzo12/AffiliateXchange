@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { useToast } from "../hooks/use-toast";
 import { apiRequest, queryClient } from "../lib/queryClient";
+import { uploadFileToCloudinary } from "../lib/cloudinaryUpload";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -165,18 +166,18 @@ export default function CreatorRetainerDetail() {
 
       console.log('[Retainer Upload] Upload parameters received:', uploadData);
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "video/mp4",
-        },
-        body: file,
-      });
+      // Upload file to Cloudinary (GCS temporarily disabled; previous logic kept below for easy re-enable)
+      const uploadedVideoUrl = await uploadFileToCloudinary(uploadData, file);
+      // const uploadResult = await fetch(uploadData.uploadUrl, {
+      //   method: "PUT",
+      //   headers: {
+      //     "Content-Type": uploadData.contentType || file.type || "video/mp4",
+      //   },
+      //   body: file,
+      // });
+      // const uploadedVideoUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
 
-      if (uploadResult.ok) {
-        // Construct the public URL from the upload response
-        const uploadedVideoUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      if (uploadedVideoUrl) {
         console.log('[Retainer Upload] Final video URL:', uploadedVideoUrl);
 
         setVideoUrl(uploadedVideoUrl);

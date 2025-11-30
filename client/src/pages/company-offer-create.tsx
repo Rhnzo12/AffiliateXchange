@@ -3,6 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { uploadFileToCloudinary } from "../lib/cloudinaryUpload";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -200,18 +201,37 @@ export default function CompanyOfferCreate() {
   });
 
   const uploadWithProgress = (
-    uploadUrl: string,
+    uploadData: any,
     file: File,
-    bucket: string,
-    key: string,
-    contentType: string,
+    _contentType: string,
     onProgress: (progress: number) => void,
   ) => {
     return new Promise<any>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("PUT", uploadUrl);
-      xhr.setRequestHeader("Content-Type", contentType);
+      const formData = new FormData();
+      formData.append("file", file);
 
+      if (uploadData.uploadPreset || uploadData.fields?.upload_preset) {
+        formData.append(
+          "upload_preset",
+          uploadData.uploadPreset || uploadData.fields?.upload_preset
+        );
+      }
+
+      if (uploadData.signature && uploadData.timestamp && uploadData.apiKey) {
+        formData.append("signature", uploadData.signature);
+        formData.append("timestamp", uploadData.timestamp.toString());
+        formData.append("api_key", uploadData.apiKey);
+      }
+
+      if (uploadData.folder) {
+        formData.append("folder", uploadData.folder);
+      }
+      if (uploadData.fields?.public_id) {
+        formData.append("public_id", uploadData.fields.public_id);
+      }
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", uploadData.uploadUrl);
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           const progress = Math.round((event.loaded / event.total) * 100);
@@ -221,9 +241,12 @@ export default function CompanyOfferCreate() {
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          // GCS returns empty body, construct the URL from bucket and key
-          const uploadedUrl = `https://storage.googleapis.com/${bucket}/${key}`;
-          resolve({ secure_url: uploadedUrl });
+          try {
+            const response = JSON.parse(xhr.responseText || "{}");
+            resolve(response);
+          } catch (err) {
+            reject(new Error("Failed to parse upload response"));
+          }
         } else {
           reject(new Error("Upload failed"));
         }
@@ -231,7 +254,8 @@ export default function CompanyOfferCreate() {
 
       xhr.onerror = () => reject(new Error("Upload failed"));
 
-      xhr.send(file);
+      // xhr.setRequestHeader("Content-Type", contentType); // GCS-only; keep commented for easy re-enable
+      xhr.send(formData);
     });
   };
 
@@ -314,29 +338,26 @@ export default function CompanyOfferCreate() {
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
-          // Upload thumbnail to Google Cloud Storage using signed URL
-          const thumbUploadResult = await fetch(thumbUploadData.uploadUrl, {
+          // Upload thumbnail to Cloudinary (GCS temporarily disabled; previous logic kept below for easy re-enable)
+          const uploadedThumbnailUrl = await uploadFileToCloudinary(thumbUploadData, thumbnailFile);
+          // const thumbUploadResult = await fetch(thumbUploadData.uploadUrl, {
+          //   method: "PUT",
+          //   headers: {
+          //     "Content-Type": thumbUploadData.contentType || thumbnailFile.type || "image/jpeg",
+          //   },
+          //   body: thumbnailFile,
+          // });
+          // const uploadedThumbnailUrl = `https://storage.googleapis.com/${thumbUploadData.fields.bucket}/${thumbUploadData.fields.key}`;
+
+          // Update offer with thumbnail URL
+          await fetch(`/api/offers/${offerId}`, {
             method: "PUT",
-            headers: {
-              "Content-Type": thumbUploadData.contentType || thumbnailFile.type || "image/jpeg",
-            },
-            body: thumbnailFile,
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ featuredImageUrl: uploadedThumbnailUrl }),
           });
 
-          if (thumbUploadResult.ok) {
-            // Construct the public URL from the upload response
-            const uploadedThumbnailUrl = `https://storage.googleapis.com/${thumbUploadData.fields.bucket}/${thumbUploadData.fields.key}`;
-
-            // Update offer with thumbnail URL
-            await fetch(`/api/offers/${offerId}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ featuredImageUrl: uploadedThumbnailUrl }),
-            });
-
-            console.log("Thumbnail uploaded and offer updated:", uploadedThumbnailUrl);
-          }
+          console.log("Thumbnail uploaded and offer updated:", uploadedThumbnailUrl);
         } catch (thumbnailError) {
           console.error("Failed to upload thumbnail:", thumbnailError);
           // Continue without thumbnail - don't fail the entire offer creation
@@ -372,10 +393,8 @@ export default function CompanyOfferCreate() {
 
             // Upload video to GCS with progress tracking
             const cloudinaryResponse = await uploadWithProgress(
-              uploadData.uploadUrl,
+              uploadData,
               video.videoFile,
-              uploadData.fields.bucket,
-              uploadData.fields.key,
               uploadData.contentType || video.videoFile.type || "video/mp4",
               (progress) => {
                 setVideoUploadProgress(progress);
@@ -402,19 +421,16 @@ export default function CompanyOfferCreate() {
               });
               const thumbUploadData = await thumbUploadResponse.json();
 
-              // Upload thumbnail to Google Cloud Storage using signed URL
-              const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
-                method: "PUT",
-                headers: {
-                  "Content-Type": thumbUploadData.contentType || "image/jpeg",
-                },
-                body: thumbnailBlob,
-              });
-
-              if (thumbnailUploadResult.ok) {
-                // Construct the public URL from the upload response
-                uploadedThumbnailUrl = `https://storage.googleapis.com/${thumbUploadData.fields.bucket}/${thumbUploadData.fields.key}`;
-              }
+              // Upload thumbnail to Cloudinary (GCS temporarily disabled; previous logic kept below for easy re-enable)
+              uploadedThumbnailUrl = await uploadFileToCloudinary(thumbUploadData, thumbnailBlob);
+              // const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
+              //   method: "PUT",
+              //   headers: {
+              //     "Content-Type": thumbUploadData.contentType || "image/jpeg",
+              //   },
+              //   body: thumbnailBlob,
+              // });
+              // uploadedThumbnailUrl = `https://storage.googleapis.com/${thumbUploadData.fields.bucket}/${thumbUploadData.fields.key}`;
             } catch (thumbnailError) {
               console.error('Thumbnail generation error:', thumbnailError);
               // Continue without thumbnail
