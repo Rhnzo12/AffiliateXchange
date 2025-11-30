@@ -3,6 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link, useLocation } from "wouter";
+import { uploadFileToCloudinary } from "../lib/cloudinaryUpload";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -386,18 +387,18 @@ export default function CompanyOfferDetail() {
       });
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "video/mp4",
-        },
-        body: file,
-      });
+      // Upload file to Cloudinary (GCS temporarily disabled; previous logic kept below for easy re-enable)
+      const uploadedVideoUrl = await uploadFileToCloudinary(uploadData, file);
+      // const uploadResult = await fetch(uploadData.uploadUrl, {
+      //   method: "PUT",
+      //   headers: {
+      //     "Content-Type": uploadData.contentType || file.type || "video/mp4",
+      //   },
+      //   body: file,
+      // });
+      // const uploadedVideoUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
 
-      if (uploadResult.ok) {
-        // Construct the public URL from the upload response
-        const uploadedVideoUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      if (uploadedVideoUrl) {
 
         toast({
           title: "Video Uploaded",
@@ -418,19 +419,17 @@ export default function CompanyOfferDetail() {
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
-          // Upload thumbnail to Google Cloud Storage using signed URL
-          const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
-            method: "PUT",
-            headers: {
-              "Content-Type": thumbUploadData.contentType || "image/jpeg",
-            },
-            body: thumbnailBlob,
-          });
-
-          if (thumbnailUploadResult.ok) {
-            // Construct the public URL from the upload response
-            const uploadedThumbnailUrl = `https://storage.googleapis.com/${thumbUploadData.fields.bucket}/${thumbUploadData.fields.key}`;
-
+          // Upload thumbnail to Cloudinary (GCS temporarily disabled; previous logic kept below for easy re-enable)
+          const uploadedThumbnailUrl = await uploadFileToCloudinary(thumbUploadData, thumbnailBlob);
+          // const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
+          //   method: "PUT",
+          //   headers: {
+          //     "Content-Type": thumbUploadData.contentType || "image/jpeg",
+          //   },
+          //   body: thumbnailBlob,
+          // });
+          // const uploadedThumbnailUrl = `https://storage.googleapis.com/${thumbUploadData.fields.bucket}/${thumbUploadData.fields.key}`;
+          if (uploadedThumbnailUrl) {
             setVideoUrl(uploadedVideoUrl);
             setThumbnailUrl(uploadedThumbnailUrl);
             setIsUploading(false);

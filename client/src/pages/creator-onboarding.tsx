@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { Checkbox } from "../components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import { uploadFileToCloudinary } from "../lib/cloudinaryUpload";
 import {
   Sparkles,
   Upload,
@@ -150,23 +151,16 @@ export default function CreatorOnboarding() {
 
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "image/jpeg",
-        },
-        body: file,
-      });
-
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        console.error("GCS upload error:", errorText);
-        throw new Error("Failed to upload file to storage");
-      }
-
-      // Construct the public URL from the upload response
-      const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      // Upload file to Cloudinary (GCS temporarily disabled; previous logic kept below for easy re-enable)
+      const uploadedUrl = await uploadFileToCloudinary(uploadData, file);
+      // const uploadResult = await fetch(uploadData.uploadUrl, {
+      //   method: "PUT",
+      //   headers: {
+      //     "Content-Type": uploadData.contentType || file.type || "image/jpeg",
+      //   },
+      //   body: file,
+      // });
+      // const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
       setProfileImageUrl(uploadedUrl);
 
       toast({
