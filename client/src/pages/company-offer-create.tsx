@@ -349,15 +349,16 @@ export default function CompanyOfferCreate() {
           // });
           // const uploadedThumbnailUrl = `https://storage.googleapis.com/${thumbUploadData.fields.bucket}/${thumbUploadData.fields.key}`;
 
-          // Update offer with thumbnail URL
-          await fetch(`/api/offers/${offerId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ featuredImageUrl: uploadedThumbnailUrl }),
-          });
+            // Update offer with thumbnail URL
+            await fetch(`/api/offers/${offerId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ featuredImageUrl: uploadedThumbnailUrl }),
+            });
 
-          console.log("Thumbnail uploaded and offer updated:", uploadedThumbnailUrl);
+            console.log("Thumbnail uploaded and offer updated:", uploadedThumbnailUrl);
+          }
         } catch (thumbnailError) {
           console.error("Failed to upload thumbnail:", thumbnailError);
           // Continue without thumbnail - don't fail the entire offer creation
