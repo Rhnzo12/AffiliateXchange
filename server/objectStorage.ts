@@ -1,4 +1,41 @@
-import { Storage } from '@google-cloud/storage';
+// === GOOGLE CLOUD STORAGE (COMMENTED) ===
+// import { Storage } from '@google-cloud/storage';
+// let storage: Storage;
+// try {
+//   // Option 1: Use credentials from JSON string (best for production/Render)
+//   const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
+//   if (credentialsJson) {
+//     const credentials = JSON.parse(credentialsJson);
+//     storage = new Storage({
+//       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || credentials.project_id,
+//       credentials,
+//     });
+//     console.log('[GCS] ✓ Initialized with credentials from GOOGLE_CLOUD_CREDENTIALS_JSON');
+//   }
+//   // Option 2: Use key file path (for local development)
+//   else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+//     storage = new Storage({
+//       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+//       keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+//     });
+//     console.log('[GCS] ✓ Initialized with key file from GOOGLE_CLOUD_KEYFILE');
+//   }
+//   // Option 3: Fallback to default credentials (useful for GCP environments)
+//   else {
+//     storage = new Storage({
+//       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+//     });
+//     console.log('[GCS] ⚠️  Initialized with default credentials (may fail if not in GCP environment)');
+//   }
+// } catch (error) {
+//   console.error('[GCS] ❌ Error initializing Google Cloud Storage:', error);
+//   throw error;
+// }
+// const BUCKET_NAME = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
+// === END GOOGLE CLOUD STORAGE ===
+
+// === CLOUDINARY (ACTIVE) ===
+import { v2 as cloudinary } from 'cloudinary';
 import { Response } from "express";
 import { randomUUID } from "crypto";
 import * as path from "path";
@@ -9,41 +46,16 @@ import {
   getObjectAclPolicy,
   setObjectAclPolicy,
 } from "./objectAcl";
+// Cloudinary configuration is handled via environment variables (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET).
+// Switching back to Google Cloud Storage only requires commenting out the Cloudinary section and uncommenting the GCS block above.
+// === END CLOUDINARY ===
 
-// Configure Google Cloud Storage
-let storage: Storage;
-try {
-  // Option 1: Use credentials from JSON string (best for production/Render)
-  const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-  if (credentialsJson) {
-    const credentials = JSON.parse(credentialsJson);
-    storage = new Storage({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || credentials.project_id,
-      credentials,
-    });
-    console.log('[GCS] ✓ Initialized with credentials from GOOGLE_CLOUD_CREDENTIALS_JSON');
-  }
-  // Option 2: Use key file path (for local development)
-  else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-    storage = new Storage({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-      keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-    });
-    console.log('[GCS] ✓ Initialized with key file from GOOGLE_CLOUD_KEYFILE');
-  }
-  // Option 3: Fallback to default credentials (useful for GCP environments)
-  else {
-    storage = new Storage({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-    });
-    console.log('[GCS] ⚠️  Initialized with default credentials (may fail if not in GCP environment)');
-  }
-} catch (error) {
-  console.error('[GCS] ❌ Error initializing Google Cloud Storage:', error);
-  throw error;
-}
-
-const BUCKET_NAME = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
+// Explicitly configure Cloudinary from environment variables to avoid relying on global defaults
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export class ObjectNotFoundError extends Error {
   constructor() {
@@ -56,12 +68,18 @@ export class ObjectNotFoundError extends Error {
 export class ObjectStorageService {
   constructor() {}
 
-  getStorageFolder(): string {
-    return process.env.GCS_FOLDER || "affiliatexchange/videos";
+  private ensureCloudinaryConfigured() {
+    const config = cloudinary.config();
+    if (!config.cloud_name || !config.api_key || !config.api_secret) {
+      throw new Error(
+        "Cloudinary is not fully configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET."
+      );
+    }
+    return config;
   }
 
-  private getBucket() {
-    return storage.bucket(BUCKET_NAME);
+  getStorageFolder(): string {
+    return process.env.CLOUDINARY_FOLDER || process.env.GCS_FOLDER || "affiliatexchange/videos";
   }
 
   private getContentType(fileName: string, resourceType: string = 'auto'): string {
@@ -112,6 +130,68 @@ export class ObjectStorageService {
     return types[ext] || 'application/octet-stream';
   }
 
+  private inferResourceType(publicId: string): 'image' | 'video' | 'raw' {
+    const contentType = this.getContentType(publicId);
+    if (contentType.startsWith('video/')) return 'video';
+    if (contentType.startsWith('image/')) return 'image';
+    return 'raw';
+  }
+
+  // === GOOGLE CLOUD STORAGE (COMMENTED) ===
+  // async getObjectEntityUploadURL(customFolder?: string, resourceType: string = 'auto', clientContentType?: string, originalFileName?: string): Promise<{
+  //   uploadUrl: string;
+  //   uploadPreset?: string;
+  //   signature?: string;
+  //   timestamp?: number;
+  //   apiKey?: string;
+  //   folder?: string;
+  //   contentType?: string;
+  //   fields?: { [key: string]: string };
+  // }> {
+  //   const folder = customFolder || this.getStorageFolder();
+  //
+  //   // Generate filename with appropriate extension based on resource type or original filename
+  //   let fileExtension = '';
+  //   if (originalFileName) {
+  //     // Preserve the original file extension
+  //     fileExtension = path.extname(originalFileName).toLowerCase();
+  //   } else if (resourceType === 'image') {
+  //     fileExtension = '.jpg'; // Thumbnails are generated as JPEG
+  //   } else if (resourceType === 'video') {
+  //     fileExtension = '.mp4'; // Default video extension
+  //   }
+  //
+  //   const fileName = `${randomUUID()}${fileExtension}`;
+  //   const filePath = `${folder}/${fileName}`;
+  //
+  //   const bucket = this.getBucket();
+  //   const file = bucket.file(filePath);
+  //
+  //   // Use client-provided content type if available, otherwise detect from filename
+  //   const contentType = clientContentType || this.getContentType(fileName, resourceType);
+  //
+  //   // Generate signed URL for upload (valid for 15 minutes)
+  //   const [signedUrl] = await file.getSignedUrl({
+  //     version: 'v4',
+  //     action: 'write',
+  //     expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+  //     contentType,
+  //   });
+  //
+  //   console.log('[ObjectStorage] Generated GCS signed upload URL for folder:', folder, 'resourceType:', resourceType, 'contentType:', contentType, 'extension:', fileExtension);
+  //
+  //   return {
+  //     uploadUrl: signedUrl,
+  //     folder,
+  //     contentType, // Return the content type so frontend uses the exact same one
+  //     fields: {
+  //       key: filePath,
+  //       bucket: BUCKET_NAME,
+  //     },
+  //   };
+  // }
+  // === END GOOGLE CLOUD STORAGE ===
+
   async getObjectEntityUploadURL(customFolder?: string, resourceType: string = 'auto', clientContentType?: string, originalFileName?: string): Promise<{
     uploadUrl: string;
     uploadPreset?: string;
@@ -122,46 +202,51 @@ export class ObjectStorageService {
     contentType?: string;
     fields?: { [key: string]: string };
   }> {
+    const config = this.ensureCloudinaryConfigured();
     const folder = customFolder || this.getStorageFolder();
+    const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET;
+    const cloudName = config.cloud_name;
 
     // Generate filename with appropriate extension based on resource type or original filename
     let fileExtension = '';
     if (originalFileName) {
-      // Preserve the original file extension
       fileExtension = path.extname(originalFileName).toLowerCase();
     } else if (resourceType === 'image') {
-      fileExtension = '.jpg'; // Thumbnails are generated as JPEG
+      fileExtension = '.jpg';
     } else if (resourceType === 'video') {
-      fileExtension = '.mp4'; // Default video extension
+      fileExtension = '.mp4';
     }
 
     const fileName = `${randomUUID()}${fileExtension}`;
-    const filePath = `${folder}/${fileName}`;
+    const publicId = `${folder}/${fileName}`;
 
-    const bucket = this.getBucket();
-    const file = bucket.file(filePath);
-
-    // Use client-provided content type if available, otherwise detect from filename
     const contentType = clientContentType || this.getContentType(fileName, resourceType);
 
-    // Generate signed URL for upload (valid for 15 minutes)
-    const [signedUrl] = await file.getSignedUrl({
-      version: 'v4',
-      action: 'write',
-      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
-      contentType,
-    });
+    const timestamp = Math.round(Date.now() / 1000);
+    const unsignedParams: Record<string, any> = {
+      timestamp,
+      folder,
+      public_id: publicId,
+      resource_type: resourceType,
+      upload_preset: uploadPreset,
+    };
 
-    console.log('[ObjectStorage] Generated GCS signed upload URL for folder:', folder, 'resourceType:', resourceType, 'contentType:', contentType, 'extension:', fileExtension);
+    // Remove undefined values so signature matches exact payload
+    Object.keys(unsignedParams).forEach(key => unsignedParams[key] === undefined && delete unsignedParams[key]);
+
+    const signature = cloudinary.utils.api_sign_request(unsignedParams, config.api_secret || '');
+
+    console.log('[ObjectStorage] Generated Cloudinary upload params for folder:', folder, 'resourceType:', resourceType, 'contentType:', contentType, 'extension:', fileExtension);
 
     return {
-      uploadUrl: signedUrl,
+      uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
+      uploadPreset,
+      signature,
+      timestamp,
+      apiKey: config.api_key,
       folder,
-      contentType, // Return the content type so frontend uses the exact same one
-      fields: {
-        key: filePath,
-        bucket: BUCKET_NAME,
-      },
+      contentType,
+      fields: unsignedParams,
     };
   }
 
@@ -173,28 +258,56 @@ export class ObjectStorageService {
       publicId?: string;
     }
   ): Promise<any> {
+    this.ensureCloudinaryConfigured();
+
+    // === GOOGLE CLOUD STORAGE (COMMENTED) ===
+    // const folder = options?.folder || this.getStorageFolder();
+    // const fileName = options?.publicId || path.basename(filePath);
+    // const destination = `${folder}/${fileName}`;
+    //
+    // const bucket = this.getBucket();
+    // await bucket.upload(filePath, {
+    //   destination,
+    //   metadata: {
+    //     contentType: this.getContentType(filePath, options?.resourceType || 'auto'),
+    //   },
+    // });
+    //
+    // const file = bucket.file(destination);
+    // const [metadata] = await file.getMetadata();
+    //
+    // return {
+    //   public_id: destination,
+    //   secure_url: `https://storage.googleapis.com/${BUCKET_NAME}/${destination}`,
+    //   url: `https://storage.googleapis.com/${BUCKET_NAME}/${destination}`,
+    //   resource_type: options?.resourceType || 'auto',
+    //   format: path.extname(fileName).substring(1),
+    //   ...metadata,
+    // };
+    // === END GOOGLE CLOUD STORAGE ===
+
     const folder = options?.folder || this.getStorageFolder();
     const fileName = options?.publicId || path.basename(filePath);
-    const destination = `${folder}/${fileName}`;
+    const publicId = `${folder}/${fileName}`;
 
-    const bucket = this.getBucket();
-    await bucket.upload(filePath, {
-      destination,
-      metadata: {
-        contentType: this.getContentType(filePath, options?.resourceType || 'auto'),
-      },
+    const uploadResponse = await cloudinary.uploader.upload(filePath, {
+      folder,
+      public_id: publicId,
+      resource_type: options?.resourceType || 'auto',
+      use_filename: false,
+      unique_filename: false,
+      overwrite: true,
     });
 
-    const file = bucket.file(destination);
-    const [metadata] = await file.getMetadata();
-
     return {
-      public_id: destination,
-      secure_url: `https://storage.googleapis.com/${BUCKET_NAME}/${destination}`,
-      url: `https://storage.googleapis.com/${BUCKET_NAME}/${destination}`,
-      resource_type: options?.resourceType || 'auto',
-      format: path.extname(fileName).substring(1),
-      ...metadata,
+      public_id: uploadResponse.public_id,
+      secure_url: uploadResponse.secure_url,
+      url: uploadResponse.url,
+      resource_type: uploadResponse.resource_type,
+      format: uploadResponse.format,
+      bytes: uploadResponse.bytes,
+      created_at: uploadResponse.created_at,
+      ...uploadResponse,
     };
   }
 
@@ -206,29 +319,65 @@ export class ObjectStorageService {
       publicId?: string;
     }
   ): Promise<any> {
+    this.ensureCloudinaryConfigured();
+
+    // === GOOGLE CLOUD STORAGE (COMMENTED) ===
+    // const folder = options?.folder || this.getStorageFolder();
+    // const fileName = options?.publicId || randomUUID();
+    // const destination = `${folder}/${fileName}`;
+    //
+    // const bucket = this.getBucket();
+    // const file = bucket.file(destination);
+    //
+    // await file.save(buffer, {
+    //   metadata: {
+    //     contentType: this.getContentType(fileName, options?.resourceType || 'auto'),
+    //   },
+    // });
+    //
+    // const [metadata] = await file.getMetadata();
+    //
+    // return {
+    //   public_id: destination,
+    //   secure_url: `https://storage.googleapis.com/${BUCKET_NAME}/${destination}`,
+    //   url: `https://storage.googleapis.com/${BUCKET_NAME}/${destination}`,
+    //   resource_type: options?.resourceType || 'auto',
+    //   format: path.extname(fileName).substring(1),
+    //   ...metadata,
+    // };
+    // === END GOOGLE CLOUD STORAGE ===
+
     const folder = options?.folder || this.getStorageFolder();
     const fileName = options?.publicId || randomUUID();
-    const destination = `${folder}/${fileName}`;
+    const publicId = `${folder}/${fileName}`;
 
-    const bucket = this.getBucket();
-    const file = bucket.file(destination);
+    return await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder,
+          public_id: publicId,
+          resource_type: options?.resourceType || 'auto',
+          overwrite: true,
+        },
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          }
+          resolve({
+            public_id: result?.public_id,
+            secure_url: result?.secure_url,
+            url: result?.url,
+            resource_type: result?.resource_type,
+            format: result?.format,
+            bytes: result?.bytes,
+            created_at: result?.created_at,
+            ...result,
+          });
+        }
+      );
 
-    await file.save(buffer, {
-      metadata: {
-        contentType: this.getContentType(fileName, options?.resourceType || 'auto'),
-      },
+      uploadStream.end(buffer);
     });
-
-    const [metadata] = await file.getMetadata();
-
-    return {
-      public_id: destination,
-      secure_url: `https://storage.googleapis.com/${BUCKET_NAME}/${destination}`,
-      url: `https://storage.googleapis.com/${BUCKET_NAME}/${destination}`,
-      resource_type: options?.resourceType || 'auto',
-      format: path.extname(fileName).substring(1),
-      ...metadata,
-    };
   }
 
   getVideoUrl(
@@ -239,19 +388,56 @@ export class ObjectStorageService {
       transformation?: any[];
     }
   ): string {
+    this.ensureCloudinaryConfigured();
+
+    // === GOOGLE CLOUD STORAGE (COMMENTED) ===
     // GCS doesn't have built-in transformations like Cloudinary
     // Return the direct URL to the video
-    return `https://storage.googleapis.com/${BUCKET_NAME}/${publicId}`;
+    // return `https://storage.googleapis.com/${BUCKET_NAME}/${publicId}`;
+    // === END GOOGLE CLOUD STORAGE ===
+
+    const transformation = options?.transformation || [];
+    if (options?.quality) {
+      transformation.push({ quality: options.quality });
+    }
+
+    const format = options?.format;
+
+    const url = cloudinary.url(publicId, {
+      resource_type: 'video',
+      secure: true,
+      sign_url: true,
+      transformation,
+      format,
+    });
+
+    return url;
   }
 
   getVideoThumbnail(publicId: string): string {
-    // GCS doesn't auto-generate video thumbnails like Cloudinary
-    // You could either:
-    // 1. Store thumbnails separately when uploading
-    // 2. Use a video thumbnail service
-    // 3. Return a placeholder or the video URL itself
-    // For now, returning the video URL (browsers can show first frame)
-    return `https://storage.googleapis.com/${BUCKET_NAME}/${publicId}`;
+    this.ensureCloudinaryConfigured();
+
+    // === GOOGLE CLOUD STORAGE (COMMENTED) ===
+    // // GCS doesn't auto-generate video thumbnails like Cloudinary
+    // // You could either:
+    // // 1. Store thumbnails separately when uploading
+    // // 2. Use a video thumbnail service
+    // // 3. Return a placeholder or the video URL itself
+    // // For now, returning the video URL (browsers can show first frame)
+    // return `https://storage.googleapis.com/${BUCKET_NAME}/${publicId}`;
+    // === END GOOGLE CLOUD STORAGE ===
+
+    // Cloudinary provides on-the-fly thumbnails using transformations.
+    return cloudinary.url(publicId, {
+      resource_type: 'video',
+      secure: true,
+      sign_url: true,
+      format: 'jpg',
+      transformation: [
+        { width: 480, height: 270, crop: 'fill', gravity: 'auto', quality: 'auto:good' },
+        { start_offset: 'auto' },
+      ],
+    });
   }
 
   async downloadObject(
@@ -259,32 +445,36 @@ export class ObjectStorageService {
     res: Response,
     cacheTtlSec: number = 3600
   ) {
+    this.ensureCloudinaryConfigured();
+
     try {
       const folder = this.getStorageFolder();
-      const bucket = this.getBucket();
+      const possibleIds = [`${folder}/${publicId}`, publicId];
+      let info: any | null = null;
 
-      // Try with folder prefix first
-      let file = bucket.file(`${folder}/${publicId}`);
-      let exists = await file.exists();
-
-      // If not found, try without folder prefix
-      if (!exists[0]) {
-        file = bucket.file(publicId);
-        exists = await file.exists();
+      for (const candidate of possibleIds) {
+        try {
+          info = await this.getVideoInfo(candidate);
+          publicId = candidate;
+          break;
+        } catch (err) {
+          continue;
+        }
       }
 
-      if (!exists[0]) {
+      if (!info) {
         throw new ObjectNotFoundError();
       }
 
-      // Generate a signed URL for temporary access
-      const [signedUrl] = await file.getSignedUrl({
-        version: 'v4',
-        action: 'read',
-        expires: Date.now() + cacheTtlSec * 1000,
+      const signedUrl = cloudinary.url(info.public_id, {
+        resource_type: info.resource_type || this.inferResourceType(info.public_id),
+        format: info.format,
+        secure: true,
+        sign_url: true,
+        type: 'authenticated',
       });
 
-      res.redirect(signedUrl);
+      res.redirect(signedUrl || info.secure_url || info.url);
     } catch (error) {
       console.error("Error getting video URL:", error);
       if (!res.headersSent) {
@@ -302,14 +492,36 @@ export class ObjectStorageService {
   }
 
   async deleteResource(publicId: string, resourceType: 'image' | 'video' | 'raw' = 'image'): Promise<any> {
-    const bucket = this.getBucket();
-    const file = bucket.file(publicId);
+    this.ensureCloudinaryConfigured();
+
+    // === GOOGLE CLOUD STORAGE (COMMENTED) ===
+    // const bucket = this.getBucket();
+    // const file = bucket.file(publicId);
+    //
+    // try {
+    //   await file.delete();
+    //   return { result: 'ok' };
+    // } catch (error: any) {
+    //   if (error.code === 404) {
+    //     return { result: 'not found' };
+    //   }
+    //   throw error;
+    // }
+    // === END GOOGLE CLOUD STORAGE ===
 
     try {
-      await file.delete();
-      return { result: 'ok' };
+      const result = await cloudinary.uploader.destroy(publicId, {
+        resource_type: resourceType,
+        invalidate: true,
+      });
+
+      if (result.result === 'not found') {
+        return { result: 'not found' };
+      }
+
+      return { result: result.result };
     } catch (error: any) {
-      if (error.code === 404) {
+      if (error?.http_code === 404) {
         return { result: 'not found' };
       }
       throw error;
@@ -318,19 +530,35 @@ export class ObjectStorageService {
 
   async deleteFolder(folderPath: string): Promise<any> {
     try {
-      const bucket = this.getBucket();
+      // === GOOGLE CLOUD STORAGE (COMMENTED) ===
+      // const bucket = this.getBucket();
+      //
+      // // List all files in the folder
+      // const [files] = await bucket.getFiles({
+      //   prefix: folderPath,
+      // });
+      //
+      // // Delete all files
+      // await Promise.all(files.map(file => file.delete()));
+      //
+      // console.info(`[ObjectStorage] Deleted ${files.length} files from folder ${folderPath}`);
+      //
+      // return { deleted: files.length };
+      // === END GOOGLE CLOUD STORAGE ===
 
-      // List all files in the folder
-      const [files] = await bucket.getFiles({
-        prefix: folderPath,
-      });
+      const resourceTypes: Array<'image' | 'video' | 'raw'> = ['image', 'video', 'raw'];
+      let deleted = 0;
 
-      // Delete all files
-      await Promise.all(files.map(file => file.delete()));
+      for (const resourceType of resourceTypes) {
+        const result = await cloudinary.api.delete_resources_by_prefix(folderPath, { resource_type: resourceType });
+        deleted += (result.deleted ? Object.keys(result.deleted).length : 0);
+      }
 
-      console.info(`[ObjectStorage] Deleted ${files.length} files from folder ${folderPath}`);
+      await cloudinary.api.delete_folder(folderPath).catch(() => {});
 
-      return { deleted: files.length };
+      console.info(`[ObjectStorage] Deleted ${deleted} resources from folder ${folderPath}`);
+
+      return { deleted };
     } catch (error) {
       const message = (error as any)?.message || JSON.stringify(error);
       throw new Error(message);
@@ -338,30 +566,77 @@ export class ObjectStorageService {
   }
 
   async getVideoInfo(publicId: string): Promise<any> {
-    const bucket = this.getBucket();
-    const file = bucket.file(publicId);
+    // === GOOGLE CLOUD STORAGE (COMMENTED) ===
+    // const bucket = this.getBucket();
+    // const file = bucket.file(publicId);
+    //
+    // try {
+    //   const [metadata] = await file.getMetadata();
+    //   const [exists] = await file.exists();
+    //
+    //   if (!exists) {
+    //     throw new ObjectNotFoundError();
+    //   }
+    //
+    //   return {
+    //     public_id: publicId,
+    //     format: path.extname(publicId).substring(1),
+    //     resource_type: metadata.contentType?.startsWith('video/') ? 'video' :
+    //                    metadata.contentType?.startsWith('image/') ? 'image' : 'raw',
+    //     bytes: metadata.size,
+    //     url: `https://storage.googleapis.com/${BUCKET_NAME}/${publicId}`,
+    //     secure_url: `https://storage.googleapis.com/${BUCKET_NAME}/${publicId}`,
+    //     created_at: metadata.timeCreated,
+    //     ...metadata,
+    //   };
+    // } catch (error: any) {
+    //   if (error.code === 404 || error instanceof ObjectNotFoundError) {
+    //     throw new ObjectNotFoundError();
+    //   }
+    //   throw error;
+    // }
+    // === END GOOGLE CLOUD STORAGE ===
+
+    const resourceType = this.inferResourceType(publicId);
 
     try {
-      const [metadata] = await file.getMetadata();
-      const [exists] = await file.exists();
-
-      if (!exists) {
-        throw new ObjectNotFoundError();
-      }
+      const resource = await cloudinary.api.resource(publicId, {
+        resource_type: resourceType,
+      });
 
       return {
-        public_id: publicId,
-        format: path.extname(publicId).substring(1),
-        resource_type: metadata.contentType?.startsWith('video/') ? 'video' :
-                       metadata.contentType?.startsWith('image/') ? 'image' : 'raw',
-        bytes: metadata.size,
-        url: `https://storage.googleapis.com/${BUCKET_NAME}/${publicId}`,
-        secure_url: `https://storage.googleapis.com/${BUCKET_NAME}/${publicId}`,
-        created_at: metadata.timeCreated,
-        ...metadata,
+        public_id: resource.public_id,
+        format: resource.format,
+        resource_type: resource.resource_type,
+        bytes: resource.bytes,
+        url: resource.secure_url || resource.url,
+        secure_url: resource.secure_url || resource.url,
+        created_at: resource.created_at,
+        ...resource,
       };
     } catch (error: any) {
-      if (error.code === 404 || error instanceof ObjectNotFoundError) {
+      if (error?.http_code === 404 || error instanceof ObjectNotFoundError) {
+        const fallbackTypes: Array<'image' | 'video' | 'raw'> = ['image', 'video', 'raw'];
+        for (const type of fallbackTypes) {
+          if (type === resourceType) continue;
+          try {
+            const resource = await cloudinary.api.resource(publicId, { resource_type: type });
+            return {
+              public_id: resource.public_id,
+              format: resource.format,
+              resource_type: resource.resource_type,
+              bytes: resource.bytes,
+              url: resource.secure_url || resource.url,
+              secure_url: resource.secure_url || resource.url,
+              created_at: resource.created_at,
+              ...resource,
+            };
+          } catch (innerErr: any) {
+            if (innerErr?.http_code !== 404) {
+              throw innerErr;
+            }
+          }
+        }
         throw new ObjectNotFoundError();
       }
       throw error;
@@ -399,27 +674,50 @@ export class ObjectStorageService {
     }
   }
 
-  extractPublicIdFromUrl(gcsUrl: string): string | null {
+  extractPublicIdFromUrl(storageUrl: string): string | null {
     try {
-      // Handle GCS URLs: https://storage.googleapis.com/bucket-name/path/to/file.ext
-      if (!gcsUrl.startsWith("https://storage.googleapis.com/")) {
-        return null;
+      // === GOOGLE CLOUD STORAGE (COMMENTED) ===
+      // if (!storageUrl.startsWith("https://storage.googleapis.com/")) {
+      //   return null;
+      // }
+      //
+      // const url = new URL(storageUrl);
+      // const pathParts = url.pathname.split('/').filter(p => p);
+      //
+      // // First part is bucket name, rest is the file path
+      // if (pathParts.length < 2) return null;
+      //
+      // // Remove bucket name, keep the rest as public ID
+      // const publicIdWithExt = pathParts.slice(1).join('/');
+      //
+      // // Remove extension from last part
+      // const lastDotIndex = publicIdWithExt.lastIndexOf('.');
+      // const publicId = lastDotIndex > 0 ? publicIdWithExt.substring(0, lastDotIndex) : publicIdWithExt;
+      //
+      // return publicId;
+      // === END GOOGLE CLOUD STORAGE ===
+
+      const url = new URL(storageUrl);
+      const hostname = url.hostname;
+      const pathParts = url.pathname.split('/').filter(Boolean);
+
+      // Handle Cloudinary URLs: https://res.cloudinary.com/<cloud_name>/<resource_type>/upload/v<version>/<folder>/<file>.<ext>
+      if (hostname.includes('cloudinary.com')) {
+        const uploadIndex = pathParts.indexOf('upload');
+        if (uploadIndex >= 0 && uploadIndex + 1 < pathParts.length) {
+          const publicIdWithExt = pathParts.slice(uploadIndex + 1).join('/');
+          const lastDotIndex = publicIdWithExt.lastIndexOf('.');
+          return lastDotIndex > 0 ? publicIdWithExt.substring(0, lastDotIndex) : publicIdWithExt;
+        }
       }
 
-      const url = new URL(gcsUrl);
-      const pathParts = url.pathname.split('/').filter(p => p);
+      // Fallback: return path without extension
+      const lastDotIndex = storageUrl.lastIndexOf('.');
+      if (lastDotIndex > storageUrl.lastIndexOf('/')) {
+        return storageUrl.substring(0, lastDotIndex).split('/').slice(-1)[0];
+      }
 
-      // First part is bucket name, rest is the file path
-      if (pathParts.length < 2) return null;
-
-      // Remove bucket name, keep the rest as public ID
-      const publicIdWithExt = pathParts.slice(1).join('/');
-
-      // Remove extension from last part
-      const lastDotIndex = publicIdWithExt.lastIndexOf('.');
-      const publicId = lastDotIndex > 0 ? publicIdWithExt.substring(0, lastDotIndex) : publicIdWithExt;
-
-      return publicId;
+      return null;
     } catch (error) {
       console.error('[extractPublicIdFromUrl] Error parsing URL:', error);
       return null;
@@ -427,19 +725,29 @@ export class ObjectStorageService {
   }
 
   normalizeObjectEntityPath(rawPath: string): string {
-    if (rawPath.startsWith("https://storage.googleapis.com/")) {
-      const url = new URL(rawPath);
-      const pathParts = url.pathname.split('/').filter(p => p);
+    // === GOOGLE CLOUD STORAGE (COMMENTED) ===
+    // if (rawPath.startsWith("https://storage.googleapis.com/")) {
+    //   const url = new URL(rawPath);
+    //   const pathParts = url.pathname.split('/').filter(p => p);
+    //
+    //   // Remove bucket name and get file path
+    //   if (pathParts.length < 2) return rawPath;
+    //
+    //   const filePath = pathParts.slice(1).join('/');
+    //   const fileName = pathParts[pathParts.length - 1];
+    //   const publicId = fileName.split('.')[0];
+    //
+    //   return '/objects/' + publicId;
+    // }
+    // === END GOOGLE CLOUD STORAGE ===
 
-      // Remove bucket name and get file path
-      if (pathParts.length < 2) return rawPath;
-
-      const filePath = pathParts.slice(1).join('/');
-      const fileName = pathParts[pathParts.length - 1];
-      const publicId = fileName.split('.')[0];
-
-      return '/objects/' + publicId;
+    if (rawPath.includes('cloudinary.com')) {
+      const publicId = this.extractPublicIdFromUrl(rawPath);
+      if (publicId) {
+        return `/objects/${publicId}`;
+      }
     }
+
     return rawPath;
   }
 
