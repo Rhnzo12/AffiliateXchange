@@ -7754,9 +7754,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('[Upload API] Requested contentType:', contentType);
     console.log('[Upload API] Requested fileName:', fileName);
     console.log('[Upload API] Folder parameter passed to service:', folder);
-    const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType, contentType, fileName);
-    console.log('[Upload API] Upload params returned:', uploadParams);
-    res.json(uploadParams);
+    try {
+      const uploadParams = await objectStorageService.getObjectEntityUploadURL(folder, resourceType, contentType, fileName);
+      console.log('[Upload API] Upload params returned:', uploadParams);
+      res.json(uploadParams);
+    } catch (error: any) {
+      console.error('[Upload API] Failed to generate upload params:', error);
+      res.status(500).json({ error: error?.message || 'Failed to generate upload parameters' });
+    }
   });
 
   // Configure multer for file uploads (store in memory as buffer)
