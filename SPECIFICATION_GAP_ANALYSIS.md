@@ -838,9 +838,12 @@
 
 ### 4. Saved Searches for Creators
 
-**Current Status**: NOT STARTED
+**Current Status**: COMPLETED (UUID schema aligned with users)
 
-**Effort**: Low (2-3 days)
+**Notes**:
+- Saved searches table uses UUID primary keys and creator references
+- Foreign key constraint now enforced with the updated migration
+- Documentation refreshed to reflect the UUID-backed schema
 
 ---
 
