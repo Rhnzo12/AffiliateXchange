@@ -51,7 +51,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "../hooks/useAuth";
 import { VideoPlayer } from "../components/VideoPlayer";
-import { TopNavBar } from "../components/TopNavBar";
 import { useSidebar } from "../components/ui/sidebar";
 import {
   Tooltip,
@@ -500,7 +499,6 @@ export default function CreatorRetainerDetail() {
 
   return (
     <div className="space-y-6 pb-24">
-      <TopNavBar />
       <div className="flex items-center gap-4">
         <Link href="/retainers">
           <Button variant="ghost" size="icon" data-testid="button-back">
