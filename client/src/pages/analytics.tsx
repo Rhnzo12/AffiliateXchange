@@ -49,6 +49,12 @@ import { TopNavBar } from "../components/TopNavBar";
 import { StatsGridSkeleton, ChartSkeleton } from "../components/skeletons";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { GeographicHeatmap } from "../components/GeographicHeatmap";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 
 const DATE_RANGES = [
   { value: "7d", label: "Last 7 Days" },
@@ -470,25 +476,37 @@ export default function Analytics() {
               ))}
             </SelectContent>
           </Select>
-          <Button
-            variant="outline"
-            data-testid="button-export"
-            className="gap-2"
-            onClick={exportData}
-            disabled={!analytics || chartData.length === 0}
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={exportPdf}
-            disabled={!analytics}
-          >
-            <FileText className="h-4 w-4" />
-            PDF Report
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                data-testid="button-export"
+                className="gap-2"
+                disabled={!analytics}
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={exportData}
+                disabled={!analytics || chartData.length === 0}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={exportPdf}
+                disabled={!analytics}
+                className="gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                PDF Report
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -980,25 +998,37 @@ export default function Analytics() {
               ))}
             </SelectContent>
           </Select>
-          <Button
-            variant="outline"
-            data-testid="button-export"
-            className="gap-2"
-            onClick={exportData}
-            disabled={!analytics || chartData.length === 0}
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={exportPdf}
-            disabled={!analytics}
-          >
-            <FileText className="h-4 w-4" />
-            PDF Report
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                data-testid="button-export"
+                className="gap-2"
+                disabled={!analytics}
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={exportData}
+                disabled={!analytics || chartData.length === 0}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={exportPdf}
+                disabled={!analytics}
+                className="gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                PDF Report
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {!applicationId && (
             <Button
               variant="outline"
