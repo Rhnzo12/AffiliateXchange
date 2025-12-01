@@ -384,7 +384,13 @@ export default function Applications() {
                 <h3 className="font-semibold text-lg mb-2">No applications yet</h3>
                 <p className="text-muted-foreground mb-4">Start browsing offers and apply to begin earning</p>
                 <Link href="/browse">
-                  <Button data-testid="button-browse-offers">Browse Offers</Button>
+                  <Button
+                    data-testid="button-browse-offers"
+                    variant="ghost"
+                    className="bg-muted text-black border-none shadow-none hover:bg-muted"
+                  >
+                    Browse Offers
+                  </Button>
                 </Link>
               </CardContent>
             </Card>
