@@ -3335,7 +3335,10 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .select({
           date: sql<string>`TO_CHAR(${analytics.date}, 'Mon DD')`,
+          isoDate: analytics.date,
           clicks: sql<number>`COALESCE(SUM(${analytics.clicks}), 0)`,
+          conversions: sql<number>`COALESCE(SUM(${analytics.conversions}), 0)`,
+          earnings: sql<number>`COALESCE(SUM(CAST(${analytics.earnings} AS DECIMAL)), 0)`,
         })
         .from(analytics)
         .innerJoin(applications, eq(analytics.applicationId, applications.id))
@@ -3368,9 +3371,10 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .select({
           date: sql<string>`TO_CHAR(${analytics.date}, 'Mon DD')`,
+          isoDate: analytics.date,
           clicks: sql<number>`COALESCE(SUM(${analytics.clicks}), 0)`,
           conversions: sql<number>`COALESCE(SUM(${analytics.conversions}), 0)`,
-          earnings: sql<number>`COALESCE(SUM(${analytics.earnings}), 0)`,
+          earnings: sql<number>`COALESCE(SUM(CAST(${analytics.earnings} AS DECIMAL)), 0)`,
         })
         .from(analytics)
         .where(and(...whereClauses))
