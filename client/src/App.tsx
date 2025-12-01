@@ -111,6 +111,7 @@ function AuthenticatedLayout({ user, unreadCount, onLogout, children }: { user: 
             </div>
 
             {headerContent && (
+              <div className="pointer-events-none absolute left-1/2 sm:left-[52%] lg:left-[53%] -translate-x-1/2 w-full max-w-xl px-8 sm:px-14">
               <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-full max-w-xl px-10 sm:px-16">
                 <div className="pointer-events-auto">{headerContent}</div>
               </div>
