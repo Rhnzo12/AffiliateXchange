@@ -125,7 +125,9 @@ export class ObjectStorageService {
       folder,
       public_id: publicId,
       timestamp,
-      resource_type: resourceType,
+      // resource_type is determined by the upload URL path and should not be included in the
+      // signature unless it is also sent as an upload parameter. We keep the signature aligned
+      // with the fields actually posted by the client to avoid mismatches.
     };
 
     const signature = cloudinary.utils.api_sign_request(
