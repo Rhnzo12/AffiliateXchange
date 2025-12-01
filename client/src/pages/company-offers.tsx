@@ -30,6 +30,7 @@ import {
   Crown,
   Filter,
   X,
+  Search,
 } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
@@ -259,7 +260,17 @@ export default function CompanyOffers() {
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navigation Bar */}
-      <TopNavBar />
+      <TopNavBar>
+        <div className="relative flex-1 max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search offers, companies, or niches"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="pl-10 bg-muted/50"
+          />
+        </div>
+      </TopNavBar>
 
       {/* Main Content */}
       <div className="max-w-[1600px] mx-auto px-6 py-8 space-y-8">
@@ -299,14 +310,6 @@ export default function CompanyOffers() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Search</label>
-                <Input
-                  placeholder="Search offers, companies, or niches"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                />
-              </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
