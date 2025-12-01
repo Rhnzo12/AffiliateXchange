@@ -460,22 +460,24 @@ export default function CreatorRetainers() {
     setAmountRange([0, 10000]);
   };
 
-  const renderFilterControls = (options?: { showClear?: boolean }) => (
+  const renderFilterControls = (options?: { showClear?: boolean; hideSearch?: boolean }) => (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">Search retainers</p>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by title, company, or niche"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-            data-testid="input-retainer-search"
-          />
+      {!options?.hideSearch && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Search retainers</p>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by title, company, or niche"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+              data-testid="input-retainer-search"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">Search applies instantly as you type.</p>
         </div>
-        <p className="text-xs text-muted-foreground">Search applies instantly as you type.</p>
-      </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-2">
@@ -624,7 +626,7 @@ export default function CreatorRetainers() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 pb-2">{renderFilterControls()}</div>
+          <div className="space-y-6 pb-2">{renderFilterControls({ hideSearch: true })}</div>
 
           <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button
@@ -635,7 +637,7 @@ export default function CreatorRetainers() {
             >
               Clear filters
             </Button>
-            <Button onClick={() => setIsFilterDialogOpen(false)}>Show results</Button>
+            <Button onClick={() => setIsFilterDialogOpen(false)}>Apply Filters</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
