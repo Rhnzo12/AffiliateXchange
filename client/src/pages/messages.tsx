@@ -72,7 +72,7 @@ interface EnhancedMessage {
 export default function Messages() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const conversationFromUrl = urlParams.get('conversation');
@@ -802,6 +802,19 @@ export default function Messages() {
   const trackingLink = currentConversation?.application?.trackingLink;
   const creatorName = otherUser?.firstName || otherUser?.name || otherUser?.username || 'there';
 
+  const handleBackNavigation = useCallback(() => {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    if (user?.role === 'company') {
+      navigate('/company/dashboard');
+    } else {
+      navigate('/creator/dashboard');
+    }
+  }, [navigate, user?.role]);
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-pulse text-lg">Loading...</div>
@@ -810,7 +823,25 @@ export default function Messages() {
 
   return (
     <div className="space-y-6">
-      <TopNavBar />
+      <TopNavBar>
+        {user?.role === 'creator' && (
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackNavigation}
+              className="h-10"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div>
+              <h1 className="font-semibold leading-tight">Messages</h1>
+              <p className="text-sm text-muted-foreground">Return to your previous page</p>
+            </div>
+          </div>
+        )}
+      </TopNavBar>
       
       {/* Image Viewer Modal */}
       {viewerOpen && (
