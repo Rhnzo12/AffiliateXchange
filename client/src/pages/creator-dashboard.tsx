@@ -68,11 +68,6 @@ export default function CreatorDashboard() {
     }
   }, [isAuthenticated, isLoading]);
 
-  const { data: stats } = useQuery<any>({
-    queryKey: ["/api/creator/stats"],
-    enabled: isAuthenticated,
-  });
-
   const { data: recommendedOffersData, isLoading: offersLoading } = useQuery<any>({
     queryKey: ["/api/offers/recommended"],
     enabled: isAuthenticated,
@@ -139,7 +134,7 @@ export default function CreatorDashboard() {
         <p className="text-muted-foreground mt-1">Here's an overview of your creator journey</p>
       </div>
 
-      {/* Analytics Snapshot Banner */}
+      {/* Light analytics snapshot only (full KPIs live in Analytics) */}
       <Card className="border-card-border bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -149,10 +144,10 @@ export default function CreatorDashboard() {
                   <DollarSign className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground font-medium">Your Analytics Snapshot</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">${stats?.totalEarnings || '0.00'}</span>
-                    <span className="text-xs text-muted-foreground">Last 7 Days</span>
+                  <p className="text-sm text-muted-foreground font-medium">Quick glance</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                    <span className="text-2xl font-bold">Activity snapshot</span>
+                    <span className="text-xs text-muted-foreground">Detailed KPIs are now in Analytics</span>
                   </div>
                 </div>
               </div>
@@ -163,7 +158,7 @@ export default function CreatorDashboard() {
             <Link href="/analytics">
               <Button className="gap-2 bg-primary hover:bg-primary/90">
                 <TrendingUp className="h-4 w-4" />
-                Go to Full Analytics
+                View full analytics suite
               </Button>
             </Link>
           </div>
