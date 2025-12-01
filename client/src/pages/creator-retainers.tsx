@@ -689,6 +689,7 @@ export default function CreatorRetainers() {
                     <Badge variant="outline">${amountRange[0].toLocaleString()} - ${amountRange[1].toLocaleString()}</Badge>
                   </div>
                   <Slider
+                    dir="rtl"
                     value={amountRange}
                     min={0}
                     max={10000}
