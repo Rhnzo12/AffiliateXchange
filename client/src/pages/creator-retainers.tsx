@@ -46,9 +46,7 @@ import {
   Eye,
   AlertTriangle,
   Search,
-  Sparkles,
   Star,
-  ShieldCheck,
   Info,
   MessageCircle,
   Upload,
@@ -376,33 +374,6 @@ export default function CreatorRetainers() {
     [completedApplications, contractMap]
   );
 
-  const totalDeliveriesDue = activeContracts.reduce((sum, item) => {
-    const delivered = Number(item.contract?.submittedVideos || 0);
-    const videos = Number(item.contract?.videosPerMonth || 0);
-    return sum + Math.max(videos - delivered, 0);
-  }, 0);
-
-  const retainerNetEarnings = activeContracts.reduce((sum, item) => {
-    const monthlyAmount = Number(item.contract?.monthlyAmount || 0);
-    return sum + monthlyAmount * 0.93;
-  }, 0);
-
-  const contractProgressTotals = activeContracts.reduce(
-    (totals, item) => {
-      const delivered = Number(item.contract?.submittedVideos || 0);
-      const videos = Math.max(1, Number(item.contract?.videosPerMonth || 0));
-      return {
-        delivered: totals.delivered + delivered,
-        total: totals.total + videos,
-      };
-    },
-    { delivered: 0, total: 0 }
-  );
-
-  const averageContractProgress = contractProgressTotals.total
-    ? Math.min(100, Math.round((contractProgressTotals.delivered / contractProgressTotals.total) * 100))
-    : 0;
-
   const messageValue = form.watch("message");
   const messageChars = messageValue?.length || 0;
   const selectedTierOptions = useMemo(() => buildTierOptions(selectedContract), [selectedContract]);
@@ -443,57 +414,6 @@ export default function CreatorRetainers() {
         <p className="text-muted-foreground">
           Browse ongoing monthly video production contracts
         </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-card-border">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium text-muted-foreground">Active contracts</div>
-              <Sparkles className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-2xl font-bold">{activeContracts.length}</p>
-            <p className="text-xs text-muted-foreground">Currently approved retainers</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-card-border">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium text-muted-foreground">Delivery dues</div>
-              <Video className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-2xl font-bold">{totalDeliveriesDue}</p>
-            <p className="text-xs text-muted-foreground">Videos remaining this month</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-card-border">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium text-muted-foreground">Retainer earnings</div>
-              <DollarSign className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-2xl font-bold">
-              ${retainerNetEarnings.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-            </p>
-            <p className="text-xs text-muted-foreground">Net across active retainers</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-card-border">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium text-muted-foreground">Contract progress</div>
-              <ShieldCheck className="h-4 w-4 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <p className="text-2xl font-bold">{averageContractProgress}%</p>
-              <Progress value={averageContractProgress} className="h-2" />
-            </div>
-            <p className="text-xs text-muted-foreground">Average delivery completion</p>
-          </CardContent>
-        </Card>
       </div>
 
       <Card className="border-card-border">
