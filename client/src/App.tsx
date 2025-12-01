@@ -105,13 +105,16 @@ function AuthenticatedLayout({ user, unreadCount, onLogout, children }: { user: 
         <AppSidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
 
-          <header className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0 bg-background sticky top-0 z-50">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
+          <header className="relative flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0 bg-background sticky top-0 z-50">
+            <div className="flex items-center gap-3">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
-              {headerContent && (
-                <div className="flex-1 max-w-xl">{headerContent}</div>
-              )}
             </div>
+
+            {headerContent && (
+              <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 w-full max-w-xl px-10 sm:px-16">
+                <div className="pointer-events-auto">{headerContent}</div>
+              </div>
+            )}
 
             {/* Right Side Navigation Icons */}
             <div className="flex items-center gap-2 sm:gap-3 ml-auto">
