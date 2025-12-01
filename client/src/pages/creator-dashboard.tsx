@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
@@ -19,6 +19,7 @@ import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
 import { OfferCardSkeleton } from "../components/skeletons";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
@@ -31,25 +32,6 @@ const formatCommission = (offer: any) => {
   }
   return "$0";
 };
-
-// Mini sparkline component for the analytics banner
-const MiniSparkline = () => (
-  <svg width="100" height="40" viewBox="0 0 100 40" className="text-primary">
-    <path
-      d="M0 35 L15 30 L30 32 L45 25 L60 28 L75 15 L90 18 L100 8"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M0 35 L15 30 L30 32 L45 25 L60 28 L75 15 L90 18 L100 8 L100 40 L0 40 Z"
-      fill="currentColor"
-      fillOpacity="0.1"
-    />
-  </svg>
-);
 
 export default function CreatorDashboard() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -71,6 +53,44 @@ export default function CreatorDashboard() {
     queryKey: ["/api/offers/recommended"],
     enabled: isAuthenticated,
   });
+
+  const { data: analytics, isLoading: activityLoading, isError: activityError } = useQuery<any>({
+    queryKey: ["/api/analytics", { range: "7d" }],
+    queryFn: async () => {
+      const res = await fetch(`/api/analytics?range=7d`, { credentials: "include" });
+      if (!res.ok) {
+        if (res.status === 401) {
+          window.location.href = "/api/login";
+          throw new Error("Unauthorized");
+        }
+        throw new Error("Failed to fetch activity");
+      }
+      return res.json();
+    },
+    enabled: isAuthenticated,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+  });
+
+  const activityChartData = useMemo(
+    () =>
+      (analytics?.chartData || []).map((item: any) => ({
+        date: item.date,
+        clicks: Number(item.clicks || 0),
+        conversions: Number(item.conversions || 0),
+        earnings: Number(item.earnings || 0),
+      })),
+    [analytics?.chartData]
+  );
+
+  const hasActivity = useMemo(
+    () =>
+      activityChartData.some(
+        (item: { clicks: number; conversions: number; earnings: number }) =>
+          item.clicks > 0 || item.conversions > 0 || item.earnings > 0
+      ),
+    [activityChartData]
+  );
 
   // Handle the recommended offers response
   const recommendedOffers = Array.isArray(recommendedOffersData) ? recommendedOffersData : [];
@@ -135,21 +155,17 @@ export default function CreatorDashboard() {
 
       {/* Light analytics snapshot only (full KPIs live in Analytics) */}
       <Card className="border-card-border bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
-        <CardContent className="p-6">
+        <CardContent className="p-6 space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Activity className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
-                    <span className="text-2xl font-bold">Activity</span>
-                  </div>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Activity className="h-5 w-5 text-primary" />
               </div>
-              <div className="hidden sm:block">
-                <MiniSparkline />
+              <div className="flex items-start gap-3">
+                <div className="flex flex-col">
+                  <span className="text-2xl font-bold">Activity</span>
+                  <span className="text-xs text-muted-foreground">Auto-refreshes every 15 seconds</span>
+                </div>
               </div>
             </div>
             <Link href="/analytics">
@@ -158,6 +174,52 @@ export default function CreatorDashboard() {
                 View full analytics suite
               </Button>
             </Link>
+          </div>
+
+          <div className="h-48 w-full">
+            {activityLoading ? (
+              <div className="h-full w-full rounded-lg bg-muted animate-pulse" />
+            ) : activityError ? (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                Unable to load activity right now.
+              </div>
+            ) : !hasActivity ? (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                No Activity yet
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={activityChartData}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="activityFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.25} />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    formatter={(value: number, name) =>
+                      name === 'earnings' ? `$${value.toFixed(2)}` : value
+                    }
+                    labelFormatter={(label) => `Date: ${label}`}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="earnings"
+                    name="Earnings"
+                    stroke="#0ea5e9"
+                    fill="url(#activityFill)"
+                    strokeWidth={2}
+                    activeDot={{ r: 4 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </CardContent>
       </Card>
