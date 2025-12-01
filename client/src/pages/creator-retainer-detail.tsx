@@ -159,7 +159,12 @@ export default function CreatorRetainerDetail() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder, resourceType: "video" }), // Save retainer videos in contract-specific folder
+        body: JSON.stringify({
+          folder,
+          resourceType: "video",
+          contentType: file.type,
+          fileName: file.name,
+        }), // Save retainer videos in contract-specific folder
       });
       const uploadData = await uploadResponse.json();
 

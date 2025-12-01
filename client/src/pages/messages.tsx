@@ -648,13 +648,21 @@ export default function Messages() {
     const folderPath = `creatorlink/attachments/${selectedConversation}/${userType}`;
 
     for (const file of files) {
+      const resourceType = file.type.startsWith('video')
+        ? 'video'
+        : file.type.startsWith('image')
+        ? 'image'
+        : 'raw';
+
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
           folder: folderPath,
-          resourceType: "image"
+          resourceType,
+          contentType: file.type,
+          fileName: file.name,
         }),
       });
 
