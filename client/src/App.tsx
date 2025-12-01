@@ -232,8 +232,9 @@ function ProtectedRouter() {
   }, 0) || 0;
 
   const hideHeader =
-    user?.role === 'creator' &&
-    (/^\/payments\/[^/]+$/.test(location) || /^\/retainers\/[^/]+$/.test(location));
+    (user?.role === 'creator' &&
+      (/^\/payments\/[^/]+$/.test(location) || /^\/retainers\/[^/]+$/.test(location))) ||
+    (user?.role === 'company' && /^\/company\/offers\/create$/.test(location));
 
   const handleLogout = async () => {
     try {
