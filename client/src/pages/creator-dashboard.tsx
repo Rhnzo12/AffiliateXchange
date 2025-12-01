@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { useToast } from "../hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { 
-  TrendingUp, 
-  ArrowUp, 
-  ArrowDown,
-  Heart, 
-  Play, 
+import {
+  TrendingUp,
+  Heart,
+  Play,
   Settings,
+  Search,
+  ClipboardList,
   DollarSign,
+  CreditCard,
+  ArrowUpRight,
 } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
@@ -52,7 +53,6 @@ const MiniSparkline = () => (
 );
 
 export default function CreatorDashboard() {
-  const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
 
@@ -68,7 +68,7 @@ export default function CreatorDashboard() {
     }
   }, [isAuthenticated, isLoading]);
 
-  const { data: stats, isLoading: statsLoading } = useQuery<any>({
+  const { data: stats } = useQuery<any>({
     queryKey: ["/api/creator/stats"],
     enabled: isAuthenticated,
   });
@@ -83,17 +83,43 @@ export default function CreatorDashboard() {
   const hasNoNiches = recommendedOffersData?.error === 'no_niches';
   const profileNotFound = recommendedOffersData?.error === 'profile_not_found';
 
-  // Calculate percentage change (mock for now, can be enhanced with actual data)
-  const earningsChange = stats?.earningsChange || 5;
-  const isPositiveChange = earningsChange >= 0;
-
-  // Format large numbers
-  const formatNumber = (num: number) => {
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
-  };
+  const quickActions = [
+    {
+      title: "Browse Offers",
+      description: "Find new campaigns that fit your audience and start applying in seconds.",
+      href: "/browse",
+      icon: Search,
+      cta: "Find offers",
+    },
+    {
+      title: "View Applications",
+      description: "Track statuses, respond to brands, and keep your pitches up to date.",
+      href: "/applications",
+      icon: ClipboardList,
+      cta: "Manage applications",
+    },
+    {
+      title: "Open Analytics",
+      description: "Monitor clicks, conversions, and earnings with the full analytics suite.",
+      href: "/analytics",
+      icon: TrendingUp,
+      cta: "View analytics",
+    },
+    {
+      title: "Update Profile & Niches",
+      description: "Tune your creator profile so recommendations stay aligned with your audience.",
+      href: "/settings",
+      icon: Settings,
+      cta: "Edit profile",
+    },
+    {
+      title: "Payment Settings",
+      description: "Confirm payout details to make sure you get paid without delays.",
+      href: "/creator/payment-settings",
+      icon: CreditCard,
+      cta: "Manage payouts",
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -144,72 +170,43 @@ export default function CreatorDashboard() {
         </CardContent>
       </Card>
 
-      {/* Performance At A Glance */}
+      {/* Performance section replaced with quick actions */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-xl font-semibold">Your Performance</h2>
-          <span className="text-sm text-muted-foreground">- Last 7 Days</span>
+          <h2 className="text-xl font-semibold">Quick Actions</h2>
+          <span className="text-sm text-muted-foreground">Pick where to go next</span>
         </div>
-        
-        {statsLoading ? (
-          <div className="grid grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="border-card-border animate-pulse">
-                <CardContent className="p-6">
-                  <div className="h-8 bg-muted rounded w-24 mb-2" />
-                  <div className="h-4 bg-muted rounded w-20" />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Card key={action.title} className="border-card-border h-full">
+                <CardContent className="p-6 flex flex-col gap-4 h-full">
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold leading-tight">{action.title}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{action.description}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 mt-auto">
+                    <Badge variant="secondary" className="px-2 py-1 text-xs">Creator shortcut</Badge>
+                    <Link href={action.href}>
+                      <Button size="sm" className="gap-2">
+                        {action.cta}
+                        <ArrowUpRight className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Total Earnings */}
-            <Card className="border-card-border">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold text-primary">
-                    ${stats?.totalEarnings || '0.00'}
-                  </span>
-                  <div className={`flex items-center gap-0.5 text-sm ${isPositiveChange ? 'text-green-600' : 'text-red-500'}`}>
-                    {isPositiveChange ? (
-                      <ArrowUp className="h-4 w-4" />
-                    ) : (
-                      <ArrowDown className="h-4 w-4" />
-                    )}
-                    <span>{Math.abs(earningsChange)}%</span>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">Total Earnings</p>
-              </CardContent>
-            </Card>
-
-            {/* Total Clicks */}
-            <Card className="border-card-border">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold text-primary">
-                    {formatNumber(stats?.totalClicks || 0)}
-                  </span>
-                  <ArrowUp className="h-4 w-4 text-green-600" />
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">Total Clicks</p>
-              </CardContent>
-            </Card>
-
-            {/* Conversions */}
-            <Card className="border-card-border">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold text-primary">
-                    {stats?.conversions || 0}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">Conversions</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
 
       {/* Recommended For You */}
