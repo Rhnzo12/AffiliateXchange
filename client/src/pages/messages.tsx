@@ -7,6 +7,7 @@ import { queryClient, apiRequest } from "../lib/queryClient";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { uploadToCloudinary } from "../lib/cloudinary-upload";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { Badge } from "../components/ui/badge";
@@ -663,24 +664,13 @@ export default function Messages() {
 
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "application/octet-stream",
-        },
-        body: file,
-      });
+      const uploadResult = await uploadToCloudinary(uploadData, file);
 
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        console.error("GCS upload error:", errorText);
+      if (!uploadResult?.secure_url) {
         throw new Error("Failed to upload file to storage");
       }
 
-      // Construct the public URL from the upload response
-      const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
-      uploadedUrls.push(uploadedUrl);
+      uploadedUrls.push(uploadResult.secure_url);
     }
 
     return uploadedUrls;

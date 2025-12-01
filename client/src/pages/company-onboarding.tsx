@@ -3,6 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useLocation } from "wouter";
 import { queryClient } from "../lib/queryClient";
+import { uploadToCloudinary } from "../lib/cloudinary-upload";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -181,24 +182,13 @@ export default function CompanyOnboarding() {
 
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "image/jpeg",
-        },
-        body: file,
-      });
+      const uploadResult = await uploadToCloudinary(uploadData, file);
 
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        console.error("GCS upload error:", errorText);
+      if (!uploadResult?.secure_url) {
         throw new Error("Failed to upload file to storage");
       }
 
-      // Construct the public URL from the upload response
-      const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
-      setLogoUrl(uploadedUrl);
+      setLogoUrl(uploadResult.secure_url);
 
       toast({
         title: "Success!",
@@ -270,23 +260,13 @@ export default function CompanyOnboarding() {
 
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "application/octet-stream",
-        },
-        body: file,
-      });
+      const uploadResult = await uploadToCloudinary(uploadData, file);
 
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        console.error("GCS upload error:", errorText);
+      if (!uploadResult?.secure_url) {
         throw new Error("Failed to upload file to storage");
       }
 
-      // Construct the public URL from the upload response
-      const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      const uploadedUrl = uploadResult.secure_url;
 
       // Determine document type
       const documentType = file.type === 'application/pdf' ? 'pdf' : 'image';

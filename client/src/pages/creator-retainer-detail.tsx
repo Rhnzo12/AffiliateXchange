@@ -58,6 +58,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../components/ui/tooltip";
+import { uploadToCloudinary } from "../lib/cloudinary-upload";
 
 const uploadDeliverableSchema = z.object({
   platformUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
@@ -164,18 +165,10 @@ export default function CreatorRetainerDetail() {
 
       console.log('[Retainer Upload] Upload parameters received:', uploadData);
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "video/mp4",
-        },
-        body: file,
-      });
+      const uploadResult = await uploadToCloudinary(uploadData, file);
 
-      if (uploadResult.ok) {
-        // Construct the public URL from the upload response
-        const uploadedVideoUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      if (uploadResult?.secure_url) {
+        const uploadedVideoUrl = uploadResult.secure_url;
         console.log('[Retainer Upload] Final video URL:', uploadedVideoUrl);
 
         setVideoUrl(uploadedVideoUrl);
