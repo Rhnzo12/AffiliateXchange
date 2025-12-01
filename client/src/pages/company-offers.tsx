@@ -379,12 +379,6 @@ export default function CompanyOffers() {
               <p className="text-muted-foreground mb-6">
                 Create your first affiliate offer to start working with creators
               </p>
-              <Link href="/company/offers/create">
-                <Button data-testid="button-create-first-offer">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Offer
-                </Button>
-              </Link>
             </CardContent>
           </Card>
         ) : filteredOffers.length === 0 ? (
