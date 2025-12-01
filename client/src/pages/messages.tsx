@@ -828,16 +828,14 @@ export default function Messages() {
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={handleBackNavigation}
-              className="h-10"
+              className="h-10 w-10"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
               <h1 className="font-semibold leading-tight">Messages</h1>
-              <p className="text-sm text-muted-foreground">Return to your previous page</p>
             </div>
           </div>
         )}
