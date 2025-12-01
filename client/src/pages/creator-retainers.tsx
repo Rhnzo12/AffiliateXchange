@@ -420,19 +420,21 @@ export default function CreatorRetainers() {
 
   useEffect(() => {
     const headerSearchAndFilters = (
-      <div className="relative w-full max-w-xl">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search retainers..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 pr-28 bg-muted/50"
-          data-testid="input-retainer-search-header"
-        />
+      <div className="flex w-full max-w-3xl items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search retainers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-muted/50"
+            data-testid="input-retainer-search-header"
+          />
+        </div>
         <Button
           variant="outline"
           size="sm"
-          className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-2"
+          className="flex items-center gap-2"
           onClick={() => setIsFilterDialogOpen(true)}
           data-testid="button-open-retainer-filters"
         >
