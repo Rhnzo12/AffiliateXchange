@@ -846,38 +846,6 @@ export default function CreatorRetainers() {
         </Card>
       ) : (
         <div className="space-y-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                Use filters to narrow down retainers. Open the filter panel to adjust platform, budget, and niches.
-              </p>
-              {filtersApplied && (
-                <p className="text-xs text-primary font-medium">Filters are active</p>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {filtersApplied && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearFilters}
-                  data-testid="button-clear-retainer-filters"
-                >
-                  Clear filters
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                className="flex items-center gap-2"
-                onClick={() => setIsFilterDialogOpen(true)}
-                data-testid="button-open-retainer-filters-secondary"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                Filters
-              </Button>
-            </div>
-          </div>
-
           {filteredContracts.length === 0 ? (
             <Card className="border-card-border">
               <CardContent className="p-12 text-center space-y-2">
