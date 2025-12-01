@@ -7,6 +7,7 @@ import passport from "passport";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { v2 as cloudinary } from 'cloudinary';
 import { db } from "./db";
 import { offerVideos, applications, analytics, offers, companyProfiles, payments, conversations, messages, bannedKeywords, contentFlags } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
@@ -7261,60 +7262,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
 
-      // For GCS URLs, generate a signed URL first (files are not public)
-      let fetchUrl = url;
-      if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
-        try {
-          // Extract the file path from GCS URL: https://storage.googleapis.com/bucket-name/path/to/file
-          const pathParts = parsed.pathname.split('/').filter(p => p);
-          if (pathParts.length >= 2) {
-            // Remove bucket name, keep the rest as file path
-            const filePath = pathParts.slice(1).join('/');
-
-            // Generate signed URL using ObjectStorageService
-            const { Storage } = await import('@google-cloud/storage');
-            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
-            const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
-
-            let gcsStorage: any;
-            // Option 1: Use credentials from JSON string (best for production/Render)
-            const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-            if (credentialsJson) {
-              const credentials = JSON.parse(credentialsJson);
-              gcsStorage = new Storage({
-                projectId: projectId || credentials.project_id,
-                credentials,
-              });
-            }
-            // Option 2: Use key file path (for local development)
-            else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-              gcsStorage = new Storage({
-                projectId,
-                keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-              });
-            }
-            // Option 3: Fallback to default credentials (useful for GCP environments)
-            else {
-              gcsStorage = new Storage({ projectId });
-            }
-
-            const [signedUrl] = await gcsStorage
-              .bucket(bucketName)
-              .file(filePath)
-              .getSignedUrl({
-                version: 'v4',
-                action: 'read',
-                expires: Date.now() + 60 * 60 * 1000, // 1 hour
-              });
-
-            fetchUrl = signedUrl;
-            console.log('[Proxy Image] Generated signed URL for GCS file:', filePath);
-          }
-        } catch (signedUrlError) {
-          console.error('[Proxy Image] Failed to generate signed URL:', signedUrlError);
-          // Continue with original URL as fallback
-        }
-      }
+      // Cloudinary assets are public by default; legacy GCS signing logic kept for reference
+      // let fetchUrl = url;
+      // if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
+      //   try {
+      //     const pathParts = parsed.pathname.split('/').filter(p => p);
+      //     if (pathParts.length >= 2) {
+      //       const filePath = pathParts.slice(1).join('/');
+      //       const { Storage } = await import('@google-cloud/storage');
+      //       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
+      //       const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
+      //       let gcsStorage: any;
+      //       const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
+      //       if (credentialsJson) {
+      //         const credentials = JSON.parse(credentialsJson);
+      //         gcsStorage = new Storage({
+      //           projectId: projectId || credentials.project_id,
+      //           credentials,
+      //         });
+      //       } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+      //         gcsStorage = new Storage({
+      //           projectId,
+      //           keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+      //         });
+      //       } else {
+      //         gcsStorage = new Storage({ projectId });
+      //       }
+      //       const [signedUrl] = await gcsStorage
+      //         .bucket(bucketName)
+      //         .file(filePath)
+      //         .getSignedUrl({
+      //           version: 'v4',
+      //           action: 'read',
+      //           expires: Date.now() + 60 * 60 * 1000,
+      //         });
+      //       fetchUrl = signedUrl;
+      //       console.log('[Proxy Image] Generated signed URL for GCS file:', filePath);
+      //     }
+      //   } catch (signedUrlError) {
+      //     console.error('[Proxy Image] Failed to generate signed URL:', signedUrlError);
+      //   }
+      // }
+      const fetchUrl = url;
 
       const fetchRes = await fetch(fetchUrl, { method: "GET" });
       if (!fetchRes.ok) return res.status(fetchRes.status).send("failed to fetch image");
@@ -7357,60 +7346,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
 
-      // For GCS URLs, generate a signed URL first (files are not public)
-      let fetchUrl = url;
-      if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
-        try {
-          // Extract the file path from GCS URL: https://storage.googleapis.com/bucket-name/path/to/file
-          const pathParts = parsed.pathname.split('/').filter(p => p);
-          if (pathParts.length >= 2) {
-            // Remove bucket name, keep the rest as file path
-            const filePath = pathParts.slice(1).join('/');
-
-            // Generate signed URL using ObjectStorageService
-            const { Storage } = await import('@google-cloud/storage');
-            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
-            const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
-
-            let gcsStorage: any;
-            // Option 1: Use credentials from JSON string (best for production/Render)
-            const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-            if (credentialsJson) {
-              const credentials = JSON.parse(credentialsJson);
-              gcsStorage = new Storage({
-                projectId: projectId || credentials.project_id,
-                credentials,
-              });
-            }
-            // Option 2: Use key file path (for local development)
-            else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-              gcsStorage = new Storage({
-                projectId,
-                keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-              });
-            }
-            // Option 3: Fallback to default credentials (useful for GCP environments)
-            else {
-              gcsStorage = new Storage({ projectId });
-            }
-
-            const [signedUrl] = await gcsStorage
-              .bucket(bucketName)
-              .file(filePath)
-              .getSignedUrl({
-                version: 'v4',
-                action: 'read',
-                expires: Date.now() + 60 * 60 * 1000, // 1 hour
-              });
-
-            fetchUrl = signedUrl;
-            console.log('[Proxy Video] Generated signed URL for GCS file:', filePath);
-          }
-        } catch (signedUrlError) {
-          console.error('[Proxy Video] Failed to generate signed URL:', signedUrlError);
-          // Continue with original URL as fallback
-        }
-      }
+      // Cloudinary assets are public by default; legacy GCS signing logic kept for reference
+      // let fetchUrl = url;
+      // if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
+      //   try {
+      //     const pathParts = parsed.pathname.split('/').filter(p => p);
+      //     if (pathParts.length >= 2) {
+      //       const filePath = pathParts.slice(1).join('/');
+      //       const { Storage } = await import('@google-cloud/storage');
+      //       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
+      //       const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
+      //       let gcsStorage: any;
+      //       const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
+      //       if (credentialsJson) {
+      //         const credentials = JSON.parse(credentialsJson);
+      //         gcsStorage = new Storage({
+      //           projectId: projectId || credentials.project_id,
+      //           credentials,
+      //         });
+      //       }
+      //       else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+      //         gcsStorage = new Storage({
+      //           projectId,
+      //           keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+      //         });
+      //       }
+      //       else {
+      //         gcsStorage = new Storage({ projectId });
+      //       }
+      //       const [signedUrl] = await gcsStorage
+      //         .bucket(bucketName)
+      //         .file(filePath)
+      //         .getSignedUrl({
+      //           version: 'v4',
+      //           action: 'read',
+      //           expires: Date.now() + 60 * 60 * 1000,
+      //         });
+      //       fetchUrl = signedUrl;
+      //       console.log('[Proxy Video] Generated signed URL for GCS file:', filePath);
+      //     }
+      //   } catch (signedUrlError) {
+      //     console.error('[Proxy Video] Failed to generate signed URL:', signedUrlError);
+      //   }
+      // }
+      const fetchUrl = url;
 
       // Get the range header from the request (for video seeking)
       const range = req.headers.range;
@@ -7771,75 +7750,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filename = req.params.filename;
       const isDownload = req.query.download === 'true';
       const customName = req.query.name as string | undefined;
-      const objectStorageService = new ObjectStorageService();
-
-      // Import Storage from @google-cloud/storage
-      const { Storage } = await import('@google-cloud/storage');
-
-      // Initialize Google Cloud Storage with service account key
-      const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'tool-development-478707';
-      const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
-
-      let gcsStorage: any;
-      // Option 1: Use credentials from JSON string (best for production/Render)
-      const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-      if (credentialsJson) {
-        const credentials = JSON.parse(credentialsJson);
-        gcsStorage = new Storage({
-          projectId: projectId || credentials.project_id,
-          credentials,
-        });
-      }
-      // Option 2: Use key file path (for local development)
-      else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-        gcsStorage = new Storage({
-          projectId,
-          keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-        });
-      }
-      // Option 3: Fallback to default credentials (useful for GCP environments)
-      else {
-        gcsStorage = new Storage({ projectId });
-      }
-
-      // Determine content type based on file extension
       const ext = filename.split('.').pop()?.toLowerCase();
-      const contentTypeMap: { [key: string]: string } = {
-        'pdf': 'application/pdf',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'webp': 'image/webp',
-        'mp4': 'video/mp4',
-        'webm': 'video/webm',
-        'mov': 'video/quicktime',
-      };
-      const contentType = contentTypeMap[ext || ''] || 'application/octet-stream';
+      const resourceType = ['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext || '') ? 'video' : ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '') ? 'image' : 'raw';
 
-      // Build options with Content-Type and optional Content-Disposition
-      const options: any = {
-        version: 'v4' as const,
-        action: 'read' as const,
-        expires: Date.now() + 60 * 60 * 1000, // 1 hour from now
-        responseContentType: contentType,
-      };
+      const url = cloudinary.url(filename, {
+        resource_type: resourceType as any,
+        secure: true,
+        sign_url: true,
+        type: 'authenticated',
+        attachment: isDownload ? (customName || filename.split('/').pop()) : undefined,
+      });
 
-      // Set Content-Disposition based on mode
-      if (isDownload) {
-        const downloadName = customName || filename.split('/').pop() || 'download';
-        options.responseContentDisposition = `attachment; filename="${downloadName}"`;
-      } else {
-        // For viewing, set inline to display in browser
-        options.responseContentDisposition = 'inline';
-      }
-
-      const [url] = await gcsStorage
-        .bucket(bucketName)
-        .file(filename)
-        .getSignedUrl(options);
-
-      console.log('[Signed URL API] Generated signed URL for:', filename, isDownload ? '(download)' : '(view)', 'contentType:', contentType);
+      console.log('[Signed URL API] Generated Cloudinary signed URL for:', filename, isDownload ? '(download)' : '(view)');
       res.json({ url });
     } catch (error: any) {
       console.error('Error generating signed URL:', error);
@@ -7859,81 +7781,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const file = multerReq.file;
       const folder = req.body.folder || 'affiliatexchange/uploads';
-      const resourceType = req.body.resourceType || 'auto';
+      const resourceType = (req.body.resourceType as any) || 'auto';
 
-      // Import Storage from @google-cloud/storage
-      const { Storage } = await import('@google-cloud/storage');
-
-      // Initialize Google Cloud Storage
-      const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 'tool-development-478707';
-      const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
-
-      let gcsStorage: any;
-      // Option 1: Use credentials from JSON string (best for production/Render)
-      const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-      if (credentialsJson) {
-        const credentials = JSON.parse(credentialsJson);
-        gcsStorage = new Storage({
-          projectId: projectId || credentials.project_id,
-          credentials,
-        });
-      }
-      // Option 2: Use key file path (for local development)
-      else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-        gcsStorage = new Storage({
-          projectId,
-          keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-        });
-      }
-      // Option 3: Fallback to default credentials (useful for GCP environments)
-      else {
-        gcsStorage = new Storage({ projectId });
-      }
-
-      // Generate unique filename with original extension
-      const { randomUUID } = await import('crypto');
-      const ext = file.originalname.split('.').pop();
-      const filename = `${randomUUID()}.${ext}`;
-      const destination = `${folder}/${filename}`;
-
-      const blob = gcsStorage.bucket(bucketName).file(destination);
-
-      const blobStream = blob.createWriteStream({
-        resumable: false,
-        metadata: {
-          contentType: file.mimetype
-        }
+      const objectStorageService = new ObjectStorageService();
+      const uploadResult = await objectStorageService.uploadBuffer(file.buffer, {
+        folder,
+        resourceType,
       });
 
-      blobStream.on('error', (err: any) => {
-        console.error('Error uploading file:', err);
-        res.status(500).json({ error: err.message });
+      res.json({
+        message: 'File uploaded successfully',
+        filename: uploadResult.public_id,
+        originalName: file.originalname,
+        url: uploadResult.secure_url,
+        publicUrl: uploadResult.secure_url,
       });
-
-      blobStream.on('finish', async () => {
-        try {
-          // Generate signed URL for the uploaded file
-          const [url] = await blob.getSignedUrl({
-            version: 'v4',
-            action: 'read',
-            expires: Date.now() + 60 * 60 * 1000,
-          });
-
-          console.log('[Direct Upload API] File uploaded successfully:', destination);
-          res.json({
-            message: 'File uploaded successfully',
-            filename: destination,
-            originalName: file.originalname,
-            url: url,
-            publicUrl: `https://storage.googleapis.com/${bucketName}/${destination}`
-          });
-        } catch (error: any) {
-          console.error('Error generating signed URL after upload:', error);
-          res.status(500).json({ error: 'File uploaded but failed to generate signed URL' });
-        }
-      });
-
-      blobStream.end(file.buffer);
     } catch (error: any) {
       console.error('Error in direct upload:', error);
       res.status(500).json({ error: error.message });

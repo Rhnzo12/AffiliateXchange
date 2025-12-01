@@ -3,6 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "../lib/queryClient";
+import { uploadToCloudinary } from "../lib/cloudinary-upload";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -361,23 +362,13 @@ export default function Settings() {
       
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "image/jpeg",
-        },
-        body: file,
-      });
+      const uploadResult = await uploadToCloudinary(uploadData, file);
 
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        console.error("GCS upload error:", errorText);
+      if (!uploadResult?.secure_url) {
         throw new Error("Failed to upload file to storage");
       }
 
-      // Construct the public URL from the upload response
-      const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      const uploadedUrl = uploadResult.secure_url;
 
       // Set the logo URL
       setLogoUrl(uploadedUrl);
@@ -442,23 +433,13 @@ export default function Settings() {
 
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "image/jpeg",
-        },
-        body: file,
-      });
+      const uploadResult = await uploadToCloudinary(uploadData, file);
 
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        console.error("GCS upload error:", errorText);
+      if (!uploadResult?.secure_url) {
         throw new Error("Failed to upload file to storage");
       }
 
-      // Construct the public URL from the upload response
-      const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      const uploadedUrl = uploadResult.secure_url;
       setProfileImageUrl(uploadedUrl);
 
       toast({
@@ -536,23 +517,13 @@ export default function Settings() {
 
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "application/octet-stream",
-        },
-        body: file,
-      });
+      const uploadResult = await uploadToCloudinary(uploadData, file);
 
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        console.error("GCS upload error:", errorText);
+      if (!uploadResult?.secure_url) {
         throw new Error("Failed to upload file to storage");
       }
 
-      // Construct the public URL from the upload response
-      const uploadedUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      const uploadedUrl = uploadResult.secure_url;
 
       // Determine document type
       const documentType = file.type === 'application/pdf' ? 'pdf' : 'image';

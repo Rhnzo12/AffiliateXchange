@@ -31,6 +31,7 @@ import { proxiedSrc } from "../lib/image";
 import { VideoPlayer } from "../components/VideoPlayer";
 import { Progress } from "../components/ui/progress";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { uploadToCloudinary } from "../lib/cloudinary-upload";
 
 // Helper function to generate thumbnail from video
 const generateThumbnail = async (videoUrl: string): Promise<Blob> => {
@@ -247,40 +248,10 @@ export default function CompanyOfferCreate() {
   });
 
   const uploadWithProgress = (
-    uploadUrl: string,
+    uploadParams: any,
     file: File,
-    bucket: string,
-    key: string,
-    contentType: string,
     onProgress: (progress: number) => void,
-  ) => {
-    return new Promise<any>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("PUT", uploadUrl);
-      xhr.setRequestHeader("Content-Type", contentType);
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          onProgress(progress);
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          // GCS returns empty body, construct the URL from bucket and key
-          const uploadedUrl = `https://storage.googleapis.com/${bucket}/${key}`;
-          resolve({ secure_url: uploadedUrl });
-        } else {
-          reject(new Error("Upload failed"));
-        }
-      };
-
-      xhr.onerror = () => reject(new Error("Upload failed"));
-
-      xhr.send(file);
-    });
-  };
+  ) => uploadToCloudinary(uploadParams, file, onProgress);
 
   const createOfferMutation = useMutation({
     mutationFn: async (data: typeof formData & { videos: VideoData[] }) => {
@@ -361,18 +332,10 @@ export default function CompanyOfferCreate() {
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
-          // Upload thumbnail to Google Cloud Storage using signed URL
-          const thumbUploadResult = await fetch(thumbUploadData.uploadUrl, {
-            method: "PUT",
-            headers: {
-              "Content-Type": thumbUploadData.contentType || thumbnailFile.type || "image/jpeg",
-            },
-            body: thumbnailFile,
-          });
+          const thumbUploadResult = await uploadToCloudinary(thumbUploadData, thumbnailFile);
 
-          if (thumbUploadResult.ok) {
-            // Construct the public URL from the upload response
-            const uploadedThumbnailUrl = `https://storage.googleapis.com/${thumbUploadData.fields.bucket}/${thumbUploadData.fields.key}`;
+          if (thumbUploadResult?.secure_url) {
+            const uploadedThumbnailUrl = thumbUploadResult.secure_url;
 
             // Update offer with thumbnail URL
             await fetch(`/api/offers/${offerId}`, {
@@ -417,13 +380,10 @@ export default function CompanyOfferCreate() {
             });
             const uploadData = await uploadResponse.json();
 
-            // Upload video to GCS with progress tracking
+            // Upload video to Cloudinary with progress tracking
             const cloudinaryResponse = await uploadWithProgress(
-              uploadData.uploadUrl,
+              uploadData,
               video.videoFile,
-              uploadData.fields.bucket,
-              uploadData.fields.key,
-              uploadData.contentType || video.videoFile.type || "video/mp4",
               (progress) => {
                 setVideoUploadProgress(progress);
                 const progressValue = 20 + perVideoPortion * i + (perVideoPortion * progress) / 100;
@@ -449,18 +409,10 @@ export default function CompanyOfferCreate() {
               });
               const thumbUploadData = await thumbUploadResponse.json();
 
-              // Upload thumbnail to Google Cloud Storage using signed URL
-              const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
-                method: "PUT",
-                headers: {
-                  "Content-Type": thumbUploadData.contentType || "image/jpeg",
-                },
-                body: thumbnailBlob,
-              });
+              const thumbnailUploadResult = await uploadToCloudinary(thumbUploadData, new File([thumbnailBlob], 'thumbnail.jpg'));
 
-              if (thumbnailUploadResult.ok) {
-                // Construct the public URL from the upload response
-                uploadedThumbnailUrl = `https://storage.googleapis.com/${thumbUploadData.fields.bucket}/${thumbUploadData.fields.key}`;
+              if (thumbnailUploadResult?.secure_url) {
+                uploadedThumbnailUrl = thumbnailUploadResult.secure_url;
               }
             } catch (thumbnailError) {
               console.error('Thumbnail generation error:', thumbnailError);

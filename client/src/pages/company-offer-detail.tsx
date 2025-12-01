@@ -45,6 +45,7 @@ import { TopNavBar } from "../components/TopNavBar";
 import { VideoPlayer } from "../components/VideoPlayer";
 import { DetailPageSkeleton } from "../components/skeletons";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { uploadToCloudinary } from "../lib/cloudinary-upload";
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
@@ -386,18 +387,10 @@ export default function CompanyOfferDetail() {
       });
       const uploadData = await uploadResponse.json();
 
-      // Upload file to Google Cloud Storage using signed URL
-      const uploadResult = await fetch(uploadData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": uploadData.contentType || file.type || "video/mp4",
-        },
-        body: file,
-      });
+      const uploadResult = await uploadToCloudinary(uploadData, file);
 
-      if (uploadResult.ok) {
-        // Construct the public URL from the upload response
-        const uploadedVideoUrl = `https://storage.googleapis.com/${uploadData.fields.bucket}/${uploadData.fields.key}`;
+      if (uploadResult?.secure_url) {
+        const uploadedVideoUrl = uploadResult.secure_url;
 
         toast({
           title: "Video Uploaded",
@@ -418,18 +411,10 @@ export default function CompanyOfferDetail() {
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
-          // Upload thumbnail to Google Cloud Storage using signed URL
-          const thumbnailUploadResult = await fetch(thumbUploadData.uploadUrl, {
-            method: "PUT",
-            headers: {
-              "Content-Type": thumbUploadData.contentType || "image/jpeg",
-            },
-            body: thumbnailBlob,
-          });
+          const thumbnailUploadResult = await uploadToCloudinary(thumbUploadData, new File([thumbnailBlob], 'thumbnail.jpg'));
 
-          if (thumbnailUploadResult.ok) {
-            // Construct the public URL from the upload response
-            const uploadedThumbnailUrl = `https://storage.googleapis.com/${thumbUploadData.fields.bucket}/${thumbUploadData.fields.key}`;
+          if (thumbnailUploadResult?.secure_url) {
+            const uploadedThumbnailUrl = thumbnailUploadResult.secure_url;
 
             setVideoUrl(uploadedVideoUrl);
             setThumbnailUrl(uploadedThumbnailUrl);
