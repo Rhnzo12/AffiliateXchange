@@ -126,6 +126,9 @@ export default function Analytics() {
       return res.json();
     },
     enabled: isAuthenticated,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   const chartData: TimelinePoint[] = (analytics?.chartData || []).map((item: any) => ({
