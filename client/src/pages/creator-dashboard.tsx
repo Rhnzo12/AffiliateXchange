@@ -12,6 +12,7 @@ import {
   Search,
   ClipboardList,
   CreditCard,
+  MessageSquare,
   ArrowUpRight,
   Activity,
 } from "lucide-react";
@@ -147,11 +148,11 @@ export default function CreatorDashboard() {
       cta: "Manage applications",
     },
     {
-      title: "Open Analytics",
-      description: "Monitor clicks, conversions, and earnings with the full analytics suite.",
-      href: "/analytics",
-      icon: TrendingUp,
-      cta: "View analytics",
+      title: "Messages",
+      description: "Respond to brands quickly and keep conversations moving forward.",
+      href: "/messages",
+      icon: MessageSquare,
+      cta: "Go to inbox",
     },
     {
       title: "Update Profile & Niches",
