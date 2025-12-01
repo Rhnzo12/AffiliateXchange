@@ -118,19 +118,25 @@ export function AppSidebar() {
       ],
     },
     {
-      title: "Videos",
-      url: "/company/videos",
-      icon: Video,
-    },
-    {
-      title: "Applications",
-      url: "/company/applications",
-      icon: FileText,
-    },
-    {
-      title: "Creators",
-      url: "/company/creators",
+      title: "Creator Workflow",
       icon: Users,
+      children: [
+        {
+          title: "Promotional Videos",
+          url: "/company/videos",
+          icon: Video,
+        },
+        {
+          title: "Applications",
+          url: "/company/applications",
+          icon: FileText,
+        },
+        {
+          title: "Approved Creators",
+          url: "/company/creators",
+          icon: Users,
+        },
+      ],
     },
     {
       title: "Analytics",
