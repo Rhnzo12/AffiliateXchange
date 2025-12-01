@@ -49,7 +49,6 @@ import {
   Shield
 } from "lucide-react";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
-import { TopNavBar } from "../components/TopNavBar";
 import { MessageTemplates } from "../components/MessageTemplates";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { proxiedSrc } from "../lib/image";
@@ -823,24 +822,6 @@ export default function Messages() {
 
   return (
     <div className="space-y-6">
-      <TopNavBar>
-        {user?.role === 'creator' && (
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBackNavigation}
-              className="h-10 w-10"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="font-semibold leading-tight">Messages</h1>
-            </div>
-          </div>
-        )}
-      </TopNavBar>
-      
       {/* Image Viewer Modal */}
       {viewerOpen && (
         <div 
@@ -948,8 +929,20 @@ export default function Messages() {
         <div className="grid md:grid-cols-[320px_1fr] gap-4 h-full">
           <Card className={`border-card-border flex flex-col overflow-hidden ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
           <CardContent className="p-0 flex flex-col h-full">
-            <div className="p-4 border-b flex items-center justify-between shrink-0">
-              <h2 className="font-semibold text-lg">Messages</h2>
+            <div className="p-4 border-b flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3">
+                {user?.role === 'creator' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBackNavigation}
+                    className="h-10 w-10"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                )}
+                <h2 className="font-semibold text-lg">Messages</h2>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
