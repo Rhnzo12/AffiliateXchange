@@ -198,53 +198,67 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <div className="rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-6 text-white">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm text-green-100">Total Earnings</span>
-            <DollarSign className="h-5 w-5 text-green-100" />
+      <div className="rounded-xl border-2 border-gray-200 bg-white p-6 space-y-4">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Payout Status Breakdown</h3>
+            <p className="text-sm text-gray-600">
+              See where every creator payout sits: awaiting admin approval, processing, or fully paid.
+            </p>
           </div>
-          <div className="text-3xl font-bold">${totalEarnings.toFixed(2)}</div>
-          <div className="mt-1 text-xs text-green-100">All-time</div>
+          <Badge variant="outline" className="self-start border-green-200 bg-green-50 text-green-700">
+            Total earnings ${totalEarnings.toFixed(2)}
+          </Badge>
         </div>
 
-        <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-6">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm text-yellow-700">Pending Admin Approval</span>
-            <Clock className="h-5 w-5 text-yellow-600" />
-          </div>
-          <div className="text-3xl font-bold text-yellow-900">${pendingEarnings.toFixed(2)}</div>
-          <div className="mt-1 text-xs text-yellow-700">Company approved, awaiting admin</div>
-        </div>
-
-        <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm text-blue-700">Processing Payment</span>
-            <Clock className="h-5 w-5 text-blue-600" />
-          </div>
-          <div className="text-3xl font-bold text-blue-900">${processingEarnings.toFixed(2)}</div>
-          <div className="mt-1 text-xs text-blue-700">Payment in progress</div>
-        </div>
-
-        <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm text-gray-600">Paid Out</span>
-            <CheckCircle className="h-5 w-5 text-green-500" />
-          </div>
-          <div className="text-3xl font-bold text-gray-900">${completedEarnings.toFixed(2)}</div>
-          <div className="mt-1 text-xs text-gray-500">Completed</div>
-        </div>
-
-        {disputedEarnings > 0 && (
-          <div className="rounded-xl border-2 border-orange-300 bg-orange-50 p-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-6">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm text-orange-700">Disputed</span>
-              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              <span className="text-sm text-yellow-700">Pending Admin Approval</span>
+              <Clock className="h-5 w-5 text-yellow-600" />
             </div>
-            <div className="text-3xl font-bold text-orange-900">${disputedEarnings.toFixed(2)}</div>
-            <div className="mt-1 text-xs text-orange-700">Awaiting admin resolution</div>
+            <div className="text-3xl font-bold text-yellow-900">${pendingEarnings.toFixed(2)}</div>
+            <div className="mt-1 text-xs text-yellow-700">Company approved, awaiting admin</div>
           </div>
-        )}
+
+          <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm text-blue-700">Processing Payment</span>
+              <Clock className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="text-3xl font-bold text-blue-900">${processingEarnings.toFixed(2)}</div>
+            <div className="mt-1 text-xs text-blue-700">Payment in progress</div>
+          </div>
+
+          <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm text-gray-600">Total Paid Out</span>
+              <CheckCircle className="h-5 w-5 text-green-500" />
+            </div>
+            <div className="text-3xl font-bold text-gray-900">${completedEarnings.toFixed(2)}</div>
+            <div className="mt-1 text-xs text-gray-500">Lifetime completed payouts</div>
+          </div>
+
+          <div className="rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-6 text-white">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm text-green-100">All Earnings</span>
+              <DollarSign className="h-5 w-5 text-green-100" />
+            </div>
+            <div className="text-3xl font-bold">${totalEarnings.toFixed(2)}</div>
+            <div className="mt-1 text-xs text-green-100">Including pending & processing</div>
+          </div>
+
+          {disputedEarnings > 0 && (
+            <div className="rounded-xl border-2 border-orange-300 bg-orange-50 p-6 md:col-span-2">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm text-orange-700">Disputed</span>
+                <AlertTriangle className="h-5 w-5 text-orange-600" />
+              </div>
+              <div className="text-3xl font-bold text-orange-900">${disputedEarnings.toFixed(2)}</div>
+              <div className="mt-1 text-xs text-orange-700">Awaiting admin resolution</div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
