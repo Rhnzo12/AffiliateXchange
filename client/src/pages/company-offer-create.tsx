@@ -28,7 +28,6 @@ import { Checkbox } from "../components/ui/checkbox";
 import { ArrowLeft, Upload, Video, Play, Trash2, AlertCircle, Image as ImageIcon, X, FileText, Users, Globe, Shield } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
-import { TopNavBar } from "../components/TopNavBar";
 import { VideoPlayer } from "../components/VideoPlayer";
 import { Progress } from "../components/ui/progress";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
@@ -828,7 +827,6 @@ export default function CompanyOfferCreate() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <TopNavBar />
       <div className="flex items-center gap-4">
         <Link href="/company/offers">
           <Button variant="ghost" size="icon" data-testid="button-back">
