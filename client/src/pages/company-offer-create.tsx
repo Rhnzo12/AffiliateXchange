@@ -328,7 +328,12 @@ export default function CompanyOfferCreate() {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ folder: thumbnailFolder, resourceType: "image" }),
+            body: JSON.stringify({
+              folder: thumbnailFolder,
+              resourceType: "image",
+              contentType: thumbnailFile.type,
+              fileName: thumbnailFile.name,
+            }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
@@ -376,7 +381,12 @@ export default function CompanyOfferCreate() {
               method: "POST",
               credentials: "include",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ folder: videoFolder, resourceType: "video" }),
+              body: JSON.stringify({
+                folder: videoFolder,
+                resourceType: "video",
+                contentType: video.videoFile.type,
+                fileName: video.videoFile.name,
+              }),
             });
             const uploadData = await uploadResponse.json();
 
@@ -405,7 +415,12 @@ export default function CompanyOfferCreate() {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ folder: thumbnailFolder, resourceType: "image" }),
+                body: JSON.stringify({
+                  folder: thumbnailFolder,
+                  resourceType: "image",
+                  contentType: 'image/jpeg',
+                  fileName: 'thumbnail.jpg',
+                }),
               });
               const thumbUploadData = await thumbUploadResponse.json();
 

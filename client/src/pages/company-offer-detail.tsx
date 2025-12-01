@@ -383,7 +383,12 @@ export default function CompanyOfferDetail() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder, resourceType: "video" }),
+        body: JSON.stringify({
+          folder,
+          resourceType: "video",
+          contentType: file.type,
+          fileName: file.name,
+        }),
       });
       const uploadData = await uploadResponse.json();
 
@@ -407,7 +412,12 @@ export default function CompanyOfferDetail() {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ folder: thumbnailFolder, resourceType: "image" }),
+            body: JSON.stringify({
+              folder: thumbnailFolder,
+              resourceType: "image",
+              contentType: 'image/jpeg',
+              fileName: 'thumbnail.jpg',
+            }),
           });
           const thumbUploadData = await thumbUploadResponse.json();
 
