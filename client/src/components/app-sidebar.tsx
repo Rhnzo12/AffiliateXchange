@@ -10,6 +10,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarHeader,
   SidebarFooter,
   useSidebar,
@@ -26,6 +29,7 @@ import {
   Building2,
   Users,
   Video,
+  Briefcase,
   CalendarClock,
   ScrollText,
   Sliders,
@@ -96,19 +100,25 @@ export function AppSidebar() {
       icon: Home,
     },
     {
-      title: "My Offers",
-      url: "/company/offers",
-      icon: TrendingUp,
+      title: "Work Management",
+      icon: Briefcase,
+      children: [
+        {
+          title: "Offers",
+          url: "/company/offers",
+          icon: TrendingUp,
+        },
+        {
+          title: "Monthly Retainers",
+          url: "/company/retainers",
+          icon: CalendarClock,
+        },
+      ],
     },
     {
       title: "Videos",
       url: "/company/videos",
       icon: Video,
-    },
-    {
-      title: "Monthly Retainers",
-      url: "/company/retainers",
-      icon: CalendarClock,
     },
     {
       title: "Applications",
@@ -246,22 +256,61 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton
-                        asChild
-                        isActive={location === item.url}
+              {menuItems.map((item) => {
+                const hasChildren = "children" in item && Array.isArray(item.children)
+                const isActive = hasChildren
+                  ? item.children?.some((child) => child.url === location)
+                  : location === item.url
+
+                if (hasChildren) {
+                  return (
+                    <SidebarMenuItem key={item.title} className="group/item">
+                      <SidebarMenuButton
                         tooltip={item.title}
+                        isActive={isActive}
                         className="hover:bg-primary/15 hover:text-primary hover:font-bold hover:scale-105 transition-all duration-200"
                         data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
                       >
-                    <Link href={item.url} onClick={handleNavClick}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                      <SidebarMenuSub className="hidden group-hover/item:flex group-focus-within/item:flex">
+                        {item.children?.map((child) => (
+                          <SidebarMenuSubItem key={child.url}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location === child.url}
+                              className="hover:bg-primary/15 hover:text-primary hover:font-bold"
+                            >
+                              <Link href={child.url} onClick={handleNavClick}>
+                                <child.icon className="h-4 w-4" />
+                                <span>{child.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </SidebarMenuItem>
+                  )
+                }
+
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                      className="hover:bg-primary/15 hover:text-primary hover:font-bold hover:scale-105 transition-all duration-200"
+                      data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                    >
+                      <Link href={item.url!} onClick={handleNavClick}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
