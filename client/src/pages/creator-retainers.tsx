@@ -53,6 +53,7 @@ import {
   Users as UsersIcon,
   ChevronDown,
   ChevronUp,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -102,6 +103,7 @@ export default function CreatorRetainers() {
   const [preferenceFilter, setPreferenceFilter] = useState<string[]>([]);
   const [amountRange, setAmountRange] = useState<number[]>([0, 10000]);
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     title: string;
@@ -417,23 +419,175 @@ export default function CreatorRetainers() {
   }, [selectedTierOptions, form]);
 
   useEffect(() => {
-    const searchBar = (
-      <div className="relative w-full max-w-xl">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search retainers..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-muted/50"
-          data-testid="input-retainer-search"
-        />
-      </div>
+    const filterButton = (
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex items-center gap-2"
+        onClick={() => setIsFilterDialogOpen(true)}
+        data-testid="button-open-retainer-filters"
+      >
+        <SlidersHorizontal className="h-4 w-4" />
+        <span>Filters</span>
+        {filtersApplied && <span className="h-2 w-2 rounded-full bg-primary" aria-hidden />}
+      </Button>
     );
 
-    setHeaderContent(searchBar);
+    setHeaderContent(filterButton);
 
     return () => setHeaderContent(null);
-  }, [searchTerm, setHeaderContent]);
+  }, [filtersApplied, setHeaderContent]);
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setPlatformFilter("all");
+    setBudgetFilter("all");
+    setNicheFilter("all");
+    setDurationFilter("all");
+    setPreferenceFilter([]);
+    setAmountRange([0, 10000]);
+  };
+
+  const renderFilterControls = (options?: { showClear?: boolean }) => (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-muted-foreground">Search retainers</p>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by title, company, or niche"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+            data-testid="input-retainer-search"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">Search applies instantly as you type.</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Platform</p>
+          <Select value={platformFilter} onValueChange={setPlatformFilter}>
+            <SelectTrigger data-testid="select-platform-filter">
+              <SelectValue placeholder="All platforms" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All platforms</SelectItem>
+              {uniquePlatforms.map((platform) => (
+                <SelectItem key={platform} value={platform}>
+                  {platform}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Contract length</p>
+          <Select value={durationFilter} onValueChange={setDurationFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="All lengths" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any duration</SelectItem>
+              <SelectItem value="3">3 months</SelectItem>
+              <SelectItem value="6">6 months</SelectItem>
+              <SelectItem value="12">12 months</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Preferences</p>
+          <div className="grid grid-cols-1 gap-2">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={preferenceFilter.includes("approval_required")}
+                onCheckedChange={() => handlePreferenceToggle("approval_required")}
+              />
+              <span>Approval required</span>
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={preferenceFilter.includes("no_approval")}
+                onCheckedChange={() => handlePreferenceToggle("no_approval")}
+              />
+              <span>No approval needed</span>
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={preferenceFilter.includes("exclusivity")}
+                onCheckedChange={() => handlePreferenceToggle("exclusivity")}
+              />
+              <span>Exclusivity allowed</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Monthly amount range</p>
+            <Badge variant="outline">${amountRange[0].toLocaleString()} - ${amountRange[1].toLocaleString()}</Badge>
+          </div>
+          <Slider
+            dir="rtl"
+            value={amountRange}
+            min={0}
+            max={10000}
+            step={250}
+            onValueChange={(value) => setAmountRange(value as number[])}
+          />
+          <p className="text-xs text-muted-foreground">Transparent pricing shows gross amounts before fees.</p>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Niche</p>
+          <Select value={nicheFilter} onValueChange={setNicheFilter}>
+            <SelectTrigger data-testid="select-niche-filter">
+              <SelectValue placeholder="All niches" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All niches</SelectItem>
+              {uniqueNiches.map((niche) => (
+                <SelectItem key={niche} value={niche}>
+                  {niche}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <p className="text-sm font-medium text-muted-foreground pt-2">Quick minimum budget</p>
+          <Select value={budgetFilter} onValueChange={setBudgetFilter}>
+            <SelectTrigger data-testid="select-budget-filter">
+              <SelectValue placeholder="All budgets" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All budgets</SelectItem>
+              <SelectItem value="500">$500+</SelectItem>
+              <SelectItem value="1000">$1,000+</SelectItem>
+              <SelectItem value="2500">$2,500+</SelectItem>
+              <SelectItem value="5000">$5,000+</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {options?.showClear && filtersApplied && (
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            onClick={clearFilters}
+            data-testid="button-clear-retainer-filters"
+          >
+            Clear filters
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 
   if (isLoading) {
     return (
@@ -448,7 +602,33 @@ export default function CreatorRetainers() {
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Search & Filter</DialogTitle>
+            <DialogDescription>
+              Find retainers that match your pricing, cadence, and preferences.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 pb-2">{renderFilterControls()}</div>
+
+          <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              variant="ghost"
+              onClick={clearFilters}
+              disabled={!filtersApplied}
+              data-testid="button-clear-retainer-filters"
+            >
+              Clear filters
+            </Button>
+            <Button onClick={() => setIsFilterDialogOpen(false)}>Show results</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold" data-testid="heading-creator-retainers">
           Monthly Retainers
@@ -645,137 +825,7 @@ export default function CreatorRetainers() {
               </div>
             </CardHeader>
             {!isFilterCollapsed && (
-            <CardContent className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Platform</p>
-                  <Select value={platformFilter} onValueChange={setPlatformFilter}>
-                    <SelectTrigger data-testid="select-platform-filter">
-                      <SelectValue placeholder="All platforms" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All platforms</SelectItem>
-                      {uniquePlatforms.map((platform) => (
-                        <SelectItem key={platform} value={platform}>
-                          {platform}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Contract length</p>
-                  <Select value={durationFilter} onValueChange={setDurationFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All lengths" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Any duration</SelectItem>
-                      <SelectItem value="3">3 months</SelectItem>
-                      <SelectItem value="6">6 months</SelectItem>
-                      <SelectItem value="12">12 months</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Preferences</p>
-                  <div className="grid grid-cols-1 gap-2">
-                    <label className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={preferenceFilter.includes("approval_required")}
-                        onCheckedChange={() => handlePreferenceToggle("approval_required")}
-                      />
-                      <span>Approval required</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={preferenceFilter.includes("no_approval")}
-                        onCheckedChange={() => handlePreferenceToggle("no_approval")}
-                      />
-                      <span>No approval needed</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={preferenceFilter.includes("exclusivity")}
-                        onCheckedChange={() => handlePreferenceToggle("exclusivity")}
-                      />
-                      <span>Exclusivity allowed</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">Monthly amount range</p>
-                    <Badge variant="outline">${amountRange[0].toLocaleString()} - ${amountRange[1].toLocaleString()}</Badge>
-                  </div>
-                  <Slider
-                    dir="rtl"
-                    value={amountRange}
-                    min={0}
-                    max={10000}
-                    step={250}
-                    onValueChange={(value) => setAmountRange(value as number[])}
-                  />
-                  <p className="text-xs text-muted-foreground">Transparent pricing shows gross amounts before fees.</p>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Niche</p>
-                  <Select value={nicheFilter} onValueChange={setNicheFilter}>
-                    <SelectTrigger data-testid="select-niche-filter">
-                      <SelectValue placeholder="All niches" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All niches</SelectItem>
-                      {uniqueNiches.map((niche) => (
-                        <SelectItem key={niche} value={niche}>
-                          {niche}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <p className="text-sm font-medium text-muted-foreground pt-2">Quick minimum budget</p>
-                  <Select value={budgetFilter} onValueChange={setBudgetFilter}>
-                    <SelectTrigger data-testid="select-budget-filter">
-                      <SelectValue placeholder="All budgets" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All budgets</SelectItem>
-                      <SelectItem value="500">$500+</SelectItem>
-                      <SelectItem value="1000">$1,000+</SelectItem>
-                      <SelectItem value="2500">$2,500+</SelectItem>
-                      <SelectItem value="5000">$5,000+</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {filtersApplied && (
-                <div className="flex justify-end">
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setPlatformFilter("all");
-                      setBudgetFilter("all");
-                      setNicheFilter("all");
-                      setDurationFilter("all");
-                      setPreferenceFilter([]);
-                      setAmountRange([0, 10000]);
-                    }}
-                    data-testid="button-clear-retainer-filters"
-                  >
-                    Clear filters
-                  </Button>
-                </div>
-              )}
-            </CardContent>
+              <CardContent className="space-y-6">{renderFilterControls({ showClear: true })}</CardContent>
             )}
           </Card>
 
@@ -1262,5 +1312,6 @@ export default function CreatorRetainers() {
         variant="error"
       />
     </div>
+    </>
   );
 }
