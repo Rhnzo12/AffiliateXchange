@@ -70,6 +70,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { useHeaderContent } from "../components/HeaderContentContext";
+import { Slider } from "../components/ui/slider";
 
 const applyRetainerSchema = z.object({
   message: z
@@ -97,6 +98,7 @@ export default function CreatorRetainers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [platformFilter, setPlatformFilter] = useState("all");
   const [budgetFilter, setBudgetFilter] = useState("all");
+  const [monthlyRange, setMonthlyRange] = useState<[number, number]>([0, 10000]);
   const [nicheFilter, setNicheFilter] = useState("all");
   const [durationFilter, setDurationFilter] = useState("all");
   const [preferenceFilter, setPreferenceFilter] = useState<string[]>([]);
@@ -143,6 +145,22 @@ export default function CreatorRetainers() {
   const { data: myApplications } = useQuery<any[]>({
     queryKey: ["/api/creator/retainer-applications"],
   });
+
+  const maxMonthlyAmount = useMemo(() => {
+    if (!contracts?.length) return 10000;
+
+    const amounts = contracts.map((contract) => Number(contract.monthlyAmount) || 0);
+    return Math.max(10000, ...amounts);
+  }, [contracts]);
+
+  useEffect(() => {
+    setMonthlyRange((current) => {
+      const clampedMax = Math.max(Math.min(current[1], maxMonthlyAmount), current[0]);
+      const clampedMin = Math.min(current[0], clampedMax);
+      if (current[0] === clampedMin && current[1] === clampedMax) return current;
+      return [clampedMin, clampedMax];
+    });
+  }, [maxMonthlyAmount]);
 
   const form = useForm<ApplyRetainerForm>({
     resolver: zodResolver(applyRetainerSchema),
@@ -298,6 +316,9 @@ export default function CreatorRetainers() {
       const matchesBudget =
         budgetFilter === "all" || monthlyAmount >= Number(budgetFilter);
 
+      const matchesMonthlyRange =
+        monthlyAmount >= monthlyRange[0] && monthlyAmount <= monthlyRange[1];
+
       const matchesNiche =
         nicheFilter === "all" || (Array.isArray(contract.niches) && contract.niches.some((n: string) => n === nicheFilter));
 
@@ -315,17 +336,29 @@ export default function CreatorRetainers() {
         matchesSearch &&
         matchesPlatform &&
         matchesBudget &&
+        matchesMonthlyRange &&
         matchesNiche &&
         matchesDuration &&
         matchesPreferences
       );
     });
-  }, [contracts, searchTerm, platformFilter, budgetFilter, nicheFilter, durationFilter, preferenceFilter]);
+  }, [
+    contracts,
+    searchTerm,
+    platformFilter,
+    budgetFilter,
+    monthlyRange,
+    nicheFilter,
+    durationFilter,
+    preferenceFilter,
+  ]);
 
   const filtersApplied =
     searchTerm.trim() !== "" ||
     platformFilter !== "all" ||
     budgetFilter !== "all" ||
+    monthlyRange[0] > 0 ||
+    monthlyRange[1] < maxMonthlyAmount ||
     nicheFilter !== "all" ||
     durationFilter !== "all" ||
     preferenceFilter.length > 0;
@@ -447,10 +480,14 @@ export default function CreatorRetainers() {
     setSearchTerm("");
     setPlatformFilter("all");
     setBudgetFilter("all");
+    setMonthlyRange([0, maxMonthlyAmount]);
     setNicheFilter("all");
     setDurationFilter("all");
     setPreferenceFilter([]);
   };
+
+  const formatCurrencyValue = (value: number) =>
+    value.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
   const renderFilterControls = (options?: { showClear?: boolean; hideSearch?: boolean }) => (
     <div className="space-y-6">
@@ -547,6 +584,24 @@ export default function CreatorRetainers() {
             ))}
           </SelectContent>
         </Select>
+
+        <div className="pt-4 space-y-3">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <p className="font-medium">Monthly amount range</p>
+            <span>
+              {formatCurrencyValue(monthlyRange[0])} – {formatCurrencyValue(monthlyRange[1])}
+            </span>
+          </div>
+          <div className="px-1">
+            <Slider
+              value={monthlyRange}
+              min={0}
+              max={maxMonthlyAmount}
+              step={100}
+              onValueChange={(value) => setMonthlyRange([value[0], value[1] ?? value[0]])}
+            />
+          </div>
+        </div>
 
         <p className="text-sm font-medium text-muted-foreground pt-2">Quick minimum budget</p>
         <Select value={budgetFilter} onValueChange={setBudgetFilter}>
