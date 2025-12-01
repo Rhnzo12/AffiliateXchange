@@ -200,12 +200,29 @@ export default function CompanyOfferCreate() {
     },
   ];
 
-  const [activeSection, setActiveSection] = useState<(typeof sections)[number]["key"]>("basics");
+  const [currentStep, setCurrentStep] = useState(0);
+  const activeSection = sections[currentStep].key;
 
   const scrollToSection = (key: (typeof sections)[number]["key"]) => {
-    setActiveSection(key);
-    sectionRefs[key].current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const targetIndex = sections.findIndex((section) => section.key === key);
+    if (targetIndex !== -1) {
+      setCurrentStep(targetIndex);
+      sectionRefs[key].current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
+
+  const goToNextSection = () => {
+    setCurrentStep((prev) => Math.min(prev + 1, sections.length - 1));
+  };
+
+  const goToPreviousSection = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
+  };
+
+  useEffect(() => {
+    const key = sections[currentStep].key;
+    sectionRefs[key].current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [currentStep]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -866,10 +883,10 @@ export default function CompanyOfferCreate() {
           <form onSubmit={handleSubmit} className="space-y-10">
             <div
               ref={sectionRefs.basics}
-              className="space-y-4 rounded-lg border p-4 bg-muted/10"
+              className={`space-y-4 rounded-lg border p-4 bg-muted/10 ${
+                activeSection === "basics" ? "" : "hidden"
+              }`}
               id="offer-basics"
-              onMouseEnter={() => setActiveSection("basics")}
-              onFocusCapture={() => setActiveSection("basics")}
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -998,14 +1015,20 @@ export default function CompanyOfferCreate() {
                   data-testid="input-full-description"
                 />
               </div>
+
+              <div className="flex justify-end pt-2">
+                <Button type="button" onClick={goToNextSection} data-testid="button-next-requirements">
+                  Next: Requirements
+                </Button>
+              </div>
             </div>
 
             <div
               ref={sectionRefs.requirements}
-              className="space-y-4 rounded-lg border p-4 bg-muted/10"
+              className={`space-y-4 rounded-lg border p-4 bg-muted/10 ${
+                activeSection === "requirements" ? "" : "hidden"
+              }`}
               id="creator-requirements"
-              onMouseEnter={() => setActiveSection("requirements")}
-              onFocusCapture={() => setActiveSection("requirements")}
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -1205,14 +1228,23 @@ export default function CompanyOfferCreate() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="flex flex-wrap justify-between gap-3 pt-2">
+                <Button type="button" variant="outline" onClick={goToPreviousSection} data-testid="button-back-basics">
+                  Back to Basics
+                </Button>
+                <Button type="button" onClick={goToNextSection} data-testid="button-next-assets">
+                  Next: Payout & Assets
+                </Button>
+              </div>
             </div>
 
             <div
               ref={sectionRefs.assets}
-              className="space-y-4 rounded-lg border p-4 bg-muted/10"
+              className={`space-y-4 rounded-lg border p-4 bg-muted/10 ${
+                activeSection === "assets" ? "" : "hidden"
+              }`}
               id="offer-assets"
-              onMouseEnter={() => setActiveSection("assets")}
-              onFocusCapture={() => setActiveSection("assets")}
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -1426,7 +1458,7 @@ export default function CompanyOfferCreate() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => scrollToSection("requirements")}
+                  onClick={goToPreviousSection}
                 >
                   Back to Requirements
                 </Button>
