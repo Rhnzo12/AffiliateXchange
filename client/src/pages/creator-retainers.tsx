@@ -59,7 +59,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useLocation } from "wouter";
-import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
 import {
   Select,
@@ -70,6 +69,7 @@ import {
 } from "../components/ui/select";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { useHeaderContent } from "../components/HeaderContentContext";
 
 const applyRetainerSchema = z.object({
   message: z
@@ -90,6 +90,7 @@ type ApplyRetainerForm = z.infer<typeof applyRetainerSchema>;
 export default function CreatorRetainers() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { setHeaderContent } = useHeaderContent();
   const [selectedContract, setSelectedContract] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [showVideoPlatformDialog, setShowVideoPlatformDialog] = useState(false);
@@ -415,10 +416,28 @@ export default function CreatorRetainers() {
     }
   }, [selectedTierOptions, form]);
 
+  useEffect(() => {
+    const searchBar = (
+      <div className="relative w-full max-w-xl">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search retainers..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10 bg-muted/50"
+          data-testid="input-retainer-search"
+        />
+      </div>
+    );
+
+    setHeaderContent(searchBar);
+
+    return () => setHeaderContent(null);
+  }, [searchTerm, setHeaderContent]);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <TopNavBar />
         <div>
           <h1 className="text-3xl font-bold">Monthly Retainers</h1>
           <p className="text-muted-foreground">Browse ongoing monthly video production contracts</p>
@@ -430,7 +449,6 @@ export default function CreatorRetainers() {
 
   return (
     <div className="space-y-6">
-      <TopNavBar />
       <div>
         <h1 className="text-3xl font-bold" data-testid="heading-creator-retainers">
           Monthly Retainers
@@ -628,21 +646,7 @@ export default function CreatorRetainers() {
             </CardHeader>
             {!isFilterCollapsed && (
             <CardContent className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Search</p>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      value={searchTerm}
-                      onChange={(event) => setSearchTerm(event.target.value)}
-                      placeholder="Search by title, company, or niche"
-                      className="pl-9"
-                      data-testid="input-retainer-search"
-                    />
-                  </div>
-                </div>
-
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">Platform</p>
                   <Select value={platformFilter} onValueChange={setPlatformFilter}>
