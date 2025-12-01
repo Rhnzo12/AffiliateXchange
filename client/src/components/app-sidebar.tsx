@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -47,6 +48,7 @@ export function AppSidebar() {
   const [location] = useLocation();
   const { isMobile, setOpenMobile } = useSidebar();
   const currentYear = new Date().getFullYear();
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   // Close sidebar on mobile when navigation link is clicked
   const handleNavClick = () => {
@@ -238,6 +240,13 @@ export function AppSidebar() {
 
   const menuItems = getMenuItems();
 
+  const toggleSubmenu = (title: string) => {
+    setOpenMenus((prev) => ({
+      ...prev,
+      [title]: !(prev[title] ?? false),
+    }));
+  };
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b px-4 py-4 group-data-[collapsible=icon]:p-2">
@@ -261,6 +270,7 @@ export function AppSidebar() {
                 const isActive = hasChildren
                   ? item.children?.some((child) => child.url === location)
                   : location === item.url
+                const isOpen = hasChildren ? openMenus[item.title] ?? isActive : false
 
                 if (hasChildren) {
                   return (
@@ -270,11 +280,12 @@ export function AppSidebar() {
                         isActive={isActive}
                         className="hover:bg-primary/15 hover:text-primary hover:font-bold hover:scale-105 transition-all duration-200"
                         data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                        onClick={() => toggleSubmenu(item.title)}
                       >
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
                       </SidebarMenuButton>
-                      <SidebarMenuSub className="hidden group-hover/item:flex group-focus-within/item:flex">
+                      <SidebarMenuSub className={isOpen ? "flex" : "hidden"}>
                         {item.children?.map((child) => (
                           <SidebarMenuSubItem key={child.url}>
                             <SidebarMenuSubButton
