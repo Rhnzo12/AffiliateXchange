@@ -99,20 +99,12 @@ function AuthenticatedLayout({ user, unreadCount, onLogout, children }: { user: 
 
   const { headerContent } = useHeaderContent();
 
-  return (
+ return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
 
-          <header className="grid grid-cols-[auto,1fr,auto] items-center gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0 bg-background sticky top-0 z-50">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
-            </div>
-
-            <div className="flex justify-center">
-              {headerContent && (
-                <div className="w-full max-w-xl">{headerContent}</div>
           <header className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0 bg-background sticky top-0 z-50">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
