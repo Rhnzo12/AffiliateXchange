@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -175,6 +175,37 @@ export default function CompanyOfferCreate() {
     creatorCredit: "",
     originalPlatform: "",
   });
+
+  const sectionRefs = {
+    basics: useRef<HTMLDivElement>(null),
+    requirements: useRef<HTMLDivElement>(null),
+    assets: useRef<HTMLDivElement>(null),
+  } as const;
+
+  const sections = [
+    {
+      key: "basics" as const,
+      title: "Offer Basics",
+      description: "Thumbnail, product name, and descriptions",
+    },
+    {
+      key: "requirements" as const,
+      title: "Requirements & Targeting",
+      description: "Creator requirements and niche",
+    },
+    {
+      key: "assets" as const,
+      title: "Payout & Assets",
+      description: "Product link, payout details, and promotional videos",
+    },
+  ];
+
+  const [activeSection, setActiveSection] = useState<(typeof sections)[number]["key"]>("basics");
+
+  const scrollToSection = (key: (typeof sections)[number]["key"]) => {
+    setActiveSection(key);
+    sectionRefs[key].current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -779,7 +810,7 @@ export default function CompanyOfferCreate() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <TopNavBar />
       <div className="flex items-center gap-4">
         <Link href="/company/offers">
@@ -798,535 +829,624 @@ export default function CompanyOfferCreate() {
       <Card className="border-card-border">
         <CardHeader>
           <CardTitle>Offer Details</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Build your offer in three focused sections: basics, requirements, and assets.
+          </p>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Offer Thumbnail Upload */}
-            <div className="space-y-2">
-              <Label>Offer Thumbnail *</Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Upload a featured image for your offer (recommended: 1200x675px)
-              </p>
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleThumbnailSelect}
-                  disabled={isUploadingThumbnail}
-                  className="hidden"
-                  id="thumbnail-input"
+        <CardContent className="space-y-6">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {sections.map((section, index) => (
+              <button
+                key={section.key}
+                type="button"
+                onClick={() => scrollToSection(section.key)}
+                className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                  activeSection === section.key ? "border-primary bg-primary/5" : "border-border"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`h-10 w-10 rounded-full border flex items-center justify-center text-sm font-semibold ${
+                      activeSection === section.key
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="font-semibold leading-tight">{section.title}</div>
+                    <p className="text-xs text-muted-foreground leading-snug">{section.description}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-10">
+            <div
+              ref={sectionRefs.basics}
+              className="space-y-4 rounded-lg border p-4 bg-muted/10"
+              id="offer-basics"
+              onMouseEnter={() => setActiveSection("basics")}
+              onFocusCapture={() => setActiveSection("basics")}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-semibold">Offer Basics</h3>
+                </div>
+                <span className="text-xs text-muted-foreground">Step 1 of 3</span>
+              </div>
+
+              {/* Offer Thumbnail Upload */}
+              <div className="space-y-2">
+                <Label>Offer Thumbnail *</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Upload a featured image for your offer (recommended: 1200x675px)
+                </p>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThumbnailSelect}
+                    disabled={isUploadingThumbnail}
+                    className="hidden"
+                    id="thumbnail-input"
+                  />
+                  <label
+                    htmlFor="thumbnail-input"
+                    className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer block ${
+                      isUploadingThumbnail ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {formData.featuredImageUrl ? (
+                      <div className="relative">
+                        <img
+                          src={proxiedSrc(formData.featuredImageUrl)}
+                          alt="Offer thumbnail"
+                          className="w-full h-48 object-cover rounded-lg"
+                          referrerPolicy="no-referrer"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setFormData(prev => ({ ...prev, featuredImageUrl: "" }));
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        {isUploadingThumbnail ? (
+                          <>
+                            <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
+                            <div className="text-sm font-medium text-blue-600">
+                              Uploading Thumbnail...
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <ImageIcon className="h-8 w-8 text-primary" />
+                            <div className="text-sm font-medium">
+                              Click to upload offer thumbnail
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              JPG, PNG, GIF, WebP (max 10MB)
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="title">Offer Title *</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="e.g., Premium Fitness App Affiliate Program"
+                  maxLength={100}
+                  data-testid="input-title"
                 />
-                <label
-                  htmlFor="thumbnail-input"
-                  className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer block ${
-                    isUploadingThumbnail ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {formData.featuredImageUrl ? (
-                    <div className="relative">
-                      <img
-                        src={proxiedSrc(formData.featuredImageUrl)}
-                        alt="Offer thumbnail"
-                        className="w-full h-48 object-cover rounded-lg"
-                        referrerPolicy="no-referrer"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setFormData(prev => ({ ...prev, featuredImageUrl: "" }));
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2">
-                      {isUploadingThumbnail ? (
-                        <>
-                          <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
-                          <div className="text-sm font-medium text-blue-600">
-                            Uploading Thumbnail...
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <ImageIcon className="h-8 w-8 text-primary" />
-                          <div className="text-sm font-medium">
-                            Click to upload offer thumbnail
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            JPG, PNG, GIF, WebP (max 10MB)
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </label>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="productName">Product Name *</Label>
+                <Input
+                  id="productName"
+                  value={formData.productName}
+                  onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
+                  placeholder="e.g., FitPro Premium"
+                  data-testid="input-product-name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="shortDescription">Short Description * (Max 200 characters)</Label>
+                <Textarea
+                  id="shortDescription"
+                  value={formData.shortDescription}
+                  onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
+                  placeholder="Brief summary for search results and previews..."
+                  maxLength={200}
+                  rows={2}
+                  data-testid="input-short-description"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {formData.shortDescription.length}/200 characters
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fullDescription">Full Description *</Label>
+                <Textarea
+                  id="fullDescription"
+                  value={formData.fullDescription}
+                  onChange={(e) => setFormData({ ...formData, fullDescription: e.target.value })}
+                  placeholder="Detailed description of your offer, target audience, benefits..."
+                  rows={6}
+                  data-testid="input-full-description"
+                />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="title">Offer Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="e.g., Premium Fitness App Affiliate Program"
-                maxLength={100}
-                data-testid="input-title"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="productName">Product Name *</Label>
-              <Input
-                id="productName"
-                value={formData.productName}
-                onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
-                placeholder="e.g., FitPro Premium"
-                data-testid="input-product-name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="shortDescription">Short Description * (Max 200 characters)</Label>
-              <Textarea
-                id="shortDescription"
-                value={formData.shortDescription}
-                onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
-                placeholder="Brief summary for search results and previews..."
-                maxLength={200}
-                rows={2}
-                data-testid="input-short-description"
-              />
-              <p className="text-xs text-muted-foreground">
-                {formData.shortDescription.length}/200 characters
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="fullDescription">Full Description *</Label>
-              <Textarea
-                id="fullDescription"
-                value={formData.fullDescription}
-                onChange={(e) => setFormData({ ...formData, fullDescription: e.target.value })}
-                placeholder="Detailed description of your offer, target audience, benefits..."
-                rows={6}
-                data-testid="input-full-description"
-              />
-            </div>
-
-            {/* Creator Requirements Section */}
-            <Card className="border-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Creator Requirements
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Define specific requirements for creators who want to promote this offer
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Minimum Followers */}
-                <div className="space-y-2">
-                  <Label htmlFor="minimumFollowers">Minimum Followers/Subscribers (Optional)</Label>
-                  <Input
-                    id="minimumFollowers"
-                    type="number"
-                    min="0"
-                    value={formData.minimumFollowers}
-                    onChange={(e) => setFormData({ ...formData, minimumFollowers: e.target.value })}
-                    placeholder="e.g., 10000"
-                    data-testid="input-minimum-followers"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Minimum follower count required across any platform
-                  </p>
+            <div
+              ref={sectionRefs.requirements}
+              className="space-y-4 rounded-lg border p-4 bg-muted/10"
+              id="creator-requirements"
+              onMouseEnter={() => setActiveSection("requirements")}
+              onFocusCapture={() => setActiveSection("requirements")}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-semibold">Requirements & Targeting</h3>
                 </div>
+                <span className="text-xs text-muted-foreground">Step 2 of 3</span>
+              </div>
 
-                {/* Allowed Platforms */}
-                <div className="space-y-3">
-                  <Label>Allowed Platforms</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Select which platforms creators can use to promote this offer
+              {/* Creator Requirements Section */}
+              <Card className="border-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Creator Requirements
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Define specific requirements for creators who want to promote this offer
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { value: "YouTube", label: "YouTube" },
-                      { value: "TikTok", label: "TikTok" },
-                      { value: "Instagram", label: "Instagram" },
-                      { value: "Facebook", label: "Facebook" },
-                      { value: "Snapchat", label: "Snapchat" },
-                      { value: "X/Twitter", label: "X/Twitter" },
-                      { value: "LinkedIn", label: "LinkedIn" },
-                      { value: "Other", label: "Other" },
-                    ].map((platform) => (
-                      <div key={platform.value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`platform-${platform.value}`}
-                          checked={formData.allowedPlatforms.includes(platform.value)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setFormData({
-                                ...formData,
-                                allowedPlatforms: [...formData.allowedPlatforms, platform.value]
-                              });
-                            } else {
-                              setFormData({
-                                ...formData,
-                                allowedPlatforms: formData.allowedPlatforms.filter(p => p !== platform.value)
-                              });
-                            }
-                          }}
-                        />
-                        <label
-                          htmlFor={`platform-${platform.value}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                        >
-                          {platform.label}
-                        </label>
-                      </div>
-                    ))}
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Minimum Followers */}
+                  <div className="space-y-2">
+                    <Label htmlFor="minimumFollowers">Minimum Followers/Subscribers (Optional)</Label>
+                    <Input
+                      id="minimumFollowers"
+                      type="number"
+                      min="0"
+                      value={formData.minimumFollowers}
+                      onChange={(e) => setFormData({ ...formData, minimumFollowers: e.target.value })}
+                      placeholder="e.g., 10000"
+                      data-testid="input-minimum-followers"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Minimum follower count required across any platform
+                    </p>
                   </div>
-                </div>
 
-                {/* Geographic Restrictions */}
-                <div className="space-y-2">
-                  <Label htmlFor="geographicRestrictions" className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
-                    Geographic Restrictions
-                  </Label>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Enter countries separated by commas, or type "Worldwide" for no restrictions
-                  </p>
-                  <Input
-                    id="geographicRestrictions"
-                    value={formData.geographicRestrictions.join(", ")}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      const countries = value.split(",").map(c => c.trim()).filter(c => c);
-                      setFormData({ ...formData, geographicRestrictions: countries });
-                    }}
-                    placeholder="e.g., United States, Canada, United Kingdom or Worldwide"
-                    data-testid="input-geographic-restrictions"
-                  />
-                </div>
+                  {/* Allowed Platforms */}
+                  <div className="space-y-3">
+                    <Label>Allowed Platforms</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Select which platforms creators can use to promote this offer
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { value: "YouTube", label: "YouTube" },
+                        { value: "TikTok", label: "TikTok" },
+                        { value: "Instagram", label: "Instagram" },
+                        { value: "Facebook", label: "Facebook" },
+                        { value: "Snapchat", label: "Snapchat" },
+                        { value: "X/Twitter", label: "X/Twitter" },
+                        { value: "LinkedIn", label: "LinkedIn" },
+                        { value: "Other", label: "Other" },
+                      ].map((platform) => (
+                        <div key={platform.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`platform-${platform.value}`}
+                            checked={formData.allowedPlatforms.includes(platform.value)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData({
+                                  ...formData,
+                                  allowedPlatforms: [...formData.allowedPlatforms, platform.value]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  allowedPlatforms: formData.allowedPlatforms.filter(p => p !== platform.value)
+                                });
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`platform-${platform.value}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {platform.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-                {/* Age Restrictions */}
-                <div className="space-y-2">
-                  <Label htmlFor="ageRestriction">Age Restrictions</Label>
-                  <Select
-                    value={formData.ageRestriction}
-                    onValueChange={(value) => setFormData({ ...formData, ageRestriction: value })}
-                  >
-                    <SelectTrigger id="ageRestriction" data-testid="select-age-restriction">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="no_restriction">No Restriction</SelectItem>
-                      <SelectItem value="18+">18+ Only</SelectItem>
-                      <SelectItem value="21+">21+ Only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Age restriction for creator audience
-                  </p>
-                </div>
+                  {/* Geographic Restrictions */}
+                  <div className="space-y-2">
+                    <Label htmlFor="geographicRestrictions" className="flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Geographic Restrictions
+                    </Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Enter countries separated by commas, or type "Worldwide" for no restrictions
+                    </p>
+                    <Input
+                      id="geographicRestrictions"
+                      value={formData.geographicRestrictions.join(", ")}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const countries = value.split(",").map(c => c.trim()).filter(c => c);
+                        setFormData({ ...formData, geographicRestrictions: countries });
+                      }}
+                      placeholder="e.g., United States, Canada, United Kingdom or Worldwide"
+                      data-testid="input-geographic-restrictions"
+                    />
+                  </div>
 
-                {/* Content Style Requirements */}
-                <div className="space-y-2">
-                  <Label htmlFor="contentStyleRequirements" className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Content Style Requirements (Optional)
-                  </Label>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Describe the style and tone of content you're looking for (max 500 characters)
-                  </p>
-                  <Textarea
-                    id="contentStyleRequirements"
-                    value={formData.contentStyleRequirements}
-                    onChange={(e) => setFormData({ ...formData, contentStyleRequirements: e.target.value })}
-                    placeholder="e.g., Authentic product reviews, educational tutorials, lifestyle vlogs showcasing the product naturally..."
-                    rows={3}
-                    maxLength={500}
-                    data-testid="input-content-style-requirements"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {formData.contentStyleRequirements.length}/500 characters
-                  </p>
-                </div>
+                  {/* Age Restrictions */}
+                  <div className="space-y-2">
+                    <Label htmlFor="ageRestriction">Age Restrictions</Label>
+                    <Select
+                      value={formData.ageRestriction}
+                      onValueChange={(value) => setFormData({ ...formData, ageRestriction: value })}
+                    >
+                      <SelectTrigger id="ageRestriction" data-testid="select-age-restriction">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="no_restriction">No Restriction</SelectItem>
+                        <SelectItem value="18+">18+ Only</SelectItem>
+                        <SelectItem value="21+">21+ Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Age restriction for creator audience
+                    </p>
+                  </div>
 
-                {/* Brand Safety Requirements */}
-                <div className="space-y-2">
-                  <Label htmlFor="brandSafetyRequirements" className="flex items-center gap-2">
-                    <Shield className="h-4 w-4" />
-                    Brand Safety Requirements (Optional)
-                  </Label>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Specify any brand safety guidelines or content restrictions (max 500 characters)
-                  </p>
-                  <Textarea
-                    id="brandSafetyRequirements"
-                    value={formData.brandSafetyRequirements}
-                    onChange={(e) => setFormData({ ...formData, brandSafetyRequirements: e.target.value })}
-                    placeholder="e.g., Family-friendly content only, no profanity, no controversial topics, must align with our brand values..."
-                    rows={3}
-                    maxLength={500}
-                    data-testid="input-brand-safety-requirements"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {formData.brandSafetyRequirements.length}/500 characters
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  {/* Content Style Requirements */}
+                  <div className="space-y-2">
+                    <Label htmlFor="contentStyleRequirements" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Content Style Requirements (Optional)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Describe the style and tone of content you're looking for (max 500 characters)
+                    </p>
+                    <Textarea
+                      id="contentStyleRequirements"
+                      value={formData.contentStyleRequirements}
+                      onChange={(e) => setFormData({ ...formData, contentStyleRequirements: e.target.value })}
+                      placeholder="e.g., Authentic product reviews, educational tutorials, lifestyle vlogs showcasing the product naturally..."
+                      rows={3}
+                      maxLength={500}
+                      data-testid="input-content-style-requirements"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {formData.contentStyleRequirements.length}/500 characters
+                    </p>
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="primaryNiche">Primary Niche *</Label>
-              <Select
-                value={formData.primaryNiche}
-                onValueChange={(value) => setFormData({ ...formData, primaryNiche: value })}
-              >
-                <SelectTrigger id="primaryNiche" data-testid="select-primary-niche">
-                  <SelectValue placeholder="Select a niche" />
-                </SelectTrigger>
-                <SelectContent>
-                  {nichesLoading ? (
-                    <SelectItem value="loading" disabled>Loading niches...</SelectItem>
-                  ) : niches.length === 0 ? (
-                    <SelectItem value="none" disabled>No niches available</SelectItem>
-                  ) : (
-                    niches.map((niche) => (
-                      <SelectItem key={niche.id} value={niche.name.toLowerCase().replace(/\s+/g, '_')}>
-                        {niche.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+                  {/* Brand Safety Requirements */}
+                  <div className="space-y-2">
+                    <Label htmlFor="brandSafetyRequirements" className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Brand Safety Requirements (Optional)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Specify any brand safety guidelines or content restrictions (max 500 characters)
+                    </p>
+                    <Textarea
+                      id="brandSafetyRequirements"
+                      value={formData.brandSafetyRequirements}
+                      onChange={(e) => setFormData({ ...formData, brandSafetyRequirements: e.target.value })}
+                      placeholder="e.g., Family-friendly content only, no profanity, no controversial topics, must align with our brand values..."
+                      rows={3}
+                      maxLength={500}
+                      data-testid="input-brand-safety-requirements"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {formData.brandSafetyRequirements.length}/500 characters
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="productUrl">Product URL *</Label>
-              <Input
-                id="productUrl"
-                value={formData.productUrl}
-                onChange={(e) => setFormData({ ...formData, productUrl: e.target.value })}
-                placeholder="https://yourproduct.com"
-                data-testid="input-product-url"
-              />
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="commissionType">Commission Type *</Label>
+                <Label htmlFor="primaryNiche">Primary Niche *</Label>
                 <Select
-                  value={formData.commissionType}
-                  onValueChange={(value: any) =>
-                    setFormData({ ...formData, commissionType: value })
-                  }
+                  value={formData.primaryNiche}
+                  onValueChange={(value) => setFormData({ ...formData, primaryNiche: value })}
                 >
-                  <SelectTrigger id="commissionType" data-testid="select-commission-type">
-                    <SelectValue />
+                  <SelectTrigger id="primaryNiche" data-testid="select-primary-niche">
+                    <SelectValue placeholder="Select a niche" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="per_sale">Per Sale (Percentage)</SelectItem>
-                    <SelectItem value="per_lead">Per Lead (Flat Rate)</SelectItem>
-                    <SelectItem value="per_click">Per Click (CPC)</SelectItem>
-                    <SelectItem value="monthly_retainer">Monthly Retainer</SelectItem>
-                    <SelectItem value="hybrid">Hybrid</SelectItem>
+                    {nichesLoading ? (
+                      <SelectItem value="loading" disabled>Loading niches...</SelectItem>
+                    ) : niches.length === 0 ? (
+                      <SelectItem value="none" disabled>No niches available</SelectItem>
+                    ) : (
+                      niches.map((niche) => (
+                        <SelectItem key={niche.id} value={niche.name.toLowerCase().replace(/\s+/g, '_')}>
+                          {niche.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
-
-              {formData.commissionType === "per_sale" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="commissionRate">Commission Rate (%) *</Label>
-                  <Input
-                    id="commissionRate"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={formData.commissionRate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, commissionRate: e.target.value })
-                    }
-                    placeholder="e.g., 10"
-                    data-testid="input-commission-rate"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label htmlFor="commissionAmount">Commission Amount ($) *</Label>
-                  <Input
-                    id="commissionAmount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.commissionAmount}
-                    onChange={(e) =>
-                      setFormData({ ...formData, commissionAmount: e.target.value })
-                    }
-                    placeholder="e.g., 50.00"
-                    data-testid="input-commission-amount"
-                  />
-                </div>
-              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-              >
-                <SelectTrigger id="status" data-testid="select-status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="live">Live</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Draft offers are not visible to creators
-              </p>
-            </div>
+            <div
+              ref={sectionRefs.assets}
+              className="space-y-4 rounded-lg border p-4 bg-muted/10"
+              id="offer-assets"
+              onMouseEnter={() => setActiveSection("assets")}
+              onFocusCapture={() => setActiveSection("assets")}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Video className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-semibold">Payout & Assets</h3>
+                </div>
+                <span className="text-xs text-muted-foreground">Step 3 of 3</span>
+              </div>
 
-            {/* Video Upload Section */}
-            <Card className="border-2 border-dashed">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Video className="h-5 w-5" />
-                  Promotional Videos *
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Upload 6-12 videos showcasing your product
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {videos.length < 6 && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      You need at least 6 videos to create this offer. Currently: {videos.length}/6
-                    </AlertDescription>
-                  </Alert>
-                )}
+              <div className="space-y-2">
+                <Label htmlFor="productUrl">Product URL *</Label>
+                <Input
+                  id="productUrl"
+                  value={formData.productUrl}
+                  onChange={(e) => setFormData({ ...formData, productUrl: e.target.value })}
+                  placeholder="https://yourproduct.com"
+                  data-testid="input-product-url"
+                />
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    {videos.length} of 12 videos added
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={() => setShowVideoDialog(true)}
-                    disabled={videos.length >= 12}
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="commissionType">Commission Type *</Label>
+                  <Select
+                    value={formData.commissionType}
+                    onValueChange={(value: any) =>
+                      setFormData({ ...formData, commissionType: value })
+                    }
                   >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Add Video
-                  </Button>
+                    <SelectTrigger id="commissionType" data-testid="select-commission-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="per_sale">Per Sale (Percentage)</SelectItem>
+                      <SelectItem value="per_lead">Per Lead (Flat Rate)</SelectItem>
+                      <SelectItem value="per_click">Per Click (CPC)</SelectItem>
+                      <SelectItem value="monthly_retainer">Monthly Retainer</SelectItem>
+                      <SelectItem value="hybrid">Hybrid</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {videos.length > 0 && (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {videos.map((video, index) => (
-                      <Card key={index} className="overflow-hidden">
-                        <CardContent className="p-4 space-y-2">
-                          <div
-                            className="aspect-video bg-muted rounded-md relative overflow-hidden cursor-pointer group"
-                            onClick={() => video.videoUrl && handlePlayVideo(video.videoUrl)}
-                          >
-                            {video.thumbnailUrl ? (
-                              <>
-                                <img
-                                  src={proxiedSrc(video.thumbnailUrl)}
-                                  alt={video.title}
-                                  className="w-full h-full object-cover"
-                                  referrerPolicy="no-referrer"
-                                />
-                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Play className="h-12 w-12 text-white" />
-                                </div>
-                              </>
-                            ) : video.videoUrl ? (
-                              <video
-                                src={video.videoUrl}
-                                className="w-full h-full object-cover"
-                                muted
-                                controls
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Video className="h-8 w-8 text-muted-foreground" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-sm line-clamp-1">
-                              {video.title}
-                            </h4>
-                            {video.creatorCredit && (
-                              <p className="text-xs text-muted-foreground">
-                                by {video.creatorCredit}
-                              </p>
-                            )}
-                          </div>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            className="w-full"
-                            onClick={() => handleRemoveVideo(index)}
-                          >
-                            <Trash2 className="h-3 w-3 mr-2" />
-                            Remove
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                {formData.commissionType === "per_sale" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="commissionRate">Commission Rate (%) *</Label>
+                    <Input
+                      id="commissionRate"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={formData.commissionRate}
+                      onChange={(e) =>
+                        setFormData({ ...formData, commissionRate: e.target.value })
+                      }
+                      placeholder="e.g., 10"
+                      data-testid="input-commission-rate"
+                    />
                   </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {(createOfferMutation.isPending || offerUploadProgress > 0) && (
-              <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
-                <div className="flex items-center justify-between text-sm font-medium">
-                  <span>{uploadStatus || "Uploading offer..."}</span>
-                  <span>{Math.round(offerUploadProgress)}%</span>
-                </div>
-                <Progress value={offerUploadProgress || 5} />
-                {currentUploadVideoIndex !== null && (
-                  <div className="text-xs text-muted-foreground">
-                    Video {currentUploadVideoIndex + 1} of {videos.length} • {videoUploadProgress}%
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="commissionAmount">Commission Amount ($) *</Label>
+                    <Input
+                      id="commissionAmount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.commissionAmount}
+                      onChange={(e) =>
+                        setFormData({ ...formData, commissionAmount: e.target.value })
+                      }
+                      placeholder="e.g., 50.00"
+                      data-testid="input-commission-amount"
+                    />
                   </div>
                 )}
               </div>
-            )}
 
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="submit"
-                disabled={createOfferMutation.isPending || videos.length < 6}
-                data-testid="button-create-offer"
-              >
-                {createOfferMutation.isPending
-                  ? `Creating...${offerUploadProgress ? ` ${offerUploadProgress}%` : ""}`
-                  : "Create Offer"}
-              </Button>
-              <Link href="/company/offers">
-                <Button type="button" variant="outline" data-testid="button-cancel">
-                  Cancel
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                >
+                  <SelectTrigger id="status" data-testid="select-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="live">Live</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Draft offers are not visible to creators
+                </p>
+              </div>
+
+              {/* Video Upload Section */}
+              <Card className="border-2 border-dashed">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Video className="h-5 w-5" />
+                    Promotional Videos *
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Upload 6-12 videos showcasing your product
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {videos.length < 6 && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        You need at least 6 videos to create this offer. Currently: {videos.length}/6
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      {videos.length} of 12 videos added
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => setShowVideoDialog(true)}
+                      disabled={videos.length >= 12}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Add Video
+                    </Button>
+                  </div>
+
+                  {videos.length > 0 && (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {videos.map((video, index) => (
+                        <Card key={index} className="overflow-hidden">
+                          <CardContent className="p-4 space-y-2">
+                            <div
+                              className="aspect-video bg-muted rounded-md relative overflow-hidden cursor-pointer group"
+                              onClick={() => video.videoUrl && handlePlayVideo(video.videoUrl)}
+                            >
+                              {video.thumbnailUrl ? (
+                                <>
+                                  <img
+                                    src={proxiedSrc(video.thumbnailUrl)}
+                                    alt={video.title}
+                                    className="w-full h-full object-cover"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Play className="h-12 w-12 text-white" />
+                                  </div>
+                                </>
+                              ) : video.videoUrl ? (
+                                <video
+                                  src={video.videoUrl}
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  controls
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Video className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-sm line-clamp-1">
+                                {video.title}
+                              </h4>
+                              {video.creatorCredit && (
+                                <p className="text-xs text-muted-foreground">
+                                  by {video.creatorCredit}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="w-full"
+                              onClick={() => handleRemoveVideo(index)}
+                            >
+                              <Trash2 className="h-3 w-3 mr-2" />
+                              Remove
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {(createOfferMutation.isPending || offerUploadProgress > 0) && (
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+                  <div className="flex items-center justify-between text-sm font-medium">
+                    <span>{uploadStatus || "Uploading offer..."}</span>
+                    <span>{Math.round(offerUploadProgress)}%</span>
+                  </div>
+                  <Progress value={offerUploadProgress || 5} />
+                  {currentUploadVideoIndex !== null && (
+                    <div className="text-xs text-muted-foreground">
+                      Video {currentUploadVideoIndex + 1} of {videos.length} • {videoUploadProgress}%
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-3 pt-4 items-center justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => scrollToSection("requirements")}
+                >
+                  Back to Requirements
                 </Button>
-              </Link>
+                <div className="flex gap-3">
+                  <Button
+                    type="submit"
+                    disabled={createOfferMutation.isPending || videos.length < 6}
+                    data-testid="button-create-offer"
+                  >
+                    {createOfferMutation.isPending
+                      ? `Creating...${offerUploadProgress ? ` ${offerUploadProgress}%` : ""}`
+                      : "Create Offer"}
+                  </Button>
+                  <Link href="/company/offers">
+                    <Button type="button" variant="outline" data-testid="button-cancel">
+                      Cancel
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </div>
           </form>
         </CardContent>
