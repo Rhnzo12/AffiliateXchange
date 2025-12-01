@@ -46,9 +46,9 @@ import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, H
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { proxiedSrc } from "../lib/image";
-import { TopNavBar } from "../components/TopNavBar";
 import { OfferCardSkeleton } from "../components/skeletons";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { useHeaderContent } from "../components/HeaderContentContext";
 
 const COMMISSION_TYPES = [
   { value: "per_sale", label: "Per Sale" },
@@ -246,6 +246,7 @@ export default function Browse() {
   const [sortBy, setSortBy] = useState("newest");
   const [saveSearchDialogOpen, setSaveSearchDialogOpen] = useState(false);
   const [savedSearchName, setSavedSearchName] = useState("");
+  const { setHeaderContent } = useHeaderContent();
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     title: string;
@@ -782,6 +783,25 @@ export default function Browse() {
     deleteSavedSearchMutation.mutate(id);
   };
 
+  useEffect(() => {
+    const searchBar = (
+      <div className="relative w-full max-w-xl">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search offers..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10 bg-muted/50"
+          data-testid="input-search-header"
+        />
+      </div>
+    );
+
+    setHeaderContent(searchBar);
+
+    return () => setHeaderContent(null);
+  }, [searchTerm, setHeaderContent]);
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-pulse text-lg">Loading...</div>
@@ -790,20 +810,6 @@ export default function Browse() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top Navigation Bar */}
-      <TopNavBar>
-        <div className="relative flex-1 max-w-xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search offers..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-muted/50"
-            data-testid="input-search-header"
-          />
-        </div>
-      </TopNavBar>
-
       {/* Main Content */}
       <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 md:space-y-8">
         {/* Header - Left Aligned, Black Text */}
