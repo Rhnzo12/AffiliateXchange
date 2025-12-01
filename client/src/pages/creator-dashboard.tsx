@@ -54,7 +54,13 @@ export default function CreatorDashboard() {
     enabled: isAuthenticated,
   });
 
-  const { data: analytics, isLoading: activityLoading, isError: activityError } = useQuery<any>({
+  const {
+    data: analytics,
+    isLoading: activityLoading,
+    isError: activityError,
+    dataUpdatedAt: activityUpdatedAt,
+    isFetching: activityFetching,
+  } = useQuery<any>({
     queryKey: ["/api/analytics", { range: "7d" }],
     queryFn: async () => {
       const res = await fetch(`/api/analytics?range=7d`, { credentials: "include" });
@@ -71,6 +77,17 @@ export default function CreatorDashboard() {
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
   });
+
+  const formattedActivityUpdatedAt = useMemo(() => {
+    if (!activityUpdatedAt) {
+      return "Fetching latest activity...";
+    }
+
+    return new Date(activityUpdatedAt).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  }, [activityUpdatedAt]);
 
   const activityChartData = useMemo(
     () =>
@@ -157,17 +174,19 @@ export default function CreatorDashboard() {
       <Card className="border-card-border bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
         <CardContent className="p-6 space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Activity className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="flex flex-col">
-                  <span className="text-2xl font-bold">Activity</span>
-                  <span className="text-xs text-muted-foreground">Auto-refreshes every 15 seconds</span>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Activity className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-2xl font-bold">Activity</span>
+                    <span className="text-xs text-muted-foreground">
+                      Last updated {activityFetching ? "(refreshing...)" : formattedActivityUpdatedAt}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
             <Link href="/analytics">
               <Button className="gap-2 bg-gray-200 text-black hover:bg-gray-300 border-0">
                 <TrendingUp className="h-4 w-4" />
