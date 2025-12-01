@@ -783,10 +783,6 @@ export default function CompanyRetainers() {
             <p className="text-muted-foreground mb-4">
               Create your first monthly retainer contract to hire creators for ongoing video production
             </p>
-            <Button onClick={() => setOpen(true)} data-testid="button-create-first-retainer">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Retainer
-            </Button>
           </CardContent>
         </Card>
       ) : filteredContracts.length === 0 ? (
