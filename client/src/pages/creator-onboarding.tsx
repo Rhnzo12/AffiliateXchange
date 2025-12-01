@@ -142,7 +142,12 @@ export default function CreatorOnboarding() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ folder, resourceType: "image" }),
+        body: JSON.stringify({
+          folder,
+          resourceType: "image",
+          contentType: file.type,
+          fileName: file.name,
+        }),
       });
 
       if (!uploadResponse.ok) {
