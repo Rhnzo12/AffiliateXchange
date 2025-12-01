@@ -109,6 +109,23 @@ export default function CreatorDashboard() {
     [activityChartData]
   );
 
+  const snapshotChartData = useMemo(() => {
+    if (hasActivity) {
+      return activityChartData;
+    }
+
+    // Light snapshot data to keep the chart populated when there's no live activity yet
+    return [
+      { date: "Mon", earnings: 24 },
+      { date: "Tue", earnings: 32 },
+      { date: "Wed", earnings: 28 },
+      { date: "Thu", earnings: 40 },
+      { date: "Fri", earnings: 36 },
+      { date: "Sat", earnings: 44 },
+      { date: "Sun", earnings: 38 },
+    ];
+  }, [activityChartData, hasActivity]);
+
   // Handle the recommended offers response
   const recommendedOffers = Array.isArray(recommendedOffersData) ? recommendedOffersData : [];
   const hasNoNiches = recommendedOffersData?.error === 'no_niches';
@@ -195,49 +212,52 @@ export default function CreatorDashboard() {
             </Link>
           </div>
 
-          <div className="h-48 w-full">
+          <div className="h-48 w-full relative">
             {activityLoading ? (
               <div className="h-full w-full rounded-lg bg-muted animate-pulse" />
             ) : activityError ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 Unable to load activity right now.
               </div>
-            ) : !hasActivity ? (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                No Activity yet
-              </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={activityChartData}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="activityFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.05} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.25} />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip
-                    formatter={(value: number, name) =>
-                      name === 'earnings' ? `$${value.toFixed(2)}` : value
-                    }
-                    labelFormatter={(label) => `Date: ${label}`}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="earnings"
-                    name="Earnings"
-                    stroke="#0ea5e9"
-                    fill="url(#activityFill)"
-                    strokeWidth={2}
-                    activeDot={{ r: 4 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <>
+                {!hasActivity && (
+                  <div className="absolute right-3 top-3 z-10 rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-primary shadow-sm">
+                    Snapshot preview
+                  </div>
+                )}
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={snapshotChartData}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="activityFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.25} />
+                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip
+                      formatter={(value: number, name) =>
+                        name === 'earnings' ? `$${value.toFixed(2)}` : value
+                      }
+                      labelFormatter={(label) => `Date: ${label}`}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="earnings"
+                      name="Earnings"
+                      stroke="#0ea5e9"
+                      fill="url(#activityFill)"
+                      strokeWidth={2}
+                      activeDot={{ r: 4 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </>
             )}
           </div>
         </CardContent>
