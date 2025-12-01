@@ -32,7 +32,6 @@ import {
 } from "../components/ui/form";
 import { Checkbox } from "../components/ui/checkbox";
 import { Input } from "../components/ui/input";
-import { Slider } from "../components/ui/slider";
 import { Textarea } from "../components/ui/textarea";
 import { Progress } from "../components/ui/progress";
 import {
@@ -71,6 +70,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { useHeaderContent } from "../components/HeaderContentContext";
+import { Slider } from "../components/ui/slider";
 
 const applyRetainerSchema = z.object({
   message: z
@@ -325,7 +325,16 @@ export default function CreatorRetainers() {
         matchesPreferences
       );
     });
-  }, [contracts, searchTerm, platformFilter, budgetFilter, amountRange, nicheFilter, durationFilter, preferenceFilter]);
+  }, [
+    contracts,
+    searchTerm,
+    platformFilter,
+    budgetFilter,
+    amountRange,
+    nicheFilter,
+    durationFilter,
+    preferenceFilter,
+  ]);
 
   const filtersApplied =
     searchTerm.trim() !== "" ||
@@ -544,7 +553,7 @@ export default function CreatorRetainers() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-muted-foreground">Monthly amount range</p>
-            <Badge variant="outline">${amountRange[0].toLocaleString()} - ${amountRange[1].toLocaleString()}</Badge>
+            <Badge variant="outline">{`$${amountRange[0].toLocaleString()} - $${amountRange[1].toLocaleString()}`}</Badge>
           </div>
           <Slider
             dir="rtl"
