@@ -419,24 +419,34 @@ export default function CreatorRetainers() {
   }, [selectedTierOptions, form]);
 
   useEffect(() => {
-    const filterButton = (
-      <Button
-        variant="outline"
-        size="sm"
-        className="flex items-center gap-2"
-        onClick={() => setIsFilterDialogOpen(true)}
-        data-testid="button-open-retainer-filters"
-      >
-        <SlidersHorizontal className="h-4 w-4" />
-        <span>Filters</span>
-        {filtersApplied && <span className="h-2 w-2 rounded-full bg-primary" aria-hidden />}
-      </Button>
+    const headerSearchAndFilters = (
+      <div className="relative w-full max-w-xl">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search retainers..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10 pr-28 bg-muted/50"
+          data-testid="input-retainer-search-header"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-2"
+          onClick={() => setIsFilterDialogOpen(true)}
+          data-testid="button-open-retainer-filters"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          <span>Filters</span>
+          {filtersApplied && <span className="h-2 w-2 rounded-full bg-primary" aria-hidden />}
+        </Button>
+      </div>
     );
 
-    setHeaderContent(filterButton);
+    setHeaderContent(headerSearchAndFilters);
 
     return () => setHeaderContent(null);
-  }, [filtersApplied, setHeaderContent]);
+  }, [filtersApplied, searchTerm, setHeaderContent]);
 
   const clearFilters = () => {
     setSearchTerm("");
