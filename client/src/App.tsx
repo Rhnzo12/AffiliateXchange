@@ -91,7 +91,7 @@ function PublicRouter() {
   );
 }
 
-function AuthenticatedLayout({ user, unreadCount, onLogout, children }: { user: any; unreadCount: number; onLogout: () => void; children: ReactNode }) {
+function AuthenticatedLayout({ user, unreadCount, onLogout, children, hideHeader = false }: { user: any; unreadCount: number; onLogout: () => void; children: ReactNode; hideHeader?: boolean }) {
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
@@ -105,97 +105,99 @@ function AuthenticatedLayout({ user, unreadCount, onLogout, children }: { user: 
         <AppSidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
 
-          <header className="relative flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0 bg-background sticky top-0 z-50">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
+          {!hideHeader && (
+            <header className="relative flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0 bg-background sticky top-0 z-50">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <SidebarTrigger data-testid="button-sidebar-toggle" />
 
-              {headerContent && (
-                <div className="w-full max-w-xl ml-auto">
-                  {headerContent}
-                </div>
-              )}
-            </div>
+                {headerContent && (
+                  <div className="w-full max-w-xl ml-auto">
+                    {headerContent}
+                  </div>
+                )}
+              </div>
 
-            {/* Right Side Navigation Icons */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Messages Icon */}
-              <Link href={user?.role === 'company' ? '/company/messages' : '/messages'}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative h-8 w-8 sm:h-9 sm:w-9 hover:bg-primary/10"
-                >
-                  <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
-                  {unreadCount > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[9px] font-bold leading-none rounded-full border border-background"
-                    >
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </Badge>
-                  )}
-                </Button>
-              </Link>
+              {/* Right Side Navigation Icons */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Messages Icon */}
+                <Link href={user?.role === 'company' ? '/company/messages' : '/messages'}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative h-8 w-8 sm:h-9 sm:w-9 hover:bg-primary/10"
+                  >
+                    <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
+                    {unreadCount > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[9px] font-bold leading-none rounded-full border border-background"
+                      >
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </Link>
 
-              {/* Notification Center with Dropdown */}
-              <NotificationCenter />
+                {/* Notification Center with Dropdown */}
+                <NotificationCenter />
 
-              {/* Profile Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-1.5 sm:gap-2 md:gap-3 hover:opacity-80 transition-opacity focus:outline-none">
-                    <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-primary/20 flex-shrink-0">
-                      <AvatarImage
-                        src={proxiedSrc(user?.profileImageUrl) || ''}
-                        alt={user?.firstName || user?.email || 'User'}
-                        referrerPolicy="no-referrer"
-                      />
-                      <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs sm:text-sm">
-                        {(user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="text-left max-w-[100px] sm:max-w-[120px] md:max-w-[160px] min-w-0 hidden sm:block">
-                      <p className="text-xs sm:text-sm font-medium leading-none text-foreground truncate">
-                        {user?.firstName || user?.email || 'User'}
-                      </p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{user?.role === 'company' ? 'Brand' : 'Creator'}</p>
-                    </div>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem className="flex items-center gap-2 font-medium">
-                    <Avatar className="h-8 w-8 border border-primary/20">
-                      <AvatarImage
-                        src={proxiedSrc(user?.profileImageUrl) || ''}
-                        alt={user?.firstName || user?.email || 'User'}
-                        referrerPolicy="no-referrer"
-                      />
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                        {(user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-semibold text-foreground truncate">{user?.firstName || user?.email || 'User'}</span>
-                      <span className="text-xs text-muted-foreground truncate">{user?.email || 'No email'}</span>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="flex items-center gap-2">
-                      <SettingsIcon className="h-4 w-4" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive hover:!text-destructive" onClick={onLogout}>
-                    <LogOut className="h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </header>
+                {/* Profile Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1.5 sm:gap-2 md:gap-3 hover:opacity-80 transition-opacity focus:outline-none">
+                      <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-primary/20 flex-shrink-0">
+                        <AvatarImage
+                          src={proxiedSrc(user?.profileImageUrl) || ''}
+                          alt={user?.firstName || user?.email || 'User'}
+                          referrerPolicy="no-referrer"
+                        />
+                        <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs sm:text-sm">
+                          {(user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-left max-w-[100px] sm:max-w-[120px] md:max-w-[160px] min-w-0 hidden sm:block">
+                        <p className="text-xs sm:text-sm font-medium leading-none text-foreground truncate">
+                          {user?.firstName || user?.email || 'User'}
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{user?.role === 'company' ? 'Brand' : 'Creator'}</p>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem className="flex items-center gap-2 font-medium">
+                      <Avatar className="h-8 w-8 border border-primary/20">
+                        <AvatarImage
+                          src={proxiedSrc(user?.profileImageUrl) || ''}
+                          alt={user?.firstName || user?.email || 'User'}
+                          referrerPolicy="no-referrer"
+                        />
+                        <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                          {(user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-semibold text-foreground truncate">{user?.firstName || user?.email || 'User'}</span>
+                        <span className="text-xs text-muted-foreground truncate">{user?.email || 'No email'}</span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/settings" className="flex items-center gap-2">
+                        <SettingsIcon className="h-4 w-4" />
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive hover:!text-destructive" onClick={onLogout}>
+                      <LogOut className="h-4 w-4" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </header>
+          )}
 
           <main className="flex-1 overflow-y-auto">
             <div className="container max-w-screen-2xl mx-auto p-4 sm:p-6">
@@ -211,6 +213,7 @@ function AuthenticatedLayout({ user, unreadCount, onLogout, children }: { user: 
 // Protected routes that require authentication
 function ProtectedRouter() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const [location] = useLocation();
 
   // Fetch conversations to get unread count
   const { data: conversations } = useQuery<any[]>({
@@ -227,6 +230,8 @@ function ProtectedRouter() {
       return total + (conv.creatorUnreadCount || 0);
     }
   }, 0) || 0;
+
+  const hideHeader = user?.role === 'creator' && /^\/payments\/[^/]+$/.test(location);
 
   const handleLogout = async () => {
     try {
@@ -258,7 +263,7 @@ function ProtectedRouter() {
 
   return (
     <HeaderContentProvider>
-      <AuthenticatedLayout user={user} unreadCount={unreadCount} onLogout={handleLogout}>
+      <AuthenticatedLayout user={user} unreadCount={unreadCount} onLogout={handleLogout} hideHeader={hideHeader}>
         <Switch>
           {/* Creator Routes */}
           {user?.role === 'creator' && (
