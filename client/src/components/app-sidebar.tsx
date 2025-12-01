@@ -118,19 +118,25 @@ export function AppSidebar() {
       ],
     },
     {
-      title: "Videos",
-      url: "/company/videos",
-      icon: Video,
-    },
-    {
-      title: "Applications",
-      url: "/company/applications",
-      icon: FileText,
-    },
-    {
-      title: "Creators",
-      url: "/company/creators",
+      title: "Creator Workflow",
       icon: Users,
+      children: [
+        {
+          title: "Promotional Videos",
+          url: "/company/videos",
+          icon: Video,
+        },
+        {
+          title: "Applications",
+          url: "/company/applications",
+          icon: FileText,
+        },
+        {
+          title: "Approved Creators",
+          url: "/company/creators",
+          icon: Users,
+        },
+      ],
     },
     {
       title: "Analytics",
@@ -278,7 +284,7 @@ export function AppSidebar() {
                       <SidebarMenuButton
                         tooltip={item.title}
                         isActive={isActive}
-                        className="hover:bg-primary/15 hover:text-primary hover:font-bold hover:scale-105 transition-all duration-200"
+                        className="hover:bg-transparent hover:text-primary hover:font-bold data-[active=true]:bg-transparent data-[active=true]:text-primary transition-all duration-200"
                         data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
                         onClick={() => toggleSubmenu(item.title)}
                       >
@@ -291,7 +297,7 @@ export function AppSidebar() {
                             <SidebarMenuSubButton
                               asChild
                               isActive={location === child.url}
-                              className="hover:bg-primary/15 hover:text-primary hover:font-bold"
+                              className="hover:bg-transparent data-[active=true]:bg-transparent hover:text-primary data-[active=true]:text-primary hover:font-bold"
                             >
                               <Link href={child.url} onClick={handleNavClick}>
                                 <child.icon className="h-4 w-4" />
@@ -311,7 +317,7 @@ export function AppSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className="hover:bg-primary/15 hover:text-primary hover:font-bold hover:scale-105 transition-all duration-200"
+                      className="hover:bg-transparent hover:text-primary hover:font-bold data-[active=true]:bg-transparent data-[active=true]:text-primary transition-all duration-200"
                       data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
                     >
                       <Link href={item.url!} onClick={handleNavClick}>
