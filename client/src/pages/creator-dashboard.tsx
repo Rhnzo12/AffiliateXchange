@@ -144,10 +144,8 @@ export default function CreatorDashboard() {
                   <DollarSign className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground font-medium">Quick glance</p>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
-                    <span className="text-2xl font-bold">Activity snapshot</span>
-                    <span className="text-xs text-muted-foreground">Detailed KPIs are now in Analytics</span>
+                    <span className="text-2xl font-bold">Activity</span>
                   </div>
                 </div>
               </div>
@@ -156,7 +154,7 @@ export default function CreatorDashboard() {
               </div>
             </div>
             <Link href="/analytics">
-              <Button className="gap-2 bg-primary hover:bg-primary/90">
+              <Button className="gap-2 bg-gray-200 text-black hover:bg-gray-300">
                 <TrendingUp className="h-4 w-4" />
                 View full analytics suite
               </Button>
@@ -191,7 +189,7 @@ export default function CreatorDashboard() {
                   <div className="flex items-center justify-between gap-2 mt-auto">
                     <Badge variant="secondary" className="px-2 py-1 text-xs">Creator shortcut</Badge>
                     <Link href={action.href}>
-                      <Button size="sm" className="gap-2">
+                      <Button size="sm" className="gap-2 bg-gray-200 text-black hover:bg-gray-300">
                         {action.cta}
                         <ArrowUpRight className="h-4 w-4" />
                       </Button>
