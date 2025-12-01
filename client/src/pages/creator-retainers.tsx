@@ -376,17 +376,32 @@ export default function CreatorRetainers() {
     [completedApplications, contractMap]
   );
 
-  const totalMonthlyRetainer = activeContracts.reduce((sum, item) => {
-    const amount = Number(item.contract?.monthlyAmount || 0);
-    return sum + amount;
-  }, 0);
-
-  const totalVideosPerMonth = activeContracts.reduce((sum, item) => {
+  const totalDeliveriesDue = activeContracts.reduce((sum, item) => {
+    const delivered = Number(item.contract?.submittedVideos || 0);
     const videos = Number(item.contract?.videosPerMonth || 0);
-    return sum + videos;
+    return sum + Math.max(videos - delivered, 0);
   }, 0);
 
-  const estimatedNetMonthly = totalMonthlyRetainer * 0.93;
+  const retainerNetEarnings = activeContracts.reduce((sum, item) => {
+    const monthlyAmount = Number(item.contract?.monthlyAmount || 0);
+    return sum + monthlyAmount * 0.93;
+  }, 0);
+
+  const contractProgressTotals = activeContracts.reduce(
+    (totals, item) => {
+      const delivered = Number(item.contract?.submittedVideos || 0);
+      const videos = Math.max(1, Number(item.contract?.videosPerMonth || 0));
+      return {
+        delivered: totals.delivered + delivered,
+        total: totals.total + videos,
+      };
+    },
+    { delivered: 0, total: 0 }
+  );
+
+  const averageContractProgress = contractProgressTotals.total
+    ? Math.min(100, Math.round((contractProgressTotals.delivered / contractProgressTotals.total) * 100))
+    : 0;
 
   const messageValue = form.watch("message");
   const messageChars = messageValue?.length || 0;
@@ -434,44 +449,49 @@ export default function CreatorRetainers() {
         <Card className="border-card-border">
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-medium text-muted-foreground">Total gross monthly</div>
-              <DollarSign className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-2xl font-bold">${totalMonthlyRetainer.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Before 7% platform fee</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-card-border">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium text-muted-foreground">Estimated net</div>
-              <ShieldCheck className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-2xl font-bold">${estimatedNetMonthly.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-            <p className="text-xs text-muted-foreground">After 7% platform fee</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-card-border">
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center justify-between">
               <div className="text-sm font-medium text-muted-foreground">Active contracts</div>
               <Sparkles className="h-4 w-4 text-primary" />
             </div>
             <p className="text-2xl font-bold">{activeContracts.length}</p>
-            <p className="text-xs text-muted-foreground">With predictable monthly payouts</p>
+            <p className="text-xs text-muted-foreground">Currently approved retainers</p>
           </CardContent>
         </Card>
 
         <Card className="border-card-border">
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-medium text-muted-foreground">Videos due / month</div>
+              <div className="text-sm font-medium text-muted-foreground">Delivery dues</div>
               <Video className="h-4 w-4 text-primary" />
             </div>
-            <p className="text-2xl font-bold">{totalVideosPerMonth}</p>
-            <p className="text-xs text-muted-foreground">Track your monthly commitments</p>
+            <p className="text-2xl font-bold">{totalDeliveriesDue}</p>
+            <p className="text-xs text-muted-foreground">Videos remaining this month</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-muted-foreground">Retainer earnings</div>
+              <DollarSign className="h-4 w-4 text-primary" />
+            </div>
+            <p className="text-2xl font-bold">
+              ${retainerNetEarnings.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </p>
+            <p className="text-xs text-muted-foreground">Net across active retainers</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-card-border">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-muted-foreground">Contract progress</div>
+              <ShieldCheck className="h-4 w-4 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-2xl font-bold">{averageContractProgress}%</p>
+              <Progress value={averageContractProgress} className="h-2" />
+            </div>
+            <p className="text-xs text-muted-foreground">Average delivery completion</p>
           </CardContent>
         </Card>
       </div>
