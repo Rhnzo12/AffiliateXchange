@@ -32,7 +32,6 @@ import {
 } from "../components/ui/form";
 import { Checkbox } from "../components/ui/checkbox";
 import { Input } from "../components/ui/input";
-import { Slider } from "../components/ui/slider";
 import { Textarea } from "../components/ui/textarea";
 import { Progress } from "../components/ui/progress";
 import {
@@ -101,7 +100,6 @@ export default function CreatorRetainers() {
   const [nicheFilter, setNicheFilter] = useState("all");
   const [durationFilter, setDurationFilter] = useState("all");
   const [preferenceFilter, setPreferenceFilter] = useState<string[]>([]);
-  const [amountRange, setAmountRange] = useState<number[]>([0, 10000]);
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{
@@ -300,8 +298,6 @@ export default function CreatorRetainers() {
       const matchesBudget =
         budgetFilter === "all" || monthlyAmount >= Number(budgetFilter);
 
-      const matchesAmountRange = monthlyAmount >= amountRange[0] && monthlyAmount <= amountRange[1];
-
       const matchesNiche =
         nicheFilter === "all" || (Array.isArray(contract.niches) && contract.niches.some((n: string) => n === nicheFilter));
 
@@ -319,13 +315,12 @@ export default function CreatorRetainers() {
         matchesSearch &&
         matchesPlatform &&
         matchesBudget &&
-        matchesAmountRange &&
         matchesNiche &&
         matchesDuration &&
         matchesPreferences
       );
     });
-  }, [contracts, searchTerm, platformFilter, budgetFilter, amountRange, nicheFilter, durationFilter, preferenceFilter]);
+  }, [contracts, searchTerm, platformFilter, budgetFilter, nicheFilter, durationFilter, preferenceFilter]);
 
   const filtersApplied =
     searchTerm.trim() !== "" ||
@@ -333,9 +328,7 @@ export default function CreatorRetainers() {
     budgetFilter !== "all" ||
     nicheFilter !== "all" ||
     durationFilter !== "all" ||
-    preferenceFilter.length > 0 ||
-    amountRange[0] !== 0 ||
-    amountRange[1] !== 10000;
+    preferenceFilter.length > 0;
 
   const contractMap = useMemo(() => {
     const map = new Map();
@@ -457,7 +450,6 @@ export default function CreatorRetainers() {
     setNicheFilter("all");
     setDurationFilter("all");
     setPreferenceFilter([]);
-    setAmountRange([0, 10000]);
   };
 
   const renderFilterControls = (options?: { showClear?: boolean; hideSearch?: boolean }) => (
@@ -540,53 +532,35 @@ export default function CreatorRetainers() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">Monthly amount range</p>
-            <Badge variant="outline">${amountRange[0].toLocaleString()} - ${amountRange[1].toLocaleString()}</Badge>
-          </div>
-          <Slider
-            dir="rtl"
-            value={amountRange}
-            min={0}
-            max={10000}
-            step={250}
-            onValueChange={(value) => setAmountRange(value as number[])}
-          />
-          <p className="text-xs text-muted-foreground">Transparent pricing shows gross amounts before fees.</p>
-        </div>
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-muted-foreground">Niche</p>
+        <Select value={nicheFilter} onValueChange={setNicheFilter}>
+          <SelectTrigger data-testid="select-niche-filter">
+            <SelectValue placeholder="All niches" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All niches</SelectItem>
+            {uniqueNiches.map((niche) => (
+              <SelectItem key={niche} value={niche}>
+                {niche}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Niche</p>
-          <Select value={nicheFilter} onValueChange={setNicheFilter}>
-            <SelectTrigger data-testid="select-niche-filter">
-              <SelectValue placeholder="All niches" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All niches</SelectItem>
-              {uniqueNiches.map((niche) => (
-                <SelectItem key={niche} value={niche}>
-                  {niche}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <p className="text-sm font-medium text-muted-foreground pt-2">Quick minimum budget</p>
-          <Select value={budgetFilter} onValueChange={setBudgetFilter}>
-            <SelectTrigger data-testid="select-budget-filter">
-              <SelectValue placeholder="All budgets" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All budgets</SelectItem>
-              <SelectItem value="500">$500+</SelectItem>
-              <SelectItem value="1000">$1,000+</SelectItem>
-              <SelectItem value="2500">$2,500+</SelectItem>
-              <SelectItem value="5000">$5,000+</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <p className="text-sm font-medium text-muted-foreground pt-2">Quick minimum budget</p>
+        <Select value={budgetFilter} onValueChange={setBudgetFilter}>
+          <SelectTrigger data-testid="select-budget-filter">
+            <SelectValue placeholder="All budgets" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All budgets</SelectItem>
+            <SelectItem value="500">$500+</SelectItem>
+            <SelectItem value="1000">$1,000+</SelectItem>
+            <SelectItem value="2500">$2,500+</SelectItem>
+            <SelectItem value="5000">$5,000+</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {options?.showClear && filtersApplied && (
