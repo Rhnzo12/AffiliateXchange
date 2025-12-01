@@ -50,8 +50,6 @@ import {
   MessageCircle,
   Upload,
   Users as UsersIcon,
-  ChevronDown,
-  ChevronUp,
   SlidersHorizontal,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -102,7 +100,6 @@ export default function CreatorRetainers() {
   const [nicheFilter, setNicheFilter] = useState("all");
   const [durationFilter, setDurationFilter] = useState("all");
   const [preferenceFilter, setPreferenceFilter] = useState<string[]>([]);
-  const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
@@ -849,28 +846,37 @@ export default function CreatorRetainers() {
         </Card>
       ) : (
         <div className="space-y-6">
-          <Card className="border-card-border">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Search & Filter</CardTitle>
-                  <p className="text-sm text-muted-foreground">Find retainers that match your pricing, cadence, and preferences.</p>
-                </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">
+                Use filters to narrow down retainers. Open the filter panel to adjust platform, budget, and niches.
+              </p>
+              {filtersApplied && (
+                <p className="text-xs text-primary font-medium">Filters are active</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {filtersApplied && (
                 <Button
                   variant="ghost"
-                  size="icon"
-                  onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
-                  aria-label="Toggle filter visibility"
-                  data-testid="button-toggle-filter"
+                  size="sm"
+                  onClick={clearFilters}
+                  data-testid="button-clear-retainer-filters"
                 >
-                  {isFilterCollapsed ? <ChevronDown className="h-5 w-5" /> : <ChevronUp className="h-5 w-5" />}
+                  Clear filters
                 </Button>
-              </div>
-            </CardHeader>
-            {!isFilterCollapsed && (
-              <CardContent className="space-y-6">{renderFilterControls({ showClear: true })}</CardContent>
-            )}
-          </Card>
+              )}
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={() => setIsFilterDialogOpen(true)}
+                data-testid="button-open-retainer-filters-secondary"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filters
+              </Button>
+            </div>
+          </div>
 
           {filteredContracts.length === 0 ? (
             <Card className="border-card-border">
