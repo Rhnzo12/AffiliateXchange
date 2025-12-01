@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
 import {
   TrendingUp,
   Heart,
@@ -12,9 +11,9 @@ import {
   Settings,
   Search,
   ClipboardList,
-  DollarSign,
   CreditCard,
   ArrowUpRight,
+  Activity,
 } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
@@ -141,7 +140,7 @@ export default function CreatorDashboard() {
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-primary" />
+                  <Activity className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
@@ -154,7 +153,7 @@ export default function CreatorDashboard() {
               </div>
             </div>
             <Link href="/analytics">
-              <Button className="gap-2 bg-gray-200 text-black hover:bg-gray-300">
+              <Button className="gap-2 bg-gray-200 text-black hover:bg-gray-300 border-0">
                 <TrendingUp className="h-4 w-4" />
                 View full analytics suite
               </Button>
@@ -186,10 +185,9 @@ export default function CreatorDashboard() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 mt-auto">
-                    <Badge variant="secondary" className="px-2 py-1 text-xs">Creator shortcut</Badge>
+                  <div className="flex items-center justify-end gap-2 mt-auto">
                     <Link href={action.href}>
-                      <Button size="sm" className="gap-2 bg-gray-200 text-black hover:bg-gray-300">
+                      <Button size="sm" className="gap-2 bg-gray-200 text-black hover:bg-gray-300 border-0">
                         {action.cta}
                         <ArrowUpRight className="h-4 w-4" />
                       </Button>
