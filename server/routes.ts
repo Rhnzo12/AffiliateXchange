@@ -37,6 +37,9 @@ import * as QRCode from "qrcode";
 // @ts-ignore - multer may not have types in all environments
 import multer from "multer";
 
+// Reusable object storage helper for normalizing stored paths
+const sharedObjectStorageService = new ObjectStorageService();
+
 // Define multer file interface for type safety
 interface MulterFile {
   fieldname: string;
@@ -355,7 +358,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("[Profile Update] Updated profile:", profile);
         return res.json(profile);
       } else if (user.role === 'company') {
-        const validated = insertCompanyProfileSchema.partial().parse(profileData);
+        const normalizedProfileData = {
+          ...profileData,
+          logoUrl: profileData.logoUrl
+            ? sharedObjectStorageService.normalizeObjectEntityPath(profileData.logoUrl)
+            : profileData.logoUrl,
+          verificationDocumentUrl: profileData.verificationDocumentUrl
+            ? sharedObjectStorageService.normalizeObjectEntityPath(profileData.verificationDocumentUrl)
+            : profileData.verificationDocumentUrl,
+        };
+
+        const validated = insertCompanyProfileSchema.partial().parse(normalizedProfileData);
         const profile = await storage.updateCompanyProfile(userId, validated);
         return res.json(profile);
       }
@@ -390,8 +403,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         instagramUrl,
       } = req.body;
 
+      const normalizedLogoUrl = logoUrl
+        ? sharedObjectStorageService.normalizeObjectEntityPath(logoUrl)
+        : logoUrl;
+      const normalizedVerificationDocumentUrl = verificationDocumentUrl
+        ? sharedObjectStorageService.normalizeObjectEntityPath(verificationDocumentUrl)
+        : verificationDocumentUrl;
+
       // Validate required fields
-      if (!legalName || !websiteUrl || !logoUrl || !description) {
+      if (!legalName || !websiteUrl || !normalizedLogoUrl || !description) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
@@ -399,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required contact information" });
       }
 
-      if (!verificationDocumentUrl) {
+      if (!normalizedVerificationDocumentUrl) {
         return res.status(400).json({ error: "Verification document is required" });
       }
 
@@ -411,13 +431,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         websiteUrl,
         companySize,
         yearFounded,
-        logoUrl,
+        logoUrl: normalizedLogoUrl,
         description,
         contactName,
         contactJobTitle,
         phoneNumber,
         businessAddress,
-        verificationDocumentUrl,
+        verificationDocumentUrl: normalizedVerificationDocumentUrl,
         linkedinUrl,
         twitterUrl,
         facebookUrl,
@@ -7869,8 +7889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const userId = (req.user as any).id;
     try {
-      // Don't normalize logo URLs - keep the full Cloudinary URL for proper display
-      const logoUrl = req.body.logoUrl;
+      const logoUrl = sharedObjectStorageService.normalizeObjectEntityPath(req.body.logoUrl);
       const companyProfile = await storage.getCompanyProfile(userId);
       if (companyProfile) {
         await storage.updateCompanyProfile(userId, { logoUrl });
