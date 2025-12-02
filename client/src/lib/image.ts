@@ -19,6 +19,13 @@ export const isVideoUrl = (url?: string) => {
   return videoExtensions.some(ext => lowerUrl.includes(ext)) || lowerUrl.includes('/video/');
 };
 
+export const isImageUrl = (url?: string) => {
+  if (!url) return false;
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.heic', '.heif'];
+  const lowerUrl = url.toLowerCase();
+  return imageExtensions.some(ext => lowerUrl.includes(ext)) || lowerUrl.includes('/image/upload');
+};
+
 export const proxiedSrc = (src?: string | null) => {
   if (!src) return src || undefined;
 
@@ -37,7 +44,11 @@ export const proxiedSrc = (src?: string | null) => {
         return `/proxy/video?url=${encodeURIComponent(src)}`;
       }
       // For images, use the image proxy
-      return `/proxy/image?url=${encodeURIComponent(src)}`;
+      if (isImageUrl(src)) {
+        return `/proxy/image?url=${encodeURIComponent(src)}`;
+      }
+      // For other Cloudinary/GCS assets (e.g., PDFs), use the generic file proxy
+      return `/proxy/file?url=${encodeURIComponent(src)}`;
     }
   } catch (e) {
     // fallthrough

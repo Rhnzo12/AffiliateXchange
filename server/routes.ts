@@ -7461,6 +7461,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generic file proxy to support documents and other assets
+  app.get("/proxy/file", async (req, res) => {
+    try {
+      const url = (req.query.url as string) || req.query.u as string;
+      if (!url) return res.status(400).send("url query param is required");
+
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch (e) {
+        return res.status(400).send("invalid url");
+      }
+
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com", "googleapis.com"];
+      const hostname = parsed.hostname || "";
+      const allowed = allowedHosts.some((h) => hostname.endsWith(h));
+      if (!allowed) return res.status(403).send("forbidden host");
+
+      if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
+
+      const fetchRes = await fetch(url, { method: "GET" });
+      if (!fetchRes.ok) return res.status(fetchRes.status).send("failed to fetch file");
+
+      const contentType = fetchRes.headers.get("content-type");
+      if (contentType) res.setHeader("Content-Type", contentType);
+
+      const contentLength = fetchRes.headers.get("content-length");
+      if (contentLength) res.setHeader("Content-Length", contentLength);
+
+      const cacheControl = fetchRes.headers.get("cache-control");
+      if (cacheControl) res.setHeader("Cache-Control", cacheControl);
+
+      res.setHeader("Access-Control-Allow-Origin", "*");
+
+      if (fetchRes.body) {
+        const reader = fetchRes.body.getReader();
+        const pump = async () => {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              res.write(Buffer.from(value));
+            }
+            res.end();
+          } catch (error) {
+            console.error('[File Proxy] Error streaming file:', error);
+            res.end();
+          }
+        };
+        await pump();
+      } else {
+        const arrayBuffer = await fetchRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        res.send(buffer);
+      }
+    } catch (error: any) {
+      console.error('[File Proxy] Error fetching file:', error);
+      res.status(500).send(error?.message || 'file proxy error');
+    }
+  });
+
   app.get("/objects/:objectPath(*)", requireAuth, async (req, res) => {
     console.log("🔍 Requested object path:", req.path);
     const userId = (req.user as any)?.id;
