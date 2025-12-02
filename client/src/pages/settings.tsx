@@ -708,85 +708,52 @@ export default function Settings() {
   };
 
   const handleViewDocument = async (documentUrl: string, documentName: string, documentType: string) => {
-    try {
-      setIsLoadingDocument(true);
-      setDocumentViewerName(documentName);
-      setDocumentViewerType(documentType);
-      setShowDocumentViewer(true);
-      setDocumentViewerError(null);
+  try {
+    setIsLoadingDocument(true);
+    setDocumentViewerName(documentName);
+    setDocumentViewerType(documentType);
+    setShowDocumentViewer(true);
+    setDocumentViewerError(null);
 
-      // Extract Cloudinary public_id using robust helper
-      const filePath = extractCloudinaryPublicId(documentUrl);
-      console.log('[handleViewDocument] Extracted filePath:', filePath);
-
-      // Fetch signed URL from the API
-      const response = await fetch(`/api/get-signed-url/${filePath}`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('[handleViewDocument] API error:', errorData);
-        throw new Error(errorData.error || 'Failed to get document access');
-      }
-
-      const data = await response.json();
-      console.log('[handleViewDocument] Got signed URL');
-
-      // Use the signed URL directly for viewing in the UI
-      setDocumentViewerUrl(data.url);
-    } catch (error) {
-      console.error('[handleViewDocument] Error viewing document:', error);
-      setShowDocumentViewer(false);
-      setDocumentViewerError(
-        error instanceof Error ? error.message : "Failed to view document. Please try again.",
-      );
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to view document. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingDocument(false);
+    // Use the stored URL directly
+    if (!documentUrl) {
+      throw new Error('Missing document URL');
     }
-  };
+
+    setDocumentViewerUrl(documentUrl);
+  } catch (error) {
+    console.error('[handleViewDocument] Error viewing document:', error);
+    setShowDocumentViewer(false);
+    setDocumentViewerError(
+      error instanceof Error ? error.message : "Failed to view document. Please try again.",
+    );
+  } finally {
+    setIsLoadingDocument(false);
+  }
+};
 
   const handleDownloadDocument = async (documentUrl: string, documentName: string) => {
-    try {
-      // Extract Cloudinary public_id using robust helper
-      const filePath = extractCloudinaryPublicId(documentUrl);
-      console.log('[handleDownloadDocument] Extracted filePath:', filePath);
-
-      // Fetch signed URL with download flag from the API
-      const response = await fetch(`/api/get-signed-url/${filePath}?download=true&name=${encodeURIComponent(documentName)}`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('[handleDownloadDocument] API error:', errorData);
-        throw new Error(errorData.error || 'Failed to get download URL');
-      }
-
-      const data = await response.json();
-      console.log('[handleDownloadDocument] Got signed URL');
-
-      // Create a temporary link and trigger download
-      const link = document.createElement('a');
-      link.href = data.url;
-      link.download = documentName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error('[handleDownloadDocument] Error downloading document:', error);
-      toast({
-        title: "Error",
-        description: "Failed to download document. Please try again.",
-        variant: "destructive",
-      });
+  try {
+    if (!documentUrl) {
+      throw new Error('Missing document URL');
     }
-  };
+
+    const link = document.createElement('a');
+    link.href = documentUrl;
+    // `download` attribute is a hint; if Cloudinary returns inline, it may still open in tab
+    link.download = documentName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error('[handleDownloadDocument] Error downloading document:', error);
+    toast({
+      title: "Error",
+      description: "Failed to download document. Please try again.",
+      variant: "destructive",
+    });
+  }
+};
 
   const formatFileSize = (bytes: number | null): string => {
     if (!bytes) return 'Unknown size';
