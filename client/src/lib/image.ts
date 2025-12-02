@@ -2,11 +2,9 @@ export const isCloudinaryHost = (url?: string) => {
   if (!url) return false;
   try {
     const u = new URL(url);
-    // Support both Cloudinary (legacy) and GCS
+    // Only allow Cloudinary hosts for proxied assets
     return u.hostname.endsWith("cloudinary.com") ||
-           u.hostname.endsWith("res.cloudinary.com") ||
-           u.hostname.endsWith("googleapis.com") ||
-           u.hostname.endsWith("storage.googleapis.com");
+           u.hostname.endsWith("res.cloudinary.com");
   } catch (e) {
     return false;
   }
