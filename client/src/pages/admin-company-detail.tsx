@@ -305,11 +305,8 @@ export default function AdminCompanyDetail() {
       const data = await response.json();
       console.log('[Admin handleViewDocument] Got signed URL');
 
-      // Use proxy endpoint to avoid CORS issues when opening the document
-      const proxiedUrl = `/proxy/file?url=${encodeURIComponent(data.url)}`;
-
-      // Open the proxied URL in a new tab
-      window.open(proxiedUrl, '_blank', 'noopener,noreferrer');
+      // Open the signed URL directly in a new tab
+      window.open(data.url, '_blank', 'noopener,noreferrer');
     } catch (error) {
       console.error('[Admin handleViewDocument] Error fetching document:', error);
       toast({
