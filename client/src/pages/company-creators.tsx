@@ -51,6 +51,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
 
 type CompanyCreatorsProps = {
   hideTopNav?: boolean;
@@ -149,6 +150,8 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [platformFilters, setPlatformFilters] = useState<string[]>([]);
+  const [pendingStatusFilters, setPendingStatusFilters] = useState<string[]>([]);
+  const [pendingPlatformFilters, setPendingPlatformFilters] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
@@ -539,13 +542,13 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
     searchTerm.trim().length > 0 || statusFilters.length > 0 || platformFilters.length > 0;
 
   const toggleStatusFilter = (value: string) => {
-    setStatusFilters((prev) =>
+    setPendingStatusFilters((prev) =>
       prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
     );
   };
 
   const togglePlatformFilter = (value: string) => {
-    setPlatformFilters((prev) =>
+    setPendingPlatformFilters((prev) =>
       prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
     );
   };
@@ -554,8 +557,22 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
     setSearchTerm("");
     setStatusFilters([]);
     setPlatformFilters([]);
+    setPendingStatusFilters([]);
+    setPendingPlatformFilters([]);
+  };
+
+  const applyFilters = () => {
+    setStatusFilters(pendingStatusFilters);
+    setPlatformFilters(pendingPlatformFilters);
     setFilterMenuOpen(false);
   };
+
+  useEffect(() => {
+    if (filterMenuOpen) {
+      setPendingStatusFilters(statusFilters);
+      setPendingPlatformFilters(platformFilters);
+    }
+  }, [filterMenuOpen, platformFilters, statusFilters]);
 
   const prepareCreatorExportData = (): CreatorExportData[] => {
     return filteredApplications.map((application) => ({
@@ -757,39 +774,63 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                     <Filter className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuContent align="end" className="w-72 space-y-2">
                   <DropdownMenuLabel>Filter creators</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Status
-                  </div>
-                  {STATUS_OPTIONS.map((option) => (
-                    <DropdownMenuCheckboxItem
-                      key={option.value}
-                      checked={statusFilters.includes(option.value)}
-                      onCheckedChange={() => toggleStatusFilter(option.value)}
-                    >
-                      {option.label}
-                    </DropdownMenuCheckboxItem>
-                  ))}
+                  <Accordion type="multiple" defaultValue={["status", "platform"]} className="space-y-1">
+                    <AccordionItem value="status" className="border-none">
+                      <AccordionTrigger className="px-2 py-1 text-sm font-medium hover:no-underline">
+                        Status
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-1">
+                        {STATUS_OPTIONS.map((option) => (
+                          <DropdownMenuCheckboxItem
+                            key={option.value}
+                            checked={pendingStatusFilters.includes(option.value)}
+                            onCheckedChange={() => toggleStatusFilter(option.value)}
+                            onSelect={(event) => event.preventDefault()}
+                          >
+                            {option.label}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="platform" className="border-none">
+                      <AccordionTrigger className="px-2 py-1 text-sm font-medium hover:no-underline">
+                        Platform
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-1">
+                        {PLATFORM_OPTIONS.map((option) => (
+                          <DropdownMenuCheckboxItem
+                            key={option.value}
+                            checked={pendingPlatformFilters.includes(option.value)}
+                            onCheckedChange={() => togglePlatformFilter(option.value)}
+                            onSelect={(event) => event.preventDefault()}
+                          >
+                            {option.label}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                   <DropdownMenuSeparator />
-                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Platform
-                  </div>
-                  {PLATFORM_OPTIONS.map((option) => (
-                    <DropdownMenuCheckboxItem
-                      key={option.value}
-                      checked={platformFilters.includes(option.value)}
-                      onCheckedChange={() => togglePlatformFilter(option.value)}
+                  <div className="flex items-center justify-between gap-2 px-2 pb-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-2 text-muted-foreground"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        clearFilters();
+                      }}
                     >
-                      {option.label}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="gap-2" onClick={clearFilters}>
-                    <X className="h-4 w-4" />
-                    Clear filters
-                  </DropdownMenuItem>
+                      <X className="h-4 w-4" />
+                      Clear filters
+                    </Button>
+                    <Button size="sm" className="gap-2" onClick={applyFilters}>
+                      Apply
+                    </Button>
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
