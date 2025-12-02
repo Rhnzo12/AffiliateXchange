@@ -426,6 +426,26 @@
     @apply max-h-[90vh] md:max-h-[85vh];
   }
 
+  /* Filter dropdown scrollbar styling */
+  .filter-menu-scroll {
+    max-height: 20rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .filter-menu-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .filter-menu-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 9999px;
+  }
+
+  .filter-menu-scroll::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
   /* Prevent horizontal scroll on mobile */
   body {
     overflow-x: hidden;
