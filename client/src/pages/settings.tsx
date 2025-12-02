@@ -355,6 +355,7 @@ export default function Settings() {
         body: JSON.stringify({
           folder,
           resourceType: "image",
+          type: "private",
           contentType: file.type,
           fileName: file.name,
         }),
@@ -429,6 +430,7 @@ export default function Settings() {
         body: JSON.stringify({
           folder,
           resourceType: "image",
+          type: "private",
           contentType: file.type,
           fileName: file.name,
         }),
@@ -513,6 +515,7 @@ export default function Settings() {
         body: JSON.stringify({
           folder,
           resourceType: file.type === 'application/pdf' ? 'raw' : 'image',
+          type: "private",
           contentType: file.type, // Pass actual file content type
           fileName: file.name // Pass original filename to preserve extension
         }),
@@ -545,6 +548,7 @@ export default function Settings() {
         body: JSON.stringify({
           documentUrl: uploadedUrl,
           documentName: file.name,
+          type: "private",
           documentType,
           fileSize: file.size,
         }),
