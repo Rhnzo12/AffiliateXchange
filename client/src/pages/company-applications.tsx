@@ -84,22 +84,45 @@ export default function CompanyApplications({ hideTopNav = false }: CompanyAppli
     enabled: isAuthenticated,
   });
 
+  const { data: companyOffers = [] } = useQuery<any[]>({
+    queryKey: ["/api/company/offers"],
+    enabled: isAuthenticated,
+  });
+
   const totalApplications = applications.length;
 
-  const uniqueStatuses = useMemo(
-    () => Array.from(new Set(applications.map((application: any) => application.status).filter(Boolean))),
-    [applications]
+  const statusOptions = useMemo(
+    () => [
+      { value: "pending", label: "Pending" },
+      { value: "approved", label: "Approved" },
+      { value: "active", label: "Active" },
+      { value: "paused", label: "Paused" },
+      { value: "completed", label: "Completed" },
+      { value: "rejected", label: "Rejected" },
+    ],
+    []
   );
 
   const uniqueOffers = useMemo(() => {
     const map = new Map<string, string>();
-    applications.forEach((application: any) => {
-      if (application.offer?.id && application.offer?.title) {
-        map.set(application.offer.id, application.offer.title);
+
+    companyOffers.forEach((offer: any) => {
+      if (offer.id && offer.title) {
+        map.set(offer.id, offer.title);
       }
     });
+
+    // Fallback to any offers present on applications (e.g., if offers query fails)
+    if (map.size === 0) {
+      applications.forEach((application: any) => {
+        if (application.offer?.id && application.offer?.title) {
+          map.set(application.offer.id, application.offer.title);
+        }
+      });
+    }
+
     return Array.from(map.entries());
-  }, [applications]);
+  }, [applications, companyOffers]);
 
   const filteredApplications = useMemo(() => {
     return applications.filter((app: any) => {
@@ -378,9 +401,9 @@ export default function CompanyApplications({ hideTopNav = false }: CompanyAppli
                       className="space-y-1"
                     >
                       <DropdownMenuRadioItem value="all">All statuses</DropdownMenuRadioItem>
-                      {uniqueStatuses.map((status) => (
-                        <DropdownMenuRadioItem key={status} value={status} className="capitalize">
-                          {status}
+                      {statusOptions.map((status) => (
+                        <DropdownMenuRadioItem key={status.value} value={status.value}>
+                          {status.label}
                         </DropdownMenuRadioItem>
                       ))}
                     </DropdownMenuRadioGroup>
