@@ -732,7 +732,10 @@ export default function Settings() {
 
       const data = await response.json();
       console.log('[handleViewDocument] Got signed URL');
-      setDocumentViewerUrl(data.url);
+
+      // Use proxy endpoint to avoid CORS issues when rendering the document in the UI
+      const proxiedUrl = `/proxy/file?url=${encodeURIComponent(data.url)}`;
+      setDocumentViewerUrl(proxiedUrl);
     } catch (error) {
       console.error('[handleViewDocument] Error viewing document:', error);
       setShowDocumentViewer(false);
