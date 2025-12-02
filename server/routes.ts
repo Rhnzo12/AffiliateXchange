@@ -7255,7 +7255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only allow known safe hosts to avoid open proxy / SSRF
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com", "googleapis.com"];
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
       const hostname = parsed.hostname || "";
       const allowed = allowedHosts.some((h) => hostname.endsWith(h));
       if (!allowed) return res.status(403).send("forbidden host");
@@ -7339,7 +7339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only allow known safe hosts to avoid open proxy / SSRF
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com", "googleapis.com"];
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
       const hostname = parsed.hostname || "";
       const allowed = allowedHosts.some((h) => hostname.endsWith(h));
       if (!allowed) return res.status(403).send("forbidden host");
@@ -7474,7 +7474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("invalid url");
       }
 
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com", "googleapis.com"];
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
       const hostname = parsed.hostname || "";
       const allowed = allowedHosts.some((h) => hostname.endsWith(h));
       if (!allowed) return res.status(403).send("forbidden host");
