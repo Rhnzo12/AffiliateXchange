@@ -6,13 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Checkbox } from "../components/ui/checkbox";
 import {
@@ -40,6 +33,7 @@ import {
   PlayCircle,
   DollarSign,
   Loader2,
+  Filter,
 } from "lucide-react";
 import { exportCreatorListPDF, type CreatorExportData } from "../lib/export-utils";
 import { Link, useLocation } from "wouter";
@@ -47,6 +41,7 @@ import { TopNavBar } from "../components/TopNavBar";
 import { apiRequest } from "../lib/queryClient";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { proxiedSrc } from "../lib/image";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 
 type CompanyCreatorsProps = {
   hideTopNav?: boolean;
@@ -137,8 +132,6 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
-  const [offerFilter, setOfferFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const [payoutProcessingId, setPayoutProcessingId] = useState<string | null>(null);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
@@ -320,16 +313,6 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
     });
   }, [applications]);
 
-  const uniqueOfferOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    normalizedApplications.forEach((app) => {
-      if (app.offer?.id && app.offer?.title) {
-        map.set(app.offer.id, app.offer.title);
-      }
-    });
-    return Array.from(map.entries());
-  }, [normalizedApplications]);
-
   const filteredApplications = useMemo(() => {
     const searchValue = searchTerm.trim().toLowerCase();
 
@@ -345,14 +328,9 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
         ? haystack.some((value) => value.toLowerCase().includes(searchValue))
         : true;
 
-      const matchesOffer =
-        offerFilter === "all" || (application.offer?.id && application.offer.id === offerFilter);
-
-      const matchesStatus = statusFilter === "all" || application.status === statusFilter;
-
-      return matchesSearch && matchesOffer && matchesStatus;
+      return matchesSearch;
     });
-  }, [normalizedApplications, searchTerm, offerFilter, statusFilter]);
+  }, [normalizedApplications, searchTerm]);
 
   const groupedOffers = useMemo(() => {
     const map = new Map<string, { offerTitle: string; items: NormalizedApplication[] }>();
@@ -522,15 +500,10 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
   const totalVisibleCreators = filteredApplications.length;
   const totalCreators = normalizedApplications.length;
 
-  const hasActiveFilters =
-    searchTerm.trim().length > 0 ||
-    offerFilter !== "all" ||
-    statusFilter !== "all";
+  const hasActiveFilters = searchTerm.trim().length > 0;
 
   const clearFilters = () => {
     setSearchTerm("");
-    setOfferFilter("all");
-    setStatusFilter("all");
   };
 
   const prepareCreatorExportData = (): CreatorExportData[] => {
@@ -552,7 +525,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
     if (filteredApplications.length === 0) {
       toast({
         title: "Nothing to export",
-        description: "Adjust filters to show some creators first.",
+        description: "Adjust your search to show some creators first.",
       });
       return;
     }
@@ -605,7 +578,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
     if (filteredApplications.length === 0) {
       toast({
         title: "Nothing to export",
-        description: "Adjust filters to show some creators first.",
+        description: "Adjust your search to show some creators first.",
       });
       return;
     }
@@ -615,11 +588,6 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
 
       // Build filter description
       const filterParts: string[] = [];
-      if (offerFilter !== "all") {
-        const offerTitle = uniqueOfferOptions.find(([id]) => id === offerFilter)?.[1];
-        if (offerTitle) filterParts.push(`Offer: ${offerTitle}`);
-      }
-      if (statusFilter !== "all") filterParts.push(`Status: ${formatStatusLabel(statusFilter)}`);
       if (searchTerm) filterParts.push(`Search: "${searchTerm}"`);
 
       const filterInfo = filterParts.length > 0
@@ -677,56 +645,40 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
       <Card className="border-card-border">
         <CardContent className="pt-6 space-y-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-4">
-            <Input
-              placeholder="Product name, ID, or SKU"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              className="w-full xl:max-w-md"
-            />
-            <Select value={offerFilter} onValueChange={setOfferFilter}>
-              <SelectTrigger className="w-full xl:w-48">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Offers</SelectItem>
-                {uniqueOfferOptions.map(([id, title]) => (
-                  <SelectItem key={id} value={id}>
-                    {title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full xl:w-40">
-                <SelectValue placeholder="Sold out" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {STATUS_OPTIONS.filter((option) => option.value !== "rejected").map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              className="w-full xl:w-auto"
-              onClick={() =>
-                toast({
-                  title: "Filters applied",
-                  description: "Your current search and filters are now showing.",
-                })
-              }
-            >
-              Filter
-            </Button>
+            <div className="flex w-full items-center gap-2 xl:max-w-md">
+              <Input
+                placeholder="Product name, ID, or SKU"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="w-full"
+              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    aria-label="Filter"
+                    onClick={() =>
+                      toast({
+                        title: "Filters applied",
+                        description: "Your current search is now showing.",
+                      })
+                    }
+                  >
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Filter</TooltipContent>
+              </Tooltip>
+            </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground xl:ml-auto">
               Showing <span className="font-semibold text-foreground">{totalVisibleCreators}</span> of {totalCreators}
               {` creator${totalCreators === 1 ? "" : "s"}`}
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" className="text-xs" onClick={clearFilters}>
                   <X className="h-3 w-3 mr-1" />
-                  Clear Filters
+                  Clear Search
                 </Button>
               )}
             </div>
