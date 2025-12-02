@@ -45,10 +45,9 @@ import { proxiedSrc } from "../lib/image";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuCheckboxItem,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
@@ -66,6 +65,12 @@ const STATUS_OPTIONS = [
   { value: "paused", label: "Paused" },
   { value: "completed", label: "Completed" },
   { value: "rejected", label: "Rejected" },
+];
+
+const PLATFORM_OPTIONS = [
+  { value: "youtube", label: "YouTube" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "instagram", label: "Instagram" },
 ];
 
 type PerformanceTier = "high" | "medium" | "low";
@@ -142,7 +147,8 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [platformFilters, setPlatformFilters] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
@@ -342,13 +348,24 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
         : true;
 
       const matchesStatus =
-        statusFilter === "all"
+        statusFilters.length === 0
           ? true
-          : application.status.toLowerCase() === statusFilter.toLowerCase();
+          : statusFilters.some((status) => application.status.toLowerCase() === status.toLowerCase());
 
-      return matchesSearch && matchesStatus;
+      const creatorPlatforms = [
+        application.creator?.youtubeUrl ? "youtube" : null,
+        application.creator?.tiktokUrl ? "tiktok" : null,
+        application.creator?.instagramUrl ? "instagram" : null,
+      ].filter((value): value is string => Boolean(value));
+
+      const matchesPlatform =
+        platformFilters.length === 0
+          ? true
+          : creatorPlatforms.some((platform) => platformFilters.includes(platform));
+
+      return matchesSearch && matchesStatus && matchesPlatform;
     });
-  }, [normalizedApplications, searchTerm, statusFilter]);
+  }, [normalizedApplications, platformFilters, searchTerm, statusFilters]);
 
   const groupedOffers = useMemo(() => {
     const map = new Map<string, { offerTitle: string; items: NormalizedApplication[] }>();
@@ -518,11 +535,25 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
   const totalVisibleCreators = filteredApplications.length;
   const totalCreators = normalizedApplications.length;
 
-  const hasActiveFilters = searchTerm.trim().length > 0 || statusFilter !== "all";
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 || statusFilters.length > 0 || platformFilters.length > 0;
+
+  const toggleStatusFilter = (value: string) => {
+    setStatusFilters((prev) =>
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+    );
+  };
+
+  const togglePlatformFilter = (value: string) => {
+    setPlatformFilters((prev) =>
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+    );
+  };
 
   const clearFilters = () => {
     setSearchTerm("");
-    setStatusFilter("all");
+    setStatusFilters([]);
+    setPlatformFilters([]);
     setFilterMenuOpen(false);
   };
 
@@ -609,7 +640,18 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
       // Build filter description
       const filterParts: string[] = [];
       if (searchTerm) filterParts.push(`Search: "${searchTerm}"`);
-      if (statusFilter !== "all") filterParts.push(`Status: ${formatStatusLabel(statusFilter)}`);
+      if (statusFilters.length > 0) {
+        const selectedStatuses = statusFilters
+          .map((status) => formatStatusLabel(status))
+          .join(", ");
+        filterParts.push(`Status: ${selectedStatuses}`);
+      }
+      if (platformFilters.length > 0) {
+        const selectedPlatforms = platformFilters
+          .map((platform) => PLATFORM_OPTIONS.find((option) => option.value === platform)?.label || platform)
+          .join(", ");
+        filterParts.push(`Platforms: ${selectedPlatforms}`);
+      }
 
       const filterInfo = filterParts.length > 0
         ? `Filters: ${filterParts.join(" | ")}`
@@ -710,45 +752,45 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                 className="w-full"
               />
               <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
-                <div
-                  onMouseEnter={() => setFilterMenuOpen(true)}
-                  onMouseLeave={() => setFilterMenuOpen(false)}
-                  className="shrink-0"
-                >
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" aria-label="Filter" className="shrink-0">
-                      <Filter className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="w-56"
-                    onMouseEnter={() => setFilterMenuOpen(true)}
-                    onMouseLeave={() => setFilterMenuOpen(false)}
-                  >
-                    <DropdownMenuLabel>Filter creators</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuRadioGroup
-                      value={statusFilter}
-                      onValueChange={(value) => {
-                        setStatusFilter(value);
-                        setFilterMenuOpen(false);
-                      }}
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" aria-label="Filter" className="shrink-0">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel>Filter creators</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Status
+                  </div>
+                  {STATUS_OPTIONS.map((option) => (
+                    <DropdownMenuCheckboxItem
+                      key={option.value}
+                      checked={statusFilters.includes(option.value)}
+                      onCheckedChange={() => toggleStatusFilter(option.value)}
                     >
-                      <DropdownMenuRadioItem value="all">All statuses</DropdownMenuRadioItem>
-                      {STATUS_OPTIONS.map((option) => (
-                        <DropdownMenuRadioItem key={option.value} value={option.value}>
-                          {option.label}
-                        </DropdownMenuRadioItem>
-                      ))}
-                    </DropdownMenuRadioGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="gap-2" onClick={clearFilters}>
-                      <X className="h-4 w-4" />
-                      Clear filters
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </div>
+                      {option.label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Platform
+                  </div>
+                  {PLATFORM_OPTIONS.map((option) => (
+                    <DropdownMenuCheckboxItem
+                      key={option.value}
+                      checked={platformFilters.includes(option.value)}
+                      onCheckedChange={() => togglePlatformFilter(option.value)}
+                    >
+                      {option.label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="gap-2" onClick={clearFilters}>
+                    <X className="h-4 w-4" />
+                    Clear filters
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
               </DropdownMenu>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground xl:ml-auto">
