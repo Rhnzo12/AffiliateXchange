@@ -26,7 +26,11 @@ import { ReviewPromptDialog } from "../components/ReviewPromptDialog";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { proxiedSrc } from "../lib/image";
 
-export default function CompanyApplications() {
+type CompanyApplicationsProps = {
+  hideTopNav?: boolean;
+};
+
+export default function CompanyApplications({ hideTopNav = false }: CompanyApplicationsProps) {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -319,7 +323,7 @@ export default function CompanyApplications() {
 
   return (
     <div className="space-y-4 sm:space-y-8">
-      <TopNavBar />
+      {!hideTopNav && <TopNavBar />}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold">Applications</h1>
         <p className="text-sm sm:text-base text-muted-foreground mt-1">

@@ -39,7 +39,11 @@ import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { VideoPlayer } from "../components/VideoPlayer";
 
-export default function CompanyVideos() {
+type CompanyVideosProps = {
+  hideTopNav?: boolean;
+};
+
+export default function CompanyVideos({ hideTopNav = false }: CompanyVideosProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
@@ -133,7 +137,7 @@ export default function CompanyVideos() {
 
   return (
     <div className="space-y-6">
-      <TopNavBar />
+      {!hideTopNav && <TopNavBar />}
       <div>
         <h1 className="text-3xl font-bold" data-testid="heading-company-videos">Promotional Videos</h1>
         <p className="text-muted-foreground">

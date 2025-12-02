@@ -29,7 +29,6 @@ import {
   Star,
   Building2,
   Users,
-  Video,
   Briefcase,
   CalendarClock,
   ScrollText,
@@ -119,24 +118,8 @@ export function AppSidebar() {
     },
     {
       title: "Creator Workflow",
+      url: "/company/creator-workflow",
       icon: Users,
-      children: [
-        {
-          title: "Promotional Videos",
-          url: "/company/videos",
-          icon: Video,
-        },
-        {
-          title: "Applications",
-          url: "/company/applications",
-          icon: FileText,
-        },
-        {
-          title: "Approved Creators",
-          url: "/company/creators",
-          icon: Users,
-        },
-      ],
     },
     {
       title: "Analytics",

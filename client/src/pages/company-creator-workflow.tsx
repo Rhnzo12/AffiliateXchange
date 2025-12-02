@@ -1,0 +1,85 @@
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { TopNavBar } from "../components/TopNavBar";
+import CompanyVideos from "./company-videos";
+import CompanyApplications from "./company-applications";
+import CompanyCreators from "./company-creators";
+
+type WorkflowTab = "videos" | "applications" | "creators";
+
+const tabRoutes: Record<WorkflowTab, string> = {
+  videos: "/company/videos",
+  applications: "/company/applications",
+  creators: "/company/creators",
+};
+
+function isWorkflowTab(value: string): value is WorkflowTab {
+  return value === "videos" || value === "applications" || value === "creators";
+}
+
+function tabFromPath(path: string): WorkflowTab | null {
+  const match = (Object.entries(tabRoutes) as [WorkflowTab, string][]).find(([, route]) => route === path);
+  return match ? match[0] : null;
+}
+
+type CompanyCreatorWorkflowProps = {
+  defaultTab?: WorkflowTab;
+};
+
+export default function CompanyCreatorWorkflow({ defaultTab = "videos" }: CompanyCreatorWorkflowProps) {
+  const [location, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState<WorkflowTab>(defaultTab);
+
+  useEffect(() => {
+    const routeTab = tabFromPath(location);
+    if (routeTab && routeTab !== activeTab) {
+      setActiveTab(routeTab);
+    }
+  }, [activeTab, location]);
+
+  useEffect(() => {
+    setActiveTab(defaultTab);
+  }, [defaultTab]);
+
+  const handleTabChange = (value: string) => {
+    if (!isWorkflowTab(value)) return;
+    setActiveTab(value);
+    const nextPath = tabRoutes[value];
+    if (nextPath !== location) {
+      setLocation(nextPath);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <TopNavBar />
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold">Creator Workflow</h1>
+        <p className="text-muted-foreground">
+          Manage your promotional videos, review applications, and keep track of approved creators from one place.
+        </p>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="videos">Promotional Videos</TabsTrigger>
+          <TabsTrigger value="applications">Applications</TabsTrigger>
+          <TabsTrigger value="creators">Approved Creators</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="videos" className="space-y-6">
+          <CompanyVideos hideTopNav />
+        </TabsContent>
+
+        <TabsContent value="applications" className="space-y-6">
+          <CompanyApplications hideTopNav />
+        </TabsContent>
+
+        <TabsContent value="creators" className="space-y-6">
+          <CompanyCreators hideTopNav />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

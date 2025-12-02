@@ -49,6 +49,10 @@ import { apiRequest } from "../lib/queryClient";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { proxiedSrc } from "../lib/image";
 
+type CompanyCreatorsProps = {
+  hideTopNav?: boolean;
+};
+
 type BulkActionType = "approve" | "pause" | "activate" | "complete" | "reject" | "approve_payouts" | null;
 
 const STATUS_OPTIONS = [
@@ -142,7 +146,7 @@ function formatDate(value: Date | null): string {
   return value.toLocaleDateString();
 }
 
-export default function CompanyCreators() {
+export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsProps) {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
@@ -702,7 +706,7 @@ export default function CompanyCreators() {
 
   return (
     <div className="space-y-8">
-      <TopNavBar />
+      {!hideTopNav && <TopNavBar />}
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Creators by Offer</h1>
