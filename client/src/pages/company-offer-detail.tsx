@@ -395,8 +395,9 @@ export default function CompanyOfferDetail() {
       const uploadResult = await uploadToCloudinary(uploadData, file);
 
       if (uploadResult?.secure_url) {
+        // Save full Cloudinary URL like creator profile does
         const uploadedVideoUrl = uploadResult.secure_url;
-        const storedVideoUrl = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadedVideoUrl;
+        const storedVideoUrl = uploadedVideoUrl;
 
         toast({
           title: "Video Uploaded",
@@ -425,8 +426,9 @@ export default function CompanyOfferDetail() {
           const thumbnailUploadResult = await uploadToCloudinary(thumbUploadData, new File([thumbnailBlob], 'thumbnail.jpg'));
 
           if (thumbnailUploadResult?.secure_url) {
+            // Save full Cloudinary URL like creator profile does
             const uploadedThumbnailUrl = thumbnailUploadResult.secure_url;
-            const storedThumbnailUrl = thumbUploadData.publicId ? `/objects/${thumbUploadData.publicId}` : uploadedThumbnailUrl;
+            const storedThumbnailUrl = uploadedThumbnailUrl;
 
             setVideoUrl(storedVideoUrl);
             setThumbnailUrl(storedThumbnailUrl);

@@ -358,14 +358,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("[Profile Update] Updated profile:", profile);
         return res.json(profile);
       } else if (user.role === 'company') {
+        // Don't normalize URLs - save full Cloudinary URLs
         const normalizedProfileData = {
           ...profileData,
-          logoUrl: profileData.logoUrl
-            ? sharedObjectStorageService.normalizeObjectEntityPath(profileData.logoUrl)
-            : profileData.logoUrl,
-          verificationDocumentUrl: profileData.verificationDocumentUrl
-            ? sharedObjectStorageService.normalizeObjectEntityPath(profileData.verificationDocumentUrl)
-            : profileData.verificationDocumentUrl,
         };
 
         const validated = insertCompanyProfileSchema.partial().parse(normalizedProfileData);
@@ -403,15 +398,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         instagramUrl,
       } = req.body;
 
-      const normalizedLogoUrl = logoUrl
-        ? sharedObjectStorageService.normalizeObjectEntityPath(logoUrl)
-        : logoUrl;
-      const normalizedVerificationDocumentUrl = verificationDocumentUrl
-        ? sharedObjectStorageService.normalizeObjectEntityPath(verificationDocumentUrl)
-        : verificationDocumentUrl;
-
       // Validate required fields
-      if (!legalName || !websiteUrl || !normalizedLogoUrl || !description) {
+      if (!legalName || !websiteUrl || !logoUrl || !description) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
@@ -419,7 +407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required contact information" });
       }
 
-      if (!normalizedVerificationDocumentUrl) {
+      if (!verificationDocumentUrl) {
         return res.status(400).json({ error: "Verification document is required" });
       }
 
@@ -431,13 +419,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         websiteUrl,
         companySize,
         yearFounded,
-        logoUrl: normalizedLogoUrl,
+        logoUrl,
         description,
         contactName,
         contactJobTitle,
         phoneNumber,
         businessAddress,
-        verificationDocumentUrl: normalizedVerificationDocumentUrl,
+        verificationDocumentUrl,
         linkedinUrl,
         twitterUrl,
         facebookUrl,
@@ -539,8 +527,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields: documentUrl, documentName, documentType" });
       }
 
-      const normalizedDocumentUrl = sharedObjectStorageService.normalizeObjectEntityPath(documentUrl);
-
       // Get company profile for this user
       const companyProfile = await storage.getCompanyProfile(userId);
       if (!companyProfile) {
@@ -549,7 +535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const document = await storage.addVerificationDocument({
         companyId: companyProfile.id,
-        documentUrl: normalizedDocumentUrl,
+        documentUrl,
         documentName,
         documentType,
         fileSize: fileSize || null,
@@ -7891,7 +7877,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const userId = (req.user as any).id;
     try {
-      const logoUrl = sharedObjectStorageService.normalizeObjectEntityPath(req.body.logoUrl);
+      // Save full Cloudinary URL like creator profile does
+      const logoUrl = req.body.logoUrl;
       const companyProfile = await storage.getCompanyProfile(userId);
       if (companyProfile) {
         await storage.updateCompanyProfile(userId, { logoUrl });

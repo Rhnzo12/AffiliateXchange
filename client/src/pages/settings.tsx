@@ -339,14 +339,11 @@ export default function Settings() {
     setIsUploadingLogo(true);
 
     try {
-      // Use company profile ID for organized folder structure
-      const folder = profile?.id
-        ? `company-logos/${profile.id}`
-        : user?.id
+      // Use user ID for folder structure (same pattern as creator profile)
+      const folder = user?.id
         ? `company-logos/${user.id}`
         : "company-logos";
 
-      // Get upload URL from backend
       const uploadResponse = await fetch("/api/objects/upload", {
         method: "POST",
         credentials: "include",
@@ -360,11 +357,11 @@ export default function Settings() {
           fileName: file.name,
         }),
       });
-      
+
       if (!uploadResponse.ok) {
         throw new Error("Failed to get upload URL");
       }
-      
+
       const uploadData = await uploadResponse.json();
 
       const uploadResult = await uploadToCloudinary(uploadData, file);
@@ -373,11 +370,9 @@ export default function Settings() {
         throw new Error("Failed to upload file to storage");
       }
 
-      const uploadedUrl = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadResult.secure_url;
-
-      // Set the logo URL
+      const uploadedUrl = uploadResult.secure_url;
       setLogoUrl(uploadedUrl);
-      
+
       toast({
         title: "Success!",
         description: "Logo uploaded successfully. Don't forget to save your changes.",
@@ -449,7 +444,7 @@ export default function Settings() {
         throw new Error("Failed to upload file to storage");
       }
 
-      const uploadedUrl = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadResult.secure_url;
+      const uploadedUrl = uploadResult.secure_url;
       setProfileImageUrl(uploadedUrl);
 
       toast({
@@ -533,7 +528,7 @@ export default function Settings() {
         throw new Error("Failed to upload file to storage");
       }
 
-      const uploadedUrl = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadResult.secure_url;
+     const uploadedUrl = uploadResult.secure_url;
 
       // Determine document type
       const documentType = file.type === 'application/pdf' ? 'pdf' : 'image';
@@ -624,6 +619,88 @@ export default function Settings() {
     }
   };
 
+  // Helper function to extract Cloudinary public_id from URL
+  const extractCloudinaryPublicId = (documentUrl: string): string => {
+    try {
+      console.log('[extractCloudinaryPublicId] Processing URL:', documentUrl);
+      
+      // Safety check for empty or invalid URLs
+      if (!documentUrl || typeof documentUrl !== 'string' || documentUrl.trim() === '') {
+        throw new Error('Invalid or empty document URL');
+      }
+      
+      const trimmedUrl = documentUrl.trim();
+      
+      // Check if it's a relative path (starts with /)
+      if (trimmedUrl.startsWith('/')) {
+        console.log('[extractCloudinaryPublicId] Relative path detected');
+        
+        // If it's an /objects/ path, extract from that
+        if (trimmedUrl.startsWith('/objects/')) {
+          const result = trimmedUrl.replace('/objects/', '');
+          console.log('[extractCloudinaryPublicId] Extracted from /objects/:', result);
+          return result;
+        }
+        
+        // Otherwise, remove leading slash and return
+        const result = trimmedUrl.slice(1);
+        console.log('[extractCloudinaryPublicId] Using relative path:', result);
+        return result;
+      }
+      
+      // It's a full URL, parse it
+      const url = new URL(trimmedUrl);
+      const pathname = url.pathname;
+      console.log('[extractCloudinaryPublicId] Pathname:', pathname);
+      
+      // Check if it's a Cloudinary URL
+      if (!trimmedUrl.includes('cloudinary.com')) {
+        console.log('[extractCloudinaryPublicId] Not a Cloudinary URL');
+        // Use the path as-is (removing leading slash)
+        const result = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+        console.log('[extractCloudinaryPublicId] Using pathname:', result);
+        return result;
+      }
+      
+      // Parse Cloudinary URL
+      // Format: /cloud-name/resource-type/upload/[v123456/]public-id
+      const parts = pathname.split('/').filter(Boolean);
+      console.log('[extractCloudinaryPublicId] URL parts:', parts);
+      
+      // Find 'upload' in the path
+      const uploadIndex = parts.indexOf('upload');
+      console.log('[extractCloudinaryPublicId] Upload index:', uploadIndex);
+      
+      if (uploadIndex === -1) {
+        throw new Error('Invalid Cloudinary URL: missing "upload" segment');
+      }
+      
+      // Everything after 'upload' is either version+public_id or just public_id
+      const afterUpload = parts.slice(uploadIndex + 1);
+      console.log('[extractCloudinaryPublicId] After upload:', afterUpload);
+      
+      if (afterUpload.length === 0) {
+        throw new Error('Invalid Cloudinary URL: no public_id found');
+      }
+      
+      // Check if first part after upload is a version (starts with 'v' followed by numbers)
+      if (afterUpload[0].match(/^v\d+$/)) {
+        // Skip version, take the rest as public_id
+        const result = afterUpload.slice(1).join('/');
+        console.log('[extractCloudinaryPublicId] With version, public_id:', result);
+        return result;
+      } else {
+        // No version, everything after upload is the public_id
+        const result = afterUpload.join('/');
+        console.log('[extractCloudinaryPublicId] No version, public_id:', result);
+        return result;
+      }
+    } catch (error) {
+      console.error('[extractCloudinaryPublicId] Error:', error);
+      throw error;
+    }
+  };
+
   const handleViewDocument = async (documentUrl: string, documentName: string, documentType: string) => {
     try {
       setIsLoadingDocument(true);
@@ -631,10 +708,9 @@ export default function Settings() {
       setDocumentViewerType(documentType);
       setShowDocumentViewer(true);
 
-      // Extract the file path from the GCS URL
-      const url = new URL(documentUrl);
-      const pathParts = url.pathname.split('/');
-      const filePath = pathParts.slice(2).join('/');
+      // Extract Cloudinary public_id using robust helper
+      const filePath = extractCloudinaryPublicId(documentUrl);
+      console.log('[handleViewDocument] Extracted filePath:', filePath);
 
       // Fetch signed URL from the API
       const response = await fetch(`/api/get-signed-url/${filePath}`, {
@@ -642,17 +718,20 @@ export default function Settings() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get document access');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[handleViewDocument] API error:', errorData);
+        throw new Error(errorData.error || 'Failed to get document access');
       }
 
       const data = await response.json();
+      console.log('[handleViewDocument] Got signed URL');
       setDocumentViewerUrl(data.url);
     } catch (error) {
-      console.error('Error viewing document:', error);
+      console.error('[handleViewDocument] Error viewing document:', error);
       setShowDocumentViewer(false);
       toast({
         title: "Error",
-        description: "Failed to view document. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to view document. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -662,10 +741,9 @@ export default function Settings() {
 
   const handleDownloadDocument = async (documentUrl: string, documentName: string) => {
     try {
-      // Extract the file path from the GCS URL
-      const url = new URL(documentUrl);
-      const pathParts = url.pathname.split('/');
-      const filePath = pathParts.slice(2).join('/');
+      // Extract Cloudinary public_id using robust helper
+      const filePath = extractCloudinaryPublicId(documentUrl);
+      console.log('[handleDownloadDocument] Extracted filePath:', filePath);
 
       // Fetch signed URL with download flag from the API
       const response = await fetch(`/api/get-signed-url/${filePath}?download=true&name=${encodeURIComponent(documentName)}`, {
@@ -673,10 +751,13 @@ export default function Settings() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get download URL');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[handleDownloadDocument] API error:', errorData);
+        throw new Error(errorData.error || 'Failed to get download URL');
       }
 
       const data = await response.json();
+      console.log('[handleDownloadDocument] Got signed URL');
 
       // Create a temporary link and trigger download
       const link = document.createElement('a');
@@ -686,7 +767,7 @@ export default function Settings() {
       link.click();
       document.body.removeChild(link);
     } catch (error) {
-      console.error('Error downloading document:', error);
+      console.error('[handleDownloadDocument] Error downloading document:', error);
       toast({
         title: "Error",
         description: "Failed to download document. Please try again.",

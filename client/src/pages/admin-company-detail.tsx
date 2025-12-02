@@ -199,18 +199,97 @@ export default function AdminCompanyDetail() {
     }
   }, [company, error, loadingCompany, companyId]);
 
+  // Helper function to extract Cloudinary public_id from URL
+  const extractCloudinaryPublicId = (documentUrl: string): string => {
+    try {
+      console.log('[Admin extractCloudinaryPublicId] Processing URL:', documentUrl);
+      
+      // Safety check for empty or invalid URLs
+      if (!documentUrl || typeof documentUrl !== 'string' || documentUrl.trim() === '') {
+        throw new Error('Invalid or empty document URL');
+      }
+      
+      const trimmedUrl = documentUrl.trim();
+      
+      // Check if it's a relative path (starts with /)
+      if (trimmedUrl.startsWith('/')) {
+        console.log('[Admin extractCloudinaryPublicId] Relative path detected');
+        
+        // If it's an /objects/ path, extract from that
+        if (trimmedUrl.startsWith('/objects/')) {
+          const result = trimmedUrl.replace('/objects/', '');
+          console.log('[Admin extractCloudinaryPublicId] Extracted from /objects/:', result);
+          return result;
+        }
+        
+        // Otherwise, remove leading slash and return
+        const result = trimmedUrl.slice(1);
+        console.log('[Admin extractCloudinaryPublicId] Using relative path:', result);
+        return result;
+      }
+      
+      // It's a full URL, parse it
+      const url = new URL(trimmedUrl);
+      const pathname = url.pathname;
+      console.log('[Admin extractCloudinaryPublicId] Pathname:', pathname);
+      
+      // Check if it's a Cloudinary URL
+      if (!trimmedUrl.includes('cloudinary.com')) {
+        console.log('[Admin extractCloudinaryPublicId] Not a Cloudinary URL');
+        // Use the path as-is (removing leading slash)
+        const result = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+        console.log('[Admin extractCloudinaryPublicId] Using pathname:', result);
+        return result;
+      }
+      
+      // Parse Cloudinary URL
+      // Format: /cloud-name/resource-type/upload/[v123456/]public-id
+      const parts = pathname.split('/').filter(Boolean);
+      console.log('[Admin extractCloudinaryPublicId] URL parts:', parts);
+      
+      // Find 'upload' in the path
+      const uploadIndex = parts.indexOf('upload');
+      console.log('[Admin extractCloudinaryPublicId] Upload index:', uploadIndex);
+      
+      if (uploadIndex === -1) {
+        throw new Error('Invalid Cloudinary URL: missing "upload" segment');
+      }
+      
+      // Everything after 'upload' is either version+public_id or just public_id
+      const afterUpload = parts.slice(uploadIndex + 1);
+      console.log('[Admin extractCloudinaryPublicId] After upload:', afterUpload);
+      
+      if (afterUpload.length === 0) {
+        throw new Error('Invalid Cloudinary URL: no public_id found');
+      }
+      
+      // Check if first part after upload is a version (starts with 'v' followed by numbers)
+      if (afterUpload[0].match(/^v\d+$/)) {
+        // Skip version, take the rest as public_id
+        const result = afterUpload.slice(1).join('/');
+        console.log('[Admin extractCloudinaryPublicId] With version, public_id:', result);
+        return result;
+      } else {
+        // No version, everything after upload is the public_id
+        const result = afterUpload.join('/');
+        console.log('[Admin extractCloudinaryPublicId] No version, public_id:', result);
+        return result;
+      }
+    } catch (error) {
+      console.error('[Admin extractCloudinaryPublicId] Error:', error);
+      throw error;
+    }
+  };
+
   // Function to view verification document with signed URL
   const handleViewDocument = async (documentUrl: string) => {
     if (!documentUrl) return;
 
     setIsLoadingDocument(true);
     try {
-      // Extract the file path from the GCS URL
-      // URL format: https://storage.googleapis.com/bucket-name/path/to/file
-      const url = new URL(documentUrl);
-      const pathParts = url.pathname.split('/');
-      // Remove empty string and bucket name, keep the rest as file path
-      const filePath = pathParts.slice(2).join('/');
+      // Extract Cloudinary public_id using robust helper
+      const filePath = extractCloudinaryPublicId(documentUrl);
+      console.log('[Admin handleViewDocument] Extracted filePath:', filePath);
 
       // Fetch signed URL from the API
       const response = await fetch(`/api/get-signed-url/${filePath}`, {
@@ -218,18 +297,21 @@ export default function AdminCompanyDetail() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get document access');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[Admin handleViewDocument] API error:', errorData);
+        throw new Error(errorData.error || 'Failed to get document access');
       }
 
       const data = await response.json();
+      console.log('[Admin handleViewDocument] Got signed URL');
 
       // Open the signed URL in a new tab
       window.open(data.url, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      console.error('Error fetching document:', error);
+      console.error('[Admin handleViewDocument] Error fetching document:', error);
       toast({
         title: "Error",
-        description: "Failed to access the verification document. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to access the verification document. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -242,10 +324,9 @@ export default function AdminCompanyDetail() {
     if (!documentUrl) return;
 
     try {
-      // Extract the file path from the GCS URL
-      const url = new URL(documentUrl);
-      const pathParts = url.pathname.split('/');
-      const filePath = pathParts.slice(2).join('/');
+      // Extract Cloudinary public_id using robust helper
+      const filePath = extractCloudinaryPublicId(documentUrl);
+      console.log('[Admin handleDownloadDocument] Extracted filePath:', filePath);
 
       // Fetch signed URL with download flag from the API
       const response = await fetch(`/api/get-signed-url/${filePath}?download=true&name=${encodeURIComponent(documentName)}`, {
@@ -253,10 +334,13 @@ export default function AdminCompanyDetail() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get download URL');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[Admin handleDownloadDocument] API error:', errorData);
+        throw new Error(errorData.error || 'Failed to get download URL');
       }
 
       const data = await response.json();
+      console.log('[Admin handleDownloadDocument] Got signed URL');
 
       // Create a temporary link and trigger download
       const link = document.createElement('a');
@@ -266,7 +350,7 @@ export default function AdminCompanyDetail() {
       link.click();
       document.body.removeChild(link);
     } catch (error) {
-      console.error('Error downloading document:', error);
+      console.error('[Admin handleDownloadDocument] Error downloading document:', error);
       toast({
         title: "Error",
         description: "Failed to download document. Please try again.",

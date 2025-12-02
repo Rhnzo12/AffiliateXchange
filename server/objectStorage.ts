@@ -108,17 +108,12 @@ export class ObjectStorageService {
   }> {
     const folder = customFolder || this.getStorageFolder();
 
-    let fileExtension = '';
-    if (originalFileName) {
-      fileExtension = path.extname(originalFileName).toLowerCase();
-    } else if (resourceType === 'image') {
-      fileExtension = '.jpg';
-    } else if (resourceType === 'video') {
-      fileExtension = '.mp4';
-    }
-
-    const fileName = `${randomUUID()}${fileExtension}`;
-    const publicId = this.buildPublicId(folder, fileName);
+    // Don't include file extension - Cloudinary will add it automatically based on the uploaded file
+    // Including extension here causes .png.png duplication
+    const fileName = randomUUID();
+    // Use only the fileName for publicId since Cloudinary will combine folder + publicId
+    // If we use buildPublicId here, it creates folder/folder/fileName duplication
+    const publicId = fileName;
     const timestamp = Math.round(Date.now() / 1000);
 
     const paramsToSign: Record<string, any> = {
