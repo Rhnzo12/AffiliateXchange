@@ -125,6 +125,26 @@ export default function CompanyOnboarding() {
     }
   }, [user]);
 
+  // Load existing verification documents so uploads are preserved across sessions
+  useEffect(() => {
+    const loadVerificationDocuments = async () => {
+      try {
+        const response = await fetch("/api/company/verification-documents", {
+          credentials: "include",
+        });
+
+        if (!response.ok) return;
+
+        const documents = await response.json();
+        setVerificationDocuments(documents);
+      } catch (error) {
+        console.error("Failed to load verification documents:", error);
+      }
+    };
+
+    loadVerificationDocuments();
+  }, []);
+
   // Check if user should be here
   useEffect(() => {
     if (user && user.role !== 'company') {
@@ -276,16 +296,28 @@ export default function CompanyOnboarding() {
       // Determine document type
       const documentType = file.type === 'application/pdf' ? 'pdf' : 'image';
 
-      // Add to documents array with a temporary ID
-      const newDocument: VerificationDocument = {
-        id: `temp-${Date.now()}`,
-        documentUrl: uploadedUrl,
-        documentName: file.name,
-        documentType,
-        fileSize: file.size,
-      };
+      // Persist the document metadata so the path is available to the API
+      const saveResponse = await fetch("/api/company/verification-documents", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          documentUrl: uploadedUrl,
+          documentName: file.name,
+          documentType,
+          fileSize: file.size,
+        }),
+      });
 
-      setVerificationDocuments(prev => [...prev, newDocument]);
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save verification document");
+      }
+
+      const { document } = await saveResponse.json();
+
+      setVerificationDocuments(prev => [...prev, document]);
 
       toast({
         title: "Success!",
@@ -304,8 +336,22 @@ export default function CompanyOnboarding() {
     }
   };
 
-  const handleRemoveDocument = (documentId: string) => {
-    setVerificationDocuments(prev => prev.filter(doc => doc.id !== documentId));
+  const handleRemoveDocument = async (documentId: string) => {
+    try {
+      const document = verificationDocuments.find((doc) => doc.id === documentId);
+
+      // Only attempt server deletion for persisted documents
+      if (document && !document.id.startsWith("temp-")) {
+        await fetch(`/api/company/verification-documents/${documentId}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to delete verification document:", error);
+    } finally {
+      setVerificationDocuments(prev => prev.filter(doc => doc.id !== documentId));
+    }
   };
 
   const handleViewDocument = async (documentUrl: string) => {
@@ -562,8 +608,8 @@ export default function CompanyOnboarding() {
         throw new Error(error.error || "Failed to submit onboarding");
       }
 
-      // Save all verification documents to the new table
-      for (const doc of verificationDocuments) {
+      // Persist any documents that haven't been saved yet (should be temporary IDs only)
+      for (const doc of verificationDocuments.filter(doc => doc.id.startsWith("temp-"))) {
         try {
           await fetch("/api/company/verification-documents", {
             method: "POST",
