@@ -10,12 +10,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 import { Label } from "../components/ui/label";
 import { FileText, CheckCircle, Clock, XCircle, MessageCircle, DollarSign, Filter, Search, X } from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
@@ -42,6 +44,9 @@ export default function CompanyApplications({ hideTopNav = false }: CompanyAppli
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [offerFilter, setOfferFilter] = useState("all");
+  const [pendingStatusFilter, setPendingStatusFilter] = useState("all");
+  const [pendingOfferFilter, setPendingOfferFilter] = useState("all");
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
 
   useEffect(() => {
@@ -123,7 +128,22 @@ export default function CompanyApplications({ hideTopNav = false }: CompanyAppli
     setSearchTerm("");
     setStatusFilter("all");
     setOfferFilter("all");
+    setPendingStatusFilter("all");
+    setPendingOfferFilter("all");
   };
+
+  const applyFilters = () => {
+    setStatusFilter(pendingStatusFilter);
+    setOfferFilter(pendingOfferFilter);
+    setFilterMenuOpen(false);
+  };
+
+  useEffect(() => {
+    if (filterMenuOpen) {
+      setPendingStatusFilter(statusFilter);
+      setPendingOfferFilter(offerFilter);
+    }
+  }, [filterMenuOpen, offerFilter, statusFilter]);
 
   const completeApplicationMutation = useMutation({
     mutationFn: async (applicationId: string) => {
@@ -333,63 +353,88 @@ export default function CompanyApplications({ hideTopNav = false }: CompanyAppli
 
       <Card className="border-card-border">
         <CardContent className="pt-6 space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Filter className="h-4 w-4" />
-              <span className="text-sm font-semibold uppercase tracking-wider">Search & Filter</span>
-            </div>
-            <div className="sm:ml-auto text-sm text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">{filteredApplications.length}</span> of {totalApplications}
-              {` application${totalApplications === 1 ? "" : "s"}`}
-            </div>
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" className="text-xs sm:ml-4" onClick={clearFilters}>
-                <X className="h-3 w-3 mr-1" />
-                Clear Filters
-              </Button>
-            )}
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-4">
+            <div className="flex w-full items-center gap-2 xl:max-w-md">
               <Input
                 placeholder="Search by offer, creator, or tracking link"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
+                className="w-full"
               />
+              <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" aria-label="Filter applications" className="shrink-0">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-72 space-y-2">
+                  <DropdownMenuLabel>Filter applications</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="space-y-2 px-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</p>
+                    <DropdownMenuRadioGroup
+                      value={pendingStatusFilter}
+                      onValueChange={setPendingStatusFilter}
+                      className="space-y-1"
+                    >
+                      <DropdownMenuRadioItem value="all">All statuses</DropdownMenuRadioItem>
+                      {uniqueStatuses.map((status) => (
+                        <DropdownMenuRadioItem key={status} value={status} className="capitalize">
+                          {status}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <div className="space-y-2 px-2 pb-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Offer</p>
+                    <DropdownMenuRadioGroup
+                      value={pendingOfferFilter}
+                      onValueChange={setPendingOfferFilter}
+                      className="space-y-1"
+                    >
+                      <DropdownMenuRadioItem value="all">All offers</DropdownMenuRadioItem>
+                      {uniqueOffers.map(([id, title]) => (
+                        <DropdownMenuRadioItem key={id} value={id}>
+                          {title}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <div className="flex items-center justify-between gap-2 px-2 pb-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-2 text-muted-foreground"
+                      onClick={() => {
+                        clearFilters();
+                        setFilterMenuOpen(false);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                      Clear filters
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="gap-2 border-0 bg-gray-200 text-black shadow-none hover:bg-gray-300"
+                      onClick={applyFilters}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {uniqueStatuses.map((status) => (
-                    <SelectItem key={status} value={status} className="capitalize">
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Offer</label>
-              <Select value={offerFilter} onValueChange={setOfferFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All offers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Offers</SelectItem>
-                  {uniqueOffers.map(([id, title]) => (
-                    <SelectItem key={id} value={id}>
-                      {title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground xl:ml-auto">
+              Showing <span className="font-semibold text-foreground">{filteredApplications.length}</span> of {totalApplications}
+              {` application${totalApplications === 1 ? "" : "s"}`}
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" className="text-xs" onClick={clearFilters}>
+                  <X className="h-3 w-3 mr-1" />
+                  Clear Filters
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
