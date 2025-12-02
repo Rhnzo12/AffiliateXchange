@@ -774,10 +774,10 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                     <Filter className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72 space-y-2">
+                <DropdownMenuContent align="end" className="filter-menu-scroll w-72 space-y-2">
                   <DropdownMenuLabel>Filter creators</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <Accordion type="multiple" defaultValue={["status", "platform"]} className="space-y-1">
+                  <Accordion type="multiple" className="space-y-1">
                     <AccordionItem value="status" className="border-none">
                       <AccordionTrigger className="px-2 py-1 text-sm font-medium hover:no-underline">
                         Status
@@ -827,7 +827,11 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                       <X className="h-4 w-4" />
                       Clear filters
                     </Button>
-                    <Button size="sm" className="gap-2" onClick={applyFilters}>
+                    <Button
+                      size="sm"
+                      className="gap-2 border-0 bg-gray-200 text-black shadow-none hover:bg-gray-300"
+                      onClick={applyFilters}
+                    >
                       Apply
                     </Button>
                   </div>
