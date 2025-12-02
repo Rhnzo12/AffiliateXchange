@@ -26,13 +26,6 @@ import {
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogDescription,
-  DialogTitle,
-} from "../components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -126,14 +119,6 @@ export default function Settings() {
   const [showActiveItemsDialog, setShowActiveItemsDialog] = useState(false);
   const [activeItemsDetails, setActiveItemsDetails] = useState<any>(null);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
-
-  // Document viewer state
-  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
-  const [documentViewerUrl, setDocumentViewerUrl] = useState("");
-  const [documentViewerName, setDocumentViewerName] = useState("");
-  const [documentViewerType, setDocumentViewerType] = useState("");
-  const [isLoadingDocument, setIsLoadingDocument] = useState(false);
-  const [documentViewerError, setDocumentViewerError] = useState<string | null>(null);
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
@@ -707,14 +692,8 @@ export default function Settings() {
     }
   };
 
-  const handleViewDocument = async (documentUrl: string, documentName: string, documentType: string) => {
+  const handleViewDocument = async (documentUrl: string) => {
     try {
-      setIsLoadingDocument(true);
-      setDocumentViewerName(documentName);
-      setDocumentViewerType(documentType);
-      setShowDocumentViewer(true);
-      setDocumentViewerError(null);
-
       // Extract Cloudinary public_id using robust helper
       const filePath = extractCloudinaryPublicId(documentUrl);
       console.log('[handleViewDocument] Extracted filePath:', filePath);
@@ -731,21 +710,17 @@ export default function Settings() {
       }
 
       const data = await response.json();
-      console.log('[handleViewDocument] Got signed URL');
-      setDocumentViewerUrl(data.url);
+      console.log('[handleViewDocument] Got signed URL, opening in new tab');
+
+      // Open the signed URL directly so the browser uses its default viewer
+      window.open(data.url, '_blank', 'noopener,noreferrer');
     } catch (error) {
       console.error('[handleViewDocument] Error viewing document:', error);
-      setShowDocumentViewer(false);
-      setDocumentViewerError(
-        error instanceof Error ? error.message : "Failed to view document. Please try again.",
-      );
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to view document. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoadingDocument(false);
     }
   };
 
@@ -1710,7 +1685,7 @@ export default function Settings() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => handleViewDocument(doc.documentUrl, doc.documentName, doc.documentType)}
+                            onClick={() => handleViewDocument(doc.documentUrl)}
                             title="View document"
                           >
                             <Eye className="h-4 w-4 text-green-600" />
@@ -2852,90 +2827,6 @@ export default function Settings() {
           </AlertDialogContent>
         </AlertDialog>
       )}
-
-      {/* Document Viewer Dialog */}
-      <Dialog open={showDocumentViewer} onOpenChange={(open) => {
-        if (!open) {
-          setShowDocumentViewer(false);
-          setDocumentViewerUrl("");
-          setDocumentViewerName("");
-          setDocumentViewerType("");
-          setDocumentViewerError(null);
-        }
-      }}>
-        <DialogContent
-          className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0"
-        >
-          <DialogHeader className="p-4 pb-2 border-b space-y-1.5">
-            <div className="flex items-start justify-between gap-2">
-              <DialogTitle className="truncate pr-8">{documentViewerName}</DialogTitle>
-              {documentViewerUrl && (
-                <Button variant="outline" size="sm" asChild>
-                  <a href={documentViewerUrl} target="_blank" rel="noopener noreferrer">
-                    Open in new tab
-                  </a>
-                </Button>
-              )}
-            </div>
-            <DialogDescription id="document-viewer-description">
-              Preview the selected document. Use the “Open in new tab” button if the embedded viewer does not load.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 p-4">
-            {isLoadingDocument ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : documentViewerError ? (
-              <Alert variant="destructive" className="h-full flex flex-col items-center justify-center text-center">
-                <AlertTitle>Unable to load document preview</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <p className="max-w-prose mx-auto text-sm text-muted-foreground">
-                    {documentViewerError}
-                  </p>
-                  {documentViewerUrl && (
-                    <Button variant="outline" asChild>
-                      <a href={documentViewerUrl} target="_blank" rel="noopener noreferrer">
-                        Open document in a new tab
-                      </a>
-                    </Button>
-                  )}
-                </AlertDescription>
-              </Alert>
-            ) : documentViewerUrl ? (
-              documentViewerType === 'pdf' ? (
-                <iframe
-                  src={`${documentViewerUrl}#toolbar=1&view=FitH`}
-                  className="w-full h-full rounded border"
-                  title={documentViewerName}
-                  style={{ border: 'none' }}
-                  onError={() => setDocumentViewerError('Failed to load the embedded PDF viewer.')}
-                />
-              ) : documentViewerType === 'image' ? (
-                <div className="flex items-center justify-center h-full">
-                  <img
-                    src={documentViewerUrl}
-                    alt={documentViewerName}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full gap-4">
-                  <p className="text-muted-foreground">Preview not available for this file type.</p>
-                  <a
-                    href={documentViewerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    Click here to open in a new tab
-                  </a>
-                </div>
-              )
-            ) : null}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <GenericErrorDialog
         open={!!errorDialog}

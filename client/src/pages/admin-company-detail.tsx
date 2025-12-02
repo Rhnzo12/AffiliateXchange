@@ -305,7 +305,7 @@ export default function AdminCompanyDetail() {
       const data = await response.json();
       console.log('[Admin handleViewDocument] Got signed URL');
 
-      // Open the signed URL in a new tab
+      // Open the signed URL directly in a new tab so the browser uses its default viewer
       window.open(data.url, '_blank', 'noopener,noreferrer');
     } catch (error) {
       console.error('[Admin handleViewDocument] Error fetching document:', error);
