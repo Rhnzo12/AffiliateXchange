@@ -29,6 +29,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
 } from "../components/ui/dialog";
 import {
@@ -132,6 +133,7 @@ export default function Settings() {
   const [documentViewerName, setDocumentViewerName] = useState("");
   const [documentViewerType, setDocumentViewerType] = useState("");
   const [isLoadingDocument, setIsLoadingDocument] = useState(false);
+  const [documentViewerError, setDocumentViewerError] = useState<string | null>(null);
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
@@ -707,6 +709,7 @@ export default function Settings() {
       setDocumentViewerName(documentName);
       setDocumentViewerType(documentType);
       setShowDocumentViewer(true);
+      setDocumentViewerError(null);
 
       // Extract Cloudinary public_id using robust helper
       const filePath = extractCloudinaryPublicId(documentUrl);
@@ -729,6 +732,9 @@ export default function Settings() {
     } catch (error) {
       console.error('[handleViewDocument] Error viewing document:', error);
       setShowDocumentViewer(false);
+      setDocumentViewerError(
+        error instanceof Error ? error.message : "Failed to view document. Please try again.",
+      );
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to view document. Please try again.",
@@ -2850,17 +2856,48 @@ export default function Settings() {
           setDocumentViewerUrl("");
           setDocumentViewerName("");
           setDocumentViewerType("");
+          setDocumentViewerError(null);
         }
       }}>
-        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0">
-          <DialogHeader className="p-4 pb-2 border-b">
-            <DialogTitle className="truncate pr-8">{documentViewerName}</DialogTitle>
+        <DialogContent
+          className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0"
+        >
+          <DialogHeader className="p-4 pb-2 border-b space-y-1.5">
+            <div className="flex items-start justify-between gap-2">
+              <DialogTitle className="truncate pr-8">{documentViewerName}</DialogTitle>
+              {documentViewerUrl && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={documentViewerUrl} target="_blank" rel="noopener noreferrer">
+                    Open in new tab
+                  </a>
+                </Button>
+              )}
+            </div>
+            <DialogDescription id="document-viewer-description">
+              Preview the selected document. Use the “Open in new tab” button if the embedded viewer does not load.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex-1 min-h-0 p-4">
             {isLoadingDocument ? (
               <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
+            ) : documentViewerError ? (
+              <Alert variant="destructive" className="h-full flex flex-col items-center justify-center text-center">
+                <AlertTitle>Unable to load document preview</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p className="max-w-prose mx-auto text-sm text-muted-foreground">
+                    {documentViewerError}
+                  </p>
+                  {documentViewerUrl && (
+                    <Button variant="outline" asChild>
+                      <a href={documentViewerUrl} target="_blank" rel="noopener noreferrer">
+                        Open document in a new tab
+                      </a>
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
             ) : documentViewerUrl ? (
               documentViewerType === 'pdf' ? (
                 <iframe
@@ -2868,6 +2905,7 @@ export default function Settings() {
                   className="w-full h-full rounded border"
                   title={documentViewerName}
                   style={{ border: 'none' }}
+                  onError={() => setDocumentViewerError('Failed to load the embedded PDF viewer.')}
                 />
               ) : documentViewerType === 'image' ? (
                 <div className="flex items-center justify-center h-full">
