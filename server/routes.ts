@@ -539,6 +539,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields: documentUrl, documentName, documentType" });
       }
 
+      const normalizedDocumentUrl = sharedObjectStorageService.normalizeObjectEntityPath(documentUrl);
+
       // Get company profile for this user
       const companyProfile = await storage.getCompanyProfile(userId);
       if (!companyProfile) {
@@ -547,7 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const document = await storage.addVerificationDocument({
         companyId: companyProfile.id,
-        documentUrl,
+        documentUrl: normalizedDocumentUrl,
         documentName,
         documentType,
         fileSize: fileSize || null,
