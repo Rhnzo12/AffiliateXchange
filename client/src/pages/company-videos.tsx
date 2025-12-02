@@ -288,7 +288,7 @@ export default function CompanyVideos({ hideTopNav = false }: CompanyVideosProps
               data-testid={`video-card-${video.id}`}
             >
               <div
-                className="aspect-video relative bg-muted cursor-pointer"
+                className="relative bg-muted cursor-pointer h-40 sm:h-44 lg:h-48 overflow-hidden"
                 onClick={() => setSelectedVideo(video)}
               >
                 {video.thumbnailUrl ? (
