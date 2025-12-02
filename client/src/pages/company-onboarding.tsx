@@ -213,7 +213,8 @@ export default function CompanyOnboarding() {
         throw new Error("Failed to upload file to storage");
       }
 
-      setLogoUrl(uploadResult.secure_url);
+      const objectPath = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadResult.secure_url;
+      setLogoUrl(objectPath);
 
       toast({
         title: "Success!",
@@ -291,7 +292,7 @@ export default function CompanyOnboarding() {
         throw new Error("Failed to upload file to storage");
       }
 
-      const uploadedUrl = uploadResult.secure_url;
+      const uploadedUrl = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadResult.secure_url;
 
       // Determine document type
       const documentType = file.type === 'application/pdf' ? 'pdf' : 'image';

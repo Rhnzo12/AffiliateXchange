@@ -373,7 +373,7 @@ export default function Settings() {
         throw new Error("Failed to upload file to storage");
       }
 
-      const uploadedUrl = uploadResult.secure_url;
+      const uploadedUrl = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadResult.secure_url;
 
       // Set the logo URL
       setLogoUrl(uploadedUrl);
@@ -449,7 +449,7 @@ export default function Settings() {
         throw new Error("Failed to upload file to storage");
       }
 
-      const uploadedUrl = uploadResult.secure_url;
+      const uploadedUrl = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadResult.secure_url;
       setProfileImageUrl(uploadedUrl);
 
       toast({
@@ -533,7 +533,7 @@ export default function Settings() {
         throw new Error("Failed to upload file to storage");
       }
 
-      const uploadedUrl = uploadResult.secure_url;
+      const uploadedUrl = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadResult.secure_url;
 
       // Determine document type
       const documentType = file.type === 'application/pdf' ? 'pdf' : 'image';

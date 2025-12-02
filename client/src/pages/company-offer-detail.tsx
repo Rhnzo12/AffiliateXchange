@@ -396,6 +396,7 @@ export default function CompanyOfferDetail() {
 
       if (uploadResult?.secure_url) {
         const uploadedVideoUrl = uploadResult.secure_url;
+        const storedVideoUrl = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadedVideoUrl;
 
         toast({
           title: "Video Uploaded",
@@ -425,9 +426,10 @@ export default function CompanyOfferDetail() {
 
           if (thumbnailUploadResult?.secure_url) {
             const uploadedThumbnailUrl = thumbnailUploadResult.secure_url;
+            const storedThumbnailUrl = thumbUploadData.publicId ? `/objects/${thumbUploadData.publicId}` : uploadedThumbnailUrl;
 
-            setVideoUrl(uploadedVideoUrl);
-            setThumbnailUrl(uploadedThumbnailUrl);
+            setVideoUrl(storedVideoUrl);
+            setThumbnailUrl(storedThumbnailUrl);
             setIsUploading(false);
 
             toast({
@@ -435,7 +437,7 @@ export default function CompanyOfferDetail() {
               description: "Video and thumbnail uploaded successfully. Fill in the details below.",
             });
           } else {
-            setVideoUrl(uploadedVideoUrl);
+            setVideoUrl(storedVideoUrl);
             setIsUploading(false);
             toast({
               title: "Video Uploaded",
@@ -443,7 +445,7 @@ export default function CompanyOfferDetail() {
             });
           }
         } catch (thumbnailError) {
-          setVideoUrl(uploadedVideoUrl);
+          setVideoUrl(storedVideoUrl);
           setIsUploading(false);
           toast({
             title: "Video Uploaded",
