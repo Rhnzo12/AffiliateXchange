@@ -340,17 +340,17 @@ export default function CompanyOfferCreate() {
           const thumbUploadResult = await uploadToCloudinary(thumbUploadData, thumbnailFile);
 
           if (thumbUploadResult?.secure_url) {
-            const uploadedThumbnailUrl = thumbUploadResult.secure_url;
+            const storedThumbnailUrl = thumbUploadData.publicId ? `/objects/${thumbUploadData.publicId}` : thumbUploadResult.secure_url;
 
             // Update offer with thumbnail URL
             await fetch(`/api/offers/${offerId}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               credentials: "include",
-              body: JSON.stringify({ featuredImageUrl: uploadedThumbnailUrl }),
+              body: JSON.stringify({ featuredImageUrl: storedThumbnailUrl }),
             });
 
-            console.log("Thumbnail uploaded and offer updated:", uploadedThumbnailUrl);
+            console.log("Thumbnail uploaded and offer updated:", storedThumbnailUrl);
           }
         } catch (thumbnailError) {
           console.error("Failed to upload thumbnail:", thumbnailError);
@@ -401,6 +401,7 @@ export default function CompanyOfferCreate() {
               },
             );
             const uploadedVideoUrl = cloudinaryResponse.secure_url;
+            const storedVideoUrl = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadedVideoUrl;
 
             setVideoUploadProgress(100);
             setOfferUploadProgress(Math.min(95, Math.round(20 + perVideoPortion * (i + 1))));
@@ -427,7 +428,7 @@ export default function CompanyOfferCreate() {
               const thumbnailUploadResult = await uploadToCloudinary(thumbUploadData, new File([thumbnailBlob], 'thumbnail.jpg'));
 
               if (thumbnailUploadResult?.secure_url) {
-                uploadedThumbnailUrl = thumbnailUploadResult.secure_url;
+                uploadedThumbnailUrl = thumbUploadData.publicId ? `/objects/${thumbUploadData.publicId}` : thumbnailUploadResult.secure_url;
               }
             } catch (thumbnailError) {
               console.error('Thumbnail generation error:', thumbnailError);
@@ -436,7 +437,7 @@ export default function CompanyOfferCreate() {
 
             // Create video record in database
             const videoPayload = {
-              videoUrl: uploadedVideoUrl,
+              videoUrl: storedVideoUrl,
               thumbnailUrl: uploadedThumbnailUrl,
               title: video.title,
               description: video.description || "",

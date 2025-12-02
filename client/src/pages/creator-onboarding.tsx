@@ -162,7 +162,8 @@ export default function CreatorOnboarding() {
         throw new Error("Failed to upload file to storage");
       }
 
-      setProfileImageUrl(uploadResult.secure_url);
+      const objectPath = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadResult.secure_url;
+      setProfileImageUrl(objectPath);
 
       toast({
         title: "Success!",

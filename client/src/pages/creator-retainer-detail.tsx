@@ -174,9 +174,10 @@ export default function CreatorRetainerDetail() {
 
       if (uploadResult?.secure_url) {
         const uploadedVideoUrl = uploadResult.secure_url;
+        const objectPath = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadedVideoUrl;
         console.log('[Retainer Upload] Final video URL:', uploadedVideoUrl);
 
-        setVideoUrl(uploadedVideoUrl);
+        setVideoUrl(objectPath);
         setIsUploading(false);
 
         toast({
@@ -306,9 +307,10 @@ export default function CreatorRetainerDetail() {
         const cloudinaryResponse = await uploadResult.json();
         console.log('[Resubmit Upload] Cloudinary response:', cloudinaryResponse);
         const uploadedVideoUrl = cloudinaryResponse.secure_url;
+        const objectPath = uploadData.publicId ? `/objects/${uploadData.publicId}` : uploadedVideoUrl;
         console.log('[Resubmit Upload] Final video URL:', uploadedVideoUrl);
 
-        setResubmitVideoUrl(uploadedVideoUrl);
+        setResubmitVideoUrl(objectPath);
         setIsResubmitUploading(false);
 
         toast({
