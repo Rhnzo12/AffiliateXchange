@@ -47,12 +47,13 @@ import {
   ZoomOut,
   MoreVertical,
   Trash2,
-  Shield
+  Shield,
+  FileText
 } from "lucide-react";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { MessageTemplates } from "../components/MessageTemplates";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
-import { proxiedSrc } from "../lib/image";
+import { isImageUrl, isVideoUrl, proxiedSrc } from "../lib/image";
 import { MessageItemSkeleton } from "../components/skeletons";
 
 type MessageStatus = "sending" | "sent" | "failed";
@@ -131,6 +132,23 @@ export default function Messages() {
     setCurrentImages([]);
     setCurrentImageIndex(0);
     setImageZoom(1);
+  };
+
+  const getAttachmentType = (url: string) => {
+    if (isVideoUrl(url)) return 'video' as const;
+    if (isImageUrl(url)) return 'image' as const;
+    return 'file' as const;
+  };
+
+  const getAttachmentName = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      const pathname = parsed.pathname;
+      const lastSegment = pathname.split('/').filter(Boolean).pop();
+      return decodeURIComponent(lastSegment || 'Attachment');
+    } catch (error) {
+      return url.split('/').filter(Boolean).pop() || 'Attachment';
+    }
   };
 
   const nextImage = () => {
@@ -1201,21 +1219,57 @@ export default function Messages() {
                               }`}
                             >
                             {message.attachments && message.attachments.length > 0 && (
-                              <div className="mb-2 space-y-2">
-                                {message.attachments.map((url, idx) => (
-                                  <button
-                                    key={idx}
-                                    onClick={() => openImageViewer(message.attachments || [], idx)}
-                                    className="block w-full text-left"
-                                  >
-                                    <img
-                                      src={proxiedSrc(url)}
-                                      alt={`Attachment ${idx + 1}`}
-                                      className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                                      style={{ maxHeight: '300px' }}
-                                    />
-                                  </button>
-                                ))}
+                              <div className="mb-2 space-y-3">
+                                {(() => {
+                                  const imageAttachments = (message.attachments || []).filter(isImageUrl);
+                                  return message.attachments.map((url, idx) => {
+                                    const type = getAttachmentType(url);
+                                    const imageIndex = imageAttachments.indexOf(url);
+
+                                  if (type === 'image') {
+                                    return (
+                                      <button
+                                        key={idx}
+                                        onClick={() => openImageViewer(imageAttachments, Math.max(0, imageIndex))}
+                                        className="block w-full text-left"
+                                      >
+                                        <img
+                                          src={proxiedSrc(url)}
+                                          alt={`Attachment ${idx + 1}`}
+                                          className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                                          style={{ maxHeight: '300px' }}
+                                        />
+                                      </button>
+                                    );
+                                  }
+
+                                  if (type === 'video') {
+                                    return (
+                                      <div key={idx} className="rounded-lg overflow-hidden bg-black/60">
+                                        <video
+                                          src={proxiedSrc(url)}
+                                          controls
+                                          className="w-full max-h-[320px]"
+                                        />
+                                      </div>
+                                    );
+                                  }
+
+                                    return (
+                                      <a
+                                        key={idx}
+                                        href={proxiedSrc(url) || url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 p-3 rounded-lg border bg-background/80 hover:bg-muted transition"
+                                      >
+                                        <FileText className="h-4 w-4" />
+                                        <span className="text-sm truncate flex-1">{getAttachmentName(url)}</span>
+                                        <Download className="h-4 w-4" />
+                                      </a>
+                                    );
+                                  });
+                                })()}
                               </div>
                             )}
 

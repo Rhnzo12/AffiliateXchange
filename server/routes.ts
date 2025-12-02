@@ -7240,7 +7240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple image proxy for allowed external hosts (e.g., GCS, Cloudinary)
+  // Simple image proxy for allowed external hosts (Cloudinary)
   // This makes images same-origin and helps avoid browser tracking-prevention blocking
   app.get("/proxy/image", async (req, res) => {
     try {
@@ -7255,54 +7255,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only allow known safe hosts to avoid open proxy / SSRF
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com", "googleapis.com"];
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
       const hostname = parsed.hostname || "";
       const allowed = allowedHosts.some((h) => hostname.endsWith(h));
       if (!allowed) return res.status(403).send("forbidden host");
 
       if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
 
-      // Cloudinary assets are public by default; legacy GCS signing logic kept for reference
-      // let fetchUrl = url;
-      // if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
-      //   try {
-      //     const pathParts = parsed.pathname.split('/').filter(p => p);
-      //     if (pathParts.length >= 2) {
-      //       const filePath = pathParts.slice(1).join('/');
-      //       const { Storage } = await import('@google-cloud/storage');
-      //       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
-      //       const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
-      //       let gcsStorage: any;
-      //       const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-      //       if (credentialsJson) {
-      //         const credentials = JSON.parse(credentialsJson);
-      //         gcsStorage = new Storage({
-      //           projectId: projectId || credentials.project_id,
-      //           credentials,
-      //         });
-      //       } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-      //         gcsStorage = new Storage({
-      //           projectId,
-      //           keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-      //         });
-      //       } else {
-      //         gcsStorage = new Storage({ projectId });
-      //       }
-      //       const [signedUrl] = await gcsStorage
-      //         .bucket(bucketName)
-      //         .file(filePath)
-      //         .getSignedUrl({
-      //           version: 'v4',
-      //           action: 'read',
-      //           expires: Date.now() + 60 * 60 * 1000,
-      //         });
-      //       fetchUrl = signedUrl;
-      //       console.log('[Proxy Image] Generated signed URL for GCS file:', filePath);
-      //     }
-      //   } catch (signedUrlError) {
-      //     console.error('[Proxy Image] Failed to generate signed URL:', signedUrlError);
-      //   }
-      // }
       const fetchUrl = url;
 
       const fetchRes = await fetch(fetchUrl, { method: "GET" });
@@ -7339,56 +7298,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only allow known safe hosts to avoid open proxy / SSRF
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com", "googleapis.com"];
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
       const hostname = parsed.hostname || "";
       const allowed = allowedHosts.some((h) => hostname.endsWith(h));
       if (!allowed) return res.status(403).send("forbidden host");
 
       if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
 
-      // Cloudinary assets are public by default; legacy GCS signing logic kept for reference
-      // let fetchUrl = url;
-      // if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
-      //   try {
-      //     const pathParts = parsed.pathname.split('/').filter(p => p);
-      //     if (pathParts.length >= 2) {
-      //       const filePath = pathParts.slice(1).join('/');
-      //       const { Storage } = await import('@google-cloud/storage');
-      //       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
-      //       const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
-      //       let gcsStorage: any;
-      //       const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-      //       if (credentialsJson) {
-      //         const credentials = JSON.parse(credentialsJson);
-      //         gcsStorage = new Storage({
-      //           projectId: projectId || credentials.project_id,
-      //           credentials,
-      //         });
-      //       }
-      //       else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-      //         gcsStorage = new Storage({
-      //           projectId,
-      //           keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-      //         });
-      //       }
-      //       else {
-      //         gcsStorage = new Storage({ projectId });
-      //       }
-      //       const [signedUrl] = await gcsStorage
-      //         .bucket(bucketName)
-      //         .file(filePath)
-      //         .getSignedUrl({
-      //           version: 'v4',
-      //           action: 'read',
-      //           expires: Date.now() + 60 * 60 * 1000,
-      //         });
-      //       fetchUrl = signedUrl;
-      //       console.log('[Proxy Video] Generated signed URL for GCS file:', filePath);
-      //     }
-      //   } catch (signedUrlError) {
-      //     console.error('[Proxy Video] Failed to generate signed URL:', signedUrlError);
-      //   }
-      // }
       const fetchUrl = url;
 
       // Get the range header from the request (for video seeking)
@@ -7458,6 +7374,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('[Video Proxy] Error fetching video:', error);
       res.status(500).send(error?.message || 'video proxy error');
+    }
+  });
+
+  // Generic file proxy to support documents and other assets
+  app.get("/proxy/file", async (req, res) => {
+    try {
+      const url = (req.query.url as string) || req.query.u as string;
+      if (!url) return res.status(400).send("url query param is required");
+
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch (e) {
+        return res.status(400).send("invalid url");
+      }
+
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
+      const hostname = parsed.hostname || "";
+      const allowed = allowedHosts.some((h) => hostname.endsWith(h));
+      if (!allowed) return res.status(403).send("forbidden host");
+
+      if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
+
+      const fetchRes = await fetch(url, { method: "GET" });
+      if (!fetchRes.ok) return res.status(fetchRes.status).send("failed to fetch file");
+
+      const contentType = fetchRes.headers.get("content-type");
+      if (contentType) res.setHeader("Content-Type", contentType);
+
+      const contentLength = fetchRes.headers.get("content-length");
+      if (contentLength) res.setHeader("Content-Length", contentLength);
+
+      const cacheControl = fetchRes.headers.get("cache-control");
+      if (cacheControl) res.setHeader("Cache-Control", cacheControl);
+
+      res.setHeader("Access-Control-Allow-Origin", "*");
+
+      if (fetchRes.body) {
+        const reader = fetchRes.body.getReader();
+        const pump = async () => {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              res.write(Buffer.from(value));
+            }
+            res.end();
+          } catch (error) {
+            console.error('[File Proxy] Error streaming file:', error);
+            res.end();
+          }
+        };
+        await pump();
+      } else {
+        const arrayBuffer = await fetchRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        res.send(buffer);
+      }
+    } catch (error: any) {
+      console.error('[File Proxy] Error fetching file:', error);
+      res.status(500).send(error?.message || 'file proxy error');
     }
   });
 

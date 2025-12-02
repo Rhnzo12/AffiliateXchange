@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
-import { proxiedSrc } from "../lib/image";
+import { isImageUrl, isVideoUrl, proxiedSrc } from "../lib/image";
 import {
   exportConversationPDF,
   exportConversationCSV,
@@ -52,6 +52,23 @@ interface EnhancedMessage {
   isRead: boolean;
   senderType?: 'user' | 'platform';
 }
+
+const getAttachmentType = (url: string) => {
+  if (isVideoUrl(url)) return 'video' as const;
+  if (isImageUrl(url)) return 'image' as const;
+  return 'file' as const;
+};
+
+const getAttachmentName = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname;
+    const lastSegment = pathname.split('/').filter(Boolean).pop();
+    return decodeURIComponent(lastSegment || 'Attachment');
+  } catch (error) {
+    return url.split('/').filter(Boolean).pop() || 'Attachment';
+  }
+};
 
 export default function AdminMessages() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -526,23 +543,57 @@ export default function AdminMessages() {
                               }`}>
                                 {/* Attachments */}
                                 {message.attachments && message.attachments.length > 0 && (
-                                  <div className="mb-2 space-y-2">
-                                    {message.attachments.map((url, idx) => (
-                                      <a
-                                        key={idx}
-                                        href={url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="block"
-                                      >
-                                        <img
-                                          src={proxiedSrc(url)}
-                                          alt={`Attachment ${idx + 1}`}
-                                          className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                                          style={{ maxHeight: '300px' }}
-                                        />
-                                      </a>
-                                    ))}
+                                  <div className="mb-2 space-y-3">
+                                    {(() => {
+                                      return message.attachments.map((url, idx) => {
+                                        const type = getAttachmentType(url);
+
+                                        if (type === 'image') {
+                                          return (
+                                            <a
+                                              key={idx}
+                                              href={proxiedSrc(url) || url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="block"
+                                            >
+                                              <img
+                                                src={proxiedSrc(url)}
+                                                alt={`Attachment ${idx + 1}`}
+                                                className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                                                style={{ maxHeight: '300px' }}
+                                              />
+                                            </a>
+                                          );
+                                        }
+
+                                        if (type === 'video') {
+                                          return (
+                                            <div key={idx} className="rounded-lg overflow-hidden bg-black/60">
+                                              <video
+                                                src={proxiedSrc(url)}
+                                                controls
+                                                className="w-full max-h-[320px]"
+                                              />
+                                            </div>
+                                          );
+                                        }
+
+                                        return (
+                                          <a
+                                            key={idx}
+                                            href={proxiedSrc(url) || url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 p-3 rounded-lg border bg-background/80 hover:bg-muted transition"
+                                          >
+                                            <FileText className="h-4 w-4" />
+                                            <span className="text-sm truncate flex-1">{getAttachmentName(url)}</span>
+                                            <Download className="h-4 w-4" />
+                                          </a>
+                                        );
+                                      });
+                                    })()}
                                   </div>
                                 )}
 
