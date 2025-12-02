@@ -46,6 +46,7 @@ import CompanyApplications from "./pages/company-applications";
 import CompanyCreators from "./pages/company-creators";
 import CompanyReviews from "./pages/company-reviews";
 import CompanyVideos from "./pages/company-videos";
+import CompanyCreatorWorkflow from "./pages/company-creator-workflow";
 import CompanyRetainers from "./pages/company-retainers";
 import CompanyRetainerDetail from "./pages/company-retainer-detail";
 import AdminDashboard from "./pages/admin-dashboard";
@@ -297,11 +298,12 @@ function ProtectedRouter() {
               <Route path="/company/offers" component={CompanyOffers} />
               <Route path="/company/offers/create" component={CompanyOfferCreate} />
               <Route path="/company/offers/:id" component={CompanyOfferDetail} />
-              <Route path="/company/videos" component={CompanyVideos} />
+              <Route path="/company/creator-workflow" component={CompanyCreatorWorkflow} />
+              <Route path="/company/videos" component={() => <CompanyCreatorWorkflow defaultTab="videos" />} />
               <Route path="/company/retainers" component={CompanyRetainers} />
               <Route path="/company/retainers/:id" component={CompanyRetainerDetail} />
-              <Route path="/company/applications" component={CompanyApplications} />
-              <Route path="/company/creators" component={CompanyCreators} />
+              <Route path="/company/applications" component={() => <CompanyCreatorWorkflow defaultTab="applications" />} />
+              <Route path="/company/creators" component={() => <CompanyCreatorWorkflow defaultTab="creators" />} />
               <Route path="/company/analytics" component={Analytics} />
               <Route path="/company/messages" component={Messages} />
               <Route path="/company/reviews" component={CompanyReviews} />
