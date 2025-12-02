@@ -62,10 +62,25 @@ export default function CompanyCreatorWorkflow({ defaultTab = "videos" }: Compan
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="videos">Promotional Videos</TabsTrigger>
-          <TabsTrigger value="applications">Applications</TabsTrigger>
-          <TabsTrigger value="creators">Approved Creators</TabsTrigger>
+        <TabsList className="flex w-full items-center gap-6 border-b border-border bg-transparent p-0 sm:w-auto">
+          <TabsTrigger
+            value="videos"
+            className="relative h-auto rounded-none bg-transparent px-0 pb-3 text-base font-semibold text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:after:absolute data-[state=active]:after:left-0 data-[state=active]:after:top-full data-[state=active]:after:block data-[state=active]:after:h-0.5 data-[state=active]:after:w-full data-[state=active]:after:bg-primary"
+          >
+            Promotional Videos
+          </TabsTrigger>
+          <TabsTrigger
+            value="applications"
+            className="relative h-auto rounded-none bg-transparent px-0 pb-3 text-base font-semibold text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:after:absolute data-[state=active]:after:left-0 data-[state=active]:after:top-full data-[state=active]:after:block data-[state=active]:after:h-0.5 data-[state=active]:after:w-full data-[state=active]:after:bg-primary"
+          >
+            Applications
+          </TabsTrigger>
+          <TabsTrigger
+            value="creators"
+            className="relative h-auto rounded-none bg-transparent px-0 pb-3 text-base font-semibold text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:after:absolute data-[state=active]:after:left-0 data-[state=active]:after:top-full data-[state=active]:after:block data-[state=active]:after:h-0.5 data-[state=active]:after:w-full data-[state=active]:after:bg-primary"
+          >
+            Approved Creators
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="videos" className="space-y-6">
