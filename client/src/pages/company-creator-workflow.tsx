@@ -56,9 +56,6 @@ export default function CompanyCreatorWorkflow({ defaultTab = "videos" }: Compan
       <TopNavBar />
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Creator Workflow</h1>
-        <p className="text-muted-foreground">
-          Manage your promotional videos, review applications, and keep track of approved creators from one place.
-        </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
