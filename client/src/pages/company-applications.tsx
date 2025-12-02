@@ -9,12 +9,12 @@ import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
+  DropdownMenuCheckboxItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
@@ -42,10 +42,10 @@ export default function CompanyApplications({ hideTopNav = false }: CompanyAppli
   const [reviewPromptOpen, setReviewPromptOpen] = useState(false);
   const [reviewPromptData, setReviewPromptData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [offerFilter, setOfferFilter] = useState("all");
-  const [pendingStatusFilter, setPendingStatusFilter] = useState("all");
-  const [pendingOfferFilter, setPendingOfferFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [offerFilter, setOfferFilter] = useState<string[]>([]);
+  const [pendingStatusFilter, setPendingStatusFilter] = useState<string[]>([]);
+  const [pendingOfferFilter, setPendingOfferFilter] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
 
@@ -126,8 +126,8 @@ export default function CompanyApplications({ hideTopNav = false }: CompanyAppli
 
   const filteredApplications = useMemo(() => {
     return applications.filter((app: any) => {
-      const matchesStatus = statusFilter === "all" || app.status === statusFilter;
-      const matchesOffer = offerFilter === "all" || app.offer?.id === offerFilter;
+      const matchesStatus = statusFilter.length === 0 || statusFilter.includes(app.status);
+      const matchesOffer = offerFilter.length === 0 || offerFilter.includes(app.offer?.id);
       const matchesSearch = searchTerm
         ? [
             app.offer?.title,
@@ -145,26 +145,26 @@ export default function CompanyApplications({ hideTopNav = false }: CompanyAppli
   }, [applications, offerFilter, searchTerm, statusFilter]);
 
   const hasActiveFilters =
-    searchTerm.trim().length > 0 || statusFilter !== "all" || offerFilter !== "all";
+    searchTerm.trim().length > 0 || statusFilter.length > 0 || offerFilter.length > 0;
 
   const clearFilters = () => {
     setSearchTerm("");
-    setStatusFilter("all");
-    setOfferFilter("all");
-    setPendingStatusFilter("all");
-    setPendingOfferFilter("all");
+    setStatusFilter([]);
+    setOfferFilter([]);
+    setPendingStatusFilter([]);
+    setPendingOfferFilter([]);
   };
 
   const applyFilters = () => {
-    setStatusFilter(pendingStatusFilter);
-    setOfferFilter(pendingOfferFilter);
+    setStatusFilter([...pendingStatusFilter]);
+    setOfferFilter([...pendingOfferFilter]);
     setFilterMenuOpen(false);
   };
 
   useEffect(() => {
     if (filterMenuOpen) {
-      setPendingStatusFilter(statusFilter);
-      setPendingOfferFilter(offerFilter);
+      setPendingStatusFilter([...statusFilter]);
+      setPendingOfferFilter([...offerFilter]);
     }
   }, [filterMenuOpen, offerFilter, statusFilter]);
 
@@ -393,47 +393,88 @@ export default function CompanyApplications({ hideTopNav = false }: CompanyAppli
                 <DropdownMenuContent align="end" className="w-72 space-y-2">
                   <DropdownMenuLabel>Filter applications</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <div className="space-y-2 px-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</p>
-                    <DropdownMenuRadioGroup
-                      value={pendingStatusFilter}
-                      onValueChange={setPendingStatusFilter}
-                      className="space-y-1"
-                    >
-                      <DropdownMenuRadioItem value="all">All statuses</DropdownMenuRadioItem>
-                      {statusOptions.map((status) => (
-                        <DropdownMenuRadioItem key={status.value} value={status.value}>
-                          {status.label}
-                        </DropdownMenuRadioItem>
-                      ))}
-                    </DropdownMenuRadioGroup>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <div className="space-y-2 px-2 pb-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Offer</p>
-                    <DropdownMenuRadioGroup
-                      value={pendingOfferFilter}
-                      onValueChange={setPendingOfferFilter}
-                      className="space-y-1"
-                    >
-                      <DropdownMenuRadioItem value="all">All offers</DropdownMenuRadioItem>
-                      {uniqueOffers.map(([id, title]) => (
-                        <DropdownMenuRadioItem key={id} value={id}>
-                          {title}
-                        </DropdownMenuRadioItem>
-                      ))}
-                    </DropdownMenuRadioGroup>
-                  </div>
+                  <Accordion type="multiple" className="px-2" collapsible defaultValue={[]}>
+                    <AccordionItem value="status">
+                      <AccordionTrigger className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Status
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-1">
+                        <DropdownMenuCheckboxItem
+                          checked={pendingStatusFilter.length === 0}
+                          onCheckedChange={(checked) =>
+                            setPendingStatusFilter(checked ? [] : pendingStatusFilter)
+                          }
+                          onSelect={(event) => event.preventDefault()}
+                          className="cursor-pointer"
+                        >
+                          All Status
+                        </DropdownMenuCheckboxItem>
+                        {statusOptions.map((status) => {
+                          const isChecked = pendingStatusFilter.includes(status.value);
+                          return (
+                            <DropdownMenuCheckboxItem
+                              key={status.value}
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setPendingStatusFilter((prev) => [...prev, status.value]);
+                                } else {
+                                  setPendingStatusFilter((prev) => prev.filter((value) => value !== status.value));
+                                }
+                              }}
+                              onSelect={(event) => event.preventDefault()}
+                              className="cursor-pointer"
+                            >
+                              {status.label}
+                            </DropdownMenuCheckboxItem>
+                          );
+                        })}
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="offer">
+                      <AccordionTrigger className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Offer
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-1">
+                        <DropdownMenuCheckboxItem
+                          checked={pendingOfferFilter.length === 0}
+                          onCheckedChange={(checked) => setPendingOfferFilter(checked ? [] : pendingOfferFilter)}
+                          onSelect={(event) => event.preventDefault()}
+                          className="cursor-pointer"
+                        >
+                          All offers
+                        </DropdownMenuCheckboxItem>
+                        {uniqueOffers.map(([id, title]) => {
+                          const isChecked = pendingOfferFilter.includes(id);
+                          return (
+                            <DropdownMenuCheckboxItem
+                              key={id}
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setPendingOfferFilter((prev) => [...prev, id]);
+                                } else {
+                                  setPendingOfferFilter((prev) => prev.filter((value) => value !== id));
+                                }
+                              }}
+                              onSelect={(event) => event.preventDefault()}
+                              className="cursor-pointer"
+                            >
+                              {title}
+                            </DropdownMenuCheckboxItem>
+                          );
+                        })}
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                   <DropdownMenuSeparator />
                   <div className="flex items-center justify-between gap-2 px-2 pb-2">
                     <Button
                       variant="ghost"
                       size="sm"
                       className="gap-2 text-muted-foreground"
-                      onClick={() => {
-                        clearFilters();
-                        setFilterMenuOpen(false);
-                      }}
+                      onClick={clearFilters}
                     >
                       <X className="h-4 w-4" />
                       Clear filters
