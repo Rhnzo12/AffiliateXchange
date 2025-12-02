@@ -696,7 +696,10 @@ export default function Messages() {
         throw new Error("Failed to upload file to storage");
       }
 
-      uploadedUrls.push(uploadResult.secure_url);
+      // Prefer storing the internal object path in the database so fetches work even if the
+      // full Cloudinary URL changes. Fall back to the secure URL if we can't build a path.
+      const objectPath = uploadData.publicId ? `/objects/${uploadData.publicId}` : undefined;
+      uploadedUrls.push(objectPath || uploadResult.secure_url);
     }
 
     return uploadedUrls;
