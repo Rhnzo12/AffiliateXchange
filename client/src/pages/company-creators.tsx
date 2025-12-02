@@ -34,6 +34,7 @@ import {
   DollarSign,
   Loader2,
   Filter,
+  ChevronDown,
 } from "lucide-react";
 import { exportCreatorListPDF, type CreatorExportData } from "../lib/export-utils";
 import { Link, useLocation } from "wouter";
@@ -41,7 +42,16 @@ import { TopNavBar } from "../components/TopNavBar";
 import { apiRequest } from "../lib/queryClient";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { proxiedSrc } from "../lib/image";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 
 type CompanyCreatorsProps = {
   hideTopNav?: boolean;
@@ -132,6 +142,9 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const [payoutProcessingId, setPayoutProcessingId] = useState<string | null>(null);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
@@ -328,9 +341,14 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
         ? haystack.some((value) => value.toLowerCase().includes(searchValue))
         : true;
 
-      return matchesSearch;
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : application.status.toLowerCase() === statusFilter.toLowerCase();
+
+      return matchesSearch && matchesStatus;
     });
-  }, [normalizedApplications, searchTerm]);
+  }, [normalizedApplications, searchTerm, statusFilter]);
 
   const groupedOffers = useMemo(() => {
     const map = new Map<string, { offerTitle: string; items: NormalizedApplication[] }>();
@@ -500,10 +518,12 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
   const totalVisibleCreators = filteredApplications.length;
   const totalCreators = normalizedApplications.length;
 
-  const hasActiveFilters = searchTerm.trim().length > 0;
+  const hasActiveFilters = searchTerm.trim().length > 0 || statusFilter !== "all";
 
   const clearFilters = () => {
     setSearchTerm("");
+    setStatusFilter("all");
+    setFilterMenuOpen(false);
   };
 
   const prepareCreatorExportData = (): CreatorExportData[] => {
@@ -589,6 +609,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
       // Build filter description
       const filterParts: string[] = [];
       if (searchTerm) filterParts.push(`Search: "${searchTerm}"`);
+      if (statusFilter !== "all") filterParts.push(`Status: ${formatStatusLabel(statusFilter)}`);
 
       const filterInfo = filterParts.length > 0
         ? `Filters: ${filterParts.join(" | ")}`
@@ -631,14 +652,50 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportCreatorCsv} className="gap-2">
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button variant="outline" onClick={exportCreatorPdf} className="gap-2">
-            <FileText className="h-4 w-4" />
-            PDF Report
-          </Button>
+          <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+            <div
+              onMouseEnter={() => setExportMenuOpen(true)}
+              onMouseLeave={() => setExportMenuOpen(false)}
+              className="shrink-0"
+            >
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Export
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-48"
+                onMouseEnter={() => setExportMenuOpen(true)}
+                onMouseLeave={() => setExportMenuOpen(false)}
+              >
+                <DropdownMenuLabel>Export creators</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="gap-2"
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    exportCreatorCsv();
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  CSV file
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="gap-2"
+                  onClick={() => {
+                    setExportMenuOpen(false);
+                    exportCreatorPdf();
+                  }}
+                >
+                  <FileText className="h-4 w-4" />
+                  PDF report
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </div>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -652,25 +709,47 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                 onChange={(event) => setSearchTerm(event.target.value)}
                 className="w-full"
               />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="shrink-0"
-                    aria-label="Filter"
-                    onClick={() =>
-                      toast({
-                        title: "Filters applied",
-                        description: "Your current search is now showing.",
-                      })
-                    }
+              <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
+                <div
+                  onMouseEnter={() => setFilterMenuOpen(true)}
+                  onMouseLeave={() => setFilterMenuOpen(false)}
+                  className="shrink-0"
+                >
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" aria-label="Filter" className="shrink-0">
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-56"
+                    onMouseEnter={() => setFilterMenuOpen(true)}
+                    onMouseLeave={() => setFilterMenuOpen(false)}
                   >
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Filter</TooltipContent>
-              </Tooltip>
+                    <DropdownMenuLabel>Filter creators</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuRadioGroup
+                      value={statusFilter}
+                      onValueChange={(value) => {
+                        setStatusFilter(value);
+                        setFilterMenuOpen(false);
+                      }}
+                    >
+                      <DropdownMenuRadioItem value="all">All statuses</DropdownMenuRadioItem>
+                      {STATUS_OPTIONS.map((option) => (
+                        <DropdownMenuRadioItem key={option.value} value={option.value}>
+                          {option.label}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="gap-2" onClick={clearFilters}>
+                      <X className="h-4 w-4" />
+                      Clear filters
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </div>
+              </DropdownMenu>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground xl:ml-auto">
               Showing <span className="font-semibold text-foreground">{totalVisibleCreators}</span> of {totalCreators}
@@ -678,7 +757,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" className="text-xs" onClick={clearFilters}>
                   <X className="h-3 w-3 mr-1" />
-                  Clear Search
+                  Clear Filters
                 </Button>
               )}
             </div>
