@@ -135,6 +135,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }, 60000); // Check every minute
 
+  app.get("/api/documents/signed-url/:publicId(*)", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const userRole = (req.user as any)?.role;
+      
+      // Get the public ID from the URL params (the (*) allows slashes in the publicId)
+      const publicId = req.params.publicId;
+      
+      // Get resource type from query params (default: 'raw' for documents)
+      const resourceType = (req.query.resourceType as string) || 'raw';
+      
+      console.log('[Signed URL] Request received');
+      console.log('[Signed URL] User ID:', userId);
+      console.log('[Signed URL] User Role:', userRole);
+      console.log('[Signed URL] Public ID:', publicId);
+      console.log('[Signed URL] Resource type:', resourceType);
+      
+      // Validate public ID
+      if (!publicId || publicId.trim() === '') {
+        console.error('[Signed URL] Empty public ID provided');
+        return res.status(400).json({ 
+          error: "Bad Request",
+          message: "Public ID is required"
+        });
+      }
+
+      // Generate signed URL valid for 1 hour using the shared object storage service
+      const signedUrl = sharedObjectStorageService.getSignedViewUrl(publicId, {
+        resourceType: resourceType as any,
+        expiresIn: 3600, // 1 hour in seconds
+      });
+      
+      // Calculate expiry date
+      const expiresAt = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
+      
+      console.log('[Signed URL] Successfully generated signed URL');
+      console.log('[Signed URL] Expires at:', expiresAt);
+      
+      // Return the signed URL to the client
+      res.json({ 
+        url: signedUrl,
+        expiresAt: expiresAt,
+        publicId: publicId
+      });
+      
+    } catch (error) {
+      console.error('[Signed URL] Error generating signed URL:', error);
+      
+      // Return error to client
+      res.status(500).json({ 
+        error: "Internal Server Error",
+        message: "Failed to generate signed URL",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Email change verification endpoint - validates password and checks email availability
   app.post("/api/auth/verify-email-change", requireAuth, async (req, res) => {
     try {

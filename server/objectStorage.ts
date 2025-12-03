@@ -10,36 +10,6 @@ import {
   setObjectAclPolicy,
 } from "./objectAcl";
 
-// Legacy Google Cloud Storage setup preserved for easy re-enablement
-// import { Storage } from '@google-cloud/storage';
-// let storage: Storage;
-// try {
-//   const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-//   if (credentialsJson) {
-//     const credentials = JSON.parse(credentialsJson);
-//     storage = new Storage({
-//       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || credentials.project_id,
-//       credentials,
-//     });
-//     console.log('[GCS] ✓ Initialized with credentials from GOOGLE_CLOUD_CREDENTIALS_JSON');
-//   } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-//     storage = new Storage({
-//       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-//       keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-//     });
-//     console.log('[GCS] ✓ Initialized with key file from GOOGLE_CLOUD_KEYFILE');
-//   } else {
-//     storage = new Storage({
-//       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-//     });
-//     console.log('[GCS] ⚠️  Initialized with default credentials (may fail if not in GCP environment)');
-//   }
-// } catch (error) {
-//   console.error('[GCS] ❌ Error initializing Google Cloud Storage:', error);
-//   throw error;
-// }
-// const BUCKET_NAME = process.env.GOOGLE_CLOUD_BUCKET_NAME || 'myapp-media-affiliate';
-
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -108,11 +78,7 @@ export class ObjectStorageService {
   }> {
     const folder = customFolder || this.getStorageFolder();
 
-    // Don't include file extension - Cloudinary will add it automatically based on the uploaded file
-    // Including extension here causes .png.png duplication
     const fileName = randomUUID();
-    // Use only the fileName for publicId since Cloudinary will combine folder + publicId
-    // If we use buildPublicId here, it creates folder/folder/fileName duplication
     const publicId = fileName;
     const timestamp = Math.round(Date.now() / 1000);
 
@@ -120,9 +86,6 @@ export class ObjectStorageService {
       folder,
       public_id: publicId,
       timestamp,
-      // resource_type is determined by the upload URL path and should not be included in the
-      // signature unless it is also sent as an upload parameter. We keep the signature aligned
-      // with the fields actually posted by the client to avoid mismatches.
     };
 
     const signature = cloudinary.utils.api_sign_request(
@@ -228,6 +191,31 @@ export class ObjectStorageService {
     }
   }
 
+  /**
+   * Generate a signed URL for viewing a document
+   * This method creates time-limited URLs that bypass authentication
+   * @param publicId - The Cloudinary public ID (without extension)
+   * @param options - Optional parameters for URL generation
+   * @returns Signed URL valid for specified duration (default 1 hour)
+   */
+  getSignedViewUrl(
+    publicId: string,
+    options?: {
+      resourceType?: ResourceType;
+      expiresIn?: number; // seconds, default 3600 (1 hour)
+    }
+  ): string {
+    const expiresAt = Math.floor(Date.now() / 1000) + (options?.expiresIn || 3600);
+    
+    return cloudinary.url(publicId, {
+      secure: true,
+      sign_url: true,
+      resource_type: options?.resourceType || 'raw',
+      type: 'authenticated',
+      expires_at: expiresAt,
+    });
+  }
+
   async deleteVideo(publicId: string): Promise<any> {
     return await this.deleteResource(publicId, 'video');
   }
@@ -324,7 +312,6 @@ export class ObjectStorageService {
     aclPolicy: ObjectAclPolicy
   ): Promise<string> {
     const normalizedPath = this.normalizeObjectEntityPath(rawPath);
-    // Cloudinary assets are managed via delivery type; ACL policy is not applied directly.
     return normalizedPath;
   }
 
@@ -348,3 +335,5 @@ export class ObjectStorageService {
     return this.getStorageFolder();
   }
 }
+
+export const objectStorage = new ObjectStorageService();

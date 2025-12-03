@@ -626,81 +626,50 @@ export default function Settings() {
   };
 
   // Helper function to extract Cloudinary public_id from URL
+
   const extractCloudinaryPublicId = (documentUrl: string): string => {
     try {
       console.log('[extractCloudinaryPublicId] Processing URL:', documentUrl);
       
-      // Safety check for empty or invalid URLs
       if (!documentUrl || typeof documentUrl !== 'string' || documentUrl.trim() === '') {
         throw new Error('Invalid or empty document URL');
       }
       
       const trimmedUrl = documentUrl.trim();
       
-      // Check if it's a relative path (starts with /)
-      if (trimmedUrl.startsWith('/')) {
-        console.log('[extractCloudinaryPublicId] Relative path detected');
-        
-        // If it's an /objects/ path, extract from that
-        if (trimmedUrl.startsWith('/objects/')) {
-          const result = trimmedUrl.replace('/objects/', '');
-          console.log('[extractCloudinaryPublicId] Extracted from /objects/:', result);
-          return result;
-        }
-        
-        // Otherwise, remove leading slash and return
+      // Handle /objects/ paths
+      if (trimmedUrl.startsWith('/objects/')) {
+        const result = trimmedUrl.replace('/objects/', '');
+        console.log('[extractCloudinaryPublicId] Extracted from /objects/:', result);
+        return result;
+      }
+      
+      // Handle relative paths
+      if (trimmedUrl.startsWith('/') && !trimmedUrl.includes('cloudinary.com')) {
         const result = trimmedUrl.slice(1);
         console.log('[extractCloudinaryPublicId] Using relative path:', result);
         return result;
       }
       
-      // It's a full URL, parse it
-      const url = new URL(trimmedUrl);
-      const pathname = url.pathname;
-      console.log('[extractCloudinaryPublicId] Pathname:', pathname);
-      
-      // Check if it's a Cloudinary URL
-      if (!trimmedUrl.includes('cloudinary.com')) {
-        console.log('[extractCloudinaryPublicId] Not a Cloudinary URL');
-        // Use the path as-is (removing leading slash)
-        const result = pathname.startsWith('/') ? pathname.slice(1) : pathname;
-        console.log('[extractCloudinaryPublicId] Using pathname:', result);
-        return result;
+      // Handle full Cloudinary URLs
+      if (trimmedUrl.includes('cloudinary.com')) {
+        const url = new URL(trimmedUrl);
+        const pathParts = url.pathname.split('/').filter(Boolean);
+        const uploadIndex = pathParts.findIndex(p => p === 'upload');
+        
+        if (uploadIndex !== -1 && uploadIndex < pathParts.length - 1) {
+          const afterUpload = pathParts.slice(uploadIndex + 1).join('/');
+          // Remove version prefix (v123456/) and file extension
+          const result = afterUpload.replace(/^v\d+\//, '').replace(/\.[^.]+$/, '');
+          console.log('[extractCloudinaryPublicId] Extracted from Cloudinary URL:', result);
+          return result;
+        }
       }
       
-      // Parse Cloudinary URL
-      // Format: /cloud-name/resource-type/upload/[v123456/]public-id
-      const parts = pathname.split('/').filter(Boolean);
-      console.log('[extractCloudinaryPublicId] URL parts:', parts);
-      
-      // Find 'upload' in the path
-      const uploadIndex = parts.indexOf('upload');
-      console.log('[extractCloudinaryPublicId] Upload index:', uploadIndex);
-      
-      if (uploadIndex === -1) {
-        throw new Error('Invalid Cloudinary URL: missing "upload" segment');
-      }
-      
-      // Everything after 'upload' is either version+public_id or just public_id
-      const afterUpload = parts.slice(uploadIndex + 1);
-      console.log('[extractCloudinaryPublicId] After upload:', afterUpload);
-      
-      if (afterUpload.length === 0) {
-        throw new Error('Invalid Cloudinary URL: no public_id found');
-      }
-      
-      // Check if first part after upload is a version (starts with 'v' followed by numbers)
-      if (afterUpload[0].match(/^v\d+$/)) {
-        // Skip version, take the rest as public_id
-        const result = afterUpload.slice(1).join('/');
-        console.log('[extractCloudinaryPublicId] With version, public_id:', result);
-        return result;
-      } else {
-        // No version, everything after upload is the public_id
-        const result = afterUpload.join('/');
-        console.log('[extractCloudinaryPublicId] No version, public_id:', result);
-        return result;
-      }
+      // Fallback: use as-is, removing file extension
+      const result = trimmedUrl.replace(/\.[^.]+$/, '');
+      console.log('[extractCloudinaryPublicId] Using fallback:', result);
+      return result;
     } catch (error) {
       console.error('[extractCloudinaryPublicId] Error:', error);
       throw error;
@@ -708,52 +677,107 @@ export default function Settings() {
   };
 
   const handleViewDocument = async (documentUrl: string, documentName: string, documentType: string) => {
-  try {
-    setIsLoadingDocument(true);
-    setDocumentViewerName(documentName);
-    setDocumentViewerType(documentType);
-    setShowDocumentViewer(true);
-    setDocumentViewerError(null);
+    try {
+      setIsLoadingDocument(true);
+      setDocumentViewerName(documentName);
+      setDocumentViewerType(documentType);
+      setShowDocumentViewer(true);
+      setDocumentViewerError(null);
 
-    // Use the stored URL directly
-    if (!documentUrl) {
-      throw new Error('Missing document URL');
+      console.log('[handleViewDocument] Starting document view');
+      console.log('[handleViewDocument] Document URL:', documentUrl);
+      console.log('[handleViewDocument] Document Name:', documentName);
+      console.log('[handleViewDocument] Document Type:', documentType);
+
+      if (!documentUrl) {
+        throw new Error('Missing document URL');
+      }
+
+      // Extract public ID from Cloudinary URL
+      const publicId = extractCloudinaryPublicId(documentUrl);
+      console.log('[handleViewDocument] Extracted public ID:', publicId);
+
+      // Fetch signed URL from backend
+      const apiUrl = `/api/documents/signed-url/${encodeURIComponent(publicId)}?resourceType=raw`;
+      console.log('[handleViewDocument] Fetching signed URL from:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[handleViewDocument] API error response:', errorData);
+        throw new Error(errorData.message || errorData.error || 'Failed to get document access');
+      }
+
+      const data = await response.json();
+      console.log('[handleViewDocument] Got signed URL successfully');
+      console.log('[handleViewDocument] Expires at:', data.expiresAt);
+      
+      setDocumentViewerUrl(data.url);
+    } catch (error) {
+      console.error('[handleViewDocument] Error viewing document:', error);
+      setShowDocumentViewer(false);
+      setDocumentViewerError(
+        error instanceof Error ? error.message : "Failed to view document. Please try again."
+      );
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to view document",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingDocument(false);
     }
-
-    setDocumentViewerUrl(documentUrl);
-  } catch (error) {
-    console.error('[handleViewDocument] Error viewing document:', error);
-    setShowDocumentViewer(false);
-    setDocumentViewerError(
-      error instanceof Error ? error.message : "Failed to view document. Please try again.",
-    );
-  } finally {
-    setIsLoadingDocument(false);
-  }
-};
+  };
 
   const handleDownloadDocument = async (documentUrl: string, documentName: string) => {
-  try {
-    if (!documentUrl) {
-      throw new Error('Missing document URL');
-    }
+    try {
+      console.log('[handleDownloadDocument] Starting download');
+      console.log('[handleDownloadDocument] Document URL:', documentUrl);
 
-    const link = document.createElement('a');
-    link.href = documentUrl;
-    // `download` attribute is a hint; if Cloudinary returns inline, it may still open in tab
-    link.download = documentName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (error) {
-    console.error('[handleDownloadDocument] Error downloading document:', error);
-    toast({
-      title: "Error",
-      description: "Failed to download document. Please try again.",
-      variant: "destructive",
-    });
-  }
-};
+      if (!documentUrl) {
+        throw new Error('Missing document URL');
+      }
+
+      // Extract public ID and get signed URL for download
+      const publicId = extractCloudinaryPublicId(documentUrl);
+      console.log('[handleDownloadDocument] Extracted public ID:', publicId);
+
+      const apiUrl = `/api/documents/signed-url/${encodeURIComponent(publicId)}?resourceType=raw`;
+      const response = await fetch(apiUrl, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[handleDownloadDocument] API error:', errorData);
+        throw new Error(errorData.message || 'Failed to get download URL');
+      }
+
+      const data = await response.json();
+      console.log('[handleDownloadDocument] Got signed URL for download');
+
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = data.url;
+      link.download = documentName;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('[handleDownloadDocument] Download initiated');
+    } catch (error) {
+      console.error('[handleDownloadDocument] Error downloading document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download document. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const formatFileSize = (bytes: number | null): string => {
     if (!bytes) return 'Unknown size';
