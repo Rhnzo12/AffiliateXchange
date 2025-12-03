@@ -127,14 +127,6 @@ export default function Settings() {
   const [activeItemsDetails, setActiveItemsDetails] = useState<any>(null);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
 
-  // Document viewer state
-  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
-  const [documentViewerUrl, setDocumentViewerUrl] = useState("");
-  const [documentViewerName, setDocumentViewerName] = useState("");
-  const [documentViewerType, setDocumentViewerType] = useState("");
-  const [isLoadingDocument, setIsLoadingDocument] = useState(false);
-  const [documentViewerError, setDocumentViewerError] = useState<string | null>(null);
-
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
@@ -678,16 +670,8 @@ export default function Settings() {
 
   const handleViewDocument = async (documentUrl: string, documentName: string, documentType: string) => {
     try {
-      setIsLoadingDocument(true);
-      setDocumentViewerName(documentName);
-      setDocumentViewerType(documentType);
-      setShowDocumentViewer(true);
-      setDocumentViewerError(null);
-
       console.log('[handleViewDocument] Starting document view');
       console.log('[handleViewDocument] Document URL:', documentUrl);
-      console.log('[handleViewDocument] Document Name:', documentName);
-      console.log('[handleViewDocument] Document Type:', documentType);
 
       if (!documentUrl) {
         throw new Error('Missing document URL');
@@ -699,8 +683,6 @@ export default function Settings() {
 
       // Fetch signed URL from backend
       const apiUrl = `/api/documents/signed-url/${encodeURIComponent(publicId)}?resourceType=raw`;
-      console.log('[handleViewDocument] Fetching signed URL from:', apiUrl);
-      
       const response = await fetch(apiUrl, {
         credentials: 'include',
       });
@@ -713,29 +695,22 @@ export default function Settings() {
 
       const data = await response.json();
       console.log('[handleViewDocument] Got signed URL successfully');
-      console.log('[handleViewDocument] Expires at:', data.expiresAt);
-      
-      setDocumentViewerUrl(data.url);
+
+      // Open in new browser tab
+      window.open(data.url, '_blank');
     } catch (error) {
       console.error('[handleViewDocument] Error viewing document:', error);
-      setShowDocumentViewer(false);
-      setDocumentViewerError(
-        error instanceof Error ? error.message : "Failed to view document. Please try again."
-      );
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to view document",
         variant: "destructive",
       });
-    } finally {
-      setIsLoadingDocument(false);
     }
   };
 
   const handleDownloadDocument = async (documentUrl: string, documentName: string) => {
     try {
       console.log('[handleDownloadDocument] Starting download');
-      console.log('[handleDownloadDocument] Document URL:', documentUrl);
 
       if (!documentUrl) {
         throw new Error('Missing document URL');
@@ -743,8 +718,6 @@ export default function Settings() {
 
       // Extract public ID and get signed URL for download
       const publicId = extractCloudinaryPublicId(documentUrl);
-      console.log('[handleDownloadDocument] Extracted public ID:', publicId);
-
       const apiUrl = `/api/documents/signed-url/${encodeURIComponent(publicId)}?resourceType=raw`;
       const response = await fetch(apiUrl, {
         credentials: 'include',
@@ -752,23 +725,13 @@ export default function Settings() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('[handleDownloadDocument] API error:', errorData);
         throw new Error(errorData.message || 'Failed to get download URL');
       }
 
       const data = await response.json();
-      console.log('[handleDownloadDocument] Got signed URL for download');
 
-      // Create a temporary link and trigger download
-      const link = document.createElement('a');
-      link.href = data.url;
-      link.download = documentName;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      console.log('[handleDownloadDocument] Download initiated');
+      // Open in new tab (browser will handle download or display)
+      window.open(data.url, '_blank');
     } catch (error) {
       console.error('[handleDownloadDocument] Error downloading document:', error);
       toast({
@@ -2845,90 +2808,6 @@ export default function Settings() {
           </AlertDialogContent>
         </AlertDialog>
       )}
-
-      {/* Document Viewer Dialog */}
-      <Dialog open={showDocumentViewer} onOpenChange={(open) => {
-        if (!open) {
-          setShowDocumentViewer(false);
-          setDocumentViewerUrl("");
-          setDocumentViewerName("");
-          setDocumentViewerType("");
-          setDocumentViewerError(null);
-        }
-      }}>
-        <DialogContent
-          className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0"
-        >
-          <DialogHeader className="p-4 pb-2 border-b space-y-1.5">
-            <div className="flex items-start justify-between gap-2">
-              <DialogTitle className="truncate pr-8">{documentViewerName}</DialogTitle>
-              {documentViewerUrl && (
-                <Button variant="outline" size="sm" asChild>
-                  <a href={documentViewerUrl} target="_blank" rel="noopener noreferrer">
-                    Open in new tab
-                  </a>
-                </Button>
-              )}
-            </div>
-            <DialogDescription id="document-viewer-description">
-              Preview the selected document. Use the “Open in new tab” button if the embedded viewer does not load.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 p-4">
-            {isLoadingDocument ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : documentViewerError ? (
-              <Alert variant="destructive" className="h-full flex flex-col items-center justify-center text-center">
-                <AlertTitle>Unable to load document preview</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <p className="max-w-prose mx-auto text-sm text-muted-foreground">
-                    {documentViewerError}
-                  </p>
-                  {documentViewerUrl && (
-                    <Button variant="outline" asChild>
-                      <a href={documentViewerUrl} target="_blank" rel="noopener noreferrer">
-                        Open document in a new tab
-                      </a>
-                    </Button>
-                  )}
-                </AlertDescription>
-              </Alert>
-            ) : documentViewerUrl ? (
-              documentViewerType === 'pdf' ? (
-                <iframe
-                  src={`${documentViewerUrl}#toolbar=1&view=FitH`}
-                  className="w-full h-full rounded border"
-                  title={documentViewerName}
-                  style={{ border: 'none' }}
-                  onError={() => setDocumentViewerError('Failed to load the embedded PDF viewer.')}
-                />
-              ) : documentViewerType === 'image' ? (
-                <div className="flex items-center justify-center h-full">
-                  <img
-                    src={documentViewerUrl}
-                    alt={documentViewerName}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full gap-4">
-                  <p className="text-muted-foreground">Preview not available for this file type.</p>
-                  <a
-                    href={documentViewerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    Click here to open in a new tab
-                  </a>
-                </div>
-              )
-            ) : null}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <GenericErrorDialog
         open={!!errorDialog}
