@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
 import { useTutorial } from "../hooks/useTutorial";
-import { TUTORIAL_IDS, creatorDashboardTutorialSteps } from "../lib/tutorialConfig";
+import { TUTORIAL_IDS, creatorDashboardTutorialConfig } from "../lib/tutorialConfig";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import {
@@ -433,8 +433,7 @@ export default function CreatorDashboard() {
       <FirstTimeTutorial
         open={showTutorial}
         onComplete={completeTutorial}
-        steps={creatorDashboardTutorialSteps}
-        title="Welcome to Your Dashboard!"
+        config={creatorDashboardTutorialConfig}
       />
     </div>
   );

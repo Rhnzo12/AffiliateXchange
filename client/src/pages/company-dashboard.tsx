@@ -15,7 +15,7 @@ import { StatsGridSkeleton, ListItemSkeleton } from "../components/skeletons";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
 import { useTutorial } from "../hooks/useTutorial";
-import { TUTORIAL_IDS, companyDashboardTutorialSteps } from "../lib/tutorialConfig";
+import { TUTORIAL_IDS, companyDashboardTutorialConfig } from "../lib/tutorialConfig";
 
 export default function CompanyDashboard() {
   const { toast } = useToast();
@@ -328,8 +328,7 @@ export default function CompanyDashboard() {
       <FirstTimeTutorial
         open={showTutorial}
         onComplete={completeTutorial}
-        steps={companyDashboardTutorialSteps}
-        title="Welcome to Your Company Dashboard!"
+        config={companyDashboardTutorialConfig}
       />
     </div>
   );
