@@ -1,8 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
+import { useTutorial } from "../hooks/useTutorial";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
+import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
+import { TUTORIAL_IDS, analyticsTutorialConfig } from "../lib/tutorialConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import {
@@ -106,6 +109,7 @@ export default function Analytics() {
   const [, params] = useRoute("/analytics/:id");
   const applicationId = params?.id;
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+  const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.ANALYTICS);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -901,8 +905,8 @@ export default function Analytics() {
             {analytics?.offerBreakdown && analytics.offerBreakdown.length > 0 ? (
               <div className="space-y-3">
                 {analytics.offerBreakdown.map((offer: any) => (
-                  <div 
-                    key={offer.offerId} 
+                  <div
+                    key={offer.offerId}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 hover:border-primary/50 transition-all duration-200 cursor-pointer"
                   >
                     <div className="flex-1 min-w-0 pr-4">
@@ -942,6 +946,12 @@ export default function Analytics() {
           </CardContent>
         </Card>
       )}
+
+      <FirstTimeTutorial
+        open={showTutorial}
+        onComplete={completeTutorial}
+        config={analyticsTutorialConfig}
+      />
 
       <GenericErrorDialog
         open={!!errorDialog}
