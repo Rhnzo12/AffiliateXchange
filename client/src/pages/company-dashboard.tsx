@@ -13,11 +13,15 @@ import { formatDistanceToNow } from "date-fns";
 import { TopNavBar } from "../components/TopNavBar";
 import { StatsGridSkeleton, ListItemSkeleton } from "../components/skeletons";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
+import { useTutorial } from "../hooks/useTutorial";
+import { TUTORIAL_IDS, companyDashboardTutorialSteps } from "../lib/tutorialConfig";
 
 export default function CompanyDashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+  const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.COMPANY_DASHBOARD);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -319,6 +323,13 @@ export default function CompanyDashboard() {
         onOpenChange={(open) => !open && setErrorDialog(null)}
         title={errorDialog?.title || "Error"}
         description={errorDialog?.message || "An error occurred"}
+      />
+
+      <FirstTimeTutorial
+        open={showTutorial}
+        onComplete={completeTutorial}
+        steps={companyDashboardTutorialSteps}
+        title="Welcome to Your Company Dashboard!"
       />
     </div>
   );
