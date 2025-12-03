@@ -78,8 +78,20 @@ export class ObjectStorageService {
   }> {
     const folder = customFolder || this.getStorageFolder();
 
-    const fileName = randomUUID();
-    const publicId = fileName;
+    // Use original filename if provided, otherwise generate UUID
+    // Remove extension for public_id - Cloudinary will add it based on the uploaded file
+    let publicId: string;
+    if (originalFileName) {
+      // Remove file extension and sanitize filename for use as public_id
+      const nameWithoutExt = originalFileName.replace(/\.[^.]+$/, '');
+      // Sanitize: replace spaces and special chars with underscores
+      const sanitized = nameWithoutExt.replace(/[^a-zA-Z0-9-_]/g, '_');
+      // Add a unique suffix to prevent overwrites
+      publicId = `${sanitized}_${randomUUID().slice(0, 8)}`;
+    } else {
+      publicId = randomUUID();
+    }
+
     const timestamp = Math.round(Date.now() / 1000);
 
     const paramsToSign: Record<string, any> = {
