@@ -16,6 +16,9 @@ import {
   Star,
   Filter,
   Bookmark,
+  Download,
+  Target,
+  MousePointerClick,
 } from "lucide-react";
 import type { TutorialStep, TutorialConfig } from "../components/FirstTimeTutorial";
 
@@ -24,6 +27,7 @@ export const TUTORIAL_IDS = {
   CREATOR_DASHBOARD: "creator-dashboard-tutorial",
   COMPANY_DASHBOARD: "company-dashboard-tutorial",
   BROWSE_PAGE: "browse-page-tutorial",
+  ANALYTICS: "analytics-tutorial",
 } as const;
 
 // ============================================
@@ -213,6 +217,96 @@ function FavoritesPreview() {
   );
 }
 
+// Analytics Preview: Earnings Dashboard
+function EarningsDashboardPreview() {
+  return (
+    <div className="w-full max-w-[160px] rounded-lg border border-border bg-card p-3 shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] font-medium text-muted-foreground">Total Earnings</span>
+        <DollarSign className="h-3 w-3 text-green-500" />
+      </div>
+      <div className="text-lg font-bold text-green-600 mb-2">$2,847.50</div>
+      <div className="flex items-end gap-1 h-10">
+        {[30, 45, 35, 60, 50, 75, 65].map((height, i) => (
+          <div
+            key={i}
+            className="flex-1 bg-green-500/20 rounded-t"
+            style={{ height: `${height}%` }}
+          >
+            <div
+              className="w-full bg-green-500 rounded-t"
+              style={{ height: `${height * 0.7}%` }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-1 mt-2">
+        <ArrowUp className="h-2.5 w-2.5 text-green-500" />
+        <span className="text-[9px] text-green-600">+12.5% this month</span>
+      </div>
+    </div>
+  );
+}
+
+// Analytics Preview: Performance Charts
+function PerformanceChartsPreview() {
+  return (
+    <div className="w-full max-w-[160px] rounded-lg border border-border bg-card p-3 shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] font-medium text-muted-foreground">Performance</span>
+        <BarChart3 className="h-3 w-3 text-primary" />
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <MousePointerClick className="h-3 w-3 text-blue-500" />
+          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full w-3/4 bg-blue-500 rounded-full" />
+          </div>
+          <span className="text-[9px] font-medium">1.2K</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Target className="h-3 w-3 text-orange-500" />
+          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full w-1/2 bg-orange-500 rounded-full" />
+          </div>
+          <span className="text-[9px] font-medium">89</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-3 w-3 text-green-500" />
+          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full w-2/3 bg-green-500 rounded-full" />
+          </div>
+          <span className="text-[9px] font-medium">7.4%</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Analytics Preview: Export Options
+function ExportOptionsPreview() {
+  return (
+    <div className="w-full max-w-[160px] rounded-lg border border-border bg-card p-3 shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] font-medium text-muted-foreground">Export Data</span>
+        <Download className="h-3 w-3 text-primary" />
+      </div>
+      <div className="space-y-1.5">
+        {[
+          { icon: FileText, label: "PDF Report", color: "text-red-500" },
+          { icon: BarChart3, label: "CSV Export", color: "text-green-500" },
+          { icon: TrendingUp, label: "Analytics API", color: "text-blue-500" },
+        ].map((item, i) => (
+          <div key={i} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/50">
+            <item.icon className={`h-3 w-3 ${item.color}`} />
+            <span className="text-[9px] font-medium">{item.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ============================================
 // New Tutorial Configs (Star Shop Style)
 // ============================================
@@ -308,6 +402,37 @@ export const browsePageTutorialConfig: TutorialConfig = {
   learnMoreText: "Browse Tips",
   learnMoreLink: "/help",
   ctaText: "Start Browsing",
+};
+
+export const analyticsTutorialConfig: TutorialConfig = {
+  badgeText: "Data Pro",
+  headline: "to master your metrics",
+  features: [
+    {
+      accentText: "Track Earnings",
+      accentColor: "teal",
+      subtitle: "Real-time revenue insights",
+      preview: <EarningsDashboardPreview />,
+    },
+    {
+      accentText: "View Performance",
+      accentColor: "purple",
+      subtitle: "Clicks, conversions & trends",
+      preview: <PerformanceChartsPreview />,
+    },
+    {
+      accentText: "Export Reports",
+      accentColor: "orange",
+      subtitle: "CSV, PDF & integrations",
+      preview: <ExportOptionsPreview />,
+    },
+  ],
+  welcomeTitle: "Welcome to Your Analytics Dashboard",
+  welcomeDescription:
+    "Your complete analytics hub for tracking affiliate performance. Monitor your earnings in real-time, analyze click and conversion trends, and export detailed reports. Use the date range selector to view different time periods and the export options to share your data.",
+  learnMoreText: "View Analytics Guide",
+  learnMoreLink: "/help",
+  ctaText: "Get Started",
 };
 
 // ============================================
