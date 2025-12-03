@@ -617,129 +617,32 @@ export default function Settings() {
     }
   };
 
-  // Helper function to extract Cloudinary public_id from URL
-
-  const extractCloudinaryPublicId = (documentUrl: string): string => {
-    try {
-      console.log('[extractCloudinaryPublicId] Processing URL:', documentUrl);
-      
-      if (!documentUrl || typeof documentUrl !== 'string' || documentUrl.trim() === '') {
-        throw new Error('Invalid or empty document URL');
-      }
-      
-      const trimmedUrl = documentUrl.trim();
-      
-      // Handle /objects/ paths
-      if (trimmedUrl.startsWith('/objects/')) {
-        const result = trimmedUrl.replace('/objects/', '');
-        console.log('[extractCloudinaryPublicId] Extracted from /objects/:', result);
-        return result;
-      }
-      
-      // Handle relative paths
-      if (trimmedUrl.startsWith('/') && !trimmedUrl.includes('cloudinary.com')) {
-        const result = trimmedUrl.slice(1);
-        console.log('[extractCloudinaryPublicId] Using relative path:', result);
-        return result;
-      }
-      
-      // Handle full Cloudinary URLs
-      if (trimmedUrl.includes('cloudinary.com')) {
-        const url = new URL(trimmedUrl);
-        const pathParts = url.pathname.split('/').filter(Boolean);
-        const uploadIndex = pathParts.findIndex(p => p === 'upload');
-        
-        if (uploadIndex !== -1 && uploadIndex < pathParts.length - 1) {
-          const afterUpload = pathParts.slice(uploadIndex + 1).join('/');
-          // Remove version prefix (v123456/) and file extension
-          const result = afterUpload.replace(/^v\d+\//, '').replace(/\.[^.]+$/, '');
-          console.log('[extractCloudinaryPublicId] Extracted from Cloudinary URL:', result);
-          return result;
-        }
-      }
-      
-      // Fallback: use as-is, removing file extension
-      const result = trimmedUrl.replace(/\.[^.]+$/, '');
-      console.log('[extractCloudinaryPublicId] Using fallback:', result);
-      return result;
-    } catch (error) {
-      console.error('[extractCloudinaryPublicId] Error:', error);
-      throw error;
-    }
-  };
-
-  const handleViewDocument = async (documentUrl: string, documentName: string, documentType: string) => {
-    try {
-      console.log('[handleViewDocument] Starting document view');
-      console.log('[handleViewDocument] Document URL:', documentUrl);
-
-      if (!documentUrl) {
-        throw new Error('Missing document URL');
-      }
-
-      // Extract public ID from Cloudinary URL
-      const publicId = extractCloudinaryPublicId(documentUrl);
-      console.log('[handleViewDocument] Extracted public ID:', publicId);
-
-      // Fetch signed URL from backend
-      const apiUrl = `/api/documents/signed-url/${encodeURIComponent(publicId)}?resourceType=raw`;
-      const response = await fetch(apiUrl, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('[handleViewDocument] API error response:', errorData);
-        throw new Error(errorData.message || errorData.error || 'Failed to get document access');
-      }
-
-      const data = await response.json();
-      console.log('[handleViewDocument] Got signed URL successfully');
-
-      // Open in new browser tab
-      window.open(data.url, '_blank');
-    } catch (error) {
-      console.error('[handleViewDocument] Error viewing document:', error);
+  // Opens document in new browser tab - uses original URL directly for public uploads
+  const handleViewDocument = (documentUrl: string, documentName: string, documentType: string) => {
+    if (!documentUrl) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to view document",
+        description: "Missing document URL",
         variant: "destructive",
       });
+      return;
     }
+    // Open the original URL directly - public uploads are accessible without signing
+    window.open(documentUrl, '_blank');
   };
 
-  const handleDownloadDocument = async (documentUrl: string, documentName: string) => {
-    try {
-      console.log('[handleDownloadDocument] Starting download');
-
-      if (!documentUrl) {
-        throw new Error('Missing document URL');
-      }
-
-      // Extract public ID and get signed URL for download
-      const publicId = extractCloudinaryPublicId(documentUrl);
-      const apiUrl = `/api/documents/signed-url/${encodeURIComponent(publicId)}?resourceType=raw`;
-      const response = await fetch(apiUrl, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to get download URL');
-      }
-
-      const data = await response.json();
-
-      // Open in new tab (browser will handle download or display)
-      window.open(data.url, '_blank');
-    } catch (error) {
-      console.error('[handleDownloadDocument] Error downloading document:', error);
+  // Opens document in new browser tab for download
+  const handleDownloadDocument = (documentUrl: string, documentName: string) => {
+    if (!documentUrl) {
       toast({
         title: "Error",
-        description: "Failed to download document. Please try again.",
+        description: "Missing document URL",
         variant: "destructive",
       });
+      return;
     }
+    // Open the original URL directly
+    window.open(documentUrl, '_blank');
   };
 
   const formatFileSize = (bytes: number | null): string => {
