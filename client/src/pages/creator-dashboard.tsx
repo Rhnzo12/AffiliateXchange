@@ -12,10 +12,8 @@ import {
   Heart,
   Play,
   Settings,
-  Search,
   ClipboardList,
   CreditCard,
-  MessageSquare,
   ArrowUpRight,
   Activity,
 } from "lucide-react";
@@ -139,25 +137,11 @@ export default function CreatorDashboard() {
 
   const quickActions = [
     {
-      title: "Browse Offers",
-      description: "Find new campaigns that fit your audience and start applying in seconds.",
-      href: "/browse",
-      icon: Search,
-      cta: "Find offers",
-    },
-    {
       title: "View Applications",
       description: "Track statuses, respond to brands, and keep your pitches up to date.",
       href: "/applications",
       icon: ClipboardList,
       cta: "Manage applications",
-    },
-    {
-      title: "Messages",
-      description: "Respond to brands quickly and keep conversations moving forward.",
-      href: "/messages",
-      icon: MessageSquare,
-      cta: "Go to inbox",
     },
     {
       title: "Update Profile & Niches",
