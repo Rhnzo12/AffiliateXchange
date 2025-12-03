@@ -183,24 +183,19 @@ export default function CreatorDashboard() {
     <div className="space-y-6">
       <TopNavBar />
       
-      {/* Header and Welcome Carousel - Side by Side */}
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
-        {/* Welcome Message - Left Side */}
-        <div className="shrink-0">
-          <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'Creator'}!</h1>
-          <p className="text-muted-foreground mt-1">Here's an overview of your creator journey</p>
-        </div>
+      {/* Welcome Message */}
+      <div>
+        <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'Creator'}!</h1>
+        <p className="text-muted-foreground mt-1">Here's an overview of your creator journey</p>
+      </div>
 
-        {/* Welcome Carousel - Perks - Right Side */}
-        <div className="flex-1 min-w-0 w-full overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-semibold">Discover Your Perks</h2>
-              <p className="text-sm text-muted-foreground">Everything you need to succeed as a creator</p>
-            </div>
-          </div>
-          <WelcomeCarousel />
+      {/* Welcome Carousel - Perks */}
+      <div className="w-full">
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold">Discover Your Perks</h2>
+          <p className="text-sm text-muted-foreground">Everything you need to succeed as a creator</p>
         </div>
+        <WelcomeCarousel />
       </div>
 
       {/* Light analytics snapshot only (full KPIs live in Analytics) */}
