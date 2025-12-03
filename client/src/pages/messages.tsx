@@ -1363,6 +1363,7 @@ export default function Messages() {
                           onClick={() => removeFile(idx)}
                           className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                           disabled={uploadingFiles}
+                          aria-label={`Remove preview ${idx + 1}`}
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -1374,11 +1375,13 @@ export default function Messages() {
                 <div className="flex gap-2">
                   <input
                     ref={fileInputRef}
+                    id="message-file-upload"
                     type="file"
                     accept="image/*"
                     multiple
                     onChange={handleFileSelect}
                     className="hidden"
+                    aria-label="Upload image attachments"
                   />
 
                   {/* Image attach button - available for both creators and companies */}

@@ -835,7 +835,7 @@ export default function Browse() {
               ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
               : 'bg-secondary/50 hover:bg-secondary text-secondary-foreground'
           }`}
-          aria-pressed={isSelected}
+          aria-pressed={isSelected ? "true" : "false"}
         >
           {label}
         </button>
@@ -1208,6 +1208,7 @@ export default function Browse() {
                             }}
                             onClick={(e) => handleFavoriteToggle(e, offer.id)}
                             data-testid={`button-favorite-${offer.id}`}
+                            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                           >
                             <Heart className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
                           </button>
@@ -1438,6 +1439,7 @@ export default function Browse() {
                           }}
                           onClick={(e) => handleFavoriteToggle(e, offer.id)}
                           data-testid={`button-favorite-${offer.id}`}
+                          aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                         >
                           <Heart className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500 scale-110' : 'text-gray-600'}`} />
                         </button>

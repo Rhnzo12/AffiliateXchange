@@ -941,6 +941,7 @@ export default function CompanyOfferDetail() {
                         e.stopPropagation();
                         deleteVideoMutation.mutate(video.id);
                       }}
+                      aria-label="Delete video"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
