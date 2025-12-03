@@ -186,7 +186,7 @@ export default function CreatorDashboard() {
       {/* Header and Welcome Carousel - Side by Side */}
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* Welcome Message - Left Side */}
-        <div className="lg:w-1/3 shrink-0">
+        <div className="shrink-0">
           <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'Creator'}!</h1>
           <p className="text-muted-foreground mt-1">Here's an overview of your creator journey</p>
         </div>
