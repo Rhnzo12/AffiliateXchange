@@ -504,6 +504,7 @@ export default function CreatorOnboarding() {
                           type="button"
                           onClick={() => removeNiche(nicheValue)}
                           className="ml-1 hover:text-destructive"
+                          aria-label={`Remove ${niche?.label || nicheValue}`}
                         >
                           <X className="h-3 w-3" />
                         </button>

@@ -443,6 +443,7 @@ export default function CompanyOffers() {
                                 cursor: 'pointer',
                               }}
                               onClick={(e) => e.preventDefault()}
+                              aria-label="Offer actions menu"
                               data-testid={`button-menu-${offer.id}`}
                             >
                               <MoreVertical className="h-5 w-5 text-gray-600" />

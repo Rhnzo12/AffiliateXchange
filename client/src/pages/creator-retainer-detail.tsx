@@ -618,16 +618,18 @@ export default function CreatorRetainerDetail() {
                   />
 
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium mb-2">
+                    <label htmlFor="video-upload" className="block text-sm font-medium mb-2">
                       Video File
                     </label>
                     <input
                       type="file"
+                      id="video-upload"
                       ref={videoInputRef}
                       accept="video/*"
                       onChange={handleVideoUpload}
                       disabled={isUploading}
                       className="hidden"
+                      aria-label="Upload video file"
                     />
                     <Button
                       type="button"
@@ -753,14 +755,16 @@ export default function CreatorRetainerDetail() {
               />
 
               <div>
-                <FormLabel>Upload New Video</FormLabel>
+                <FormLabel htmlFor="resubmit-video-upload">Upload New Video</FormLabel>
                 <div className="mt-2">
                   <input
                     type="file"
+                    id="resubmit-video-upload"
                     ref={resubmitVideoInputRef}
                     onChange={handleResubmitVideo}
                     accept="video/*"
                     className="hidden"
+                    aria-label="Upload new video for resubmission"
                   />
                   <Button
                     type="button"
