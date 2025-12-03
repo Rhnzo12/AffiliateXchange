@@ -826,7 +826,7 @@ export default function Browse() {
       const isSelected = value === "all"
         ? selectedCategories.length === 0
         : selectedCategories.includes(value);
-      const ariaPressedValue = isSelected ? "true" : "false";
+      const ariaPressedValue: "true" | "false" = isSelected ? "true" : "false";
       return (
         <button
           key={value || label}
