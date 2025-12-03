@@ -506,10 +506,10 @@ export default function Settings() {
         },
         body: JSON.stringify({
           folder,
-          resourceType: file.type === 'application/pdf' ? 'raw' : 'image',
+          resourceType: 'image', // Use 'image' for both images and PDFs - Cloudinary handles PDFs under image type
           type: "private",
-          contentType: file.type, // Pass actual file content type
-          fileName: file.name // Pass original filename to preserve extension
+          contentType: file.type,
+          fileName: file.name
         }),
       });
 
