@@ -12,7 +12,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye, ShieldCheck, User, Mail, Key, KeyRound, LogOut } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye, ShieldCheck, User, Mail, Key, KeyRound, LogOut, ExternalLink } from "lucide-react";
 import { TwoFactorSetup } from "../components/TwoFactorSetup";
 import { SettingsNavigation, SettingsSection } from "../components/SettingsNavigation";
 import {
@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogDescription,
   DialogTitle,
+  DialogFooter,
 } from "../components/ui/dialog";
 import {
   Select,
