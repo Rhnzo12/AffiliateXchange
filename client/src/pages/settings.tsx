@@ -93,6 +93,11 @@ export default function Settings() {
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
 
+  // PDF Viewer Dialog states
+  const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
+  const [currentDocumentUrl, setCurrentDocumentUrl] = useState("");
+  const [currentDocumentName, setCurrentDocumentName] = useState("");
+
   // Account info states
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -617,7 +622,7 @@ export default function Settings() {
     }
   };
 
-  // Opens document in new browser tab - uses original URL directly for public uploads
+  // Opens document in dialog viewer
   const handleViewDocument = (documentUrl: string, documentName: string, documentType: string) => {
     if (!documentUrl) {
       toast({
@@ -627,8 +632,10 @@ export default function Settings() {
       });
       return;
     }
-    // Open the original URL directly - public uploads are accessible without signing
-    window.open(documentUrl, '_blank');
+    // Open the document in a dialog viewer
+    setCurrentDocumentUrl(documentUrl);
+    setCurrentDocumentName(documentName);
+    setIsPdfViewerOpen(true);
   };
 
   // Opens document in new browser tab for download
@@ -2718,6 +2725,47 @@ export default function Settings() {
         title={errorDialog?.title || "Error"}
         description={errorDialog?.message || "An error occurred"}
       />
+
+      {/* PDF Viewer Dialog */}
+      <Dialog open={isPdfViewerOpen} onOpenChange={setIsPdfViewerOpen}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {currentDocumentName || "Document Viewer"}
+            </DialogTitle>
+            <DialogDescription>
+              Verification document preview
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 border rounded-lg overflow-hidden bg-muted/10">
+            {currentDocumentUrl && (
+              <iframe
+                src={currentDocumentUrl}
+                className="w-full h-full"
+                title={currentDocumentName}
+              />
+            )}
+          </div>
+          <DialogFooter className="flex-row justify-between items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(currentDocumentUrl, '_blank')}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open in New Tab
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPdfViewerOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
           </div>
         </div>
       </div>
