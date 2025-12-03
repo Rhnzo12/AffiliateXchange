@@ -183,21 +183,24 @@ export default function CreatorDashboard() {
     <div className="space-y-6">
       <TopNavBar />
       
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'Creator'}!</h1>
-        <p className="text-muted-foreground mt-1">Here's an overview of your creator journey</p>
-      </div>
-
-      {/* Welcome Carousel - Perks */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-semibold">Discover Your Perks</h2>
-            <p className="text-sm text-muted-foreground">Everything you need to succeed as a creator</p>
-          </div>
+      {/* Header and Welcome Carousel - Side by Side */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        {/* Welcome Message - Left Side */}
+        <div className="lg:w-1/3 shrink-0">
+          <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'Creator'}!</h1>
+          <p className="text-muted-foreground mt-1">Here's an overview of your creator journey</p>
         </div>
-        <WelcomeCarousel />
+
+        {/* Welcome Carousel - Perks - Right Side */}
+        <div className="flex-1 w-full">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold">Discover Your Perks</h2>
+              <p className="text-sm text-muted-foreground">Everything you need to succeed as a creator</p>
+            </div>
+          </div>
+          <WelcomeCarousel />
+        </div>
       </div>
 
       {/* Light analytics snapshot only (full KPIs live in Analytics) */}
