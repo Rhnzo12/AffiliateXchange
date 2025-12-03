@@ -164,6 +164,7 @@ export default function AdminCompanyDetail() {
   const [documentViewerName, setDocumentViewerName] = useState("");
   const [documentViewerType, setDocumentViewerType] = useState("");
   const [documentViewerError, setDocumentViewerError] = useState<string | null>(null);
+  const [isLoadingDocument, setIsLoadingDocument] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -224,44 +225,153 @@ export default function AdminCompanyDetail() {
     return 'other';
   };
 
-  // Improved document viewer - uses URL directly like in settings.tsx
-  const handleViewDocument = (documentUrl: string, documentName: string = "Document", documentType: string = "") => {
+  // Helper function to extract Cloudinary public_id from URL
+  const extractCloudinaryPublicId = (documentUrl: string): string => {
     try {
+      console.log('[extractCloudinaryPublicId] Processing URL:', documentUrl);
+
+      if (!documentUrl || typeof documentUrl !== 'string' || documentUrl.trim() === '') {
+        throw new Error('Invalid or empty document URL');
+      }
+
+      const trimmedUrl = documentUrl.trim();
+
+      // Handle /objects/ paths
+      if (trimmedUrl.startsWith('/objects/')) {
+        const result = trimmedUrl.replace('/objects/', '');
+        console.log('[extractCloudinaryPublicId] Extracted from /objects/:', result);
+        return result;
+      }
+
+      // Handle relative paths
+      if (trimmedUrl.startsWith('/') && !trimmedUrl.includes('cloudinary.com')) {
+        const result = trimmedUrl.slice(1);
+        console.log('[extractCloudinaryPublicId] Using relative path:', result);
+        return result;
+      }
+
+      // Handle full Cloudinary URLs
+      if (trimmedUrl.includes('cloudinary.com')) {
+        const url = new URL(trimmedUrl);
+        const pathParts = url.pathname.split('/').filter(Boolean);
+        const uploadIndex = pathParts.findIndex(p => p === 'upload');
+
+        if (uploadIndex !== -1 && uploadIndex < pathParts.length - 1) {
+          const afterUpload = pathParts.slice(uploadIndex + 1).join('/');
+          // Remove version prefix (v123456/) and file extension
+          const result = afterUpload.replace(/^v\d+\//, '').replace(/\.[^.]+$/, '');
+          console.log('[extractCloudinaryPublicId] Extracted from Cloudinary URL:', result);
+          return result;
+        }
+      }
+
+      // Fallback: use as-is, removing file extension
+      const result = trimmedUrl.replace(/\.[^.]+$/, '');
+      console.log('[extractCloudinaryPublicId] Using fallback:', result);
+      return result;
+    } catch (error) {
+      console.error('[extractCloudinaryPublicId] Error:', error);
+      throw error;
+    }
+  };
+
+  // Improved document viewer - fetches signed URL from backend
+  const handleViewDocument = async (documentUrl: string, documentName: string = "Document", documentType: string = "") => {
+    try {
+      setIsLoadingDocument(true);
+      setDocumentViewerName(documentName);
+      setDocumentViewerType(detectDocumentType(documentUrl, documentType));
+      setShowDocumentViewer(true);
+      setDocumentViewerError(null);
+      setDocumentViewerUrl("");
+
+      console.log('[handleViewDocument] Starting document view');
+      console.log('[handleViewDocument] Document URL:', documentUrl);
+      console.log('[handleViewDocument] Document Name:', documentName);
+      console.log('[handleViewDocument] Document Type:', documentType);
+
       if (!documentUrl) {
         throw new Error('Missing document URL');
       }
 
-      const detectedType = detectDocumentType(documentUrl, documentType);
-      
-      setDocumentViewerUrl(documentUrl);
-      setDocumentViewerName(documentName);
-      setDocumentViewerType(detectedType);
-      setDocumentViewerError(null);
-      setShowDocumentViewer(true);
+      // Extract public ID from Cloudinary URL
+      const publicId = extractCloudinaryPublicId(documentUrl);
+      console.log('[handleViewDocument] Extracted public ID:', publicId);
+
+      // Fetch signed URL from backend
+      const apiUrl = `/api/documents/signed-url/${encodeURIComponent(publicId)}?resourceType=raw`;
+      console.log('[handleViewDocument] Fetching signed URL from:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[handleViewDocument] API error response:', errorData);
+        throw new Error(errorData.message || errorData.error || 'Failed to get document access');
+      }
+
+      const data = await response.json();
+      console.log('[handleViewDocument] Got signed URL successfully');
+      console.log('[handleViewDocument] Expires at:', data.expiresAt);
+
+      setDocumentViewerUrl(data.url);
     } catch (error) {
-      console.error('[handleViewDocument] Error:', error);
+      console.error('[handleViewDocument] Error viewing document:', error);
+      setDocumentViewerError(
+        error instanceof Error ? error.message : "Failed to view document. Please try again."
+      );
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to view document",
         variant: "destructive",
       });
+    } finally {
+      setIsLoadingDocument(false);
     }
   };
 
-  // Function to download verification document
-  const handleDownloadDocument = (documentUrl: string, documentName: string) => {
-    if (!documentUrl) return;
-
+  // Function to download verification document with signed URL
+  const handleDownloadDocument = async (documentUrl: string, documentName: string) => {
     try {
+      console.log('[handleDownloadDocument] Starting download');
+      console.log('[handleDownloadDocument] Document URL:', documentUrl);
+
+      if (!documentUrl) {
+        throw new Error('Missing document URL');
+      }
+
+      // Extract public ID and get signed URL for download
+      const publicId = extractCloudinaryPublicId(documentUrl);
+      console.log('[handleDownloadDocument] Extracted public ID:', publicId);
+
+      const apiUrl = `/api/documents/signed-url/${encodeURIComponent(publicId)}?resourceType=raw`;
+      const response = await fetch(apiUrl, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[handleDownloadDocument] API error:', errorData);
+        throw new Error(errorData.message || 'Failed to get download URL');
+      }
+
+      const data = await response.json();
+      console.log('[handleDownloadDocument] Got signed URL for download');
+
+      // Create a temporary link and trigger download
       const link = document.createElement('a');
-      link.href = documentUrl;
+      link.href = data.url;
       link.download = documentName;
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      console.log('[handleDownloadDocument] Download initiated');
     } catch (error) {
-      console.error('[handleDownloadDocument] Error:', error);
+      console.error('[handleDownloadDocument] Error downloading document:', error);
       toast({
         title: "Error",
         description: "Failed to download document. Please try again.",
@@ -1524,21 +1634,42 @@ export default function AdminCompanyDetail() {
         <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0">
           <DialogHeader className="p-4 pb-2 border-b space-y-1.5">
             <div className="flex items-start justify-between gap-2">
-              <DialogTitle className="truncate pr-8">{documentViewerName}</DialogTitle>
-              {documentViewerUrl && (
-                <Button variant="outline" size="sm" asChild>
-                  <a href={documentViewerUrl} target="_blank" rel="noopener noreferrer">
-                    Open in new tab
-                  </a>
-                </Button>
-              )}
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="truncate">{documentViewerName}</DialogTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {documentViewerType === 'pdf' ? 'PDF Document' : documentViewerType === 'image' ? 'Image Document' : 'Document'} • Optimized with Cloudinary
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {documentViewerUrl && (
+                  <>
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={documentViewerUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Open
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={documentViewerUrl} download={documentViewerName} target="_blank" rel="noopener noreferrer">
+                        <Download className="h-4 w-4 mr-1" />
+                        Download
+                      </a>
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
             <DialogDescription>
               Preview the selected document. Use the "Open in new tab" button if the embedded viewer does not load.
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 min-h-0 p-4">
-            {documentViewerError ? (
+            {isLoadingDocument ? (
+              <div className="flex flex-col items-center justify-center h-full gap-4">
+                <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground">Loading document...</p>
+              </div>
+            ) : documentViewerError ? (
               <Alert variant="destructive" className="h-full flex flex-col items-center justify-center text-center">
                 <AlertTitle>Unable to load document preview</AlertTitle>
                 <AlertDescription className="space-y-2">
