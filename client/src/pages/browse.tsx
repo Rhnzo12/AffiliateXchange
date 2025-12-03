@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
+import { useTutorial } from "../hooks/useTutorial";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -48,6 +49,8 @@ import { apiRequest, queryClient } from "../lib/queryClient";
 import { proxiedSrc } from "../lib/image";
 import { OfferCardSkeleton } from "../components/skeletons";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
+import { TUTORIAL_IDS, browsePageTutorialSteps } from "../lib/tutorialConfig";
 import { useHeaderContent } from "../components/HeaderContentContext";
 
 const COMMISSION_TYPES = [
@@ -234,6 +237,7 @@ const summarizeSavedSearch = (filters: SavedSearchFilters): string => {
 export default function Browse() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.BROWSE_PAGE);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -1750,6 +1754,13 @@ export default function Browse() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FirstTimeTutorial
+        open={showTutorial}
+        onComplete={completeTutorial}
+        steps={browsePageTutorialSteps}
+        title="Discover Affiliate Offers"
+      />
     </div>
   );
 }

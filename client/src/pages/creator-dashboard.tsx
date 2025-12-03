@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
+import { useTutorial } from "../hooks/useTutorial";
+import { TUTORIAL_IDS, creatorDashboardTutorialSteps } from "../lib/tutorialConfig";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import {
@@ -38,6 +41,7 @@ const formatCommission = (offer: any) => {
 export default function CreatorDashboard() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+  const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.CREATOR_DASHBOARD);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -424,6 +428,13 @@ export default function CreatorDashboard() {
         onOpenChange={(open) => !open && setErrorDialog(null)}
         title={errorDialog?.title}
         description={errorDialog?.message}
+      />
+
+      <FirstTimeTutorial
+        open={showTutorial}
+        onComplete={completeTutorial}
+        steps={creatorDashboardTutorialSteps}
+        title="Welcome to Your Dashboard!"
       />
     </div>
   );
