@@ -11,8 +11,8 @@ import {
   DollarSign,
   BarChart3,
   Handshake,
-  Shield,
-  Sparkles,
+  Wallet,
+  Briefcase,
   ArrowRight,
 } from "lucide-react";
 
@@ -68,7 +68,7 @@ const perks: PerkSlide[] = [
       "Get paid on time, every time. Multiple payout options with transparent tracking and secure transactions.",
     ctaText: "Payment Settings",
     ctaLink: "/creator/payment-settings",
-    icon: Shield,
+    icon: Wallet,
     gradient: "from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/30 dark:via-orange-950/30 dark:to-yellow-950/30",
     accentColor: "text-amber-600 dark:text-amber-400",
   },
@@ -79,7 +79,7 @@ const perks: PerkSlide[] = [
       "Showcase your work, grow your reputation, and unlock better opportunities as you build your affiliate career.",
     ctaText: "Update Profile",
     ctaLink: "/settings",
-    icon: Sparkles,
+    icon: Briefcase,
     gradient: "from-rose-50 via-fuchsia-50 to-purple-50 dark:from-rose-950/30 dark:via-fuchsia-950/30 dark:to-purple-950/30",
     accentColor: "text-rose-600 dark:text-rose-400",
   },
@@ -139,7 +139,7 @@ export function WelcomeCarousel() {
                   className={`relative overflow-hidden rounded-xl bg-gradient-to-r ${perk.gradient} border border-border/50`}
                 >
                   {/* Decorative elements */}
-                  <div className="absolute top-0 right-0 w-64 h-64 opacity-20">
+                  <div className="absolute top-0 right-0 w-40 h-40 opacity-20">
                     <svg
                       viewBox="0 0 200 200"
                       className="w-full h-full"
@@ -150,7 +150,7 @@ export function WelcomeCarousel() {
                       <circle cx="120" cy="120" r="30" fill="currentColor" className={perk.accentColor} opacity="0.15" />
                     </svg>
                   </div>
-                  <div className="absolute bottom-0 left-0 w-32 h-32 opacity-10">
+                  <div className="absolute bottom-0 left-0 w-20 h-20 opacity-10">
                     <svg
                       viewBox="0 0 100 100"
                       className="w-full h-full"
@@ -174,18 +174,18 @@ export function WelcomeCarousel() {
                   </div>
 
                   {/* Content */}
-                  <div className="relative z-10 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                  <div className="relative z-10 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     {/* Icon */}
-                    <div className={`h-14 w-14 rounded-2xl bg-white dark:bg-gray-800 shadow-lg flex items-center justify-center shrink-0`}>
-                      <Icon className={`h-7 w-7 ${perk.accentColor}`} />
+                    <div className={`h-10 w-10 rounded-xl bg-white dark:bg-gray-800 shadow-md flex items-center justify-center shrink-0`}>
+                      <Icon className={`h-5 w-5 ${perk.accentColor}`} />
                     </div>
 
                     {/* Text content */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
                         {perk.title}
                       </h3>
-                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed max-w-xl">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed max-w-xl">
                         {perk.description}
                       </p>
                     </div>
@@ -193,19 +193,20 @@ export function WelcomeCarousel() {
                     {/* CTA Button */}
                     <Link href={perk.ctaLink}>
                       <Button
-                        className="shrink-0 gap-2 bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900"
+                        size="sm"
+                        className="shrink-0 gap-1.5 text-xs bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900"
                       >
                         {perk.ctaText}
-                        <ArrowRight className="h-4 w-4" />
+                        <ArrowRight className="h-3 w-3" />
                       </Button>
                     </Link>
                   </div>
 
                   {/* Decorative floating shapes on the right */}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-3 opacity-60">
-                    <div className={`w-8 h-8 rounded-lg ${perk.accentColor} bg-current opacity-20 rotate-12`} />
-                    <div className={`w-6 h-6 rounded-full ${perk.accentColor} bg-current opacity-15 -rotate-6`} />
-                    <div className={`w-4 h-4 rounded-md ${perk.accentColor} bg-current opacity-25 rotate-45`} />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-2 opacity-60">
+                    <div className={`w-5 h-5 rounded-lg ${perk.accentColor} bg-current opacity-20 rotate-12`} />
+                    <div className={`w-4 h-4 rounded-full ${perk.accentColor} bg-current opacity-15 -rotate-6`} />
+                    <div className={`w-3 h-3 rounded-md ${perk.accentColor} bg-current opacity-25 rotate-45`} />
                   </div>
                 </div>
               </CarouselItem>
@@ -214,7 +215,7 @@ export function WelcomeCarousel() {
         </CarouselContent>
 
         {/* Navigation dots */}
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div className="flex items-center justify-center gap-1.5 mt-3">
           {Array.from({ length: count }).map((_, index) => (
             <button
               key={index}
