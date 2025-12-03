@@ -826,6 +826,7 @@ export default function Browse() {
       const isSelected = value === "all"
         ? selectedCategories.length === 0
         : selectedCategories.includes(value);
+      const ariaPressedValue = isSelected ? "true" : "false";
       return (
         <button
           key={value || label}
@@ -835,7 +836,7 @@ export default function Browse() {
               ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
               : 'bg-secondary/50 hover:bg-secondary text-secondary-foreground'
           }`}
-          aria-pressed={isSelected ? "true" : "false"}
+          aria-pressed={ariaPressedValue}
         >
           {label}
         </button>
