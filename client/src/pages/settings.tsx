@@ -633,8 +633,13 @@ export default function Settings() {
       });
       return;
     }
+    // For PDFs, use Google Docs Viewer for better compatibility with Cloudinary
+    let viewerUrl = documentUrl;
+    if (documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
+      viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(documentUrl)}&embedded=true`;
+    }
     // Open the document in a dialog viewer
-    setCurrentDocumentUrl(documentUrl);
+    setCurrentDocumentUrl(viewerUrl);
     setCurrentDocumentName(documentName);
     setIsPdfViewerOpen(true);
   };
