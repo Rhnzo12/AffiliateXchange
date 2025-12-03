@@ -20,6 +20,7 @@ import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
 import { OfferCardSkeleton } from "../components/skeletons";
+import { WelcomeCarousel } from "../components/WelcomeCarousel";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 // Helper function to format commission display
@@ -186,6 +187,17 @@ export default function CreatorDashboard() {
       <div>
         <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'Creator'}!</h1>
         <p className="text-muted-foreground mt-1">Here's an overview of your creator journey</p>
+      </div>
+
+      {/* Welcome Carousel - Perks */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-semibold">Discover Your Perks</h2>
+            <p className="text-sm text-muted-foreground">Everything you need to succeed as a creator</p>
+          </div>
+        </div>
+        <WelcomeCarousel />
       </div>
 
       {/* Light analytics snapshot only (full KPIs live in Analytics) */}
