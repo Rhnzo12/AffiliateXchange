@@ -192,7 +192,7 @@ export default function CreatorDashboard() {
         </div>
 
         {/* Welcome Carousel - Perks - Right Side */}
-        <div className="flex-1 w-full">
+        <div className="flex-1 min-w-0 w-full overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-semibold">Discover Your Perks</h2>
