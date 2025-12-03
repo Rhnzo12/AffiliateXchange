@@ -50,7 +50,7 @@ import { proxiedSrc } from "../lib/image";
 import { OfferCardSkeleton } from "../components/skeletons";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
-import { TUTORIAL_IDS, browsePageTutorialSteps } from "../lib/tutorialConfig";
+import { TUTORIAL_IDS, browsePageTutorialConfig } from "../lib/tutorialConfig";
 import { useHeaderContent } from "../components/HeaderContentContext";
 
 const COMMISSION_TYPES = [
@@ -1758,8 +1758,7 @@ export default function Browse() {
       <FirstTimeTutorial
         open={showTutorial}
         onComplete={completeTutorial}
-        steps={browsePageTutorialSteps}
-        title="Discover Affiliate Offers"
+        config={browsePageTutorialConfig}
       />
     </div>
   );
