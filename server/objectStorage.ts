@@ -193,26 +193,38 @@ export class ObjectStorageService {
 
   /**
    * Generate a signed URL for viewing a document
-   * This method creates time-limited URLs that bypass authentication
+   * This method creates URLs for accessing Cloudinary resources
    * @param publicId - The Cloudinary public ID (without extension)
    * @param options - Optional parameters for URL generation
-   * @returns Signed URL valid for specified duration (default 1 hour)
+   * @returns URL for accessing the resource
    */
   getSignedViewUrl(
     publicId: string,
     options?: {
       resourceType?: ResourceType;
-      expiresIn?: number; // seconds, default 3600 (1 hour)
+      expiresIn?: number; // seconds, default 3600 (1 hour) - only used for authenticated type
+      deliveryType?: 'upload' | 'authenticated'; // default: 'upload' for public files
     }
   ): string {
-    const expiresAt = Math.floor(Date.now() / 1000) + (options?.expiresIn || 3600);
-    
+    const deliveryType = options?.deliveryType || 'upload';
+
+    if (deliveryType === 'authenticated') {
+      const expiresAt = Math.floor(Date.now() / 1000) + (options?.expiresIn || 3600);
+      return cloudinary.url(publicId, {
+        secure: true,
+        sign_url: true,
+        resource_type: options?.resourceType || 'raw',
+        type: 'authenticated',
+        expires_at: expiresAt,
+      });
+    }
+
+    // For 'upload' type (public files), just generate a regular signed URL
     return cloudinary.url(publicId, {
       secure: true,
       sign_url: true,
       resource_type: options?.resourceType || 'raw',
-      type: 'authenticated',
-      expires_at: expiresAt,
+      type: 'upload',
     });
   }
 
