@@ -16,12 +16,17 @@ import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
 import { useTutorial } from "../hooks/useTutorial";
 import { TUTORIAL_IDS, companyDashboardTutorialConfig } from "../lib/tutorialConfig";
+import { usePageTour } from "../components/CompanyTour";
+import { COMPANY_TOUR_IDS, dashboardTourSteps } from "../lib/companyTourConfig";
 
 export default function CompanyDashboard() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
   const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.COMPANY_DASHBOARD);
+
+  // Quick tour for new company accounts
+  usePageTour(COMPANY_TOUR_IDS.DASHBOARD, dashboardTourSteps);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {

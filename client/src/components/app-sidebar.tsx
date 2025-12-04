@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { CompanyTourButtonSafe } from "./CompanyTourButton";
 import {
   Sidebar,
   SidebarContent,
@@ -317,6 +318,13 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4 group-data-[collapsible=icon]:hidden">
+        {/* Tour button for company users */}
+        {user?.role === 'company' && (
+          <div className="mb-3">
+            <CompanyTourButtonSafe />
+          </div>
+        )}
+
         <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <div className="h-1.5 w-1.5 rounded-full bg-primary" />

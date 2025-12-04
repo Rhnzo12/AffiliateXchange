@@ -76,6 +76,8 @@ import SelectRole from "./pages/select-role";
 import PrivacyPolicy from "./pages/privacy-policy";
 import TermsOfService from "./pages/terms-of-service";
 import { HeaderContentProvider, useHeaderContent } from "./components/HeaderContentContext";
+import { CompanyTourProvider } from "./contexts/CompanyTourContext";
+import { CompanyTour } from "./components/CompanyTour";
 
 // Public routes that don't require authentication
 function PublicRouter() {
@@ -313,7 +315,8 @@ function ProtectedRouter() {
     );
   }
 
-  return (
+  // Wrap company users with tour provider
+  const content = (
     <HeaderContentProvider>
       <AuthenticatedLayout user={user} unreadCount={unreadCount} companyProfile={companyStats?.companyProfile} onLogout={handleLogout} hideHeader={hideHeader}>
         <Switch>
@@ -407,6 +410,18 @@ function ProtectedRouter() {
       </AuthenticatedLayout>
     </HeaderContentProvider>
   );
+
+  // Wrap company users with tour provider
+  if (user?.role === 'company') {
+    return (
+      <CompanyTourProvider>
+        {content}
+        <CompanyTour />
+      </CompanyTourProvider>
+    );
+  }
+
+  return content;
 }
 
 function Router() {
