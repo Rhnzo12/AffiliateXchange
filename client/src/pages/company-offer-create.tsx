@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -124,6 +124,10 @@ export default function CompanyOfferCreate() {
     description: "",
   });
 
+  // Exit confirmation dialog state
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     title: "",
     productName: "",
@@ -176,6 +180,70 @@ export default function CompanyOfferCreate() {
     creatorCredit: "",
     originalPlatform: "",
   });
+
+  // Check if form has unsaved changes
+  const hasUnsavedChanges = useCallback(() => {
+    const hasFormData =
+      formData.title.trim() !== "" ||
+      formData.productName.trim() !== "" ||
+      formData.shortDescription.trim() !== "" ||
+      formData.fullDescription.trim() !== "" ||
+      formData.primaryNiche.trim() !== "" ||
+      formData.productUrl.trim() !== "" ||
+      formData.commissionRate !== "" ||
+      formData.commissionAmount !== "" ||
+      formData.featuredImageUrl !== "" ||
+      formData.minimumFollowers !== "" ||
+      formData.allowedPlatforms.length > 0 ||
+      formData.geographicRestrictions.length > 0 ||
+      formData.ageRestriction !== "no_restriction" ||
+      formData.contentStyleRequirements !== "" ||
+      formData.brandSafetyRequirements !== "";
+
+    const hasVideos = videos.length > 0;
+    const hasThumbnail = thumbnailFile !== null;
+
+    return hasFormData || hasVideos || hasThumbnail;
+  }, [formData, videos, thumbnailFile]);
+
+  // Handle navigation with unsaved changes
+  const handleNavigationAttempt = useCallback((targetPath: string) => {
+    if (hasUnsavedChanges()) {
+      setPendingNavigation(targetPath);
+      setShowExitConfirmation(true);
+    } else {
+      setLocation(targetPath);
+    }
+  }, [hasUnsavedChanges, setLocation]);
+
+  // Confirm navigation and leave page
+  const confirmNavigation = useCallback(() => {
+    setShowExitConfirmation(false);
+    if (pendingNavigation) {
+      setLocation(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  }, [pendingNavigation, setLocation]);
+
+  // Cancel navigation and stay on page
+  const cancelNavigation = useCallback(() => {
+    setShowExitConfirmation(false);
+    setPendingNavigation(null);
+  }, []);
+
+  // Warn before browser close/refresh
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges()) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const sectionRefs = {
     basics: useRef<HTMLDivElement>(null),
@@ -808,11 +876,14 @@ export default function CompanyOfferCreate() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/company/offers">
-          <Button variant="ghost" size="icon" data-testid="button-back">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          data-testid="button-back"
+          onClick={() => handleNavigationAttempt("/company/offers")}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div>
           <h1 className="text-3xl font-bold">Create New Offer</h1>
           <p className="text-muted-foreground mt-1">
@@ -1465,11 +1536,14 @@ export default function CompanyOfferCreate() {
                       ? `Creating...${offerUploadProgress ? ` ${offerUploadProgress}%` : ""}`
                       : "Create Offer"}
                   </Button>
-                  <Link href="/company/offers">
-                    <Button type="button" variant="outline" data-testid="button-cancel">
-                      Cancel
-                    </Button>
-                  </Link>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    data-testid="button-cancel"
+                    onClick={() => handleNavigationAttempt("/company/offers")}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1659,6 +1733,29 @@ export default function CompanyOfferCreate() {
         description={errorDialog.description}
         variant="error"
       />
+
+      {/* Exit Confirmation Dialog */}
+      <Dialog open={showExitConfirmation} onOpenChange={setShowExitConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Unsaved Changes
+            </DialogTitle>
+            <DialogDescription>
+              You have unsaved changes in your offer. Are you sure you want to leave this page? All your progress will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={cancelNavigation}>
+              Stay on Page
+            </Button>
+            <Button variant="destructive" onClick={confirmNavigation}>
+              Leave Page
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
