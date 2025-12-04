@@ -7,7 +7,9 @@ import { useRoute, Link } from "wouter";
 import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
 import { TUTORIAL_IDS, analyticsTutorialConfig } from "../lib/tutorialConfig";
 import { useCreatorPageTour } from "../components/CreatorTour";
-import { CREATOR_TOUR_IDS, analyticsTourSteps } from "../lib/creatorTourConfig";
+import { CREATOR_TOUR_IDS, analyticsTourSteps as creatorAnalyticsTourSteps } from "../lib/creatorTourConfig";
+import { useCompanyPageTour } from "../components/CompanyTour";
+import { COMPANY_TOUR_IDS, analyticsTourSteps as companyAnalyticsTourSteps } from "../lib/companyTourConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import {
@@ -138,8 +140,10 @@ function CreatorAnalytics() {
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
   const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.ANALYTICS);
 
-  // Quick Guide Tour - only for creator users, after initial tutorial is dismissed
-  useCreatorPageTour(CREATOR_TOUR_IDS.ANALYTICS, analyticsTourSteps, !showTutorial);
+  // Quick Guide Tour - for both creator and company users, after initial tutorial is dismissed
+  const isCreator = user?.role === 'creator';
+  useCreatorPageTour(CREATOR_TOUR_IDS.ANALYTICS, creatorAnalyticsTourSteps, isCreator && !showTutorial);
+  useCompanyPageTour(COMPANY_TOUR_IDS.ANALYTICS, companyAnalyticsTourSteps, isCompany && !showTutorial);
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery<any>({
     queryKey: ["/api/analytics", { range: dateRange, applicationId }],

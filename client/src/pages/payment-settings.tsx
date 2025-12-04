@@ -6,7 +6,9 @@ import { apiRequest, queryClient } from "../lib/queryClient";
 import { isUnauthorizedError } from "../lib/authUtils";
 import { Link } from "wouter";
 import { useCreatorPageTour } from "../components/CreatorTour";
-import { CREATOR_TOUR_IDS, paymentSettingsTourSteps } from "../lib/creatorTourConfig";
+import { CREATOR_TOUR_IDS, paymentSettingsTourSteps as creatorPaymentTourSteps } from "../lib/creatorTourConfig";
+import { useCompanyPageTour } from "../components/CompanyTour";
+import { COMPANY_TOUR_IDS, paymentSettingsTourSteps as companyPaymentTourSteps } from "../lib/companyTourConfig";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -2397,9 +2399,11 @@ export default function PaymentSettings() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "settings" | "approvals" | "dashboard">("overview");
 
-  // Quick Guide Tour - only for creator users
+  // Quick Guide Tour - for both creator and company users
   const isCreator = user?.role === 'creator';
-  useCreatorPageTour(CREATOR_TOUR_IDS.PAYMENT_SETTINGS, paymentSettingsTourSteps, isCreator);
+  const isCompany = user?.role === 'company';
+  useCreatorPageTour(CREATOR_TOUR_IDS.PAYMENT_SETTINGS, creatorPaymentTourSteps, isCreator);
+  useCompanyPageTour(COMPANY_TOUR_IDS.PAYMENT_SETTINGS, companyPaymentTourSteps, isCompany);
 
   const [payoutMethod, setPayoutMethod] = useState("etransfer");
   const [payoutEmail, setPayoutEmail] = useState("");
