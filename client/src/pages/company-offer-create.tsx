@@ -289,6 +289,43 @@ export default function CompanyOfferCreate() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [hasUnsavedChanges]);
 
+  // Intercept all link clicks to show confirmation before navigating
+  useEffect(() => {
+    const handleLinkClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest("a");
+
+      if (anchor) {
+        const href = anchor.getAttribute("href");
+        // Only intercept internal navigation links (not external links or same-page anchors)
+        if (href && href.startsWith("/") && !href.startsWith("/company/offers/create")) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          setPendingNavigation(href);
+
+          if (hasUnsavedChanges()) {
+            setExitMessage({
+              title: "Unsaved Changes",
+              description: "You have unsaved changes in your offer. Are you sure you want to leave this page? All your progress will be lost.",
+            });
+          } else {
+            setExitMessage({
+              title: "Leave Page?",
+              description: "You haven't added any information yet. Are you sure you want to leave this page?",
+            });
+          }
+
+          setShowExitConfirmation(true);
+        }
+      }
+    };
+
+    // Use capture phase to intercept before the link navigates
+    document.addEventListener("click", handleLinkClick, true);
+    return () => document.removeEventListener("click", handleLinkClick, true);
+  }, [hasUnsavedChanges]);
+
   const sectionRefs = {
     basics: useRef<HTMLDivElement>(null),
     requirements: useRef<HTMLDivElement>(null),
