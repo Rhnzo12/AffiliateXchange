@@ -230,53 +230,25 @@ function CreatorAnalytics() {
     completed: Number(item.completed || 0),
   }));
 
-  const conversionFunnel = (isCompany ? analytics?.conversionFunnel : undefined) as
-    | { applied: number; approved: number; active: number; paused: number; completed: number; conversions: number }
-    | undefined;
-
-  const funnelChartData: { name: string; value: number }[] = conversionFunnel
-    ? [
-        { name: "Applied", value: conversionFunnel.applied },
-        { name: "Approved", value: conversionFunnel.approved },
-        { name: "Active", value: conversionFunnel.active },
-        { name: "Paused", value: conversionFunnel.paused },
-        { name: "Completed", value: conversionFunnel.completed },
-        { name: "Converted", value: conversionFunnel.conversions },
-      ]
-    : [];
-
-  const acquisitionSources: { source: string; creators: number }[] = isCompany
-    ? (analytics?.acquisitionSources || []).map((item: any) => ({
-        source: item.source || "Direct/Other",
-        creators: Number(item.creators || 0),
-      }))
-    : [];
-
-  const geography: { country: string; count: number }[] = isCompany
-    ? (analytics?.geography || []).map((item: any) => ({
-        country: item.country || "Unknown",
-        count: Number(item.count || 0),
-      }))
-    : [];
+  // Creators don't have these company-specific metrics
+  const conversionFunnel = undefined;
+  const funnelChartData: { name: string; value: number }[] = [];
+  const acquisitionSources: { source: string; creators: number }[] = [];
+  const geography: { country: string; count: number }[] = [];
 
   const conversionRate = Number(analytics?.conversionRate ?? 0);
 
-  const totalSpend = Number(analytics?.totalSpent ?? 0);
   const totalEarnings = Number(analytics?.totalEarnings ?? 0);
-  const primaryTotal = isCompany ? (totalSpend || totalEarnings) : totalEarnings;
+  const primaryTotal = totalEarnings;
 
-  const affiliateBreakdown = isCompany
-    ? Number(analytics?.affiliateSpent || 0)
-    : Number(analytics?.affiliateEarnings || 0);
-  const retainerBreakdown = isCompany
-    ? Number(analytics?.retainerSpent || 0)
-    : Number(analytics?.retainerEarnings || 0);
+  const affiliateBreakdown = Number(analytics?.affiliateEarnings || 0);
+  const retainerBreakdown = Number(analytics?.retainerEarnings || 0);
 
   const totalClicks = Number(analytics?.totalClicks || 0);
   const uniqueClicks = Number(analytics?.uniqueClicks || 0);
   const conversions = Number(analytics?.conversions || 0);
   const activeOffers = Number(analytics?.activeOffers || 0);
-  const activeCreators = isCompany ? Number(analytics?.activeCreators || 0) : undefined;
+  const activeCreators = undefined;
 
   const exportData = () => {
     if (!analytics) {
@@ -335,7 +307,7 @@ function CreatorAnalytics() {
       };
 
       exportAnalyticsPDF(analyticsExport, {
-        isCompany,
+        isCompany: false,
         dateRange,
         applicationId,
         offerTitle: analytics?.offerTitle,
