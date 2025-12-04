@@ -140,10 +140,9 @@ function CreatorAnalytics() {
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
   const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.ANALYTICS);
 
-  // Quick Guide Tour - for both creator and company users, after initial tutorial is dismissed
+  // Quick Guide Tour - for creator users, after initial tutorial is dismissed
   const isCreator = user?.role === 'creator';
   useCreatorPageTour(CREATOR_TOUR_IDS.ANALYTICS, creatorAnalyticsTourSteps, isCreator && !showTutorial);
-  useCompanyPageTour(COMPANY_TOUR_IDS.ANALYTICS, companyAnalyticsTourSteps, isCompany && !showTutorial);
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery<any>({
     queryKey: ["/api/analytics", { range: dateRange, applicationId }],
@@ -954,7 +953,7 @@ function CreatorAnalytics() {
   );
 }
 
-// Company Analytics Component (without tour hook)
+// Company Analytics Component (with tour hook)
 function CompanyAnalytics() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -962,6 +961,10 @@ function CompanyAnalytics() {
   const [, params] = useRoute("/analytics/:id");
   const applicationId = params?.id;
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+
+  // Quick Guide Tour - for company users
+  const isCompany = user?.role === 'company';
+  useCompanyPageTour(COMPANY_TOUR_IDS.ANALYTICS, companyAnalyticsTourSteps, isCompany);
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery<any>({
     queryKey: ["/api/analytics", { range: dateRange, applicationId }],
