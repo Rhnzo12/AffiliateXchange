@@ -78,6 +78,8 @@ import TermsOfService from "./pages/terms-of-service";
 import { HeaderContentProvider, useHeaderContent } from "./components/HeaderContentContext";
 import { CompanyTourProvider } from "./contexts/CompanyTourContext";
 import { CompanyTour } from "./components/CompanyTour";
+import { CreatorTourProvider } from "./contexts/CreatorTourContext";
+import { CreatorTour } from "./components/CreatorTour";
 
 // Public routes that don't require authentication
 function PublicRouter() {
@@ -418,6 +420,16 @@ function ProtectedRouter() {
         {content}
         <CompanyTour />
       </CompanyTourProvider>
+    );
+  }
+
+  // Wrap creator users with tour provider
+  if (user?.role === 'creator') {
+    return (
+      <CreatorTourProvider>
+        {content}
+        <CreatorTour />
+      </CreatorTourProvider>
     );
   }
 

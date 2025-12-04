@@ -1,6 +1,8 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "../hooks/use-toast";
 import { apiRequest, queryClient } from "../lib/queryClient";
+import { useCreatorPageTour } from "../components/CreatorTour";
+import { CREATOR_TOUR_IDS, retainersTourSteps } from "../lib/creatorTourConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -90,6 +92,10 @@ export default function CreatorRetainers() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { setHeaderContent } = useHeaderContent();
+
+  // Quick Guide Tour
+  useCreatorPageTour(CREATOR_TOUR_IDS.RETAINERS, retainersTourSteps);
+
   const [selectedContract, setSelectedContract] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [showVideoPlatformDialog, setShowVideoPlatformDialog] = useState(false);

@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
 import { TUTORIAL_IDS, analyticsTutorialConfig } from "../lib/tutorialConfig";
+import { useCreatorPageTour } from "../components/CreatorTour";
+import { CREATOR_TOUR_IDS, analyticsTourSteps } from "../lib/creatorTourConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import {
@@ -111,13 +113,16 @@ export default function Analytics() {
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
   const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.ANALYTICS);
 
+  const isCompany = user?.role === 'company';
+
+  // Quick Guide Tour - only for creator users, after initial tutorial is dismissed
+  useCreatorPageTour(CREATOR_TOUR_IDS.ANALYTICS, analyticsTourSteps, !isCompany && !showTutorial);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       window.location.href = "/login";
     }
   }, [isAuthenticated, isLoading]);
-
-  const isCompany = user?.role === 'company';
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery<any>({
     queryKey: ["/api/analytics", { range: dateRange, applicationId }],

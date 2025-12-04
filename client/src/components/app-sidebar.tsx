@@ -3,6 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { CompanyTourButtonSafe } from "./CompanyTourButton";
+import { CreatorTourButtonSafe } from "./CreatorTourButton";
 import {
   Sidebar,
   SidebarContent,
@@ -322,6 +323,13 @@ export function AppSidebar() {
         {user?.role === 'company' && (
           <div className="mb-3">
             <CompanyTourButtonSafe />
+          </div>
+        )}
+
+        {/* Tour button for creator users */}
+        {user?.role === 'creator' && (
+          <div className="mb-3">
+            <CreatorTourButtonSafe />
           </div>
         )}
 

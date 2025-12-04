@@ -5,6 +5,8 @@ import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
 import { useTutorial } from "../hooks/useTutorial";
 import { TUTORIAL_IDS, creatorDashboardTutorialConfig } from "../lib/tutorialConfig";
+import { useCreatorPageTour } from "../components/CreatorTour";
+import { CREATOR_TOUR_IDS, dashboardTourSteps } from "../lib/creatorTourConfig";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import {
@@ -40,6 +42,9 @@ export default function CreatorDashboard() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
   const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.CREATOR_DASHBOARD);
+
+  // Quick Guide Tour - only starts after initial tutorial is dismissed
+  useCreatorPageTour(CREATOR_TOUR_IDS.DASHBOARD, dashboardTourSteps, !showTutorial);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {

@@ -5,6 +5,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { isUnauthorizedError } from "../lib/authUtils";
 import { Link } from "wouter";
+import { useCreatorPageTour } from "../components/CreatorTour";
+import { CREATOR_TOUR_IDS, paymentSettingsTourSteps } from "../lib/creatorTourConfig";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -2394,6 +2396,10 @@ export default function PaymentSettings() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "settings" | "approvals" | "dashboard">("overview");
+
+  // Quick Guide Tour - only for creator users
+  const isCreator = user?.role === 'creator';
+  useCreatorPageTour(CREATOR_TOUR_IDS.PAYMENT_SETTINGS, paymentSettingsTourSteps, isCreator);
 
   const [payoutMethod, setPayoutMethod] = useState("etransfer");
   const [payoutEmail, setPayoutEmail] = useState("");
