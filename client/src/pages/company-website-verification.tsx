@@ -25,6 +25,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { Link } from "wouter";
+import { usePageTour } from "../components/CompanyTour";
+import { COMPANY_TOUR_IDS, websiteVerificationTourSteps } from "../lib/companyTourConfig";
 
 type VerificationData = {
   websiteUrl: string | null;
@@ -43,6 +45,9 @@ export default function CompanyWebsiteVerification() {
   const { isAuthenticated, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'meta_tag' | 'dns_txt'>('meta_tag');
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+
+  // Quick tour for website verification page
+  usePageTour(COMPANY_TOUR_IDS.WEBSITE_VERIFICATION, websiteVerificationTourSteps);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {

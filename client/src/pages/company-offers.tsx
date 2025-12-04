@@ -57,6 +57,8 @@ import {
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
 import { OfferCardSkeleton } from "../components/skeletons";
+import { usePageTour } from "../components/CompanyTour";
+import { COMPANY_TOUR_IDS, offersTourSteps } from "../lib/companyTourConfig";
 
 const COMMISSION_TYPES = [
   { value: "per_sale", label: "Per Sale" },
@@ -156,6 +158,9 @@ export default function CompanyOffers() {
   const [commissionFilter, setCommissionFilter] = useState("all");
   const [nicheFilter, setNicheFilter] = useState("all");
   const [errorDialog, setErrorDialog] = useState<{ title: string; description: string } | null>(null);
+
+  // Quick tour for offers page
+  usePageTour(COMPANY_TOUR_IDS.OFFERS, offersTourSteps);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
