@@ -4,9 +4,8 @@ import { createPortal } from "react-dom";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { X, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCompanyTour, TourStep } from "../contexts/CompanyTourContext";
-import { cn } from "../lib/utils";
 
 interface TourTooltipProps {
   step: TourStep;
@@ -93,15 +92,12 @@ function TourTooltip({
         left: tooltipPosition.left,
       }}
     >
-      <Card className="w-[320px] sm:w-[380px] shadow-2xl border-primary/20 overflow-hidden">
+      <Card className="w-[320px] sm:w-[380px] shadow-2xl border-primary/20 overflow-hidden bg-background">
         {/* Header */}
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <Badge variant="secondary" className="text-xs">
-              Step {stepIndex + 1} of {totalSteps}
-            </Badge>
-          </div>
+          <Badge variant="secondary" className="text-xs">
+            Step {stepIndex + 1} of {totalSteps}
+          </Badge>
           <Button
             variant="ghost"
             size="icon"
@@ -113,11 +109,21 @@ function TourTooltip({
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-3">
-          <h3 className="font-semibold text-lg text-foreground">{step.title}</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {step.content}
-          </p>
+        <div className="p-4 space-y-4">
+          {/* Icon */}
+          {step.icon && (
+            <div className="flex justify-center">
+              <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
+                {step.icon}
+              </div>
+            </div>
+          )}
+          <div className="text-center space-y-2">
+            <h3 className="font-semibold text-lg text-foreground">{step.title}</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {step.content}
+            </p>
+          </div>
         </div>
 
         {/* Footer */}
@@ -176,10 +182,10 @@ function SpotlightOverlay({ targetRect, onClick }: SpotlightOverlayProps) {
   const padding = 8;
 
   if (!targetRect) {
-    // Center spotlight for welcome messages
+    // Center spotlight for welcome messages - lighter overlay like dialog backdrop
     return (
       <div
-        className="fixed inset-0 z-[10000] bg-black/60 backdrop-blur-[2px] transition-all duration-300"
+        className="fixed inset-0 z-[10000] bg-black/40 transition-all duration-300"
         onClick={onClick}
       />
     );
@@ -194,25 +200,25 @@ function SpotlightOverlay({ targetRect, onClick }: SpotlightOverlayProps) {
 
   return (
     <>
-      {/* Dark overlay with cutout */}
+      {/* Lighter overlay with cutout */}
       <div
         className="fixed inset-0 z-[10000] transition-all duration-300"
         onClick={onClick}
         style={{
           background: `
             linear-gradient(to bottom,
-              rgba(0,0,0,0.6) 0%,
-              rgba(0,0,0,0.6) ${spotlightStyle.top}px,
+              rgba(0,0,0,0.4) 0%,
+              rgba(0,0,0,0.4) ${spotlightStyle.top}px,
               transparent ${spotlightStyle.top}px,
               transparent ${spotlightStyle.top + spotlightStyle.height}px,
-              rgba(0,0,0,0.6) ${spotlightStyle.top + spotlightStyle.height}px
+              rgba(0,0,0,0.4) ${spotlightStyle.top + spotlightStyle.height}px
             ),
             linear-gradient(to right,
-              rgba(0,0,0,0.6) 0%,
-              rgba(0,0,0,0.6) ${spotlightStyle.left}px,
+              rgba(0,0,0,0.4) 0%,
+              rgba(0,0,0,0.4) ${spotlightStyle.left}px,
               transparent ${spotlightStyle.left}px,
               transparent ${spotlightStyle.left + spotlightStyle.width}px,
-              rgba(0,0,0,0.6) ${spotlightStyle.left + spotlightStyle.width}px
+              rgba(0,0,0,0.4) ${spotlightStyle.left + spotlightStyle.width}px
             )
           `,
           backgroundBlendMode: "darken",
@@ -220,16 +226,15 @@ function SpotlightOverlay({ targetRect, onClick }: SpotlightOverlayProps) {
       />
       {/* Spotlight border */}
       <div
-        className="fixed z-[10001] border-2 border-primary rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.6)] pointer-events-none animate-pulse"
+        className="fixed z-[10001] border-2 border-primary rounded-lg pointer-events-none"
         style={{
           top: spotlightStyle.top,
           left: spotlightStyle.left,
           width: spotlightStyle.width,
           height: spotlightStyle.height,
           boxShadow: `
-            0 0 0 9999px rgba(0,0,0,0.6),
-            0 0 20px 4px rgba(var(--primary), 0.3),
-            inset 0 0 20px 4px rgba(var(--primary), 0.1)
+            0 0 0 9999px rgba(0,0,0,0.4),
+            0 0 15px 2px rgba(var(--primary), 0.2)
           `,
         }}
       />
