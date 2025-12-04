@@ -157,7 +157,7 @@ export function AppSidebar() {
       icon: BarChart3,
     },
     {
-      title: "Management",
+      title: "Administration Management",
       icon: Sliders,
       children: [
         {
@@ -203,7 +203,7 @@ export function AppSidebar() {
       icon: MessageSquare,
     },
     {
-      title: "Payment",
+      title: "Payment Administration",
       icon: DollarSign,
       children: [
         {
