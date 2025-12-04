@@ -379,3 +379,6 @@ export function usePageTour(pageId: string, steps: TourStep[], enabled: boolean 
   };
 }
 
+// Alias for consistency with CreatorTour naming
+export const useCompanyPageTour = usePageTour;
+
