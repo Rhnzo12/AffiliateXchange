@@ -127,6 +127,10 @@ export default function CompanyOfferCreate() {
   // Exit confirmation dialog state
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [exitMessage, setExitMessage] = useState<{ title: string; description: string }>({
+    title: "Leave Page?",
+    description: "Are you sure you want to leave this page?",
+  });
 
   const [formData, setFormData] = useState({
     title: "",
@@ -206,15 +210,24 @@ export default function CompanyOfferCreate() {
     return hasFormData || hasVideos || hasThumbnail;
   }, [formData, videos, thumbnailFile]);
 
-  // Handle navigation with unsaved changes
+  // Handle navigation - always show confirmation
   const handleNavigationAttempt = useCallback((targetPath: string) => {
+    setPendingNavigation(targetPath);
+
     if (hasUnsavedChanges()) {
-      setPendingNavigation(targetPath);
-      setShowExitConfirmation(true);
+      setExitMessage({
+        title: "Unsaved Changes",
+        description: "You have unsaved changes in your offer. Are you sure you want to leave this page? All your progress will be lost.",
+      });
     } else {
-      setLocation(targetPath);
+      setExitMessage({
+        title: "Leave Page?",
+        description: "You haven't added any information yet. Are you sure you want to leave this page?",
+      });
     }
-  }, [hasUnsavedChanges, setLocation]);
+
+    setShowExitConfirmation(true);
+  }, [hasUnsavedChanges]);
 
   // Confirm navigation and leave page
   const confirmNavigation = useCallback(() => {
@@ -247,21 +260,29 @@ export default function CompanyOfferCreate() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  // Handle browser back/forward navigation
+  // Handle browser back/forward navigation - always show confirmation
   useEffect(() => {
     // Push a state to detect when user tries to go back
     window.history.pushState(null, "", window.location.href);
 
     const handlePopState = () => {
+      // Push state again to prevent navigation
+      window.history.pushState(null, "", window.location.href);
+      setPendingNavigation("/company/offers");
+
       if (hasUnsavedChanges()) {
-        // Push state again to prevent navigation
-        window.history.pushState(null, "", window.location.href);
-        setPendingNavigation("/company/offers");
-        setShowExitConfirmation(true);
+        setExitMessage({
+          title: "Unsaved Changes",
+          description: "You have unsaved changes in your offer. Are you sure you want to leave this page? All your progress will be lost.",
+        });
       } else {
-        // Allow navigation
-        window.history.back();
+        setExitMessage({
+          title: "Leave Page?",
+          description: "You haven't added any information yet. Are you sure you want to leave this page?",
+        });
       }
+
+      setShowExitConfirmation(true);
     };
 
     window.addEventListener("popstate", handlePopState);
@@ -1763,10 +1784,10 @@ export default function CompanyOfferCreate() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Unsaved Changes
+              {exitMessage.title}
             </DialogTitle>
             <DialogDescription>
-              You have unsaved changes in your offer. Are you sure you want to leave this page? All your progress will be lost.
+              {exitMessage.description}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
