@@ -93,6 +93,10 @@ export default function CompanyRetainers() {
 
   // Exit confirmation dialog state
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+  const [exitMessage, setExitMessage] = useState<{ title: string; description: string }>({
+    title: "Leave Page?",
+    description: "Are you sure you want to close this dialog?",
+  });
 
   const { data: contracts, isLoading } = useQuery<any[]>({
     queryKey: ["/api/company/retainer-contracts"],
@@ -190,15 +194,25 @@ export default function CompanyRetainers() {
     );
   };
 
-  // Handle dialog close attempt
+  // Handle dialog close attempt - always show confirmation when closing
   const handleDialogClose = (openState: boolean) => {
-    if (!openState && hasUnsavedChanges()) {
-      setShowExitConfirmation(true);
+    if (openState) {
+      // Opening the dialog
+      setOpen(true);
     } else {
-      setOpen(openState);
-      if (!openState) {
-        form.reset();
+      // Closing the dialog - always show confirmation
+      if (hasUnsavedChanges()) {
+        setExitMessage({
+          title: "Unsaved Changes",
+          description: "You have unsaved changes in your retainer contract. Are you sure you want to leave? All your progress will be lost.",
+        });
+      } else {
+        setExitMessage({
+          title: "Leave Page?",
+          description: "You haven't added any information yet. Are you sure you want to close this dialog?",
+        });
       }
+      setShowExitConfirmation(true);
     }
   };
 
@@ -228,7 +242,7 @@ export default function CompanyRetainers() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [open]);
 
-  // Handle browser back/forward navigation when dialog is open
+  // Handle browser back/forward navigation when dialog is open - always show confirmation
   useEffect(() => {
     if (!open) return;
 
@@ -236,15 +250,21 @@ export default function CompanyRetainers() {
     window.history.pushState(null, "", window.location.href);
 
     const handlePopState = () => {
+      // Push state again to prevent navigation
+      window.history.pushState(null, "", window.location.href);
+
       if (hasUnsavedChanges()) {
-        // Push state again to prevent navigation
-        window.history.pushState(null, "", window.location.href);
-        setShowExitConfirmation(true);
+        setExitMessage({
+          title: "Unsaved Changes",
+          description: "You have unsaved changes in your retainer contract. Are you sure you want to leave? All your progress will be lost.",
+        });
       } else {
-        // Close dialog and allow navigation
-        setOpen(false);
-        form.reset();
+        setExitMessage({
+          title: "Leave Page?",
+          description: "You haven't added any information yet. Are you sure you want to close this dialog?",
+        });
       }
+      setShowExitConfirmation(true);
     };
 
     window.addEventListener("popstate", handlePopState);
@@ -1059,10 +1079,10 @@ export default function CompanyRetainers() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-amber-500" />
-              Unsaved Changes
+              {exitMessage.title}
             </DialogTitle>
             <DialogDescription>
-              You have unsaved changes in your retainer contract. Are you sure you want to leave? All your progress will be lost.
+              {exitMessage.description}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
