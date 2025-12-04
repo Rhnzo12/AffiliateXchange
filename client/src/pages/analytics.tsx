@@ -103,25 +103,43 @@ type MonthlyEarningsPoint = {
   retainer: number;
 };
 
+// Wrapper component that routes to the appropriate analytics view
 export default function Analytics() {
-  const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
-  const [dateRange, setDateRange] = useState("30d");
-  const [, params] = useRoute("/analytics/:id");
-  const applicationId = params?.id;
-  const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
-  const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.ANALYTICS);
-
   const isCompany = user?.role === 'company';
-
-  // Quick Guide Tour - only for creator users, after initial tutorial is dismissed
-  useCreatorPageTour(CREATOR_TOUR_IDS.ANALYTICS, analyticsTourSteps, !isCompany && !showTutorial);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       window.location.href = "/login";
     }
   }, [isAuthenticated, isLoading]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-pulse text-lg">Loading...</div>
+    </div>;
+  }
+
+  // Route to appropriate analytics component based on user role
+  if (isCompany) {
+    return <CompanyAnalytics />;
+  }
+
+  return <CreatorAnalytics />;
+}
+
+// Creator Analytics Component (with tour hook)
+function CreatorAnalytics() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [dateRange, setDateRange] = useState("30d");
+  const [, params] = useRoute("/analytics/:id");
+  const applicationId = params?.id;
+  const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+  const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.ANALYTICS);
+
+  // Quick Guide Tour - only for creator users, after initial tutorial is dismissed
+  useCreatorPageTour(CREATOR_TOUR_IDS.ANALYTICS, analyticsTourSteps, !showTutorial);
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery<any>({
     queryKey: ["/api/analytics", { range: dateRange, applicationId }],
@@ -139,7 +157,7 @@ export default function Analytics() {
       }
       return res.json();
     },
-    enabled: isAuthenticated,
+    enabled: true,
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -390,12 +408,6 @@ export default function Analytics() {
     }
   };
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-pulse text-lg">Loading...</div>
-    </div>;
-  }
-
   if (analyticsLoading) {
     return (
       <div className="space-y-8">
@@ -443,7 +455,8 @@ export default function Analytics() {
     return null;
   };
 
-  const renderCreatorAnalytics = () => (
+  // Render creator analytics view
+  return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
@@ -963,12 +976,241 @@ export default function Analytics() {
       />
     </div>
   );
+}
 
-  if (!isCompany) {
-    return renderCreatorAnalytics();
+// Company Analytics Component (without tour hook)
+function CompanyAnalytics() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [dateRange, setDateRange] = useState("30d");
+  const [, params] = useRoute("/analytics/:id");
+  const applicationId = params?.id;
+  const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+
+  const { data: analytics, isLoading: analyticsLoading } = useQuery<any>({
+    queryKey: ["/api/analytics", { range: dateRange, applicationId }],
+    queryFn: async () => {
+      const url = applicationId
+        ? `/api/analytics?range=${dateRange}&applicationId=${applicationId}`
+        : `/api/analytics?range=${dateRange}`;
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) {
+        if (res.status === 401) {
+          window.location.href = "/login";
+          throw new Error('Unauthorized');
+        }
+        throw new Error('Failed to fetch analytics');
+      }
+      return res.json();
+    },
+    enabled: true,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+
+  const chartData: TimelinePoint[] = (analytics?.chartData || []).map((item: any) => ({
+    date: item.date,
+    isoDate: item.isoDate,
+    clicks: Number(item.clicks || 0),
+    conversions: Number(item.conversions || 0),
+    earnings: Number(item.earnings || 0),
+  }));
+
+  const applicationsTimeline: ApplicationTimelinePoint[] = (analytics?.applicationsTimeline || []).map((item: any) => ({
+    date: item.date,
+    isoDate: item.isoDate,
+    total: Number(item.total || 0),
+    pending: Number(item.pending || 0),
+    approved: Number(item.approved || 0),
+    active: Number(item.active || 0),
+    paused: Number(item.paused || 0),
+    completed: Number(item.completed || 0),
+  }));
+
+  const conversionFunnel = analytics?.conversionFunnel as
+    | { applied: number; approved: number; active: number; paused: number; completed: number; conversions: number }
+    | undefined;
+
+  const funnelChartData: { name: string; value: number }[] = conversionFunnel
+    ? [
+        { name: "Applied", value: conversionFunnel.applied },
+        { name: "Approved", value: conversionFunnel.approved },
+        { name: "Active", value: conversionFunnel.active },
+        { name: "Paused", value: conversionFunnel.paused },
+        { name: "Completed", value: conversionFunnel.completed },
+        { name: "Converted", value: conversionFunnel.conversions },
+      ]
+    : [];
+
+  const acquisitionSources: { source: string; creators: number }[] = (analytics?.acquisitionSources || []).map((item: any) => ({
+    source: item.source || "Direct/Other",
+    creators: Number(item.creators || 0),
+  }));
+
+  const geography: { country: string; count: number }[] = (analytics?.geography || []).map((item: any) => ({
+    country: item.country || "Unknown",
+    count: Number(item.count || 0),
+  }));
+
+  const conversionRate = Number(analytics?.conversionRate ?? 0);
+  const totalSpend = Number(analytics?.totalSpent ?? 0);
+  const totalEarnings = Number(analytics?.totalEarnings ?? 0);
+  const primaryTotal = totalSpend || totalEarnings;
+  const affiliateBreakdown = Number(analytics?.affiliateSpent || 0);
+  const retainerBreakdown = Number(analytics?.retainerSpent || 0);
+  const totalClicks = Number(analytics?.totalClicks || 0);
+  const uniqueClicks = Number(analytics?.uniqueClicks || 0);
+  const conversions = Number(analytics?.conversions || 0);
+  const activeOffers = Number(analytics?.activeOffers || 0);
+  const activeCreators = Number(analytics?.activeCreators || 0);
+
+  const exportData = () => {
+    if (!analytics) {
+      setErrorDialog({
+        title: "No data to export",
+        message: "There is no analytics data available",
+      });
+      return;
+    }
+
+    const headers = ['Date', 'Clicks', 'Conversions', 'Earnings'];
+    const data = chartData.map((item: TimelinePoint) => [
+      item.date,
+      item.clicks.toString(),
+      item.conversions.toString(),
+      `$${item.earnings.toFixed(2)}`,
+    ]);
+
+    downloadCSV(data, `analytics-${dateRange}`, headers);
+
+    toast({
+      title: "Data exported",
+      description: "Your analytics data has been downloaded as CSV",
+    });
+  };
+
+  const exportPdf = () => {
+    if (!analytics) {
+      setErrorDialog({
+        title: "No data to export",
+        message: "There is no analytics data available",
+      });
+      return;
+    }
+
+    try {
+      const analyticsExport: AnalyticsData = {
+        totalEarnings: Number(analytics.totalEarnings || 0),
+        totalSpent: Number(analytics.totalSpent || 0),
+        affiliateEarnings: Number(analytics.affiliateEarnings || 0),
+        affiliateSpent: Number(analytics.affiliateSpent || 0),
+        retainerEarnings: Number(analytics.retainerEarnings || 0),
+        retainerSpent: Number(analytics.retainerSpent || 0),
+        totalClicks,
+        uniqueClicks,
+        conversions,
+        conversionRate,
+        activeOffers,
+        activeCreators,
+        chartData,
+        offerBreakdown: analytics.offerBreakdown,
+        conversionFunnel,
+        acquisitionSources,
+        geography,
+        applicationsTimeline,
+      };
+
+      exportAnalyticsPDF(analyticsExport, {
+        isCompany: true,
+        dateRange,
+        applicationId,
+        offerTitle: analytics?.offerTitle,
+      });
+
+      toast({
+        title: "PDF exported",
+        description: "Your analytics report has been downloaded.",
+      });
+    } catch (error) {
+      setErrorDialog({
+        title: "Export failed",
+        message: "Unable to generate PDF report. Please try again.",
+      });
+    }
+  };
+
+  const sendToZapier = async () => {
+    if (!analytics) {
+      setErrorDialog({
+        title: "No data to export",
+        message: "There is no analytics data available",
+      });
+      return;
+    }
+
+    const webhookUrl = window.prompt("Enter the Zapier webhook URL");
+    if (!webhookUrl) {
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/analytics/export/zapier", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          webhookUrl,
+          payload: {
+            range: dateRange,
+            totals: {
+              totalSpent: Number(analytics.totalSpent || 0),
+              totalClicks: Number(analytics.totalClicks || 0),
+              conversions: Number(analytics.conversions || 0),
+              conversionRate,
+            },
+            timeline: chartData,
+            applicationsTimeline,
+            funnel: conversionFunnel,
+            acquisition: acquisitionSources,
+            geography,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const message = await res.text();
+        throw new Error(message || "Failed to send webhook");
+      }
+
+      toast({
+        title: "Zapier webhook sent",
+        description: "Analytics data delivered to the configured URL.",
+      });
+    } catch (err: any) {
+      setErrorDialog({
+        title: "Zapier export failed",
+        message: err.message || "Unable to send data to Zapier.",
+      });
+    }
+  };
+
+  if (analyticsLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Track your performance across all offers</p>
+          </div>
+        </div>
+        <StatsGridSkeleton count={4} />
+        <ChartSkeleton />
+      </div>
+    );
   }
 
-  // Company Analytics View (unchanged)
+  // Render company analytics view
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between gap-4">
