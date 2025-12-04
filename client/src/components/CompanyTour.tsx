@@ -2,9 +2,6 @@ import * as React from "react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "./ui/button";
-import { Card } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCompanyTour, TourStep } from "../contexts/CompanyTourContext";
 
 interface TourTooltipProps {
@@ -27,43 +24,53 @@ function TourTooltip({
   targetRect,
 }: TourTooltipProps) {
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const [arrowPosition, setArrowPosition] = useState<"top" | "bottom" | "left" | "right">("left");
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const isFirstStep = stepIndex === 0;
   const isLastStep = stepIndex === totalSteps - 1;
 
   useEffect(() => {
-    if (!targetRect || !tooltipRef.current) return;
+    if (!tooltipRef.current) return;
 
     const tooltip = tooltipRef.current;
     const tooltipRect = tooltip.getBoundingClientRect();
-    const padding = 16;
-    const arrowSize = 12;
+    const padding = 20;
+    const arrowOffset = 16;
 
     let top = 0;
     let left = 0;
+    let arrow: "top" | "bottom" | "left" | "right" = "left";
+
+    // For center placement (welcome screens)
+    if (!targetRect || step.placement === "center") {
+      top = window.innerHeight / 2 - tooltipRect.height / 2;
+      left = window.innerWidth / 2 - tooltipRect.width / 2;
+      setArrowPosition("left"); // No arrow for center
+      setTooltipPosition({ top, left });
+      return;
+    }
 
     const placement = step.placement || "bottom";
 
     switch (placement) {
       case "top":
-        top = targetRect.top - tooltipRect.height - arrowSize - padding;
+        top = targetRect.top - tooltipRect.height - arrowOffset;
         left = targetRect.left + (targetRect.width - tooltipRect.width) / 2;
+        arrow = "bottom";
         break;
       case "bottom":
-        top = targetRect.bottom + arrowSize + padding;
+        top = targetRect.bottom + arrowOffset;
         left = targetRect.left + (targetRect.width - tooltipRect.width) / 2;
+        arrow = "top";
         break;
       case "left":
         top = targetRect.top + (targetRect.height - tooltipRect.height) / 2;
-        left = targetRect.left - tooltipRect.width - arrowSize - padding;
+        left = targetRect.left - tooltipRect.width - arrowOffset;
+        arrow = "right";
         break;
       case "right":
         top = targetRect.top + (targetRect.height - tooltipRect.height) / 2;
-        left = targetRect.right + arrowSize + padding;
-        break;
-      case "center":
-        top = window.innerHeight / 2 - tooltipRect.height / 2;
-        left = window.innerWidth / 2 - tooltipRect.width / 2;
+        left = targetRect.right + arrowOffset;
+        arrow = "left";
         break;
     }
 
@@ -80,8 +87,65 @@ function TourTooltip({
       top = viewportHeight - tooltipRect.height - padding;
     }
 
+    setArrowPosition(arrow);
     setTooltipPosition({ top, left });
   }, [targetRect, step.placement]);
+
+  // Arrow styles based on position
+  const getArrowStyles = () => {
+    const arrowSize = 10;
+    const base = "absolute w-0 h-0 border-solid";
+
+    switch (arrowPosition) {
+      case "top":
+        return {
+          className: base,
+          style: {
+            top: -arrowSize,
+            left: "50%",
+            transform: "translateX(-50%)",
+            borderWidth: `0 ${arrowSize}px ${arrowSize}px ${arrowSize}px`,
+            borderColor: "transparent transparent white transparent",
+          },
+        };
+      case "bottom":
+        return {
+          className: base,
+          style: {
+            bottom: -arrowSize,
+            left: "50%",
+            transform: "translateX(-50%)",
+            borderWidth: `${arrowSize}px ${arrowSize}px 0 ${arrowSize}px`,
+            borderColor: "white transparent transparent transparent",
+          },
+        };
+      case "left":
+        return {
+          className: base,
+          style: {
+            left: -arrowSize,
+            top: "50%",
+            transform: "translateY(-50%)",
+            borderWidth: `${arrowSize}px ${arrowSize}px ${arrowSize}px 0`,
+            borderColor: "transparent white transparent transparent",
+          },
+        };
+      case "right":
+        return {
+          className: base,
+          style: {
+            right: -arrowSize,
+            top: "50%",
+            transform: "translateY(-50%)",
+            borderWidth: `${arrowSize}px 0 ${arrowSize}px ${arrowSize}px`,
+            borderColor: "transparent transparent transparent white",
+          },
+        };
+    }
+  };
+
+  const arrowStyles = getArrowStyles();
+  const showArrow = targetRect && step.placement !== "center";
 
   return (
     <div
@@ -92,83 +156,30 @@ function TourTooltip({
         left: tooltipPosition.left,
       }}
     >
-      <Card className="w-[320px] sm:w-[380px] shadow-2xl border-primary/20 overflow-hidden bg-background">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-4 py-3 border-b flex items-center justify-between">
-          <Badge variant="secondary" className="text-xs">
-            Step {stepIndex + 1} of {totalSteps}
-          </Badge>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-muted-foreground hover:text-foreground"
-            onClick={onSkip}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+      <div className="relative bg-white rounded-lg shadow-xl border border-gray-200 w-[300px] sm:w-[340px]">
+        {/* Arrow */}
+        {showArrow && (
+          <div className={arrowStyles.className} style={arrowStyles.style as React.CSSProperties} />
+        )}
 
         {/* Content */}
-        <div className="p-4 space-y-4">
-          {/* Icon */}
-          {step.icon && (
-            <div className="flex justify-center">
-              <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
-                {step.icon}
-              </div>
-            </div>
-          )}
-          <div className="text-center space-y-2">
-            <h3 className="font-semibold text-lg text-foreground">{step.title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {step.content}
-            </p>
-          </div>
+        <div className="p-5 space-y-3">
+          <h3 className="font-bold text-base text-gray-900">{step.title}</h3>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            {step.content}
+          </p>
         </div>
 
-        {/* Footer */}
-        <div className="px-4 py-3 bg-muted/30 border-t flex items-center justify-between gap-2">
+        {/* Footer with button */}
+        <div className="px-5 pb-5 flex justify-center">
           <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={onSkip}
+            onClick={onNext}
+            className="bg-primary hover:bg-primary/90 text-white px-8 py-2 rounded-md font-medium"
           >
-            Skip tour
+            {isLastStep ? "Got it" : "Got it"}
           </Button>
-          <div className="flex items-center gap-2">
-            {!isFirstStep && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onPrev}
-                className="gap-1"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Back
-              </Button>
-            )}
-            <Button size="sm" onClick={onNext} className="gap-1">
-              {isLastStep ? (
-                "Finish"
-              ) : (
-                <>
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </div>
         </div>
-
-        {/* Progress bar */}
-        <div className="h-1 bg-muted">
-          <div
-            className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${((stepIndex + 1) / totalSteps) * 100}%` }}
-          />
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }
@@ -179,13 +190,13 @@ interface SpotlightOverlayProps {
 }
 
 function SpotlightOverlay({ targetRect, onClick }: SpotlightOverlayProps) {
-  const padding = 8;
+  const padding = 4;
 
   if (!targetRect) {
-    // Center spotlight for welcome messages - lighter overlay like dialog backdrop
+    // Very light overlay for welcome/center messages
     return (
       <div
-        className="fixed inset-0 z-[10000] bg-black/40 transition-all duration-300"
+        className="fixed inset-0 z-[10000] bg-black/20 transition-all duration-300"
         onClick={onClick}
       />
     );
@@ -200,42 +211,19 @@ function SpotlightOverlay({ targetRect, onClick }: SpotlightOverlayProps) {
 
   return (
     <>
-      {/* Lighter overlay with cutout */}
+      {/* Very subtle gray overlay */}
       <div
-        className="fixed inset-0 z-[10000] transition-all duration-300"
+        className="fixed inset-0 z-[10000] bg-gray-500/20 transition-all duration-300"
         onClick={onClick}
-        style={{
-          background: `
-            linear-gradient(to bottom,
-              rgba(0,0,0,0.4) 0%,
-              rgba(0,0,0,0.4) ${spotlightStyle.top}px,
-              transparent ${spotlightStyle.top}px,
-              transparent ${spotlightStyle.top + spotlightStyle.height}px,
-              rgba(0,0,0,0.4) ${spotlightStyle.top + spotlightStyle.height}px
-            ),
-            linear-gradient(to right,
-              rgba(0,0,0,0.4) 0%,
-              rgba(0,0,0,0.4) ${spotlightStyle.left}px,
-              transparent ${spotlightStyle.left}px,
-              transparent ${spotlightStyle.left + spotlightStyle.width}px,
-              rgba(0,0,0,0.4) ${spotlightStyle.left + spotlightStyle.width}px
-            )
-          `,
-          backgroundBlendMode: "darken",
-        }}
       />
-      {/* Spotlight border */}
+      {/* Highlight border around target element */}
       <div
-        className="fixed z-[10001] border-2 border-primary rounded-lg pointer-events-none"
+        className="fixed z-[10001] rounded-md pointer-events-none border-2 border-gray-400 bg-white/50"
         style={{
           top: spotlightStyle.top,
           left: spotlightStyle.left,
           width: spotlightStyle.width,
           height: spotlightStyle.height,
-          boxShadow: `
-            0 0 0 9999px rgba(0,0,0,0.4),
-            0 0 15px 2px rgba(var(--primary), 0.2)
-          `,
         }}
       />
     </>
