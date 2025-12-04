@@ -374,6 +374,9 @@ export default function Settings() {
       const uploadedUrl = uploadResult.secure_url;
       setLogoUrl(uploadedUrl);
 
+      // Clear the file input
+      event.target.value = '';
+
       toast({
         title: "Success!",
         description: "Logo uploaded successfully. Don't forget to save your changes.",
@@ -384,6 +387,8 @@ export default function Settings() {
         title: "Upload Failed",
         message: "Failed to upload logo. Please try again.",
       });
+      // Clear the file input even on error
+      event.target.value = '';
     } finally {
       setIsUploadingLogo(false);
     }
@@ -1289,14 +1294,21 @@ export default function Settings() {
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
               <AvatarImage
-                src={proxiedSrc(profileImageUrl || user?.profileImageUrl) || ''}
-                alt={user?.firstName || 'User'}
+                src={proxiedSrc(user?.role === 'company' ? logoUrl : (profileImageUrl || user?.profileImageUrl)) || ''}
+                alt={user?.role === 'company' ? tradeName || 'Company' : (user?.firstName || 'User')}
                 referrerPolicy="no-referrer"
               />
-              <AvatarFallback className="text-lg">{user?.firstName?.[0] || user?.email?.[0] || 'U'}</AvatarFallback>
+              <AvatarFallback className="text-lg">
+                {user?.role === 'company'
+                  ? (tradeName?.[0] || 'C')
+                  : (user?.firstName?.[0] || user?.email?.[0] || 'U')
+                }
+              </AvatarFallback>
             </Avatar>
             <div>
-              <div className="font-semibold">{user?.firstName} {user?.lastName}</div>
+              <div className="font-semibold">
+                {user?.role === 'company' ? tradeName || 'Company' : `${user?.firstName} ${user?.lastName}`}
+              </div>
               <div className="text-sm text-muted-foreground">{user?.email}</div>
               <div className="text-xs text-muted-foreground capitalize mt-1">{user?.role} Account</div>
             </div>

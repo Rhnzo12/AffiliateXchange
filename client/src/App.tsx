@@ -181,17 +181,20 @@ function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, chil
                     <button className="flex items-center gap-1.5 sm:gap-2 md:gap-3 hover:opacity-80 transition-opacity focus:outline-none">
                       <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-primary/20 flex-shrink-0">
                         <AvatarImage
-                          src={proxiedSrc(user?.profileImageUrl) || ''}
-                          alt={user?.firstName || user?.email || 'User'}
+                          src={proxiedSrc(user?.role === 'company' ? companyProfile?.logoUrl : user?.profileImageUrl) || ''}
+                          alt={user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
                           referrerPolicy="no-referrer"
                         />
                         <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs sm:text-sm">
-                          {(user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                          {user?.role === 'company'
+                            ? (companyProfile?.tradeName?.[0] || 'C')
+                            : (user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+                          }
                         </AvatarFallback>
                       </Avatar>
                       <div className="text-left max-w-[100px] sm:max-w-[120px] md:max-w-[160px] min-w-0 hidden sm:block">
                         <p className="text-xs sm:text-sm font-medium leading-none text-foreground truncate">
-                          {user?.firstName || user?.email || 'User'}
+                          {user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
                         </p>
                         <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{user?.role === 'company' ? 'Brand' : 'Creator'}</p>
                       </div>
@@ -202,16 +205,21 @@ function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, chil
                     <DropdownMenuItem className="flex items-center gap-2 font-medium">
                       <Avatar className="h-8 w-8 border border-primary/20">
                         <AvatarImage
-                          src={proxiedSrc(user?.profileImageUrl) || ''}
-                          alt={user?.firstName || user?.email || 'User'}
+                          src={proxiedSrc(user?.role === 'company' ? companyProfile?.logoUrl : user?.profileImageUrl) || ''}
+                          alt={user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
                           referrerPolicy="no-referrer"
                         />
                         <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                          {(user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                          {user?.role === 'company'
+                            ? (companyProfile?.tradeName?.[0] || 'C')
+                            : (user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+                          }
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-sm font-semibold text-foreground truncate">{user?.firstName || user?.email || 'User'}</span>
+                        <span className="text-sm font-semibold text-foreground truncate">
+                          {user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
+                        </span>
                         <span className="text-xs text-muted-foreground truncate">{user?.email || 'No email'}</span>
                       </div>
                     </DropdownMenuItem>
