@@ -50,7 +50,6 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { TopNavBar } from "../components/TopNavBar";
 import { StatsGridSkeleton, ChartSkeleton } from "../components/skeletons";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { GeographicHeatmap } from "../components/GeographicHeatmap";
@@ -400,7 +399,6 @@ export default function Analytics() {
   if (analyticsLoading) {
     return (
       <div className="space-y-8">
-        <TopNavBar />
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
@@ -447,7 +445,6 @@ export default function Analytics() {
 
   const renderCreatorAnalytics = () => (
     <div className="space-y-8">
-      <TopNavBar />
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
           {applicationId && (
@@ -974,8 +971,6 @@ export default function Analytics() {
   // Company Analytics View (unchanged)
   return (
     <div className="space-y-8">
-      <TopNavBar />
-      
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
           {applicationId && (
