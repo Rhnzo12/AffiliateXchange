@@ -52,6 +52,8 @@ import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
 import { TUTORIAL_IDS, browsePageTutorialConfig } from "../lib/tutorialConfig";
 import { useHeaderContent } from "../components/HeaderContentContext";
+import { useCreatorPageTour } from "../components/CreatorTour";
+import { CREATOR_TOUR_IDS, browseTourSteps } from "../lib/creatorTourConfig";
 
 const COMMISSION_TYPES = [
   { value: "per_sale", label: "Per Sale" },
@@ -238,6 +240,10 @@ export default function Browse() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading, user } = useAuth();
   const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.BROWSE_PAGE);
+
+  // Quick Guide Tour - only starts after initial tutorial is dismissed
+  useCreatorPageTour(CREATOR_TOUR_IDS.BROWSE, browseTourSteps, !showTutorial);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
