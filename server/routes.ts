@@ -723,10 +723,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const creatorProfile = await storage.getCreatorProfile(userId);
       if (!creatorProfile) {
         console.log('[Recommendations] Profile not found for user:', userId);
-        return res.status(404).json({
-          error: 'profile_not_found',
-          message: 'Creator profile not found. Please complete your profile first.'
-        });
+        // Return empty array instead of 404 to allow page to render properly
+        return res.json([]);
       }
 
   const creatorNiches = (creatorProfile.niches || []).map((n: string) => (n || '').toString().trim()).filter(Boolean);
@@ -1868,9 +1866,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[/api/company/applications] companyProfile:', companyProfile);
       if (!companyProfile) {
         console.log('[/api/company/applications] No company profile found for user:', userId);
-        return res.status(404).send("Company profile not found");
+        // Return empty array instead of 404 to allow page to render properly
+        return res.json([]);
       }
-      
+
       // Pass company profile ID, not user ID
       const applications = await storage.getApplicationsByCompany(companyProfile.id);
       console.log('[/api/company/applications] Found', applications.length, 'applications');
@@ -2729,7 +2728,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companyProfile = await storage.getCompanyProfile(userId);
 
       if (!companyProfile) {
-        return res.status(404).send("Company profile not found");
+        // Return empty array instead of 404 to allow page to render properly
+        return res.json([]);
       }
 
       const reviews = await storage.getReviewsByCompany(companyProfile.id);
@@ -3056,7 +3056,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companyProfile = await storage.getCompanyProfile(userId);
 
       if (!companyProfile) {
-        return res.status(404).send("Company profile not found");
+        // Return empty array instead of 404 to allow page to render properly
+        return res.json([]);
       }
 
       const payments = await storage.getPaymentsByCompany(companyProfile.id);
@@ -3721,9 +3722,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).id;
       const companyProfile = await storage.getCompanyProfile(userId);
-      
+
       if (!companyProfile) {
-        return res.status(404).send("Company profile not found");
+        // Return empty array instead of 404 to allow page to render properly
+        return res.json([]);
       }
 
       const offers = await storage.getOffersByCompany(companyProfile.id);
@@ -8095,7 +8097,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).id;
       const companyProfile = await storage.getCompanyProfile(userId);
-      if (!companyProfile) return res.status(404).send("Company profile not found");
+      if (!companyProfile) {
+        // Return empty array instead of 404 to allow page to render properly
+        return res.json([]);
+      }
       const contracts = await storage.getRetainerContractsByCompany(companyProfile.id);
       res.json(contracts);
     } catch (error: any) {
