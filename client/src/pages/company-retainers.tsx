@@ -34,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X, ChevronDown, ChevronUp, AlertTriangle, Clock } from "lucide-react";
+import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X, ChevronDown, ChevronUp, AlertTriangle, Clock, AlertCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -90,6 +90,9 @@ export default function CompanyRetainers() {
     description: "",
     errorDetails: "",
   });
+
+  // Exit confirmation dialog state
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
 
   const { data: contracts, isLoading } = useQuery<any[]>({
     queryKey: ["/api/company/retainer-contracts"],
@@ -165,6 +168,51 @@ export default function CompanyRetainers() {
     control: form.control,
     name: "retainerTiers",
   });
+
+  // Check if form has unsaved changes
+  const hasUnsavedChanges = () => {
+    const values = form.getValues();
+    return (
+      values.title.trim() !== "" ||
+      values.description.trim() !== "" ||
+      values.monthlyAmount.trim() !== "" ||
+      values.videosPerMonth.trim() !== "" ||
+      values.requiredPlatform.trim() !== "" ||
+      (values.platformAccountDetails?.trim() || "") !== "" ||
+      (values.contentGuidelines?.trim() || "") !== "" ||
+      (values.brandSafetyRequirements?.trim() || "") !== "" ||
+      (values.minimumFollowers?.trim() || "") !== "" ||
+      (values.niches?.trim() || "") !== "" ||
+      values.contentApprovalRequired === true ||
+      values.exclusivityRequired === true ||
+      (values.minimumVideoLengthSeconds?.trim() || "") !== "" ||
+      (values.postingSchedule?.trim() || "") !== ""
+    );
+  };
+
+  // Handle dialog close attempt
+  const handleDialogClose = (openState: boolean) => {
+    if (!openState && hasUnsavedChanges()) {
+      setShowExitConfirmation(true);
+    } else {
+      setOpen(openState);
+      if (!openState) {
+        form.reset();
+      }
+    }
+  };
+
+  // Confirm closing the dialog
+  const confirmCloseDialog = () => {
+    setShowExitConfirmation(false);
+    setOpen(false);
+    form.reset();
+  };
+
+  // Cancel closing the dialog
+  const cancelCloseDialog = () => {
+    setShowExitConfirmation(false);
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateRetainerForm) => {
@@ -276,7 +324,7 @@ export default function CompanyRetainers() {
             Create Retainer
           </Button>
         ) : (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleDialogClose}>
           <DialogTrigger asChild>
             <Button data-testid="button-create-retainer">
               <Plus className="h-4 w-4 mr-2" />
@@ -713,7 +761,7 @@ export default function CompanyRetainers() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setOpen(false)}
+                    onClick={() => handleDialogClose(false)}
                   >
                     Cancel
                   </Button>
@@ -967,6 +1015,29 @@ export default function CompanyRetainers() {
         errorDetails={errorDialog.errorDetails}
         variant="error"
       />
+
+      {/* Exit Confirmation Dialog */}
+      <Dialog open={showExitConfirmation} onOpenChange={setShowExitConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Unsaved Changes
+            </DialogTitle>
+            <DialogDescription>
+              You have unsaved changes in your retainer contract. Are you sure you want to close? All your progress will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={cancelCloseDialog}>
+              Continue Editing
+            </Button>
+            <Button variant="destructive" onClick={confirmCloseDialog}>
+              Discard Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
