@@ -1339,73 +1339,48 @@ export default function Settings() {
 
               <div className="space-y-2">
                 <Label htmlFor="logoUrl">Company Logo *</Label>
-                <div className="space-y-4">
-                  {logoUrl ? (
-                    <div className="relative inline-block">
-                      <div className="flex items-center gap-4 p-4 border rounded-lg">
-                        <Avatar className="h-24 w-24">
-                          <AvatarImage src={proxiedSrc(logoUrl)} alt={tradeName || 'Company logo'} />
-                          <AvatarFallback className="text-2xl">
-                            {tradeName?.[0] || 'C'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">Current Logo</p>
-                          <p className="text-sm text-muted-foreground">This logo will appear on all your offers</p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2"
-                        onClick={() => setLogoUrl("")}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                <p className="text-xs text-muted-foreground">
+                  {logoUrl ? 'Upload a new logo to replace the current one' : 'Upload your company logo'}
+                </p>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={isUploadingLogo}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <label
+                    htmlFor="logo-upload"
+                    className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block ${
+                      isUploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      {isUploadingLogo ? (
+                        <>
+                          <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
+                          <div className="text-sm font-medium text-blue-600">
+                            Uploading Logo...
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-8 w-8 text-primary" />
+                          <div className="text-sm font-medium">
+                            Click to upload company logo
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            JPG, PNG, GIF, WebP (max 5MB)
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Recommended: 500x500px or larger, square format
+                          </div>
+                        </>
+                      )}
                     </div>
-                  ) : (
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        disabled={isUploadingLogo}
-                        className="hidden"
-                        id="logo-upload"
-                      />
-                      <label
-                        htmlFor="logo-upload"
-                        className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block ${
-                          isUploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                      >
-                        <div className="flex flex-col items-center gap-2">
-                          {isUploadingLogo ? (
-                            <>
-                              <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
-                              <div className="text-sm font-medium text-blue-600">
-                                Uploading Logo...
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-8 w-8 text-primary" />
-                              <div className="text-sm font-medium">
-                                Click to upload company logo
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                JPG, PNG, GIF, WebP (max 5MB)
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Recommended: 500x500px or larger, square format
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </label>
-                    </div>
-                  )}
+                  </label>
                 </div>
               </div>
 
