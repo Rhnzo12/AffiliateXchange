@@ -220,6 +220,8 @@ export default function CompanyOfferCreate() {
   const confirmNavigation = useCallback(() => {
     setShowExitConfirmation(false);
     if (pendingNavigation) {
+      // Remove the popstate listener temporarily to allow navigation
+      window.removeEventListener("popstate", () => {});
       setLocation(pendingNavigation);
       setPendingNavigation(null);
     }
@@ -243,6 +245,27 @@ export default function CompanyOfferCreate() {
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    // Push a state to detect when user tries to go back
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = () => {
+      if (hasUnsavedChanges()) {
+        // Push state again to prevent navigation
+        window.history.pushState(null, "", window.location.href);
+        setPendingNavigation("/company/offers");
+        setShowExitConfirmation(true);
+      } else {
+        // Allow navigation
+        window.history.back();
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, [hasUnsavedChanges]);
 
   const sectionRefs = {

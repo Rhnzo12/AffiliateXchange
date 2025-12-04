@@ -35,7 +35,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X, ChevronDown, ChevronUp, AlertTriangle, Clock, AlertCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -213,6 +213,43 @@ export default function CompanyRetainers() {
   const cancelCloseDialog = () => {
     setShowExitConfirmation(false);
   };
+
+  // Warn before browser close/refresh when dialog is open with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (open && hasUnsavedChanges()) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [open]);
+
+  // Handle browser back/forward navigation when dialog is open
+  useEffect(() => {
+    if (!open) return;
+
+    // Push a state to detect when user tries to go back
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = () => {
+      if (hasUnsavedChanges()) {
+        // Push state again to prevent navigation
+        window.history.pushState(null, "", window.location.href);
+        setShowExitConfirmation(true);
+      } else {
+        // Close dialog and allow navigation
+        setOpen(false);
+        form.reset();
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [open, form]);
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateRetainerForm) => {
