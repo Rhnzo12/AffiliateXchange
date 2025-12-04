@@ -161,7 +161,7 @@ export const analyticsTourSteps: TourStep[] = [
     icon: <TrendingUp className="h-7 w-7 text-primary" />,
   },
   {
-    target: "[data-testid='export-button'], button:has-text('Export')",
+    target: "[data-testid='button-export']",
     title: "Export Data",
     content: "Download your analytics data as PDF or CSV for detailed reporting and analysis.",
     placement: "bottom",
