@@ -24,8 +24,9 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { Alert, AlertDescription } from "../components/ui/alert";
+import { Badge } from "../components/ui/badge";
 import { Checkbox } from "../components/ui/checkbox";
-import { ArrowLeft, Upload, Video, Play, Trash2, AlertCircle, Image as ImageIcon, X, FileText, Users, Globe, Shield } from "lucide-react";
+import { ArrowLeft, Upload, Video, Play, Trash2, AlertCircle, Image as ImageIcon, X, FileText, Users, Globe, Shield, AlertTriangle, Clock } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { VideoPlayer } from "../components/VideoPlayer";
@@ -241,6 +242,14 @@ export default function CompanyOfferCreate() {
   const { data: companyProfile } = useQuery<{ id: string }>({
     queryKey: ["/api/profile"],
   });
+
+  // Fetch company stats to check approval status
+  const { data: companyStats } = useQuery<any>({
+    queryKey: ["/api/company/stats"],
+    enabled: isAuthenticated,
+  });
+
+  const isCompanyPending = companyStats?.companyProfile?.status === 'pending';
 
   // Fetch niches from API
   const { data: niches = [], isLoading: nichesLoading } = useQuery<Array<{ id: string; name: string; description: string | null; isActive: boolean }>>({
@@ -811,6 +820,20 @@ export default function CompanyOfferCreate() {
           </p>
         </div>
       </div>
+
+      {/* Company Approval Pending Banner */}
+      {isCompanyPending && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0" />
+          <p className="flex-1 text-sm text-amber-800 dark:text-amber-200">
+            <span className="font-medium">Company Approval Pending:</span> Your company registration is under review. You'll be able to create offers once approved.
+          </p>
+          <Badge variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        </div>
+      )}
 
       <Card className="border-card-border">
         <CardHeader>
@@ -1434,8 +1457,9 @@ export default function CompanyOfferCreate() {
                 <div className="flex gap-3">
                   <Button
                     type="submit"
-                    disabled={createOfferMutation.isPending || videos.length < 6}
+                    disabled={createOfferMutation.isPending || videos.length < 6 || isCompanyPending}
                     data-testid="button-create-offer"
+                    title={isCompanyPending ? "Your company must be approved before creating offers" : undefined}
                   >
                     {createOfferMutation.isPending
                       ? `Creating...${offerUploadProgress ? ` ${offerUploadProgress}%` : ""}`

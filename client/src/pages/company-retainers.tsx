@@ -34,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X, ChevronDown, ChevronUp, AlertTriangle, Clock } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -94,6 +94,13 @@ export default function CompanyRetainers() {
   const { data: contracts, isLoading } = useQuery<any[]>({
     queryKey: ["/api/company/retainer-contracts"],
   });
+
+  // Fetch company stats to check approval status
+  const { data: companyStats } = useQuery<any>({
+    queryKey: ["/api/company/stats"],
+  });
+
+  const isCompanyPending = companyStats?.companyProfile?.status === 'pending';
 
   const contractsList = contracts ?? [];
 
@@ -235,6 +242,21 @@ export default function CompanyRetainers() {
   return (
     <div className="space-y-6">
       <TopNavBar />
+
+      {/* Company Approval Pending Banner */}
+      {isCompanyPending && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0" />
+          <p className="flex-1 text-sm text-amber-800 dark:text-amber-200">
+            <span className="font-medium">Company Approval Pending:</span> Your company registration is under review. You'll be able to create retainers once approved.
+          </p>
+          <Badge variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold" data-testid="heading-company-retainers">
@@ -244,6 +266,16 @@ export default function CompanyRetainers() {
             Hire creators for ongoing monthly video production
           </p>
         </div>
+        {isCompanyPending ? (
+          <Button
+            data-testid="button-create-retainer"
+            disabled
+            title="Your company must be approved before creating retainers"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create Retainer
+          </Button>
+        ) : (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-create-retainer">
@@ -697,6 +729,7 @@ export default function CompanyRetainers() {
             </Form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       <Card className="border-card-border">

@@ -31,6 +31,8 @@ import {
   Filter,
   X,
   Search,
+  AlertTriangle,
+  Clock,
 } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
@@ -172,6 +174,14 @@ export default function CompanyOffers() {
     enabled: isAuthenticated,
   });
 
+  // Fetch company stats to check approval status
+  const { data: companyStats } = useQuery<any>({
+    queryKey: ["/api/company/stats"],
+    enabled: isAuthenticated,
+  });
+
+  const isCompanyPending = companyStats?.companyProfile?.status === 'pending';
+
   const uniqueStatuses = useMemo(
     () => Array.from(new Set(offers.map((offer: any) => offer.status).filter(Boolean))),
     [offers]
@@ -274,6 +284,20 @@ export default function CompanyOffers() {
 
       {/* Main Content */}
       <div className="max-w-[1600px] mx-auto px-6 py-8 space-y-8">
+        {/* Company Approval Pending Banner */}
+        {isCompanyPending && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 shrink-0" />
+            <p className="flex-1 text-sm text-amber-800 dark:text-amber-200">
+              <span className="font-medium">Company Approval Pending:</span> Your company registration is under review. You'll be able to create offers once approved.
+            </p>
+            <Badge variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50">
+              <Clock className="h-3 w-3 mr-1" />
+              Pending
+            </Badge>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-2">
@@ -282,12 +306,24 @@ export default function CompanyOffers() {
               Manage your affiliate offers and track performance
             </p>
           </div>
-          <Link href="/company/offers/create">
-            <Button className="gap-2" data-testid="button-create-offer">
+          {isCompanyPending ? (
+            <Button
+              className="gap-2"
+              data-testid="button-create-offer"
+              disabled
+              title="Your company must be approved before creating offers"
+            >
               <Plus className="h-4 w-4" />
               Create New Offer
             </Button>
-          </Link>
+          ) : (
+            <Link href="/company/offers/create">
+              <Button className="gap-2" data-testid="button-create-offer">
+                <Plus className="h-4 w-4" />
+                Create New Offer
+              </Button>
+            </Link>
+          )}
         </div>
 
         <Card className="border-card-border">
