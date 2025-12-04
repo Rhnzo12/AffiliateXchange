@@ -190,7 +190,24 @@ export function CreatorTourProvider({ children }: { children: React.ReactNode })
 export function useCreatorTour() {
   const context = useContext(CreatorTourContext);
   if (context === undefined) {
-    throw new Error("useCreatorTour must be used within a CreatorTourProvider");
+    // Return a safe default no-op implementation when provider is not present
+    // This allows the hook to be used in shared components across different user roles
+    return {
+      hasCompletedInitialTour: true,
+      currentPageTourId: null,
+      isRunning: false,
+      currentStepIndex: 0,
+      currentPageSteps: [],
+      startTour: () => {},
+      stopTour: () => {},
+      nextStep: () => {},
+      prevStep: () => {},
+      skipTour: () => {},
+      restartTour: () => {},
+      hasSeenPageTour: () => true,
+      markPageTourSeen: () => {},
+      resetAllTours: () => {},
+    };
   }
   return context;
 }
