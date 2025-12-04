@@ -16,6 +16,7 @@ import {
   Star,
   ShieldCheck,
   CreditCard,
+  Download,
 } from "lucide-react";
 
 // Tour IDs for each company page
@@ -151,6 +152,20 @@ export const analyticsTourSteps: TourStep[] = [
     content: "Track your campaign performance with detailed analytics. Monitor clicks, conversions, and revenue across all your offers.",
     placement: "center",
     icon: <BarChart3 className="h-7 w-7 text-primary" />,
+  },
+  {
+    target: ".recharts-wrapper, [data-testid='analytics-chart'], .chart-container",
+    title: "Performance Charts",
+    content: "View detailed charts showing your spending trends, creator activity, and conversion performance over time.",
+    placement: "bottom",
+    icon: <TrendingUp className="h-7 w-7 text-primary" />,
+  },
+  {
+    target: "[data-testid='export-button'], button:has-text('Export')",
+    title: "Export Data",
+    content: "Download your analytics data as PDF or CSV for detailed reporting and analysis.",
+    placement: "bottom",
+    icon: <Download className="h-7 w-7 text-primary" />,
   },
 ];
 
