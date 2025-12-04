@@ -157,24 +157,40 @@ export function AppSidebar() {
       icon: BarChart3,
     },
     {
-      title: "Company Management",
-      url: "/admin/companies",
-      icon: Building2,
-    },
-    {
-      title: "Offer Management",
-      url: "/admin/offers",
-      icon: TrendingUp,
-    },
-    {
-      title: "Creator Management",
-      url: "/admin/creators",
-      icon: Users,
-    },
-    {
-      title: "Review Management",
-      url: "/admin/reviews",
-      icon: Star,
+      title: "Management",
+      icon: Sliders,
+      children: [
+        {
+          title: "Company Management",
+          url: "/admin/companies",
+          icon: Building2,
+        },
+        {
+          title: "Offer Management",
+          url: "/admin/offers",
+          icon: TrendingUp,
+        },
+        {
+          title: "Creator Management",
+          url: "/admin/creators",
+          icon: Users,
+        },
+        {
+          title: "Review Management",
+          url: "/admin/reviews",
+          icon: Star,
+        },
+        {
+          title: "Keyword Management",
+          url: "/admin/keyword-management",
+          icon: Ban,
+        },
+        {
+          title: "Niches Management",
+          url: "/admin/niches",
+          icon: Tags,
+        },
+      ],
     },
     {
       title: "Content Moderation",
@@ -182,29 +198,25 @@ export function AppSidebar() {
       icon: ShieldAlert,
     },
     {
-      title: "Keyword Management",
-      url: "/admin/keyword-management",
-      icon: Ban,
-    },
-    {
       title: "Message Monitoring",
       url: "/admin/messages",
       icon: MessageSquare,
     },
     {
-      title: "Payment Management",
-      url: "/admin/payment-settings",
+      title: "Payment",
       icon: DollarSign,
-    },
-    {
-      title: "Payment Disputes",
-      url: "/admin/payment-disputes",
-      icon: AlertCircle,
-    },
-    {
-      title: "Niche Categories",
-      url: "/admin/niches",
-      icon: Tags,
+      children: [
+        {
+          title: "Payment Management",
+          url: "/admin/payment-settings",
+          icon: DollarSign,
+        },
+        {
+          title: "Payment Disputes",
+          url: "/admin/payment-disputes",
+          icon: AlertCircle,
+        },
+      ],
     },
     {
       title: "Email Templates",
