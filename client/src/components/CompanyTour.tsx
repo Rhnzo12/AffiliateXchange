@@ -353,13 +353,13 @@ export function CompanyTour() {
 }
 
 // Hook for individual pages to trigger their tour
-export function usePageTour(pageId: string, steps: TourStep[]) {
+export function usePageTour(pageId: string, steps: TourStep[], enabled: boolean = true) {
   const { hasSeenPageTour, startTour, restartTour, isRunning, currentPageTourId } = useCompanyTour();
   const hasSeenRef = useRef(false);
 
-  // Auto-start tour on first visit
+  // Auto-start tour on first visit (only when enabled)
   useEffect(() => {
-    if (!hasSeenRef.current && !hasSeenPageTour(pageId) && steps.length > 0 && !isRunning) {
+    if (enabled && !hasSeenRef.current && !hasSeenPageTour(pageId) && steps.length > 0 && !isRunning) {
       hasSeenRef.current = true;
       // Small delay to ensure page is fully rendered
       const timer = setTimeout(() => {
@@ -367,7 +367,7 @@ export function usePageTour(pageId: string, steps: TourStep[]) {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [pageId, steps, hasSeenPageTour, startTour, isRunning]);
+  }, [pageId, steps, hasSeenPageTour, startTour, isRunning, enabled]);
 
   const restart = useCallback(() => {
     restartTour(pageId, steps);

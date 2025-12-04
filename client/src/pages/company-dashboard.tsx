@@ -25,8 +25,8 @@ export default function CompanyDashboard() {
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
   const { showTutorial, completeTutorial } = useTutorial(TUTORIAL_IDS.COMPANY_DASHBOARD);
 
-  // Quick tour for new company accounts
-  usePageTour(COMPANY_TOUR_IDS.DASHBOARD, dashboardTourSteps);
+  // Quick tour for new company accounts - only start after tutorial is dismissed
+  usePageTour(COMPANY_TOUR_IDS.DASHBOARD, dashboardTourSteps, !showTutorial);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
