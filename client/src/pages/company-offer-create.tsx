@@ -1748,7 +1748,7 @@ export default function CompanyOfferCreate() {
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={cancelNavigation}>
-              Stay on Page
+              Continue
             </Button>
             <Button variant="destructive" onClick={confirmNavigation}>
               Leave Page
