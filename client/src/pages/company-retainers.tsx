@@ -1025,15 +1025,15 @@ export default function CompanyRetainers() {
               Unsaved Changes
             </DialogTitle>
             <DialogDescription>
-              You have unsaved changes in your retainer contract. Are you sure you want to close? All your progress will be lost.
+              You have unsaved changes in your retainer contract. Are you sure you want to leave? All your progress will be lost.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={cancelCloseDialog}>
-              Continue Editing
+              Continue
             </Button>
             <Button variant="destructive" onClick={confirmCloseDialog}>
-              Discard Changes
+              Leave Page
             </Button>
           </DialogFooter>
         </DialogContent>
