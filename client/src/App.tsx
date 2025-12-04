@@ -92,7 +92,36 @@ function PublicRouter() {
   );
 }
 
-function AuthenticatedLayout({ user, unreadCount, onLogout, children, hideHeader = false }: { user: any; unreadCount: number; onLogout: () => void; children: ReactNode; hideHeader?: boolean }) {
+// Helper function to get company status info
+function getCompanyStatusInfo(companyProfile: any) {
+  if (!companyProfile) return null;
+
+  // Priority: Verified > Owner (Approved) > Pending > Other statuses
+  if (companyProfile.websiteVerified) {
+    return {
+      label: 'Verified',
+      className: 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800',
+    };
+  }
+
+  if (companyProfile.status === 'approved') {
+    return {
+      label: 'Owner',
+      className: 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800',
+    };
+  }
+
+  if (companyProfile.status === 'pending') {
+    return {
+      label: 'Pending',
+      className: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800',
+    };
+  }
+
+  return null;
+}
+
+function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, children, hideHeader = false }: { user: any; unreadCount: number; companyProfile?: any; onLogout: () => void; children: ReactNode; hideHeader?: boolean }) {
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
@@ -165,7 +194,7 @@ function AuthenticatedLayout({ user, unreadCount, onLogout, children, hideHeader
                       <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuItem className="flex items-center gap-2 font-medium">
                       <Avatar className="h-8 w-8 border border-primary/20">
                         <AvatarImage
@@ -177,11 +206,23 @@ function AuthenticatedLayout({ user, unreadCount, onLogout, children, hideHeader
                           {(user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex flex-col min-w-0">
+                      <div className="flex flex-col min-w-0 flex-1">
                         <span className="text-sm font-semibold text-foreground truncate">{user?.firstName || user?.email || 'User'}</span>
                         <span className="text-xs text-muted-foreground truncate">{user?.email || 'No email'}</span>
                       </div>
                     </DropdownMenuItem>
+                    {/* Company Status Badge */}
+                    {user?.role === 'company' && (() => {
+                      const statusInfo = getCompanyStatusInfo(companyProfile);
+                      if (!statusInfo) return null;
+                      return (
+                        <div className="px-2 py-1.5">
+                          <Badge variant="outline" className={`w-full justify-center text-xs font-medium ${statusInfo.className}`}>
+                            {statusInfo.label}
+                          </Badge>
+                        </div>
+                      );
+                    })()}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link href="/settings" className="flex items-center gap-2">
@@ -221,6 +262,13 @@ function ProtectedRouter() {
     queryKey: ["/api/conversations"],
     enabled: !!user,
     refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Fetch company stats (for company users only) to get company profile status
+  const { data: companyStats } = useQuery<any>({
+    queryKey: ["/api/company/stats"],
+    enabled: !!user && user.role === 'company',
+    refetchInterval: 60000, // Refetch every 60 seconds
   });
 
   // Calculate total unread messages
@@ -267,7 +315,7 @@ function ProtectedRouter() {
 
   return (
     <HeaderContentProvider>
-      <AuthenticatedLayout user={user} unreadCount={unreadCount} onLogout={handleLogout} hideHeader={hideHeader}>
+      <AuthenticatedLayout user={user} unreadCount={unreadCount} companyProfile={companyStats?.companyProfile} onLogout={handleLogout} hideHeader={hideHeader}>
         <Switch>
           {/* Creator Routes */}
           {user?.role === 'creator' && (
