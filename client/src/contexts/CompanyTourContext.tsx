@@ -1,5 +1,5 @@
 import * as React from "react";
-import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 
 const COMPANY_TOUR_STORAGE_KEY = "affiliatexchange_company_tour_completed";
 const COMPANY_TOUR_SEEN_PAGES_KEY = "affiliatexchange_company_tour_seen_pages";
@@ -11,6 +11,7 @@ export interface TourStep {
   placement?: "top" | "bottom" | "left" | "right" | "center";
   disableBeacon?: boolean;
   spotlightClicks?: boolean;
+  icon?: ReactNode; // Icon to display in the tooltip
 }
 
 export interface PageTourConfig {

@@ -1,4 +1,22 @@
+import * as React from "react";
 import { TourStep } from "../contexts/CompanyTourContext";
+import {
+  LayoutDashboard,
+  PanelLeft,
+  Plus,
+  FileText,
+  TrendingUp,
+  Filter,
+  Edit,
+  DollarSign,
+  CalendarClock,
+  Users,
+  Video,
+  BarChart3,
+  Star,
+  ShieldCheck,
+  CreditCard,
+} from "lucide-react";
 
 // Tour IDs for each company page
 export const COMPANY_TOUR_IDS = {
@@ -21,24 +39,28 @@ export const dashboardTourSteps: TourStep[] = [
     title: "Welcome to Your Company Dashboard!",
     content: "Let's take a quick tour to help you get started. We'll show you the key features and how to make the most of your company account.",
     placement: "center",
+    icon: <LayoutDashboard className="h-7 w-7 text-primary" />,
   },
   {
     target: "[data-testid='button-sidebar-toggle']",
     title: "Navigation Sidebar",
     content: "Access all your company features from the sidebar. Click here to expand or collapse it anytime.",
     placement: "right",
+    icon: <PanelLeft className="h-7 w-7 text-primary" />,
   },
   {
     target: "[data-testid='button-create-offer']",
     title: "Create Your First Offer",
     content: "Start attracting creators by creating affiliate offers. Click here to set up commission rates, requirements, and promotional materials.",
     placement: "bottom",
+    icon: <Plus className="h-7 w-7 text-primary" />,
   },
   {
     target: "[data-testid='badge-applications-count']",
     title: "Manage Applications",
     content: "Review and manage creator applications here. You can approve, reject, or mark work as complete directly from the dashboard.",
     placement: "left",
+    icon: <FileText className="h-7 w-7 text-primary" />,
   },
 ];
 
@@ -49,18 +71,21 @@ export const offersTourSteps: TourStep[] = [
     title: "Your Offers Hub",
     content: "This is where you manage all your affiliate offers. Create, edit, and track the performance of each offer.",
     placement: "center",
+    icon: <TrendingUp className="h-7 w-7 text-primary" />,
   },
   {
     target: "[data-testid='button-create-offer']",
     title: "Create New Offer",
     content: "Click here to create a new affiliate offer. You can set commission rates, add promotional materials, and define creator requirements.",
     placement: "bottom",
+    icon: <Plus className="h-7 w-7 text-primary" />,
   },
   {
     target: ".grid.md\\:grid-cols-2",
     title: "Filter Your Offers",
     content: "Use these filters to find specific offers by status, commission type, or niche category.",
     placement: "bottom",
+    icon: <Filter className="h-7 w-7 text-primary" />,
   },
 ];
 
@@ -71,18 +96,21 @@ export const offerCreateTourSteps: TourStep[] = [
     title: "Create Your Affiliate Offer",
     content: "Let's walk through creating an offer that will attract quality creators to promote your products or services.",
     placement: "center",
+    icon: <Edit className="h-7 w-7 text-primary" />,
   },
   {
     target: "input[name='title']",
     title: "Offer Title",
     content: "Give your offer a compelling title that clearly describes what creators will be promoting.",
     placement: "bottom",
+    icon: <FileText className="h-7 w-7 text-primary" />,
   },
   {
     target: "select, [role='combobox']",
     title: "Commission Settings",
     content: "Set your commission type and rate. Higher commissions typically attract more creators!",
     placement: "bottom",
+    icon: <DollarSign className="h-7 w-7 text-primary" />,
   },
 ];
 
@@ -93,6 +121,7 @@ export const retainersTourSteps: TourStep[] = [
     title: "Monthly Retainer Contracts",
     content: "Manage ongoing partnerships with creators through monthly retainer contracts. This provides consistent promotion for your brand.",
     placement: "center",
+    icon: <CalendarClock className="h-7 w-7 text-primary" />,
   },
 ];
 
@@ -103,12 +132,14 @@ export const creatorWorkflowTourSteps: TourStep[] = [
     title: "Creator Workflow Hub",
     content: "This is your central hub for managing all creator-related activities. Review applications, track active creators, and manage submitted content.",
     placement: "center",
+    icon: <Users className="h-7 w-7 text-primary" />,
   },
   {
     target: "[role='tablist']",
     title: "Switch Between Views",
     content: "Use these tabs to switch between Applications, Active Creators, and Video submissions.",
     placement: "bottom",
+    icon: <Video className="h-7 w-7 text-primary" />,
   },
 ];
 
@@ -119,6 +150,7 @@ export const analyticsTourSteps: TourStep[] = [
     title: "Analytics Dashboard",
     content: "Track your campaign performance with detailed analytics. Monitor clicks, conversions, and revenue across all your offers.",
     placement: "center",
+    icon: <BarChart3 className="h-7 w-7 text-primary" />,
   },
 ];
 
@@ -129,6 +161,7 @@ export const reviewsTourSteps: TourStep[] = [
     title: "Company Reviews",
     content: "View and respond to reviews from creators. Building a positive reputation helps attract quality creators to your offers.",
     placement: "center",
+    icon: <Star className="h-7 w-7 text-primary" />,
   },
 ];
 
@@ -139,6 +172,7 @@ export const websiteVerificationTourSteps: TourStep[] = [
     title: "Verify Your Website",
     content: "Verify ownership of your website to build trust with creators. Verified companies get a special badge and higher visibility.",
     placement: "center",
+    icon: <ShieldCheck className="h-7 w-7 text-primary" />,
   },
 ];
 
@@ -149,6 +183,7 @@ export const paymentSettingsTourSteps: TourStep[] = [
     title: "Payment Settings",
     content: "Configure your payment methods and manage creator payouts. Set up automatic payments to keep your creators happy!",
     placement: "center",
+    icon: <CreditCard className="h-7 w-7 text-primary" />,
   },
 ];
 
