@@ -193,20 +193,37 @@ function HowItWorksStep({ step, index }: { step: { number: number; title: string
   return (
     <div
       ref={ref}
-      className={`text-center space-y-4 transition-all duration-700 ${
-        isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'
-      }`}
-      style={{ transitionDelay: `${index * 150}ms` }}
+      className="text-center space-y-4"
     >
-      <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground text-2xl font-bold transition-all duration-500 ${
-        isVisible ? 'rotate-0' : 'rotate-180'
-      }`}>
+      <div
+        className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground text-2xl font-bold transition-all duration-600 ${
+          isVisible ? 'scale-100 opacity-100 rotate-0' : 'scale-0 opacity-0 rotate-180'
+        }`}
+        style={{
+          transitionDelay: `${index * 300}ms`,
+          transitionTimingFunction: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)' // Bounce effect
+        }}
+      >
         {step.number}
       </div>
-      <h3 className="text-xl font-semibold">{step.title}</h3>
-      <p className="text-muted-foreground">
-        {step.description}
-      </p>
+      <div
+        className={`transition-all duration-500 ${
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+        }`}
+        style={{ transitionDelay: `${index * 300 + 200}ms` }}
+      >
+        <h3 className="text-xl font-semibold">{step.title}</h3>
+      </div>
+      <div
+        className={`transition-all duration-500 ${
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+        }`}
+        style={{ transitionDelay: `${index * 300 + 300}ms` }}
+      >
+        <p className="text-muted-foreground">
+          {step.description}
+        </p>
+      </div>
     </div>
   );
 }
