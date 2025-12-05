@@ -8298,6 +8298,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const contract = await storage.getRetainerContract(validated.contractId);
       if (!contract || contract.assignedCreatorId !== userId) return res.status(403).send("Forbidden");
       const deliverable = await storage.createRetainerDeliverable({ ...validated, creatorId: userId });
+
+      // Send notification to company user
+      const companyProfile = await storage.getCompanyProfileById(contract.companyId);
+      if (companyProfile) {
+        const creatorUser = await storage.getUserById(userId);
+        await notificationService.sendNotification(
+          companyProfile.userId,
+          'deliverable_submitted',
+          'New Deliverable Submitted for Review',
+          `${creatorUser?.firstName || creatorUser?.username || 'A creator'} submitted a new deliverable for "${contract.title}" (Month ${deliverable.monthNumber}, Video #${deliverable.videoNumber}).`,
+          {
+            userName: creatorUser?.firstName || creatorUser?.username || 'Creator',
+            contractTitle: contract.title,
+            monthNumber: deliverable.monthNumber.toString(),
+            videoNumber: deliverable.videoNumber.toString(),
+            linkUrl: `/company/retainers/${contract.id}`,
+          }
+        );
+      }
+
       res.json(deliverable);
     } catch (error: any) {
       res.status(500).send(error.message);
@@ -8344,6 +8364,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reviewedAt: null,
         reviewNotes: null,
       } as any);
+
+      // Send notification to company user
+      const contract = await storage.getRetainerContract(deliverable.contractId);
+      if (contract) {
+        const companyProfile = await storage.getCompanyProfileById(contract.companyId);
+        if (companyProfile) {
+          const creatorUser = await storage.getUserById(userId);
+          await notificationService.sendNotification(
+            companyProfile.userId,
+            'deliverable_resubmitted',
+            'Deliverable Resubmitted After Revision',
+            `${creatorUser?.firstName || creatorUser?.username || 'A creator'} has resubmitted the deliverable for "${contract.title}" (Month ${deliverable.monthNumber}, Video #${deliverable.videoNumber}) after making revisions.`,
+            {
+              userName: creatorUser?.firstName || creatorUser?.username || 'Creator',
+              contractTitle: contract.title,
+              monthNumber: deliverable.monthNumber.toString(),
+              videoNumber: deliverable.videoNumber.toString(),
+              linkUrl: `/company/retainers/${contract.id}`,
+            }
+          );
+        }
+      }
 
       res.json(updated);
     } catch (error: any) {

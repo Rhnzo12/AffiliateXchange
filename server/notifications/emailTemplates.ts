@@ -25,6 +25,12 @@ interface EmailTemplateData {
   riskScore?: number;
   riskLevel?: string;
   riskIndicators?: string[];
+  // Deliverable fields
+  contractTitle?: string;
+  monthNumber?: string;
+  videoNumber?: string;
+  reason?: string;
+  revisionInstructions?: string;
 }
 
 const baseStyles = `
@@ -1125,6 +1131,176 @@ export function highRiskCompanyEmail(data: EmailTemplateData): { subject: string
           </div>
 
           <a href="${data.linkUrl || toAbsoluteUrl('/admin/companies')}" class="button" style="background-color: #EF4444;">Review Company</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function deliverableSubmittedEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `New Deliverable Submitted for Review`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #3B82F6;">
+          <h1>📹 New Deliverable Submitted</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>${data.companyName || 'A creator'} has submitted a new deliverable for your retainer contract.</p>
+
+          <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 20px; margin: 20px 0; border-radius: 4px;">
+            <h3 style="margin: 0 0 10px 0; color: #1E40AF;">Contract: ${data.contractTitle}</h3>
+            <p style="margin: 0; color: #1E3A8A;"><strong>Month ${data.monthNumber}, Video #${data.videoNumber}</strong></p>
+          </div>
+
+          <p>Please review the submitted deliverable and either approve it, request revisions, or reject it.</p>
+
+          <a href="${data.linkUrl || toAbsoluteUrl('/company/retainers')}" class="button" style="background-color: #3B82F6;">Review Deliverable</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function deliverableResubmittedEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Deliverable Resubmitted After Revision`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #8B5CF6;">
+          <h1>🔄 Deliverable Resubmitted</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>${data.companyName || 'A creator'} has resubmitted their deliverable after making the requested revisions.</p>
+
+          <div style="background-color: #F5F3FF; border-left: 4px solid #8B5CF6; padding: 20px; margin: 20px 0; border-radius: 4px;">
+            <h3 style="margin: 0 0 10px 0; color: #6D28D9;">Contract: ${data.contractTitle}</h3>
+            <p style="margin: 0; color: #5B21B6;"><strong>Month ${data.monthNumber}, Video #${data.videoNumber}</strong></p>
+          </div>
+
+          <p>Please review the updated deliverable to ensure the revisions meet your requirements.</p>
+
+          <a href="${data.linkUrl || toAbsoluteUrl('/company/retainers')}" class="button" style="background-color: #8B5CF6;">Review Updated Deliverable</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function deliverableRejectedEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Deliverable Rejected - ${data.contractTitle}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #EF4444;">
+          <h1>❌ Deliverable Rejected</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>Unfortunately, your deliverable for <strong>"${data.contractTitle}"</strong> has been rejected.</p>
+
+          <div style="background-color: #FEE2E2; border-left: 4px solid #EF4444; padding: 20px; margin: 20px 0; border-radius: 4px;">
+            <h3 style="margin: 0 0 10px 0; color: #991B1B;">Contract: ${data.contractTitle}</h3>
+            <p style="margin: 0; color: #7F1D1D;"><strong>Month ${data.monthNumber}, Video #${data.videoNumber}</strong></p>
+          </div>
+
+          ${data.reason ? `
+            <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #374151;">Rejection Reason:</h3>
+              <p style="margin: 0; color: #6B7280;">${data.reason}</p>
+            </div>
+          ` : ''}
+
+          <p>Please review the feedback and submit a new deliverable.</p>
+
+          <a href="${data.linkUrl || toAbsoluteUrl('/retainers')}" class="button" style="background-color: #EF4444;">View Contract</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function revisionRequestedEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Revision Requested - ${data.contractTitle}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #F59E0B;">
+          <h1>🔧 Revision Requested</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>A revision has been requested for your deliverable on <strong>"${data.contractTitle}"</strong>.</p>
+
+          <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 20px; margin: 20px 0; border-radius: 4px;">
+            <h3 style="margin: 0 0 10px 0; color: #92400E;">Contract: ${data.contractTitle}</h3>
+            <p style="margin: 0; color: #78350F;"><strong>Month ${data.monthNumber}, Video #${data.videoNumber}</strong></p>
+          </div>
+
+          ${data.revisionInstructions ? `
+            <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #374151;">Revision Instructions:</h3>
+              <p style="margin: 0; color: #6B7280;">${data.revisionInstructions}</p>
+            </div>
+          ` : ''}
+
+          <p>Please review the feedback and resubmit your deliverable with the requested changes.</p>
+
+          <a href="${data.linkUrl || toAbsoluteUrl('/retainers')}" class="button" style="background-color: #F59E0B;">Resubmit Deliverable</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>

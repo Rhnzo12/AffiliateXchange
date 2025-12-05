@@ -75,6 +75,8 @@ export type NotificationType =
   | 'work_completion_approval'
   | 'priority_listing_expiring'
   | 'deliverable_rejected'
+  | 'deliverable_submitted'
+  | 'deliverable_resubmitted'
   | 'revision_requested'
   | 'email_verification'
   | 'password_reset'
@@ -236,6 +238,8 @@ export class NotificationService {
         return '/company/offers';
 
       case 'deliverable_rejected':
+      case 'deliverable_submitted':
+      case 'deliverable_resubmitted':
       case 'revision_requested':
         // Creator: go to specific deliverable
         if (data.contractId && data.deliverableId) {
@@ -475,6 +479,14 @@ export class NotificationService {
         return emailTemplates.contentFlaggedEmail(data);
       case 'high_risk_company':
         return emailTemplates.highRiskCompanyEmail(data);
+      case 'deliverable_submitted':
+        return emailTemplates.deliverableSubmittedEmail(data);
+      case 'deliverable_resubmitted':
+        return emailTemplates.deliverableResubmittedEmail(data);
+      case 'deliverable_rejected':
+        return emailTemplates.deliverableRejectedEmail(data);
+      case 'revision_requested':
+        return emailTemplates.revisionRequestedEmail(data);
       default:
         return null;
     }
