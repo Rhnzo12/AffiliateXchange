@@ -950,16 +950,15 @@ export default function Messages() {
           <CardContent className="p-0 flex flex-col h-full">
             <div className="p-4 border-b flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3">
-                {user?.role === 'creator' && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleBackNavigation}
-                    className="h-10 w-10"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleBackNavigation}
+                  className="h-10 w-10"
+                  title="Go back"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
                 <h2 className="font-semibold text-lg">Messages</h2>
               </div>
               <Button
