@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -112,6 +112,9 @@ export default function CompanyOfferCreate() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+  const [, params] = useRoute("/company/offers/:id/edit");
+  const offerId = params?.id;
+  const isEditMode = !!offerId;
 
   // Error dialog state
   const [errorDialog, setErrorDialog] = useState<{
@@ -268,7 +271,7 @@ export default function CompanyOfferCreate() {
     const handlePopState = () => {
       // Push state again to prevent navigation
       window.history.pushState(null, "", window.location.href);
-      setPendingNavigation("/company/offers");
+      setPendingNavigation(isEditMode ? `/company/offers/${offerId}` : "/company/offers");
 
       if (hasUnsavedChanges()) {
         setExitMessage({
@@ -298,7 +301,9 @@ export default function CompanyOfferCreate() {
       if (anchor) {
         const href = anchor.getAttribute("href");
         // Only intercept internal navigation links (not external links or same-page anchors)
-        if (href && href.startsWith("/") && !href.startsWith("/company/offers/create")) {
+        const isCurrentPage = href?.startsWith("/company/offers/create") ||
+                              (isEditMode && href?.startsWith(`/company/offers/${offerId}/edit`));
+        if (href && href.startsWith("/") && !isCurrentPage) {
           e.preventDefault();
           e.stopPropagation();
 
@@ -387,6 +392,31 @@ export default function CompanyOfferCreate() {
     }
   }, [isAuthenticated, isLoading]);
 
+  // Populate form data when editing
+  useEffect(() => {
+    if (isEditMode && existingOffer) {
+      setFormData({
+        title: existingOffer.title || "",
+        productName: existingOffer.productName || "",
+        shortDescription: existingOffer.shortDescription || "",
+        fullDescription: existingOffer.fullDescription || "",
+        primaryNiche: existingOffer.primaryNiche || "",
+        productUrl: existingOffer.productUrl || "",
+        commissionType: existingOffer.commissionType || "per_sale",
+        commissionRate: existingOffer.commissionPercentage?.toString() || "",
+        commissionAmount: existingOffer.commissionAmount?.toString() || "",
+        status: existingOffer.status || "draft",
+        featuredImageUrl: existingOffer.featuredImageUrl || "",
+        minimumFollowers: existingOffer.minimumFollowers?.toString() || "",
+        allowedPlatforms: existingOffer.allowedPlatforms || [],
+        geographicRestrictions: existingOffer.geographicRestrictions || [],
+        ageRestriction: existingOffer.ageRestriction || "no_restriction",
+        contentStyleRequirements: existingOffer.contentStyleRequirements || "",
+        brandSafetyRequirements: existingOffer.brandSafetyRequirements || "",
+      });
+    }
+  }, [isEditMode, existingOffer]);
+
   // Fetch company profile to get company ID for folder organization
   const { data: companyProfile } = useQuery<{ id: string }>({
     queryKey: ["/api/profile"],
@@ -405,6 +435,18 @@ export default function CompanyOfferCreate() {
     queryKey: ["/api/niches"],
   });
 
+  // Fetch existing offer data if in edit mode
+  const { data: existingOffer, isLoading: offerLoading } = useQuery<any>({
+    queryKey: [`/api/offers/${offerId}`],
+    enabled: isEditMode && !!offerId && isAuthenticated,
+  });
+
+  // Fetch existing videos if in edit mode
+  const { data: existingVideos = [] } = useQuery<any[]>({
+    queryKey: [`/api/offers/${offerId}/videos`],
+    enabled: isEditMode && !!offerId && isAuthenticated,
+  });
+
   const uploadWithProgress = (
     uploadParams: any,
     file: File,
@@ -413,8 +455,8 @@ export default function CompanyOfferCreate() {
 
   const createOfferMutation = useMutation({
     mutationFn: async (data: typeof formData & { videos: VideoData[] }) => {
-      // Step 1: Create the offer as DRAFT first (not pending_review yet)
-      setUploadStatus("Creating draft offer...");
+      // Step 1: Create or update the offer
+      setUploadStatus(isEditMode ? "Updating offer..." : "Creating draft offer...");
       setOfferUploadProgress(5);
       setCurrentUploadVideoIndex(null);
       setVideoUploadProgress(0);
@@ -433,8 +475,8 @@ export default function CompanyOfferCreate() {
         commissionAmount: data.commissionType !== "per_sale" && data.commissionAmount
           ? data.commissionAmount
           : null,
-        status: 'draft', // Always create as draft first
-        featuredImageUrl: null, // Will be updated after thumbnail upload
+        status: isEditMode ? data.status : 'draft', // Keep existing status when editing
+        featuredImageUrl: data.featuredImageUrl || null,
         // Creator Requirements
         minimumFollowers: data.minimumFollowers ? parseInt(data.minimumFollowers) : null,
         allowedPlatforms: data.allowedPlatforms.length > 0 ? data.allowedPlatforms : null,
@@ -444,32 +486,54 @@ export default function CompanyOfferCreate() {
         brandSafetyRequirements: data.brandSafetyRequirements || null,
       };
 
-      console.log("Creating offer with payload:", offerPayload);
+      console.log(isEditMode ? "Updating offer with payload:" : "Creating offer with payload:", offerPayload);
 
-      // Create the offer using direct fetch instead of apiRequest
-      const offerResponse = await fetch("/api/offers", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(offerPayload),
-      });
+      let currentOfferId = offerId;
 
-      if (!offerResponse.ok) {
-        const errorData = await offerResponse.json();
-        throw new Error(errorData.error || errorData.message || "Failed to create offer");
-      }
+      if (isEditMode && offerId) {
+        // Update existing offer
+        const offerResponse = await fetch(`/api/offers/${offerId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(offerPayload),
+        });
 
-      const offerData = await offerResponse.json();
-      console.log("Full offer response:", offerData);
+        if (!offerResponse.ok) {
+          const errorData = await offerResponse.json();
+          throw new Error(errorData.error || errorData.message || "Failed to update offer");
+        }
 
-      const offerId = offerData?.id;
-      console.log("Extracted offer ID:", offerId);
+        const offerData = await offerResponse.json();
+        console.log("Offer updated:", offerData);
+      } else {
+        // Create new offer
+        const offerResponse = await fetch("/api/offers", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(offerPayload),
+        });
 
-      if (!offerId) {
-        console.error("No offer ID found in response:", offerData);
-        throw new Error("Failed to get offer ID from response");
+        if (!offerResponse.ok) {
+          const errorData = await offerResponse.json();
+          throw new Error(errorData.error || errorData.message || "Failed to create offer");
+        }
+
+        const offerData = await offerResponse.json();
+        console.log("Full offer response:", offerData);
+
+        currentOfferId = offerData?.id;
+        console.log("Extracted offer ID:", currentOfferId);
+
+        if (!currentOfferId) {
+          console.error("No offer ID found in response:", offerData);
+          throw new Error("Failed to get offer ID from response");
+        }
       }
 
       const companyId = companyProfile?.id;
@@ -478,10 +542,10 @@ export default function CompanyOfferCreate() {
       }
 
       // Step 1.5: Upload thumbnail if provided
-      if (thumbnailFile) {
+      if (thumbnailFile && currentOfferId) {
         console.log("Uploading offer thumbnail...");
         try {
-          const thumbnailFolder = `creatorlink/videos/thumbnails/${companyId}/${offerId}`;
+          const thumbnailFolder = `creatorlink/videos/thumbnails/${companyId}/${currentOfferId}`;
           const thumbUploadResponse = await fetch("/api/objects/upload", {
             method: "POST",
             credentials: "include",
@@ -502,7 +566,7 @@ export default function CompanyOfferCreate() {
             const storedThumbnailUrl = thumbUploadResult.secure_url;
 
             // Update offer with thumbnail URL
-            await fetch(`/api/offers/${offerId}`, {
+            await fetch(`/api/offers/${currentOfferId}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               credentials: "include",
@@ -518,8 +582,8 @@ export default function CompanyOfferCreate() {
       }
 
       // Step 2: Upload each video to Cloudinary with company ID and offer ID folder structure
-      if (data.videos && data.videos.length > 0) {
-        console.log(`Uploading ${data.videos.length} videos to offer ${offerId}`);
+      if (data.videos && data.videos.length > 0 && currentOfferId) {
+        console.log(`Uploading ${data.videos.length} videos to offer ${currentOfferId}`);
         setUploadStatus("Preparing video uploads...");
         setOfferUploadProgress(20);
 
@@ -535,7 +599,7 @@ export default function CompanyOfferCreate() {
 
           try {
             // Upload video to Cloudinary with company ID and offer ID in path
-            const videoFolder = `creatorlink/videos/${companyId}/${offerId}`;
+            const videoFolder = `creatorlink/videos/${companyId}/${currentOfferId}`;
             const uploadResponse = await fetch("/api/objects/upload", {
               method: "POST",
               credentials: "include",
@@ -570,7 +634,7 @@ export default function CompanyOfferCreate() {
             let uploadedThumbnailUrl = null;
             try {
               const thumbnailBlob = await generateThumbnail(uploadedVideoUrl);
-              const thumbnailFolder = `creatorlink/videos/thumbnails/${companyId}/${offerId}`;
+              const thumbnailFolder = `creatorlink/videos/thumbnails/${companyId}/${currentOfferId}`;
 
               const thumbUploadResponse = await fetch("/api/objects/upload", {
                 method: "POST",
@@ -608,7 +672,7 @@ export default function CompanyOfferCreate() {
 
             console.log(`Video ${i + 1} payload:`, videoPayload);
 
-            const videoResponse = await fetch(`/api/offers/${offerId}/videos`, {
+            const videoResponse = await fetch(`/api/offers/${currentOfferId}/videos`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -634,47 +698,56 @@ export default function CompanyOfferCreate() {
       }
 
       // Step 3: Submit offer for review (validates 6-12 video requirement on server)
-      console.log(`Submitting offer ${offerId} for review...`);
-      setUploadStatus("Submitting offer for review...");
-      setOfferUploadProgress(97);
-      const submitResponse = await fetch(`/api/offers/${offerId}/submit-for-review`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
+      // Skip submission step if in edit mode
+      if (!isEditMode && currentOfferId) {
+        console.log(`Submitting offer ${currentOfferId} for review...`);
+        setUploadStatus("Submitting offer for review...");
+        setOfferUploadProgress(97);
+        const submitResponse = await fetch(`/api/offers/${currentOfferId}/submit-for-review`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
 
-      if (!submitResponse.ok) {
-        const errorData = await submitResponse.json();
-        throw new Error(errorData.message || "Failed to submit offer for review");
+        if (!submitResponse.ok) {
+          const errorData = await submitResponse.json();
+          throw new Error(errorData.message || "Failed to submit offer for review");
+        }
+
+        const submitData = await submitResponse.json();
+        console.log("Offer submitted for review:", submitData);
+        setOfferUploadProgress(100);
+        setUploadStatus("Offer submitted for review");
+
+        return submitData;
+      } else {
+        setOfferUploadProgress(100);
+        setUploadStatus(isEditMode ? "Offer updated" : "Offer saved");
+        return { id: currentOfferId };
       }
-
-      const submitData = await submitResponse.json();
-      console.log("Offer submitted for review:", submitData);
-      setOfferUploadProgress(100);
-      setUploadStatus("Offer submitted for review");
-
-      return submitData;
     },
     onSuccess: (data) => {
-      console.log("Offer creation complete:", data);
+      console.log(isEditMode ? "Offer update complete:" : "Offer creation complete:", data);
       toast({
-        title: "Offer Submitted for Review",
-        description: `Your offer has been submitted for admin review with ${data.videoCount || videos.length} video(s)`,
+        title: isEditMode ? "Offer Updated" : "Offer Submitted for Review",
+        description: isEditMode
+          ? "Your offer has been successfully updated"
+          : `Your offer has been submitted for admin review with ${data.videoCount || videos.length} video(s)`,
       });
       setOfferUploadProgress(0);
       setUploadStatus("");
       setCurrentUploadVideoIndex(null);
       setVideoUploadProgress(0);
-      setLocation("/company/offers");
+      setLocation(isEditMode ? `/company/offers/${offerId}` : "/company/offers");
     },
     onError: (error: any) => {
-      console.error("Offer creation error:", error);
+      console.error(isEditMode ? "Offer update error:" : "Offer creation error:", error);
       setErrorDialog({
         open: true,
         title: "Error",
-        description: error.message || "Failed to create offer",
+        description: error.message || (isEditMode ? "Failed to update offer" : "Failed to create offer"),
       });
       setOfferUploadProgress(0);
       setUploadStatus("");
@@ -934,7 +1007,9 @@ export default function CompanyOfferCreate() {
       }
     }
 
-    if (videos.length < 6) {
+    // When creating new offer, require 6 videos
+    // When editing, allow saving without videos (existing videos are separate)
+    if (!isEditMode && videos.length < 6) {
       setErrorDialog({
         open: true,
         title: "Videos Required",
@@ -946,7 +1021,7 @@ export default function CompanyOfferCreate() {
     createOfferMutation.mutate({ ...formData, videos });
   };
 
-  if (isLoading) {
+  if (isLoading || (isEditMode && offerLoading)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-pulse text-lg">Loading...</div>
@@ -961,14 +1036,14 @@ export default function CompanyOfferCreate() {
           variant="ghost"
           size="icon"
           data-testid="button-back"
-          onClick={() => handleNavigationAttempt("/company/offers")}
+          onClick={() => handleNavigationAttempt(isEditMode ? `/company/offers/${offerId}` : "/company/offers")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Create New Offer</h1>
+          <h1 className="text-3xl font-bold">{isEditMode ? "Edit Offer" : "Create New Offer"}</h1>
           <p className="text-muted-foreground mt-1">
-            Set up an affiliate offer for creators to promote
+            {isEditMode ? "Update your affiliate offer details" : "Set up an affiliate offer for creators to promote"}
           </p>
         </div>
       </div>
@@ -1498,11 +1573,19 @@ export default function CompanyOfferCreate() {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {videos.length < 6 && (
+                  {!isEditMode && videos.length < 6 && (
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
                         You need at least 6 videos to create this offer. Currently: {videos.length}/6
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {isEditMode && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Edit mode: Existing videos are managed from the offer detail page. Only new videos added here will be uploaded.
                       </AlertDescription>
                     </Alert>
                   )}
@@ -1609,19 +1692,19 @@ export default function CompanyOfferCreate() {
                 <div className="flex gap-3">
                   <Button
                     type="submit"
-                    disabled={createOfferMutation.isPending || videos.length < 6 || isCompanyPending}
+                    disabled={createOfferMutation.isPending || (!isEditMode && videos.length < 6) || isCompanyPending}
                     data-testid="button-create-offer"
                     title={isCompanyPending ? "Your company must be approved before creating offers" : undefined}
                   >
                     {createOfferMutation.isPending
-                      ? `Creating...${offerUploadProgress ? ` ${offerUploadProgress}%` : ""}`
-                      : "Create Offer"}
+                      ? `${isEditMode ? 'Updating' : 'Creating'}...${offerUploadProgress ? ` ${offerUploadProgress}%` : ""}`
+                      : isEditMode ? "Update Offer" : "Create Offer"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     data-testid="button-cancel"
-                    onClick={() => handleNavigationAttempt("/company/offers")}
+                    onClick={() => handleNavigationAttempt(isEditMode ? `/company/offers/${offerId}` : "/company/offers")}
                   >
                     Cancel
                   </Button>
