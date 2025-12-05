@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
@@ -74,6 +75,7 @@ export default function AdminMessages() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location, navigate] = useLocation();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isExporting, setIsExporting] = useState(false);
@@ -168,6 +170,14 @@ export default function AdminMessages() {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  const handleBackNavigation = useCallback(() => {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    navigate('/admin/dashboard');
+  }, [navigate]);
 
   const formatMessageDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -286,11 +296,22 @@ export default function AdminMessages() {
     <div className="space-y-6">
       <TopNavBar />
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Message Monitoring</h1>
-          <p className="text-muted-foreground mt-2">
-            View and monitor all conversations across the platform
-          </p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBackNavigation}
+            className="h-10 w-10"
+            title="Go back"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Message Monitoring</h1>
+            <p className="text-muted-foreground mt-2">
+              View and monitor all conversations across the platform
+            </p>
+          </div>
         </div>
       </div>
 
@@ -301,7 +322,18 @@ export default function AdminMessages() {
             <CardContent className="p-0 flex flex-col h-full">
               <div className="p-4 border-b shrink-0">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-semibold text-lg">All Conversations</h2>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleBackNavigation}
+                      className="h-10 w-10 md:hidden"
+                      title="Go back"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <h2 className="font-semibold text-lg">All Conversations</h2>
+                  </div>
                   <Badge variant="secondary">{conversations.length}</Badge>
                 </div>
                 <div className="relative">
