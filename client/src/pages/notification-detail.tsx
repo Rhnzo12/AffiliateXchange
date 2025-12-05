@@ -8,6 +8,7 @@ import { TopNavBar } from "../components/TopNavBar";
 import { Copy, CheckCircle, ExternalLink } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { useAuth } from "../hooks/useAuth";
 
 interface Notification {
   id: string;
@@ -39,6 +40,7 @@ export default function NotificationDetail() {
   const id = params?.id as string | undefined;
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [copiedLink, setCopiedLink] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; description: string }>({
     open: false,
@@ -416,11 +418,18 @@ export default function NotificationDetail() {
       case "offer_rejected":
       case "offer": {
         const offerId = meta.offerId || meta.offer_id;
+        // Determine the correct route based on user role
+        // Companies view their offers at /company/offers/:id
+        // Creators and admins view offers at /offers/:id
+        const offerRoute = user?.role === 'company'
+          ? `/company/offers/${offerId}`
+          : `/offers/${offerId}`;
+
         return (
           <div className="space-y-4">
             <p>{n.message}</p>
             {offerId && (
-              <Link href={`/offers/${offerId}`}><Button>View offer</Button></Link>
+              <Link href={offerRoute}><Button>View offer</Button></Link>
             )}
             {n.linkUrl && !offerId && <a href={n.linkUrl} className="text-primary hover:underline">Open</a>}
           </div>
