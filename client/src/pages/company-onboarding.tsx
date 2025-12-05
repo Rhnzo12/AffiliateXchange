@@ -653,6 +653,48 @@ export default function CompanyOnboarding() {
         }
       }
 
+      // Save payment method if user didn't choose to set it up later
+      if (paymentMethod && paymentMethod !== "setup_later") {
+        const paymentPayload: any = {
+          payoutMethod: paymentMethod,
+        };
+
+        if (paymentMethod === "etransfer") {
+          paymentPayload.payoutEmail = payoutEmail;
+        } else if (paymentMethod === "wire") {
+          paymentPayload.bankRoutingNumber = bankRoutingNumber;
+          paymentPayload.bankAccountNumber = bankAccountNumber;
+        } else if (paymentMethod === "paypal") {
+          paymentPayload.paypalEmail = paypalEmail;
+        } else if (paymentMethod === "crypto") {
+          paymentPayload.cryptoWalletAddress = cryptoWalletAddress;
+          paymentPayload.cryptoNetwork = cryptoNetwork;
+        }
+
+        try {
+          const paymentResponse = await fetch("/api/payment-settings", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify(paymentPayload),
+          });
+
+          if (!paymentResponse.ok) {
+            const error = await paymentResponse.json();
+            throw new Error(error.error || "Failed to save payment method");
+          }
+
+          // Invalidate payment settings query to refresh the data
+          await queryClient.invalidateQueries({ queryKey: ["/api/payment-settings"] });
+        } catch (paymentError) {
+          console.error("Error saving payment method:", paymentError);
+          // Continue with onboarding even if payment method fails
+          // User can set it up later in Payment Settings
+        }
+      }
+
       toast({
         title: "Success!",
         description: "Your profile has been submitted for review. You'll be notified once approved.",

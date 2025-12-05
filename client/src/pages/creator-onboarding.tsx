@@ -334,6 +334,42 @@ export default function CreatorOnboarding() {
         throw new Error(error.error || "Failed to save profile");
       }
 
+      // Save payment method if user didn't choose to set it up later
+      if (paymentMethod && paymentMethod !== "setup_later") {
+        const paymentPayload: any = {
+          payoutMethod: paymentMethod,
+        };
+
+        if (paymentMethod === "etransfer") {
+          paymentPayload.payoutEmail = payoutEmail;
+        } else if (paymentMethod === "wire") {
+          paymentPayload.bankRoutingNumber = bankRoutingNumber;
+          paymentPayload.bankAccountNumber = bankAccountNumber;
+        } else if (paymentMethod === "paypal") {
+          paymentPayload.paypalEmail = paypalEmail;
+        } else if (paymentMethod === "crypto") {
+          paymentPayload.cryptoWalletAddress = cryptoWalletAddress;
+          paymentPayload.cryptoNetwork = cryptoNetwork;
+        }
+
+        const paymentResponse = await fetch("/api/payment-settings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(paymentPayload),
+        });
+
+        if (!paymentResponse.ok) {
+          const error = await paymentResponse.json();
+          throw new Error(error.error || "Failed to save payment method");
+        }
+
+        // Invalidate payment settings query to refresh the data
+        await queryClient.invalidateQueries({ queryKey: ["/api/payment-settings"] });
+      }
+
       toast({
         title: "Success!",
         description: "Your profile has been set up. Let's find some offers!",
