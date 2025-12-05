@@ -218,7 +218,26 @@ export default function Landing() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
+            {[
+              {
+                name: "Kyla Martinez",
+                role: "Lifestyle & Fashion Creator",
+                image: "/kyla.png",
+                testimonial: "AffiliateXchange has completely transformed how I monetize my content. The approval process is instant and the commissions are fantastic!"
+              },
+              {
+                name: "Ryan Thompson",
+                role: "Tech Reviewer",
+                image: "/ryan.png",
+                testimonial: "The platform makes it incredibly easy to find brands that align with my audience. I've tripled my affiliate income in just 3 months!"
+              },
+              {
+                name: "Diane Chen",
+                role: "Beauty & Wellness Influencer",
+                image: "/diane.png",
+                testimonial: "Finally, a platform that values creators! The direct communication with brands and real-time analytics have been game-changers for my business."
+              }
+            ].map((creator, i) => (
               <Card key={i} className="border-card-border">
                 <CardContent className="p-6 space-y-4">
                   <div className="flex gap-1">
@@ -227,13 +246,23 @@ export default function Landing() {
                     ))}
                   </div>
                   <p className="text-muted-foreground">
-                    "AffiliateXchange has completely transformed how I monetize my content. The approval process is instant and the commissions are fantastic!"
+                    "{creator.testimonial}"
                   </p>
                   <div className="flex items-center gap-3 pt-4 border-t">
-                    <div className="h-10 w-10 rounded-full bg-primary/10" />
+                    {creator.image ? (
+                      <img
+                        src={creator.image}
+                        alt={creator.name}
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
+                        {creator.name.charAt(0)}
+                      </div>
+                    )}
                     <div>
-                      <div className="font-semibold">Creator Name</div>
-                      <div className="text-sm text-muted-foreground">Content Creator</div>
+                      <div className="font-semibold">{creator.name}</div>
+                      <div className="text-sm text-muted-foreground">{creator.role}</div>
                     </div>
                   </div>
                 </CardContent>
