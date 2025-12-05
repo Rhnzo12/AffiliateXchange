@@ -1434,8 +1434,8 @@ export default function CompanyOnboarding() {
               <AlertCircle className="h-4 w-4 text-blue-600" />
               <AlertTitle className="text-blue-900 dark:text-blue-100">What happens next?</AlertTitle>
               <AlertDescription className="text-blue-800 dark:text-blue-200">
-                After submission, our team will review your profile (usually within 1-2 business days).
-                You'll receive an email notification once approved, and you can then start creating affiliate offers.
+                The user should immediately receive a confirmation email right after the account is activated,
+                with details on the approval timeline and when their account will be activated.
               </AlertDescription>
             </Alert>
           </div>
