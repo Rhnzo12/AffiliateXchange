@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "./components/ui/dropdown-menu";
-import { Settings as SettingsIcon, ChevronDown, LogOut, MessageSquare } from "lucide-react";
+import { Settings as SettingsIcon, ChevronDown, LogOut, MessageSquare, User } from "lucide-react";
 import { proxiedSrc } from "./lib/image";
 import NotFound from "./pages/not-found";
 import Landing from "./pages/landing";
@@ -34,6 +34,7 @@ import Favorites from "./pages/favorites";
 import CreatorRetainers from "./pages/creator-retainers";
 import CreatorRetainerDetail from "./pages/creator-retainer-detail";
 import Settings from "./pages/settings";
+import ProfileManagement from "./pages/profile-management";
 import PaymentSettings from "./pages/payment-settings";
 import PaymentDetail from "./pages/payment-details";
 import Notifications from "./pages/notifications";
@@ -237,6 +238,12 @@ function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, chil
                     })()}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
+                      <Link href="/profile-management" className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Profile Management
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="/settings" className="flex items-center gap-2">
                         <SettingsIcon className="h-4 w-4" />
                         Settings
@@ -405,6 +412,7 @@ function ProtectedRouter() {
           )}
 
           {/* Shared Routes */}
+          <Route path="/profile-management" component={ProfileManagement} />
           <Route path="/settings" component={Settings} />
           <Route path="/notifications" component={Notifications} />
           <Route path="/notifications/:id" component={NotificationDetail} />

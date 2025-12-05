@@ -1,0 +1,2460 @@
+import { useEffect, useState, useMemo } from "react";
+import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "../lib/queryClient";
+import { uploadToCloudinary } from "../lib/cloudinary-upload";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { Separator } from "../components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye, ShieldCheck, User, Mail, Key, KeyRound, LogOut, ExternalLink } from "lucide-react";
+import { TwoFactorSetup } from "../components/TwoFactorSetup";
+import { SettingsNavigation, SettingsSection } from "../components/SettingsNavigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogDescription,
+  DialogTitle,
+  DialogFooter,
+} from "../components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import { Checkbox } from "../components/ui/checkbox";
+import { Badge } from "../components/ui/badge";
+import { TopNavBar } from "../components/TopNavBar";
+import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { proxiedSrc } from "../lib/image";
+
+type VerificationDocument = {
+  id: string;
+  documentUrl: string;
+  documentName: string;
+  documentType: string;
+  fileSize: number | null;
+  uploadedAt?: string;
+};
+
+export default function Settings() {
+  const { toast } = useToast();
+  const { isAuthenticated, user } = useAuth();
+  
+  // Creator profile states
+  const [bio, setBio] = useState("");
+  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [selectedNiches, setSelectedNiches] = useState<string[]>([]);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [tiktokUrl, setTiktokUrl] = useState("");
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [youtubeFollowers, setYoutubeFollowers] = useState("");
+  const [tiktokFollowers, setTiktokFollowers] = useState("");
+  const [instagramFollowers, setInstagramFollowers] = useState("");
+  
+  // Company profile states
+  const [tradeName, setTradeName] = useState("");
+  const [legalName, setLegalName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [companyDescription, setCompanyDescription] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactJobTitle, setContactJobTitle] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
+  const [companySize, setCompanySize] = useState("");
+  const [yearFounded, setYearFounded] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [twitterUrl, setTwitterUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [companyInstagramUrl, setCompanyInstagramUrl] = useState("");
+  const [verificationDocumentUrl, setVerificationDocumentUrl] = useState(""); // Keep for backward compatibility
+  const [verificationDocuments, setVerificationDocuments] = useState<VerificationDocument[]>([]);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+  const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
+
+  // PDF Viewer Dialog states
+  const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
+  const [currentDocumentUrl, setCurrentDocumentUrl] = useState("");
+  const [currentDocumentName, setCurrentDocumentName] = useState("");
+
+  // Account info states
+  const [username, setUsername] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+
+  // Email change states
+  const [showEmailChange, setShowEmailChange] = useState(false);
+  const [emailChangePassword, setEmailChangePassword] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
+
+  const requiresPasswordForEmailChange = (!user?.googleId || Boolean(user?.password));
+
+  // Dialog state for video platform warning
+  const [showVideoPlatformDialog, setShowVideoPlatformDialog] = useState(false);
+
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Privacy & Data states
+  const [isExportingData, setIsExportingData] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [showActiveItemsDialog, setShowActiveItemsDialog] = useState(false);
+  const [activeItemsDetails, setActiveItemsDetails] = useState<any>(null);
+  const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
+  const [maskedEmail, setMaskedEmail] = useState("");
+
+  // Password change with OTP states
+  const [passwordChangeOtpSent, setPasswordChangeOtpSent] = useState(false);
+  const [passwordChangeOtpCode, setPasswordChangeOtpCode] = useState("");
+  const [passwordChangeMaskedEmail, setPasswordChangeMaskedEmail] = useState("");
+  const [isRequestingPasswordChangeOtp, setIsRequestingPasswordChangeOtp] = useState(false);
+  const [newPasswordWithOtp, setNewPasswordWithOtp] = useState("");
+  const [confirmPasswordWithOtp, setConfirmPasswordWithOtp] = useState("");
+  const [isChangingPasswordWithOtp, setIsChangingPasswordWithOtp] = useState(false);
+
+  const { data: profile } = useQuery<any>({
+    queryKey: ["/api/profile"],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch verification documents for company users
+  const { data: fetchedVerificationDocs = [] } = useQuery<VerificationDocument[]>({
+    queryKey: ["/api/company/verification-documents"],
+    enabled: isAuthenticated && user?.role === 'company',
+  });
+
+  // Sync fetched documents with local state
+  useEffect(() => {
+    if (fetchedVerificationDocs.length > 0) {
+      setVerificationDocuments(fetchedVerificationDocs);
+    }
+  }, [fetchedVerificationDocs]);
+
+  // Fetch niches from API
+  const { data: niches = [], isLoading: nichesLoading } = useQuery<Array<{ id: string; name: string; description: string | null; isActive: boolean }>>({
+    queryKey: ["/api/niches"],
+  });
+
+  // Convert niches to the format expected by the component
+  const AVAILABLE_NICHES = niches.map(niche => ({
+    value: niche.name.toLowerCase().replace(/\s+/g, '_'),
+    label: niche.name
+  }));
+
+  // Load saved form data from localStorage on mount
+  useEffect(() => {
+    const savedFormData = localStorage.getItem('settings-form-data');
+    if (savedFormData) {
+      try {
+        const data = JSON.parse(savedFormData);
+        // Restore creator profile fields
+        if (data.bio !== undefined) setBio(data.bio);
+        if (data.profileImageUrl !== undefined) setProfileImageUrl(data.profileImageUrl);
+        if (data.selectedNiches !== undefined) setSelectedNiches(data.selectedNiches);
+        if (data.youtubeUrl !== undefined) setYoutubeUrl(data.youtubeUrl);
+        if (data.tiktokUrl !== undefined) setTiktokUrl(data.tiktokUrl);
+        if (data.instagramUrl !== undefined) setInstagramUrl(data.instagramUrl);
+        if (data.youtubeFollowers !== undefined) setYoutubeFollowers(data.youtubeFollowers);
+        if (data.tiktokFollowers !== undefined) setTiktokFollowers(data.tiktokFollowers);
+        if (data.instagramFollowers !== undefined) setInstagramFollowers(data.instagramFollowers);
+        // Restore company profile fields
+        if (data.tradeName !== undefined) setTradeName(data.tradeName);
+        if (data.legalName !== undefined) setLegalName(data.legalName);
+        if (data.logoUrl !== undefined) setLogoUrl(data.logoUrl);
+        if (data.industry !== undefined) setIndustry(data.industry);
+        if (data.websiteUrl !== undefined) setWebsiteUrl(data.websiteUrl);
+        if (data.companyDescription !== undefined) setCompanyDescription(data.companyDescription);
+        if (data.contactName !== undefined) setContactName(data.contactName);
+        if (data.contactJobTitle !== undefined) setContactJobTitle(data.contactJobTitle);
+        if (data.phoneNumber !== undefined) setPhoneNumber(data.phoneNumber);
+        if (data.businessAddress !== undefined) setBusinessAddress(data.businessAddress);
+        if (data.companySize !== undefined) setCompanySize(data.companySize);
+        if (data.yearFounded !== undefined) setYearFounded(data.yearFounded);
+        if (data.linkedinUrl !== undefined) setLinkedinUrl(data.linkedinUrl);
+        if (data.twitterUrl !== undefined) setTwitterUrl(data.twitterUrl);
+        if (data.facebookUrl !== undefined) setFacebookUrl(data.facebookUrl);
+        if (data.companyInstagramUrl !== undefined) setCompanyInstagramUrl(data.companyInstagramUrl);
+        if (data.verificationDocumentUrl !== undefined) setVerificationDocumentUrl(data.verificationDocumentUrl);
+      } catch (error) {
+        console.error('[Settings] Error loading saved form data:', error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      // Load user account data
+      setUsername(user.username || "");
+      setFirstName(user.firstName || "");
+      setLastName(user.lastName || "");
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (profile) {
+      console.log("[Settings] Profile loaded:", profile);
+
+      // Load creator profile data
+      if (user?.role === 'creator') {
+        setBio(profile.bio || "");
+        setProfileImageUrl(profile.profileImageUrl || "");
+        setSelectedNiches(profile.niches || []);
+        setYoutubeUrl(profile.youtubeUrl || "");
+        setTiktokUrl(profile.tiktokUrl || "");
+        setInstagramUrl(profile.instagramUrl || "");
+        setYoutubeFollowers(profile.youtubeFollowers?.toString() || "");
+        setTiktokFollowers(profile.tiktokFollowers?.toString() || "");
+        setInstagramFollowers(profile.instagramFollowers?.toString() || "");
+      }
+
+      // Load company profile data
+      if (user?.role === 'company') {
+        setTradeName(profile.tradeName || "");
+        setLegalName(profile.legalName || "");
+        setLogoUrl(profile.logoUrl || "");
+        setIndustry(profile.industry || "");
+        setWebsiteUrl(profile.websiteUrl || "");
+        setCompanyDescription(profile.description || "");
+        setContactName(profile.contactName || "");
+        setContactJobTitle(profile.contactJobTitle || "");
+        setPhoneNumber(profile.phoneNumber || "");
+        setBusinessAddress(profile.businessAddress || "");
+        setCompanySize(profile.companySize || "");
+        setYearFounded(profile.yearFounded?.toString() || "");
+        setLinkedinUrl(profile.linkedinUrl || "");
+        setTwitterUrl(profile.twitterUrl || "");
+        setFacebookUrl(profile.facebookUrl || "");
+        setCompanyInstagramUrl(profile.instagramUrl || "");
+        setVerificationDocumentUrl(profile.verificationDocumentUrl || "");
+      }
+    }
+  }, [profile, user?.role]);
+
+  // Save form state to localStorage whenever fields change
+  useEffect(() => {
+    // Only save if user is authenticated and we have at least some data
+    if (!isAuthenticated) return;
+
+    const formData = {
+      // Creator profile fields
+      bio,
+      profileImageUrl,
+      selectedNiches,
+      youtubeUrl,
+      tiktokUrl,
+      instagramUrl,
+      youtubeFollowers,
+      tiktokFollowers,
+      instagramFollowers,
+      // Company profile fields
+      tradeName,
+      legalName,
+      logoUrl,
+      industry,
+      websiteUrl,
+      companyDescription,
+      contactName,
+      contactJobTitle,
+      phoneNumber,
+      businessAddress,
+      companySize,
+      yearFounded,
+      linkedinUrl,
+      twitterUrl,
+      facebookUrl,
+      companyInstagramUrl,
+      verificationDocumentUrl,
+    };
+
+    localStorage.setItem('settings-form-data', JSON.stringify(formData));
+  }, [
+    isAuthenticated, bio, profileImageUrl, selectedNiches, youtubeUrl, tiktokUrl, instagramUrl,
+    youtubeFollowers, tiktokFollowers, instagramFollowers, tradeName, legalName,
+    logoUrl, industry, websiteUrl, companyDescription, contactName, contactJobTitle,
+    phoneNumber, businessAddress, companySize, yearFounded, linkedinUrl, twitterUrl,
+    facebookUrl, companyInstagramUrl, verificationDocumentUrl
+  ]);
+
+  // Handle logo upload
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const isImage = imageExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+    if (!isImage) {
+      setErrorDialog({
+        title: "Invalid File Type",
+        message: "Please upload an image file (JPG, PNG, GIF, WebP)",
+      });
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5242880) {
+      setErrorDialog({
+        title: "File Too Large",
+        message: "Image file must be less than 5MB",
+      });
+      return;
+    }
+
+    setIsUploadingLogo(true);
+
+    try {
+      // Use user ID for folder structure (same pattern as creator profile)
+      const folder = user?.id
+        ? `company-logos/${user.id}`
+        : "company-logos";
+
+      const uploadResponse = await fetch("/api/objects/upload", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          folder,
+          resourceType: "image",
+          type: "private",
+          contentType: file.type,
+          fileName: file.name,
+        }),
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const uploadData = await uploadResponse.json();
+
+      const uploadResult = await uploadToCloudinary(uploadData, file);
+
+      if (!uploadResult?.secure_url) {
+        throw new Error("Failed to upload file to storage");
+      }
+
+      const uploadedUrl = uploadResult.secure_url;
+      setLogoUrl(uploadedUrl);
+
+      // Clear the file input
+      event.target.value = '';
+
+      toast({
+        title: "Success!",
+        description: "Logo uploaded successfully. Don't forget to save your changes.",
+      });
+    } catch (error) {
+      console.error("Logo upload error:", error);
+      setErrorDialog({
+        title: "Upload Failed",
+        message: "Failed to upload logo. Please try again.",
+      });
+      // Clear the file input even on error
+      event.target.value = '';
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const isImage = imageExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+    if (!isImage) {
+      setErrorDialog({
+        title: "Invalid File Type",
+        message: "Please upload an image file (JPG, PNG, GIF, WebP)",
+      });
+      return;
+    }
+
+    if (file.size > 5242880) {
+      setErrorDialog({
+        title: "File Too Large",
+        message: "Image file must be less than 5MB",
+      });
+      return;
+    }
+
+    setIsUploadingProfileImage(true);
+
+    try {
+      const folder = user?.id
+        ? `creatorprofile/${user.id}`
+        : "creatorprofile";
+
+      const uploadResponse = await fetch("/api/objects/upload", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          folder,
+          resourceType: "image",
+          type: "private",
+          contentType: file.type,
+          fileName: file.name,
+        }),
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const uploadData = await uploadResponse.json();
+
+      const uploadResult = await uploadToCloudinary(uploadData, file);
+
+      if (!uploadResult?.secure_url) {
+        throw new Error("Failed to upload file to storage");
+      }
+
+      const uploadedUrl = uploadResult.secure_url;
+      setProfileImageUrl(uploadedUrl);
+
+      toast({
+        title: "Success!",
+        description: "Profile image uploaded successfully. Don't forget to save your changes.",
+      });
+    } catch (error) {
+      console.error("Profile image upload error:", error);
+      setErrorDialog({
+        title: "Upload Failed",
+        message: "Failed to upload profile image. Please try again.",
+      });
+    } finally {
+      setIsUploadingProfileImage(false);
+    }
+  };
+
+  const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png'];
+    const isValid = allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+    if (!isValid) {
+      setErrorDialog({
+        title: "Invalid File Type",
+        message: "Please upload a PDF or image file",
+      });
+      return;
+    }
+
+    if (file.size > 10485760) { // 10MB
+      setErrorDialog({
+        title: "File Too Large",
+        message: "Document must be less than 10MB",
+      });
+      return;
+    }
+
+    // Check max documents limit
+    if (verificationDocuments.length >= 5) {
+      setErrorDialog({
+        title: "Maximum Documents Reached",
+        message: "You can upload a maximum of 5 verification documents",
+      });
+      return;
+    }
+
+    setIsUploadingDocument(true);
+
+    try {
+      // Use user ID for organized folder structure
+      const folder = user?.id
+        ? `verification-documents/${user.id}`
+        : "verification-documents";
+
+      const uploadResponse = await fetch("/api/objects/upload", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          folder,
+          resourceType: 'image', // Use 'image' for both images and PDFs - Cloudinary handles PDFs under image type
+          type: "private",
+          contentType: file.type,
+          fileName: file.name
+        }),
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const uploadData = await uploadResponse.json();
+
+      const uploadResult = await uploadToCloudinary(uploadData, file);
+
+      if (!uploadResult?.secure_url) {
+        throw new Error("Failed to upload file to storage");
+      }
+
+     const uploadedUrl = uploadResult.secure_url;
+
+      // Determine document type
+      const documentType = file.type === 'application/pdf' ? 'pdf' : 'image';
+
+      // Save document to API
+      const saveResponse = await fetch("/api/company/verification-documents", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          documentUrl: uploadedUrl,
+          documentName: file.name,
+          type: "private",
+          documentType,
+          fileSize: file.size,
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save document");
+      }
+
+      const saveData = await saveResponse.json();
+
+      // Add to local state
+      if (saveData.document) {
+        setVerificationDocuments(prev => [...prev, saveData.document]);
+      }
+
+      // Also update the legacy field for backward compatibility
+      if (verificationDocuments.length === 0) {
+        setVerificationDocumentUrl(uploadedUrl);
+      }
+
+      // Invalidate the query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/company/verification-documents"] });
+
+      toast({
+        title: "Success!",
+        description: "Verification document uploaded successfully.",
+      });
+    } catch (error) {
+      console.error("Document upload error:", error);
+      setErrorDialog({
+        title: "Upload Failed",
+        message: "Failed to upload document. Please try again.",
+      });
+    } finally {
+      setIsUploadingDocument(false);
+      // Reset the input so the same file can be uploaded again
+      event.target.value = '';
+    }
+  };
+
+  const handleRemoveDocument = async (documentId: string) => {
+    try {
+      const response = await fetch(`/api/company/verification-documents/${documentId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete document");
+      }
+
+      // Remove from local state
+      setVerificationDocuments(prev => prev.filter(doc => doc.id !== documentId));
+
+      // Update the legacy field
+      const remainingDocs = verificationDocuments.filter(doc => doc.id !== documentId);
+      setVerificationDocumentUrl(remainingDocs.length > 0 ? remainingDocs[0].documentUrl : "");
+
+      // Invalidate the query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/company/verification-documents"] });
+
+      toast({
+        title: "Success",
+        description: "Document removed successfully.",
+      });
+    } catch (error) {
+      console.error("Error removing document:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove document. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Opens document in dialog viewer
+  const handleViewDocument = (documentUrl: string, documentName: string, documentType: string) => {
+    if (!documentUrl) {
+      toast({
+        title: "Error",
+        description: "Missing document URL",
+        variant: "destructive",
+      });
+      return;
+    }
+    // For PDFs, use Google Docs Viewer for better compatibility with Cloudinary
+    let viewerUrl = documentUrl;
+    if (documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
+      viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(documentUrl)}&embedded=true`;
+    }
+    // Open the document in a dialog viewer
+    setCurrentDocumentUrl(viewerUrl);
+    setCurrentDocumentName(documentName);
+    setIsPdfViewerOpen(true);
+  };
+
+  // Opens document in new browser tab for download
+  const handleDownloadDocument = (documentUrl: string, documentName: string) => {
+    if (!documentUrl) {
+      toast({
+        title: "Error",
+        description: "Missing document URL",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Open the original URL directly
+    window.open(documentUrl, '_blank');
+  };
+
+  const formatFileSize = (bytes: number | null): string => {
+    if (!bytes) return 'Unknown size';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+
+      queryClient.clear();
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout error:", error);
+      setErrorDialog({
+        title: "Error",
+        message: "Failed to logout. Please try again.",
+      });
+      setIsLoggingOut(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    try {
+      setIsExportingData(true);
+
+      const response = await fetch("/api/user/export-data", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to export data");
+      }
+
+      // Get the JSON data
+      const data = await response.json();
+
+      // Create a blob and download it
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `user-data-${user?.id}-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: "Your data has been exported successfully.",
+      });
+    } catch (error: any) {
+      console.error("Export data error:", error);
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to export data. Please try again.",
+      });
+    } finally {
+      setIsExportingData(false);
+    }
+  };
+
+  // Handle email change verification with password
+  const handleVerifyEmailChange = async () => {
+    try {
+      setIsVerifyingEmail(true);
+
+      // Basic validation
+      if (!newEmail) {
+        setErrorDialog({
+          title: "Error",
+          message: "Please enter a new email address.",
+        });
+        return;
+      }
+
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newEmail)) {
+        setErrorDialog({
+          title: "Error",
+          message: "Please enter a valid email address.",
+        });
+        return;
+      }
+
+      // For OAuth users, verify directly without password
+      if (user?.googleId && !user?.password) {
+        const response = await fetch("/api/auth/verify-email-change", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            newEmail: newEmail.trim(),
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to verify email change");
+        }
+
+        setIsEmailVerified(true);
+        toast({
+          title: "Verified",
+          description: "You can now update your email address.",
+        });
+        return;
+      }
+
+      // For local auth users, require password
+      if (!emailChangePassword) {
+        setErrorDialog({
+          title: "Error",
+          message: "Password is required to change your email.",
+        });
+        return;
+      }
+
+      const response = await fetch("/api/auth/verify-email-change", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password: emailChangePassword,
+          newEmail: newEmail.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to verify email change");
+      }
+
+      setIsEmailVerified(true);
+      toast({
+        title: "Verified",
+        description: "Password verified. You can now update your email address.",
+      });
+    } catch (error: any) {
+      console.error("Email verification error:", error);
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to verify. Please check your password.",
+      });
+      setIsEmailVerified(false);
+    } finally {
+      setIsVerifyingEmail(false);
+    }
+  };
+
+  // Handle email update after verification
+  const handleUpdateEmail = async () => {
+    try {
+      setIsUpdatingEmail(true);
+
+      const response = await fetch("/api/auth/email", {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          newEmail: newEmail.trim(),
+          password: emailChangePassword || undefined,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to update email");
+      }
+
+      toast({
+        title: "Success",
+        description: "Email updated successfully. Please verify your new email address.",
+      });
+
+      // Reset states
+      setShowEmailChange(false);
+      setEmailChangePassword("");
+      setNewEmail("");
+      setIsEmailVerified(false);
+
+      // Refresh user data
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    } catch (error: any) {
+      console.error("Email update error:", error);
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to update email. Please try again.",
+      });
+    } finally {
+      setIsUpdatingEmail(false);
+    }
+  };
+
+  const handleRequestDeleteOtp = async () => {
+    try {
+      setIsRequestingOtp(true);
+
+      const response = await fetch("/api/user/request-account-deletion", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send verification code");
+      }
+
+      setOtpSent(true);
+      setMaskedEmail(result.email || user?.email || "");
+      toast({
+        title: "Verification Code Sent",
+        description: "A 6-digit code has been sent to your email address.",
+      });
+    } catch (error: any) {
+      console.error("Request OTP error:", error);
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to send verification code. Please try again.",
+      });
+    } finally {
+      setIsRequestingOtp(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeletingAccount(true);
+
+      if (!otpCode) {
+        setErrorDialog({
+          title: "Error",
+          message: "Please enter the verification code sent to your email.",
+        });
+        return;
+      }
+
+      const response = await fetch("/api/user/delete-account", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ otp: otpCode }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        // Check if there are active items preventing deletion
+        if (result.details && result.activeItems) {
+          setActiveItemsDetails(result);
+          setShowActiveItemsDialog(true);
+          setShowDeleteDialog(false);
+          setDeletePassword("");
+          setOtpCode("");
+          setOtpSent(false);
+          setMaskedEmail("");
+          return;
+        }
+        throw new Error(result.error || result.details || "Failed to delete account");
+      }
+
+      toast({
+        title: "Account Deleted",
+        description: result.message || "Your account has been successfully deleted.",
+      });
+
+      // Clear everything and redirect to home
+      queryClient.clear();
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2000);
+    } catch (error: any) {
+      console.error("Delete account error:", error);
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to delete account. Please try again.",
+      });
+    } finally {
+      setIsDeletingAccount(false);
+      setShowDeleteDialog(false);
+      setDeletePassword("");
+      setOtpCode("");
+      setOtpSent(false);
+      setMaskedEmail("");
+    }
+  };
+
+  // Toggle niche selection
+  const toggleNiche = (niche: string) => {
+    setSelectedNiches(prev =>
+      prev.includes(niche)
+        ? prev.filter(n => n !== niche)
+        : [...prev, niche]
+    );
+  };
+
+  // Remove a specific niche
+  const removeNiche = (niche: string) => {
+    setSelectedNiches(prev => prev.filter(n => n !== niche));
+  };
+
+  const updateAccountMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        username: username.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      };
+
+      if (!payload.username) {
+        throw new Error("Username is required");
+      }
+
+      const result = await apiRequest("PUT", "/api/auth/account", payload);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Success",
+        description: "Account information updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to update account information",
+      });
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentPassword) {
+        throw new Error("Current password is required");
+      }
+
+      if (!newPassword) {
+        throw new Error("New password is required");
+      }
+
+      if (newPassword.length < 8) {
+        throw new Error("New password must be at least 8 characters");
+      }
+
+      if (newPassword !== confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      const payload = {
+        currentPassword,
+        newPassword,
+      };
+
+      const result = await apiRequest("PUT", "/api/auth/password", payload);
+      return result;
+    },
+    onSuccess: () => {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast({
+        title: "Success",
+        description: "Password changed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to change password",
+      });
+    },
+  });
+
+  // Handle requesting password change OTP
+  const handleRequestPasswordChangeOtp = async () => {
+    try {
+      setIsRequestingPasswordChangeOtp(true);
+
+      const response = await fetch("/api/auth/request-password-change-otp", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send verification code");
+      }
+
+      setPasswordChangeOtpSent(true);
+      setPasswordChangeMaskedEmail(result.email || user?.email || "");
+      toast({
+        title: "Verification Code Sent",
+        description: "A 6-digit code has been sent to your email address.",
+      });
+    } catch (error: any) {
+      console.error("Request password change OTP error:", error);
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to send verification code. Please try again.",
+      });
+    } finally {
+      setIsRequestingPasswordChangeOtp(false);
+    }
+  };
+
+  // Handle changing password with OTP
+  const handleChangePasswordWithOtp = async () => {
+    try {
+      setIsChangingPasswordWithOtp(true);
+
+      if (!passwordChangeOtpCode) {
+        setErrorDialog({
+          title: "Error",
+          message: "Please enter the verification code sent to your email.",
+        });
+        return;
+      }
+
+      if (!newPasswordWithOtp) {
+        setErrorDialog({
+          title: "Error",
+          message: "Please enter a new password.",
+        });
+        return;
+      }
+
+      if (newPasswordWithOtp.length < 8) {
+        setErrorDialog({
+          title: "Error",
+          message: "New password must be at least 8 characters.",
+        });
+        return;
+      }
+
+      if (newPasswordWithOtp !== confirmPasswordWithOtp) {
+        setErrorDialog({
+          title: "Error",
+          message: "Passwords do not match.",
+        });
+        return;
+      }
+
+      const response = await fetch("/api/auth/verify-password-change-otp", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          otp: passwordChangeOtpCode,
+          newPassword: newPasswordWithOtp
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to change password");
+      }
+
+      toast({
+        title: "Password Changed",
+        description: result.message || "Your password has been changed successfully.",
+      });
+
+      // Reset states
+      setPasswordChangeOtpSent(false);
+      setPasswordChangeOtpCode("");
+      setPasswordChangeMaskedEmail("");
+      setNewPasswordWithOtp("");
+      setConfirmPasswordWithOtp("");
+    } catch (error: any) {
+      console.error("Change password with OTP error:", error);
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to change password. Please try again.",
+      });
+    } finally {
+      setIsChangingPasswordWithOtp(false);
+    }
+  };
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async () => {
+      let payload: any = {};
+
+      // Creator profile payload
+      if (user?.role === 'creator') {
+        payload = {
+          bio,
+          profileImageUrl: profileImageUrl || null,
+          niches: selectedNiches,
+          youtubeUrl,
+          tiktokUrl,
+          instagramUrl,
+          youtubeFollowers: youtubeFollowers ? parseInt(youtubeFollowers) : null,
+          tiktokFollowers: tiktokFollowers ? parseInt(tiktokFollowers) : null,
+          instagramFollowers: instagramFollowers ? parseInt(instagramFollowers) : null,
+        };
+      }
+
+      // Company profile payload
+      if (user?.role === 'company') {
+        payload = {
+          tradeName,
+          legalName,
+          logoUrl,
+          industry,
+          websiteUrl,
+          description: companyDescription,
+          contactName,
+          contactJobTitle,
+          phoneNumber,
+          businessAddress,
+          companySize,
+          yearFounded: yearFounded ? parseInt(yearFounded) : null,
+          linkedinUrl,
+          twitterUrl,
+          facebookUrl,
+          instagramUrl: companyInstagramUrl,
+          verificationDocumentUrl,
+        };
+      }
+
+      const result = await apiRequest("PUT", "/api/profile", payload);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      // Clear saved form data from localStorage since changes are now persisted
+      localStorage.removeItem('settings-form-data');
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to update profile",
+      });
+    },
+  });
+
+  // Handler for save profile button - checks video platform requirement first
+  const handleSaveProfile = () => {
+    // Only check for creators
+    if (user?.role === 'creator') {
+      const hasVideoPlatform = youtubeUrl || tiktokUrl || instagramUrl;
+      if (!hasVideoPlatform) {
+        setShowVideoPlatformDialog(true);
+        return;
+      }
+    }
+
+    // Proceed with save
+    updateProfileMutation.mutate();
+  };
+
+  // Define navigation sections based on user role
+  const settingsSections: SettingsSection[] = useMemo(() => {
+    const sections: SettingsSection[] = [
+      { id: "profile-info", label: "Profile Information", icon: <User className="h-4 w-4" /> },
+      { id: "account-info", label: "Account Information", icon: <User className="h-4 w-4" /> },
+      { id: "change-email", label: "Change Email", icon: <Mail className="h-4 w-4" /> },
+      { id: "change-password-otp", label: "Password (Email Verify)", icon: <Key className="h-4 w-4" /> },
+      { id: "change-password-legacy", label: "Password (Legacy)", icon: <KeyRound className="h-4 w-4" /> },
+    ];
+    return sections;
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <TopNavBar />
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:pl-2 lg:pr-8 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">Profile Management</h1>
+          <p className="text-muted-foreground mt-1">Manage your profile and account information</p>
+        </div>
+
+        <div className="flex gap-6">
+          <SettingsNavigation sections={settingsSections} />
+
+          <div className="flex-1 space-y-8 min-w-0 max-w-4xl">
+
+      <Card id="profile-info" className="border-card-border scroll-mt-24">
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-20 w-20">
+              <AvatarImage
+                src={proxiedSrc(user?.role === 'company' ? logoUrl : (profileImageUrl || user?.profileImageUrl)) || ''}
+                alt={user?.role === 'company' ? tradeName || 'Company' : (user?.firstName || 'User')}
+                referrerPolicy="no-referrer"
+              />
+              <AvatarFallback className="text-lg">
+                {user?.role === 'company'
+                  ? (tradeName?.[0] || 'C')
+                  : (user?.firstName?.[0] || user?.email?.[0] || 'U')
+                }
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="font-semibold">
+                {user?.role === 'company' ? tradeName || 'Company' : `${user?.firstName} ${user?.lastName}`}
+              </div>
+              <div className="text-sm text-muted-foreground">{user?.email}</div>
+              <div className="text-xs text-muted-foreground capitalize mt-1">{user?.role} Account</div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* COMPANY PROFILE SECTION */}
+          {user?.role === 'company' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="tradeName" className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Company Name (Trade Name) *
+                </Label>
+                <Input
+                  id="tradeName"
+                  type="text"
+                  placeholder="Your Company Name"
+                  value={tradeName}
+                  onChange={(e) => setTradeName(e.target.value)}
+                  data-testid="input-trade-name"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This is the name that will appear on all your offers
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="logoUrl">Company Logo *</Label>
+                <p className="text-xs text-muted-foreground">
+                  {logoUrl ? 'Upload a new logo to replace the current one' : 'Upload your company logo'}
+                </p>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={isUploadingLogo}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <label
+                    htmlFor="logo-upload"
+                    className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block ${
+                      isUploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      {isUploadingLogo ? (
+                        <>
+                          <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
+                          <div className="text-sm font-medium text-blue-600">
+                            Uploading Logo...
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-8 w-8 text-primary" />
+                          <div className="text-sm font-medium">
+                            Click to upload company logo
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            JPG, PNG, GIF, WebP (max 5MB)
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Recommended: 500x500px or larger, square format
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="legalName">Legal Company Name</Label>
+                <Input
+                  id="legalName"
+                  type="text"
+                  placeholder="Official registered company name"
+                  value={legalName}
+                  onChange={(e) => setLegalName(e.target.value)}
+                  data-testid="input-legal-name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="industry">Industry</Label>
+                <Select value={industry} onValueChange={setIndustry}>
+                  <SelectTrigger id="industry" data-testid="select-industry">
+                    <SelectValue placeholder="Select your industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="technology">Technology</SelectItem>
+                    <SelectItem value="ecommerce">E-commerce</SelectItem>
+                    <SelectItem value="fashion">Fashion & Apparel</SelectItem>
+                    <SelectItem value="beauty">Beauty & Cosmetics</SelectItem>
+                    <SelectItem value="health">Health & Wellness</SelectItem>
+                    <SelectItem value="fitness">Fitness</SelectItem>
+                    <SelectItem value="food">Food & Beverage</SelectItem>
+                    <SelectItem value="travel">Travel & Hospitality</SelectItem>
+                    <SelectItem value="finance">Finance & Insurance</SelectItem>
+                    <SelectItem value="education">Education</SelectItem>
+                    <SelectItem value="entertainment">Entertainment</SelectItem>
+                    <SelectItem value="gaming">Gaming</SelectItem>
+                    <SelectItem value="home">Home & Garden</SelectItem>
+                    <SelectItem value="automotive">Automotive</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="websiteUrl">Company Website</Label>
+                <Input
+                  id="websiteUrl"
+                  type="url"
+                  placeholder="https://yourcompany.com"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  data-testid="input-website-url"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="companyDescription">Company Description</Label>
+                <Textarea
+                  id="companyDescription"
+                  placeholder="Tell creators about your company, products, and what makes you unique..."
+                  value={companyDescription}
+                  onChange={(e) => setCompanyDescription(e.target.value)}
+                  className="min-h-32"
+                  data-testid="textarea-company-description"
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="contactName">Contact Name</Label>
+                  <Input
+                    id="contactName"
+                    type="text"
+                    placeholder="Primary contact person"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    data-testid="input-contact-name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="contactJobTitle">Contact Job Title</Label>
+                  <Input
+                    id="contactJobTitle"
+                    type="text"
+                    placeholder="Marketing Director, CEO, etc."
+                    value={contactJobTitle}
+                    onChange={(e) => setContactJobTitle(e.target.value)}
+                    data-testid="input-contact-job-title"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    placeholder="+1 (555) 000-0000"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    data-testid="input-phone-number"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="businessAddress">Business Address</Label>
+                <Textarea
+                  id="businessAddress"
+                  placeholder="Full business address including street, city, state, ZIP, and country"
+                  value={businessAddress}
+                  onChange={(e) => setBusinessAddress(e.target.value)}
+                  className="min-h-20"
+                  data-testid="textarea-business-address"
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="companySize">Company Size</Label>
+                  <Select value={companySize} onValueChange={setCompanySize}>
+                    <SelectTrigger id="companySize" data-testid="select-company-size">
+                      <SelectValue placeholder="Select company size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1-10">1-10 employees</SelectItem>
+                      <SelectItem value="11-50">11-50 employees</SelectItem>
+                      <SelectItem value="51-200">51-200 employees</SelectItem>
+                      <SelectItem value="201-1000">201-1000 employees</SelectItem>
+                      <SelectItem value="1000+">1000+ employees</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="yearFounded">Year Founded</Label>
+                  <Input
+                    id="yearFounded"
+                    type="number"
+                    min="1800"
+                    max={new Date().getFullYear()}
+                    placeholder={new Date().getFullYear().toString()}
+                    value={yearFounded}
+                    onChange={(e) => setYearFounded(e.target.value)}
+                    data-testid="input-year-founded"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-base font-semibold">Verification Documents</Label>
+                  </div>
+                  <Badge variant="outline">
+                    {verificationDocuments.length}/5
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Upload business registration certificate, EIN/Tax ID, incorporation certificate, or other supporting documents (max 5 files)
+                </p>
+
+                {/* Uploaded Documents List */}
+                {verificationDocuments.length > 0 && (
+                  <div className="space-y-2">
+                    {verificationDocuments.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center gap-3 p-3 border rounded-lg bg-green-50 dark:bg-green-950/20 border-green-200"
+                      >
+                        <FileText className="h-6 w-6 text-green-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-green-900 dark:text-green-100 truncate">
+                            {doc.documentName}
+                          </p>
+                          <p className="text-xs text-green-700 dark:text-green-300">
+                            {doc.documentType.toUpperCase()} • {formatFileSize(doc.fileSize)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleViewDocument(doc.documentUrl, doc.documentName, doc.documentType)}
+                            title="View document"
+                          >
+                            <Eye className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleDownloadDocument(doc.documentUrl, doc.documentName)}
+                            title="Download document"
+                          >
+                            <Download className="h-4 w-4 text-blue-600" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleRemoveDocument(doc.id)}
+                            title="Delete document"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload Area */}
+                {verificationDocuments.length < 5 && (
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleDocumentUpload}
+                      disabled={isUploadingDocument}
+                      className="hidden"
+                      id="document-upload"
+                    />
+                    <label
+                      htmlFor="document-upload"
+                      className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer block ${
+                        isUploadingDocument ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        {isUploadingDocument ? (
+                          <>
+                            <Upload className="h-6 w-6 text-blue-600 animate-pulse" />
+                            <div className="text-sm font-medium text-blue-600">
+                              Uploading Document...
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-6 w-6 text-primary" />
+                            <div className="text-sm font-medium">
+                              {verificationDocuments.length === 0
+                                ? "Click to upload verification document"
+                                : "Add another document"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              PDF, JPG, PNG (max 10MB per file)
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-base font-semibold">Social Media Profiles</Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Optional: Add your social media profiles to build trust with creators
+                </p>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="linkedinUrl">LinkedIn Company Page</Label>
+                    <Input
+                      id="linkedinUrl"
+                      type="url"
+                      placeholder="https://linkedin.com/company/yourcompany"
+                      value={linkedinUrl}
+                      onChange={(e) => setLinkedinUrl(e.target.value)}
+                      data-testid="input-linkedin-url"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="twitterUrl">Twitter/X Profile</Label>
+                    <Input
+                      id="twitterUrl"
+                      type="url"
+                      placeholder="https://twitter.com/yourcompany"
+                      value={twitterUrl}
+                      onChange={(e) => setTwitterUrl(e.target.value)}
+                      data-testid="input-twitter-url"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="facebookUrl">Facebook Page</Label>
+                    <Input
+                      id="facebookUrl"
+                      type="url"
+                      placeholder="https://facebook.com/yourcompany"
+                      value={facebookUrl}
+                      onChange={(e) => setFacebookUrl(e.target.value)}
+                      data-testid="input-facebook-url"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="companyInstagramUrl">Instagram Profile</Label>
+                    <Input
+                      id="companyInstagramUrl"
+                      type="url"
+                      placeholder="https://instagram.com/yourcompany"
+                      value={companyInstagramUrl}
+                      onChange={(e) => setCompanyInstagramUrl(e.target.value)}
+                      data-testid="input-company-instagram-url"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Show warning if critical fields are missing */}
+              {(!tradeName || !logoUrl) && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    <strong>\u26A0\uFE0F Important:</strong> Please fill in your Company Name and upload a Logo. 
+                    These are required for your offers to display properly.
+                  </p>
+                </div>
+              )}
+
+              <Button
+                onClick={handleSaveProfile}
+                disabled={updateProfileMutation.isPending}
+                data-testid="button-save-profile"
+              >
+                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </>
+          )}
+
+          {/* CREATOR PROFILE SECTION */}
+          {user?.role === 'creator' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="profileImage">Profile Image</Label>
+                <p className="text-sm text-muted-foreground">
+                  Upload a profile picture to personalize your account.
+                </p>
+
+                {profileImageUrl ? (
+                  <div className="relative inline-block">
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <Avatar className="h-24 w-24">
+                        <AvatarImage src={proxiedSrc(profileImageUrl)} alt={user?.firstName || 'Creator profile'} />
+                        <AvatarFallback className="text-2xl">
+                          {user?.firstName?.[0] || user?.username?.[0] || 'C'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">Current Profile Image</p>
+                        <p className="text-sm text-muted-foreground">This image will appear on your creator profile.</p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2"
+                      onClick={() => setProfileImageUrl("")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfileImageUpload}
+                      disabled={isUploadingProfileImage}
+                      className="hidden"
+                      id="profile-image-upload"
+                    />
+                    <label
+                      htmlFor="profile-image-upload"
+                      className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block ${
+                        isUploadingProfileImage ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        {isUploadingProfileImage ? (
+                          <>
+                            <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
+                            <div className="text-sm font-medium text-blue-600">
+                              Uploading Image...
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-8 w-8 text-primary" />
+                            <div className="text-sm font-medium">
+                              Click to upload profile image
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              JPG, PNG, GIF, WebP (max 5MB)
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bio">Bio</Label>
+                <Textarea
+                  id="bio"
+                  placeholder="Tell companies about yourself and your audience..."
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  className="min-h-24"
+                  data-testid="textarea-bio"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="niches">Content Niches</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal"
+                      data-testid="button-select-niches"
+                    >
+                      {selectedNiches.length === 0 ? (
+                        <span className="text-muted-foreground">Select your content niches...</span>
+                      ) : (
+                        <span>{selectedNiches.length} niche{selectedNiches.length !== 1 ? 's' : ''} selected</span>
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <div className="max-h-[300px] overflow-y-auto p-4 space-y-2">
+                      {nichesLoading ? (
+                        <div className="text-sm text-muted-foreground p-2">Loading niches...</div>
+                      ) : AVAILABLE_NICHES.length === 0 ? (
+                        <div className="text-sm text-muted-foreground p-2">No niches available</div>
+                      ) : (
+                        AVAILABLE_NICHES.map((niche) => (
+                          <div key={niche.value} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`niche-${niche.value}`}
+                              checked={selectedNiches.includes(niche.value)}
+                              onCheckedChange={() => toggleNiche(niche.value)}
+                            />
+                            <label
+                              htmlFor={`niche-${niche.value}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                            >
+                              {niche.label}
+                            </label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Display selected niches as badges */}
+                {selectedNiches.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedNiches.map((nicheValue) => {
+                      const niche = AVAILABLE_NICHES.find(n => n.value === nicheValue);
+                      return (
+                        <Badge key={nicheValue} variant="secondary" className="gap-1">
+                          {niche?.label || nicheValue}
+                          <button
+                            type="button"
+                            onClick={() => removeNiche(nicheValue)}
+                            className="ml-1 hover:text-destructive"
+                            aria-label={`Remove ${niche?.label || nicheValue}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground">
+                  Your niches help us recommend relevant offers. Select all that apply to your content.
+                </p>
+              </div>
+
+              {/* Video Platform Requirement Alert */}
+              <Alert className={`${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'}`}>
+                <Video className={`h-5 w-5 ${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-600' : 'text-blue-600'}`} />
+                <AlertTitle className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-900 dark:text-red-300' : 'text-blue-900 dark:text-blue-300'}>
+                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? '\u26A0\uFE0F Video Platform Required' : '\u2713 Video Platform Requirements'}
+                </AlertTitle>
+                <AlertDescription className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-800 dark:text-red-200' : 'text-blue-800 dark:text-blue-200'}>
+                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? (
+                    <>
+                      <strong>You must add at least one video platform to use AffiliateXchange.</strong>
+                      <br />
+                      We only accept video content creators (YouTube, TikTok, or Instagram). Text-only bloggers and podcasters without video are not supported at this time.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Great!</strong> You have at least one video platform set up. Make sure to keep your platform URLs updated for the best experience.
+                    </>
+                  )}
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="youtube">YouTube Channel URL</Label>
+                  <Input
+                    id="youtube"
+                    type="url"
+                    placeholder="https://youtube.com/@yourchannel"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    data-testid="input-youtube"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="youtube-followers">YouTube Subscribers</Label>
+                  <Input
+                    id="youtube-followers"
+                    type="number"
+                    placeholder="10000"
+                    value={youtubeFollowers}
+                    onChange={(e) => setYoutubeFollowers(e.target.value)}
+                    data-testid="input-youtube-followers"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="tiktok">TikTok Profile URL</Label>
+                  <Input
+                    id="tiktok"
+                    type="url"
+                    placeholder="https://tiktok.com/@yourusername"
+                    value={tiktokUrl}
+                    onChange={(e) => setTiktokUrl(e.target.value)}
+                    data-testid="input-tiktok"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tiktok-followers">TikTok Followers</Label>
+                  <Input
+                    id="tiktok-followers"
+                    type="number"
+                    placeholder="50000"
+                    value={tiktokFollowers}
+                    onChange={(e) => setTiktokFollowers(e.target.value)}
+                    data-testid="input-tiktok-followers"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="instagram">Instagram Profile URL</Label>
+                  <Input
+                    id="instagram"
+                    type="url"
+                    placeholder="https://instagram.com/yourusername"
+                    value={instagramUrl}
+                    onChange={(e) => setInstagramUrl(e.target.value)}
+                    data-testid="input-instagram"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="instagram-followers">Instagram Followers</Label>
+                  <Input
+                    id="instagram-followers"
+                    type="number"
+                    placeholder="25000"
+                    value={instagramFollowers}
+                    onChange={(e) => setInstagramFollowers(e.target.value)}
+                    data-testid="input-instagram-followers"
+                  />
+                </div>
+              </div>
+
+              <Button
+                onClick={handleSaveProfile}
+                disabled={updateProfileMutation.isPending}
+                data-testid="button-save-profile"
+              >
+                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card id="account-info" className="border-card-border scroll-mt-24">
+        <CardHeader>
+          <CardTitle>Account Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username">Username *</Label>
+            <Input
+              id="username"
+              type="text"
+              placeholder="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              data-testid="input-username"
+            />
+            <p className="text-xs text-muted-foreground">
+              Your unique username for the platform
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                type="text"
+                placeholder="John"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                data-testid="input-first-name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                type="text"
+                placeholder="Doe"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                data-testid="input-last-name"
+              />
+            </div>
+          </div>
+
+          <Button
+            onClick={() => updateAccountMutation.mutate()}
+            disabled={updateAccountMutation.isPending}
+            data-testid="button-save-account"
+          >
+            {updateAccountMutation.isPending ? "Saving..." : "Save Account Info"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Email Change Section */}
+      <Card id="change-email" className="border-card-border scroll-mt-24">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            Change Email Address
+          </CardTitle>
+          <CardDescription>
+            Update your account email address. {user?.googleId && !user?.password ? "As an OAuth user, you can change your email directly." : "You'll need to verify your password to change your email."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!showEmailChange ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Current Email</div>
+                <div className="text-sm text-muted-foreground">{user?.email}</div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowEmailChange(true)}
+              >
+                Change Email
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Email Change</AlertTitle>
+                <AlertDescription>
+                  Changing your email will require you to verify the new email address. You'll receive verification emails at both your old and new addresses.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                <Label htmlFor="current-email-display">Current Email</Label>
+                <Input
+                  id="current-email-display"
+                  type="email"
+                  value={user?.email || ""}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="new-email">New Email Address *</Label>
+                <Input
+                  id="new-email"
+                  type="email"
+                  placeholder="newemail@example.com"
+                  value={newEmail}
+                  onChange={(e) => {
+                    setNewEmail(e.target.value);
+                    setIsEmailVerified(false); // Reset verification when email changes
+                  }}
+                  disabled={isEmailVerified}
+                />
+              </div>
+
+              {requiresPasswordForEmailChange && (
+                <div className="space-y-2">
+                  <Label htmlFor="email-change-password">Current Password *</Label>
+                  <Input
+                    id="email-change-password"
+                    type="password"
+                    placeholder="Enter your current password"
+                    value={emailChangePassword}
+                    onChange={(e) => {
+                      setEmailChangePassword(e.target.value);
+                      setIsEmailVerified(false); // Reset verification when password changes
+                    }}
+                    disabled={isEmailVerified}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Your password is required to verify this change
+                  </p>
+                </div>
+              )}
+
+              {!isEmailVerified ? (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleVerifyEmailChange}
+                    disabled={
+                      isVerifyingEmail ||
+                      !newEmail ||
+                      (requiresPasswordForEmailChange && !emailChangePassword)
+                    }
+                  >
+                    {isVerifyingEmail ? "Verifying..." : "Verify & Enable Change"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowEmailChange(false);
+                      setEmailChangePassword("");
+                      setNewEmail("");
+                      setIsEmailVerified(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Alert className="border-green-200 bg-green-50 dark:bg-green-950/20">
+                    <Shield className="h-4 w-4 text-green-600" />
+                    <AlertTitle className="text-green-900 dark:text-green-100">Verified</AlertTitle>
+                    <AlertDescription className="text-green-800 dark:text-green-200">
+                      You can now update your email address.
+                    </AlertDescription>
+                  </Alert>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleUpdateEmail}
+                      disabled={isUpdatingEmail}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {isUpdatingEmail ? "Updating..." : "Update Email Address"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowEmailChange(false);
+                        setEmailChangePassword("");
+                        setNewEmail("");
+                        setIsEmailVerified(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card id="change-password-otp" className="border-card-border scroll-mt-24">
+        <CardHeader>
+          <CardTitle>Change Password with Email Verification</CardTitle>
+          <CardDescription>
+            Change your password securely with email verification code
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {user?.googleId ? (
+            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+              <Shield className="h-4 w-4 text-blue-600" />
+              <AlertTitle className="text-blue-900 dark:text-blue-100">Google Account</AlertTitle>
+              <AlertDescription className="text-blue-800 dark:text-blue-200">
+                You signed in with Google. Your password is managed by Google, so you don't need to change it here.
+              </AlertDescription>
+            </Alert>
+          ) : !passwordChangeOtpSent ? (
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-md border border-blue-200 dark:border-blue-800">
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                  Secure Password Change
+                </p>
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  We'll send a verification code to your email to ensure it's really you making this change.
+                </p>
+              </div>
+
+              <Button
+                onClick={handleRequestPasswordChangeOtp}
+                disabled={isRequestingPasswordChangeOtp}
+                className="w-full"
+              >
+                {isRequestingPasswordChangeOtp ? "Sending Code..." : "Send Verification Code to Email"}
+              </Button>
+            </div>
+          ) : (
+              <div className="space-y-4">
+                <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                  <Shield className="h-4 w-4 text-blue-600" />
+                  <AlertTitle className="text-blue-900 dark:text-blue-100">Verification Code Sent</AlertTitle>
+                  <AlertDescription className="text-blue-800 dark:text-blue-200">
+                    We've sent a 6-digit code to {passwordChangeMaskedEmail}. Please check your email and enter the code below.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password-change-otp">Verification Code *</Label>
+                  <Input
+                    id="password-change-otp"
+                    type="text"
+                    placeholder="000000"
+                    maxLength={6}
+                    value={passwordChangeOtpCode}
+                    onChange={(e) => setPasswordChangeOtpCode(e.target.value.replace(/\D/g, ''))}
+                    className="font-mono text-lg tracking-widest text-center"
+                  />
+                  <p className="text-xs text-muted-foreground">Code expires in 15 minutes</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="newPasswordWithOtp">New Password *</Label>
+                  <Input
+                    id="newPasswordWithOtp"
+                    type="password"
+                    placeholder="Enter new password (min 8 characters)"
+                    value={newPasswordWithOtp}
+                    onChange={(e) => setNewPasswordWithOtp(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPasswordWithOtp">Confirm New Password *</Label>
+                  <Input
+                    id="confirmPasswordWithOtp"
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmPasswordWithOtp}
+                    onChange={(e) => setConfirmPasswordWithOtp(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleChangePasswordWithOtp}
+                    disabled={isChangingPasswordWithOtp}
+                    className="flex-1"
+                  >
+                    {isChangingPasswordWithOtp ? "Changing Password..." : "Change Password"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setPasswordChangeOtpSent(false);
+                      setPasswordChangeOtpCode("");
+                      setPasswordChangeMaskedEmail("");
+                      setNewPasswordWithOtp("");
+                      setConfirmPasswordWithOtp("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+
+                <Button
+                  variant="link"
+                  onClick={handleRequestPasswordChangeOtp}
+                  disabled={isRequestingPasswordChangeOtp}
+                  className="w-full text-sm"
+                >
+                  {isRequestingPasswordChangeOtp ? "Sending..." : "Didn't receive the code? Send again"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+      <Card id="change-password-legacy" className="border-card-border scroll-mt-24">
+        <CardHeader>
+          <CardTitle>Change Password (Legacy)</CardTitle>
+          <CardDescription>
+            Quick password change without email verification (less secure)
+          </CardDescription>
+        </CardHeader>
+          <CardContent className="space-y-4">
+            {user?.googleId ? (
+              <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                <Shield className="h-4 w-4 text-blue-600" />
+                <AlertTitle className="text-blue-900 dark:text-blue-100">Google Account</AlertTitle>
+                <AlertDescription className="text-blue-800 dark:text-blue-200">
+                  You signed in with Google. Your password is managed by Google.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password *</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    placeholder="Enter current password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    data-testid="input-current-password"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password *</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    placeholder="Enter new password (min 8 characters)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    data-testid="input-new-password"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password *</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    data-testid="input-confirm-password"
+                  />
+                </div>
+
+                <Button
+                  onClick={() => changePasswordMutation.mutate()}
+                  disabled={changePasswordMutation.isPending}
+                  data-testid="button-change-password"
+                >
+                  {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+      {/* Video Platform Requirement Dialog */}
+      <AlertDialog open={showVideoPlatformDialog} onOpenChange={setShowVideoPlatformDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-6 w-6" />
+              \u26A0\uFE0F Video Platform Required
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 text-base">
+              <p className="font-semibold text-foreground">
+                You must add at least one video platform to use AffiliateXchange.
+              </p>
+              <p>
+                We only accept <strong>video content creators</strong> with presence on:
+              </p>
+              <ul className="list-disc list-inside space-y-2 ml-2">
+                <li><strong>YouTube</strong> - Video channels</li>
+                <li><strong>TikTok</strong> - Short-form video content</li>
+                <li><strong>Instagram</strong> - Reels and video content</li>
+              </ul>
+              <p className="text-muted-foreground">
+                Text-only bloggers and podcasters without video are not supported at this time.
+              </p>
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  <strong>\u1F4A1 Tip:</strong> Add your YouTube, TikTok, or Instagram URL in the fields above, then click Save Changes again.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowVideoPlatformDialog(false)}>
+              I Understand
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <GenericErrorDialog
+        open={!!errorDialog}
+        onOpenChange={(open) => !open && setErrorDialog(null)}
+        title={errorDialog?.title || "Error"}
+        description={errorDialog?.message || "An error occurred"}
+      />
+
+      {/* PDF Viewer Dialog */}
+      <Dialog open={isPdfViewerOpen} onOpenChange={setIsPdfViewerOpen}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {currentDocumentName || "Document Viewer"}
+            </DialogTitle>
+            <DialogDescription>
+              Verification document preview
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 border rounded-lg overflow-hidden bg-muted/10">
+            {currentDocumentUrl && (
+              <iframe
+                src={currentDocumentUrl}
+                className="w-full h-full"
+                title={currentDocumentName}
+              />
+            )}
+          </div>
+          <DialogFooter className="flex-row justify-between items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(currentDocumentUrl, '_blank')}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open in New Tab
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPdfViewerOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
