@@ -166,7 +166,7 @@ export default function NotificationDetail() {
             {hasBreakdown && (
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>💡 How fees work:</strong> Platform fee ({platformFeePercentage}) and processing fee ({processingFeePercentage}) are automatically deducted from your gross earnings. The net amount is what you receive in your payment method.
+                  <strong>\u1F4A1 How fees work:</strong> Platform fee ({platformFeePercentage}) and processing fee ({processingFeePercentage}) are automatically deducted from your gross earnings. The net amount is what you receive in your payment method.
                 </p>
               </div>
             )}
@@ -313,7 +313,7 @@ export default function NotificationDetail() {
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                   <h3 className="font-semibold text-green-900 dark:text-green-100">
-                    Application Approved! 🎉
+                    Application Approved! \u1F389
                   </h3>
                 </div>
                 <p className="text-green-800 dark:text-green-200">{n.message}</p>
@@ -566,7 +566,7 @@ export default function NotificationDetail() {
             <div className="space-y-4">
               <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
                 <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">
-                  ⚠️ Content Flagged for Review
+                  \u26A0\uFE0F Content Flagged for Review
                 </h3>
                 <p className="text-orange-800 dark:text-orange-200">{n.message}</p>
               </div>
@@ -657,7 +657,7 @@ export default function NotificationDetail() {
                       color: statusColor === 'green' ? 'rgb(20 83 45)' : statusColor === 'red' ? 'rgb(127 29 29)' : 'rgb(30 58 138)',
                     }}
                   >
-                    {reviewStatus === 'dismissed' ? '✓ No Issues Found' : reviewStatus === 'action_taken' ? '⚠️ Action Taken' : '📋 Review Complete'}
+                    {reviewStatus === 'dismissed' ? '\u2713 No Issues Found' : reviewStatus === 'action_taken' ? '\u26A0\uFE0F Action Taken' : '📋 Review Complete'}
                   </h3>
                   <p style={{
                     color: statusColor === 'green' ? 'rgb(22 101 52)' : statusColor === 'red' ? 'rgb(153 27 27)' : 'rgb(30 64 175)',

@@ -1646,7 +1646,7 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    // ✅ ADD: Map to include company data and stats
+    // \u2705 ADD: Map to include company data and stats
     let offersWithStats = await Promise.all(
       results.map(async (row: any) => {
         const activeCreatorsCount = await this.getActiveCreatorsCountForOffer(row.offer.id);
@@ -1824,7 +1824,7 @@ export class DatabaseStorage implements IStorage {
       commission_details.amount = offer.commissionAmount;
     }
 
-    // ✅ FIX: Added featuredImageUrl and creator requirements fields to the INSERT
+    // \u2705 FIX: Added featuredImageUrl and creator requirements fields to the INSERT
     // Format arrays properly for PostgreSQL
     const allowedPlatformsArray = offer.allowedPlatforms && offer.allowedPlatforms.length > 0
       ? `ARRAY[${offer.allowedPlatforms.map(p => `'${p.replace(/'/g, "''")}'`).join(',')}]::text[]`
@@ -5504,7 +5504,7 @@ async getApplicationsTimeSeriesByCompany(userId: string, dateRange: string): Pro
 
     const result = await db
       .select({
-        date: sql<string>`TO_CHAR(DATE(${applications.createdAt}), 'Mon DD')`,  // ✅ Use DATE() here too
+        date: sql<string>`TO_CHAR(DATE(${applications.createdAt}), 'Mon DD')`,  // \u2705 Use DATE() here too
         isoDate: sql<Date>`DATE(${applications.createdAt})`,
         total: sql<number>`COUNT(*)::int`,
         pending: sql<number>`COUNT(*) FILTER (WHERE ${applications.status} = 'pending')::int`,
@@ -5515,7 +5515,7 @@ async getApplicationsTimeSeriesByCompany(userId: string, dateRange: string): Pro
       })
       .from(applications)
       .where(and(...whereClauses))
-      .groupBy(sql`DATE(${applications.createdAt})`)  // ✅ This now matches the isoDate
+      .groupBy(sql`DATE(${applications.createdAt})`)  // \u2705 This now matches the isoDate
       .orderBy(sql`DATE(${applications.createdAt})`);
 
     return result || [];

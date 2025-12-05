@@ -247,7 +247,7 @@ export default function PaymentDetail() {
             {/* Fee Calculation */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-900 font-medium mb-2">
-                💡 How fees are calculated
+                \u1F4A1 How fees are calculated
               </p>
               <div className="text-sm text-blue-800 space-y-1">
                 <div className="flex justify-between">

@@ -470,7 +470,7 @@ function Router() {
     return <CompanyOnboarding />;
   }
 
-  // ✅ FIX: Check authentication first before routing
+  // \u2705 FIX: Check authentication first before routing
   // If authenticated, always show protected router (even for "/" route)
   if (isAuthenticated) {
     return <ProtectedRouter />;

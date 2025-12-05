@@ -1671,11 +1671,11 @@ export default function CompanyOfferCreate() {
                       <>
                         <Video className="h-8 w-8 text-green-600" />
                         <div className="text-sm font-medium text-green-600">
-                          Video Ready ✓
+                          Video Ready \u2713
                         </div>
                         {currentVideo.thumbnailUrl && (
                           <div className="text-xs text-green-600">
-                            Thumbnail generated ✓
+                            Thumbnail generated \u2713
                           </div>
                         )}
                       </>

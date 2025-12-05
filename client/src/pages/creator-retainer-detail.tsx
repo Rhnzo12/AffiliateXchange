@@ -646,7 +646,7 @@ export default function CreatorRetainerDetail() {
                       ) : videoUrl ? (
                         <>
                           <Video className="h-4 w-4 mr-2" />
-                          Video Uploaded ✓
+                          Video Uploaded \u2713
                         </>
                       ) : (
                         <>
@@ -657,7 +657,7 @@ export default function CreatorRetainerDetail() {
                     </Button>
                     {videoUrl && (
                       <p className="text-xs text-green-600">
-                        ✓ Video uploaded successfully
+                        \u2713 Video uploaded successfully
                       </p>
                     )}
                     {!videoUrl && (
@@ -791,7 +791,7 @@ export default function CreatorRetainerDetail() {
                     )}
                   </Button>
                   {resubmitVideoUrl && (
-                    <p className="text-xs text-green-600 mt-2">✓ Video ready to submit</p>
+                    <p className="text-xs text-green-600 mt-2">\u2713 Video ready to submit</p>
                   )}
                 </div>
               </div>
@@ -1394,7 +1394,7 @@ export default function CreatorRetainerDetail() {
                             )}
                             {deliverable.reviewedAt && (
                               <p className="text-xs text-muted-foreground">
-                                ✅ Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}
+                                \u2705 Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}
                               </p>
                             )}
                           </div>

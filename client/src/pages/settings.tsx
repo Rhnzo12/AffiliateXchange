@@ -1710,7 +1710,7 @@ export default function Settings() {
               {(!tradeName || !logoUrl) && (
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                   <p className="text-sm text-yellow-800">
-                    <strong>⚠️ Important:</strong> Please fill in your Company Name and upload a Logo. 
+                    <strong>\u26A0\uFE0F Important:</strong> Please fill in your Company Name and upload a Logo. 
                     These are required for your offers to display properly.
                   </p>
                 </div>
@@ -1888,7 +1888,7 @@ export default function Settings() {
               <Alert className={`${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'}`}>
                 <Video className={`h-5 w-5 ${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-600' : 'text-blue-600'}`} />
                 <AlertTitle className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-900 dark:text-red-300' : 'text-blue-900 dark:text-blue-300'}>
-                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? '⚠️ Video Platform Required' : '✓ Video Platform Requirements'}
+                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? '\u26A0\uFE0F Video Platform Required' : '\u2713 Video Platform Requirements'}
                 </AlertTitle>
                 <AlertDescription className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-800 dark:text-red-200' : 'text-blue-800 dark:text-blue-200'}>
                   {!youtubeUrl && !tiktokUrl && !instagramUrl ? (
@@ -2469,7 +2469,7 @@ export default function Settings() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-6 w-6" />
-              ⚠️ Video Platform Required
+              \u26A0\uFE0F Video Platform Required
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-4 text-base">
               <p className="font-semibold text-foreground">
@@ -2488,7 +2488,7 @@ export default function Settings() {
               </p>
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>💡 Tip:</strong> Add your YouTube, TikTok, or Instagram URL in the fields above, then click Save Changes again.
+                  <strong>\u1F4A1 Tip:</strong> Add your YouTube, TikTok, or Instagram URL in the fields above, then click Save Changes again.
                 </p>
               </div>
             </AlertDialogDescription>
@@ -2556,7 +2556,7 @@ export default function Settings() {
                     <div className="space-y-2">
                       <div className="bg-green-50 dark:bg-green-950 p-3 rounded-md border border-green-200 dark:border-green-800 mb-3">
                         <p className="text-sm text-green-900 dark:text-green-100">
-                          ✓ Verification code sent to <strong>{maskedEmail}</strong>
+                          \u2713 Verification code sent to <strong>{maskedEmail}</strong>
                         </p>
                         <p className="text-xs text-green-700 dark:text-green-300 mt-1">
                           The code will expire in 15 minutes.
@@ -2699,7 +2699,7 @@ export default function Settings() {
 
                 <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <p className="text-sm text-blue-900 dark:text-blue-100">
-                    <strong>💡 What to do:</strong> Go to your {user?.role === 'creator' ? 'applications or retainer contracts' : 'offers or retainer contracts'} page and complete or cancel all active items. Then you can return here to delete your account.
+                    <strong>\u1F4A1 What to do:</strong> Go to your {user?.role === 'creator' ? 'applications or retainer contracts' : 'offers or retainer contracts'} page and complete or cancel all active items. Then you can return here to delete your account.
                   </p>
                 </div>
               </AlertDialogDescription>

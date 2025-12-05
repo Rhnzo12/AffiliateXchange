@@ -535,7 +535,7 @@ export default function CompanyOfferDetail() {
                 <Video className="h-6 w-6 text-green-600" />
               </div>
               <div className="text-sm font-medium text-green-600">
-                Video Ready ✓
+                Video Ready \u2713
               </div>
             </>
           ) : (

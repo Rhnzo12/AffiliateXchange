@@ -1455,7 +1455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ✅ NEW: Get single application by ID
+  // \u2705 NEW: Get single application by ID
   app.get("/api/applications/:id", requireAuth, async (req, res) => {
     try {
       const userId = (req.user as any).id;
@@ -1640,7 +1640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await notificationService.sendNotification(
           application.creatorId,
           'application_status_change',
-          'Your application has been approved! 🎉',
+          'Your application has been approved! \u1F389',
           `Congratulations! Your application for "${offer.title}" has been approved. You can now start promoting this offer.`,
           {
             userName: creator.firstName || creator.username,
@@ -1786,17 +1786,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send notification to creator
       const creator = await storage.getUserById(application.creatorId);
       if (creator) {
-        // ✅ FIXED: Added paymentId to notification
+        // \u2705 FIXED: Added paymentId to notification
         await notificationService.sendNotification(
           application.creatorId,
           'payment_pending',
-          'Work Completed - Payment Pending 💰',
+          'Work Completed - Payment Pending \u1F4B0',
           `Your work for "${offer.title}" has been marked as complete! Payment of $${fees.netAmount.toFixed(2)} is pending company approval.`,
           {
             userName: creator.firstName || creator.username,
             offerTitle: offer.title,
             amount: `$${fees.netAmount.toFixed(2)}`,
-            paymentId: payment.id, // ✅ ADDED
+            paymentId: payment.id, // \u2705 ADDED
           }
         );
       }
@@ -3077,7 +3077,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ✅ Get single payment by ID (for all roles - creator, company, admin)
+  // \u2705 Get single payment by ID (for all roles - creator, company, admin)
   // IMPORTANT: This MUST come AFTER specific routes like /creator, /company, /all
   app.get("/api/payments/:id", requireAuth, async (req, res) => {
     try {
@@ -3159,7 +3159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send("Payment not found");
       }
 
-      // 💰 PROCESS ACTUAL PAYMENT WHEN MARKING AS COMPLETED
+      // \u1F4B0 PROCESS ACTUAL PAYMENT WHEN MARKING AS COMPLETED
       if (status === 'completed') {
         console.log(`[Payment] Processing ${payment.paymentType || 'affiliate'} payment ${id} to send $${payment.netAmount} to creator`);
 
@@ -3282,7 +3282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await notificationService.sendNotification(
             payment.creatorId,
             'payment_received',
-            'Payment Received! 💰',
+            'Payment Received! \u1F4B0',
             `You've received a payment of $${payment.netAmount} for your work on "${paymentTitle}". Transaction ID: ${paymentResult.transactionId}`,
             {
               userName: creator.firstName || creator.username,
@@ -3317,7 +3317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await notificationService.sendNotification(
                 companyUser.id,
                 'payment_approved',
-                'Payment Sent Successfully ✓',
+                'Payment Sent Successfully \u2713',
                 `Payment of $${payment.netAmount} has been successfully sent to the creator for "${paymentTitle}". Transaction ID: ${paymentResult.transactionId}`,
                 {
                   userName: companyUser.firstName || companyUser.username,
@@ -3475,7 +3475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await notificationService.sendNotification(
           payment.creatorId,
           'payment_approved',
-          'Payment Approved! 🎉',
+          'Payment Approved! \u1F389',
           `Great news! Your payment of $${payment.netAmount} for "${paymentTitle}" has been approved and is being processed.`,
           {
             userName: creator.firstName || creator.username,
@@ -7643,7 +7643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 try {
                   const headRes = await fetch(videoUrl, { method: 'HEAD' });
                   if (headRes.ok) {
-                    console.log(`[Objects Fallback] ✓ Found video at: ${videoUrl}`);
+                    console.log(`[Objects Fallback] \u2713 Found video at: ${videoUrl}`);
 
                     const range = req.headers.range;
                     const headers: Record<string, string> = {};
@@ -7720,7 +7720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             try {
               const imageRes = await fetch(imageUrl);
               if (imageRes.ok) {
-                console.log(`[Objects Fallback] ✓ Found as image: ${imageUrl}`);
+                console.log(`[Objects Fallback] \u2713 Found as image: ${imageUrl}`);
                 const contentType = imageRes.headers.get("content-type");
                 if (contentType) res.setHeader("Content-Type", contentType);
                 res.setHeader("Cache-Control", "public, max-age=31536000");
@@ -7745,7 +7745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Check if the video exists first with a HEAD request
               const headRes = await fetch(videoUrl, { method: 'HEAD' });
               if (headRes.ok) {
-                console.log(`[Objects Fallback] ✓ Found as video: ${videoUrl}`);
+                console.log(`[Objects Fallback] \u2713 Found as video: ${videoUrl}`);
 
                 // Get the range header from the request (for video seeking)
                 const range = req.headers.range;
@@ -8382,7 +8382,7 @@ const payment = await storage.createRetainerPayment({
   platformFeeAmount: retainerFees.platformFeeAmount.toFixed(2),
   processingFeeAmount: retainerFees.stripeFeeAmount.toFixed(2),
   netAmount: retainerFees.netAmount.toFixed(2),
-  status: 'pending', // ✅ FIXED: Changed from 'completed' to 'pending' for admin review
+  status: 'pending', // \u2705 FIXED: Changed from 'completed' to 'pending' for admin review
   description: `Retainer payment for ${contract.title} - Month ${deliverable.monthNumber}, Video ${deliverable.videoNumber}`,
   initiatedAt: new Date(),
 });
@@ -8396,7 +8396,7 @@ if (creatorUser) {
   await notificationService.sendNotification(
     deliverable.creatorId,
     'payment_pending',
-    'Deliverable Approved - Payment Pending 💰',
+    'Deliverable Approved - Payment Pending \u1F4B0',
     `Your deliverable for "${contract.title}" has been approved! Payment of $${retainerFees.netAmount.toFixed(2)} is pending admin processing.`,
     {
       userName: creatorUser.firstName || creatorUser.username,
@@ -8742,7 +8742,7 @@ res.json(approved);
                 await notificationService.sendNotification(
                   application.creatorId,
                   'application_status_change',
-                  'Your application has been approved! 🎉',
+                  'Your application has been approved! \u1F389',
                   `Congratulations! Your application for "${offer.title}" has been auto-approved. You can now start promoting this offer.`,
                   {
                     userName: creator.firstName || creator.username,
@@ -8757,7 +8757,7 @@ res.json(approved);
               }
               
               processedCount++;
-              console.log(`[Auto-Approval] ✓ Approved application ${application.id} (${processedCount} total)`);
+              console.log(`[Auto-Approval] \u2713 Approved application ${application.id} (${processedCount} total)`);
             } catch (error) {
               console.error(`[Auto-Approval] ✗ Failed to approve application ${application.id}:`, error);
             }
@@ -8995,7 +8995,7 @@ res.json(approved);
             .set({ featuredImageUrl: newUrl })
             .where(eq(offers.id, offer.id));
           totalFixed++;
-          console.log(`  ✓ Fixed offer ${offer.id}: ${offer.featuredImageUrl} -> ${newUrl}`);
+          console.log(`  \u2713 Fixed offer ${offer.id}: ${offer.featuredImageUrl} -> ${newUrl}`);
         }
       }
 
@@ -9010,7 +9010,7 @@ res.json(approved);
             .set({ thumbnailUrl: newUrl })
             .where(eq(offerVideos.id, video.id));
           totalFixed++;
-          console.log(`  ✓ Fixed video thumbnail ${video.id}: ${video.thumbnailUrl} -> ${newUrl}`);
+          console.log(`  \u2713 Fixed video thumbnail ${video.id}: ${video.thumbnailUrl} -> ${newUrl}`);
         }
       }
 
@@ -9025,7 +9025,7 @@ res.json(approved);
             .set({ videoUrl: newUrl })
             .where(eq(offerVideos.id, video.id));
           totalFixed++;
-          console.log(`  ✓ Fixed video URL ${video.id}: ${video.videoUrl} -> ${newUrl}`);
+          console.log(`  \u2713 Fixed video URL ${video.id}: ${video.videoUrl} -> ${newUrl}`);
         }
       }
 
@@ -9040,11 +9040,11 @@ res.json(approved);
             .set({ logoUrl: newUrl })
             .where(eq(companyProfiles.id, company.id));
           totalFixed++;
-          console.log(`  ✓ Fixed company logo ${company.id}: ${company.logoUrl} -> ${newUrl}`);
+          console.log(`  \u2713 Fixed company logo ${company.id}: ${company.logoUrl} -> ${newUrl}`);
         }
       }
 
-      console.log(`[Migration] ✓ Complete! Fixed ${totalFixed} URLs`);
+      console.log(`[Migration] \u2713 Complete! Fixed ${totalFixed} URLs`);
 
       res.json({
         success: true,
