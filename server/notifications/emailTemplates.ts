@@ -89,6 +89,33 @@ const baseStyles = `
   }
 `;
 
+/**
+ * Get the base URL for the application from environment variables
+ * Defaults to http://localhost:5000 if not set
+ */
+function getBaseUrl(): string {
+  return process.env.BASE_URL || 'http://localhost:5000';
+}
+
+/**
+ * Convert a relative URL to an absolute URL using the BASE_URL
+ * If the URL is already absolute, return it as-is
+ */
+function toAbsoluteUrl(url: string): string {
+  if (!url) return url;
+
+  // If already absolute (starts with http:// or https://), return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+
+  // Convert relative URL to absolute
+  const baseUrl = getBaseUrl();
+  // Ensure we don't double up on slashes
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+  return `${baseUrl}${cleanUrl}`;
+}
+
 export function applicationStatusChangeEmail(status: string, data: EmailTemplateData): { subject: string; html: string } {
   const isApproved = status === 'approved';
   const isRejected = status === 'rejected';
@@ -124,19 +151,19 @@ export function applicationStatusChangeEmail(status: string, data: EmailTemplate
                 <p style="margin-bottom: 0; font-size: 14px; color: #666;">Use this link in your content to track your performance and earnings.</p>
               </div>
             ` : ''}
-            <a href="${data.linkUrl || '/applications'}" class="button">View Application</a>
+            <a href="${data.linkUrl || toAbsoluteUrl('/applications')}" class="button">View Application</a>
           ` : isRejected ? `
             <p>Unfortunately, your application for <strong>${data.offerTitle}</strong> was not approved at this time.</p>
             <p>Don't worry! There are many other great offers available on our platform.</p>
-            <a href="/browse" class="button">Browse More Offers</a>
+            <a href="${toAbsoluteUrl('/browse')}" class="button">Browse More Offers</a>
           ` : `
             <p>Your application for <strong>${data.offerTitle}</strong> has been updated to <span class="badge badge-warning">${status.toUpperCase()}</span>.</p>
-            <a href="${data.linkUrl || '/applications'}" class="button">View Application</a>
+            <a href="${data.linkUrl || toAbsoluteUrl('/applications')}" class="button">View Application</a>
           `}
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -168,11 +195,11 @@ export function newMessageEmail(data: EmailTemplateData): { subject: string; htm
               <p style="margin: 0; font-style: italic;">"${data.messagePreview}"</p>
             </div>
           ` : ''}
-          <a href="${data.linkUrl || '/messages'}" class="button">View Message</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/messages')}" class="button">View Message</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -244,7 +271,7 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
             </p>
           ` : ''}
 
-          <a href="${data.linkUrl || '/payment-settings'}" class="button" style="background-color: #10B981;">View Full Payment Details</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/payment-settings')}" class="button" style="background-color: #10B981;">View Full Payment Details</a>
 
           <p style="margin-top: 30px; font-size: 14px; color: #6B7280;">
             The payment has been successfully processed and will be sent to your configured payment method.
@@ -252,7 +279,7 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -329,11 +356,11 @@ export function paymentApprovedEmail(data: EmailTemplateData): { subject: string
             </p>
           ` : ''}
 
-          <a href="${data.linkUrl || '/payment-settings'}" class="button" style="background-color: #10B981;">View Full Payment Details</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/payment-settings')}" class="button" style="background-color: #10B981;">View Full Payment Details</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -388,11 +415,11 @@ export function paymentFailedInsufficientFundsEmail(data: EmailTemplateData): { 
 
           <p style="color: #6B7280; font-size: 14px; font-style: italic;">The payment status has been updated to "failed" and can be retried once your account has sufficient funds.</p>
 
-          <a href="${data.linkUrl || '/payment-settings'}" class="button" style="background-color: #F59E0B;">View Payment Details</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/payment-settings')}" class="button" style="background-color: #F59E0B;">View Payment Details</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -420,11 +447,11 @@ export function offerApprovedEmail(data: EmailTemplateData): { subject: string; 
           <p>Hi ${data.userName},</p>
           <p>Congratulations! Your offer <strong>"${data.offerTitle}"</strong> has been approved and is now live on the marketplace.</p>
           <p>Creators can now discover and apply to your offer.</p>
-          <a href="${data.linkUrl || '/company-offers'}" class="button">View Your Offer</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/company-offers')}" class="button">View Your Offer</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -452,11 +479,11 @@ export function offerRejectedEmail(data: EmailTemplateData): { subject: string; 
           <p>Hi ${data.userName},</p>
           <p>Your offer <strong>"${data.offerTitle}"</strong> requires some adjustments before it can be published.</p>
           <p>Please review the feedback and resubmit your offer.</p>
-          <a href="${data.linkUrl || '/company-offers'}" class="button">View Offer</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/company-offers')}" class="button">View Offer</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -491,11 +518,11 @@ export function newApplicationEmail(data: EmailTemplateData): { subject: string;
             <p>You've received a new application for your offer <strong>"${data.offerTitle}"</strong>.</p>
             <p>Review the creator's profile and application to make your decision.</p>
           `}
-          <a href="${data.linkUrl || (data.companyName ? '/admin/offers' : '/company/applications')}" class="button">${data.companyName ? 'Review Offer' : 'View Application'}</a>
+          <a href="${data.linkUrl || toAbsoluteUrl(data.companyName ? '/admin/offers' : '/company/applications')}" class="button">${data.companyName ? 'Review Offer' : 'View Application'}</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -527,11 +554,11 @@ export function reviewReceivedEmail(data: EmailTemplateData): { subject: string;
             <p style="font-size: 18px; font-weight: 600; margin: 0 0 10px 0;">${rating}</p>
             ${data.reviewText ? `<p style="font-style: italic; margin: 0;">"${data.reviewText}"</p>` : ''}
           </div>
-          <a href="${data.linkUrl || '/company-reviews'}" class="button">View Review</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/company-reviews')}" class="button">View Review</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -564,7 +591,7 @@ export function systemAnnouncementEmail(title: string, message: string, data: Em
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -591,11 +618,11 @@ export function registrationApprovedEmail(data: EmailTemplateData): { subject: s
         <div class="content">
           <p>Hi ${data.userName},</p>
           <p>Great news! Your company account has been approved and you can now start creating offers and connecting with creators.</p>
-          <a href="${data.linkUrl || '/company-dashboard'}" class="button">Get Started</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/company-dashboard')}" class="button">Get Started</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -623,7 +650,7 @@ export function registrationRejectedEmail(data: EmailTemplateData): { subject: s
           <p>Hi ${data.userName},</p>
           <p>Thank you for your interest in Affiliate Marketplace. Unfortunately, we're unable to approve your company account at this time.</p>
           <p>If you believe this is an error or would like more information, please contact our support team.</p>
-          <a href="${data.linkUrl || '/contact'}" class="button">Contact Support</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/contact')}" class="button">Contact Support</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
@@ -654,11 +681,11 @@ export function workCompletionApprovalEmail(data: EmailTemplateData): { subject:
           <p>Hi ${data.userName},</p>
           <p>Congratulations! Your work for <strong>"${data.offerTitle}"</strong> has been approved.</p>
           ${data.amount ? `<p>Your payment of <strong>${data.amount}</strong> has been initiated and will be processed shortly.</p>` : ''}
-          <a href="${data.linkUrl || '/applications'}" class="button">View Details</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/applications')}" class="button">View Details</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -686,11 +713,11 @@ export function priorityListingExpiringEmail(data: EmailTemplateData): { subject
           <p>Hi ${data.userName},</p>
           <p>Your priority listing for <strong>"${data.offerTitle}"</strong> will expire in <strong>${data.daysUntilExpiration} days</strong>.</p>
           <p>Renew now to keep your offer at the top of search results and maintain maximum visibility.</p>
-          <a href="${data.linkUrl || '/company-offers'}" class="button">Renew Priority Listing</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/company-offers')}" class="button">Renew Priority Listing</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -738,11 +765,11 @@ export function paymentPendingEmail(data: EmailTemplateData): { subject: string;
             <p style="margin: 0; font-weight: 600; color: #92400E;">Action Required</p>
             <p style="margin: 5px 0 0 0; color: #78350F; font-size: 14px;">Please review and process this payment at your earliest convenience.</p>
           </div>
-          <a href="${data.linkUrl || '/payment-settings'}" class="button" style="background-color: #F59E0B;">Review Payment</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/payment-settings')}" class="button" style="background-color: #F59E0B;">Review Payment</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -1029,11 +1056,11 @@ export function contentFlaggedEmail(data: ContentFlaggedEmailData): { subject: s
         <div class="content">
           <p>Hi ${data.userName},</p>
           ${bodyContent}
-          <a href="${data.linkUrl || '/notifications'}" class="button" style="background-color: ${headerColor};">View Details</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/notifications')}" class="button" style="background-color: ${headerColor};">View Details</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
@@ -1097,11 +1124,11 @@ export function highRiskCompanyEmail(data: EmailTemplateData): { subject: string
             <p style="margin: 10px 0 0 0; color: #78350F;">Review this company's risk indicators and consider adjusting their platform fee to mitigate risk.</p>
           </div>
 
-          <a href="${data.linkUrl || '/admin/companies'}" class="button" style="background-color: #EF4444;">Review Company</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/admin/companies')}" class="button" style="background-color: #EF4444;">Review Company</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
-          <p>Update your <a href="/settings">notification preferences</a> anytime.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
         </div>
       </div>
     </body>
