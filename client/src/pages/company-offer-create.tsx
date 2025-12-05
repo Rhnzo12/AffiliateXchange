@@ -392,31 +392,6 @@ export default function CompanyOfferCreate() {
     }
   }, [isAuthenticated, isLoading]);
 
-  // Populate form data when editing
-  useEffect(() => {
-    if (isEditMode && existingOffer) {
-      setFormData({
-        title: existingOffer.title || "",
-        productName: existingOffer.productName || "",
-        shortDescription: existingOffer.shortDescription || "",
-        fullDescription: existingOffer.fullDescription || "",
-        primaryNiche: existingOffer.primaryNiche || "",
-        productUrl: existingOffer.productUrl || "",
-        commissionType: existingOffer.commissionType || "per_sale",
-        commissionRate: existingOffer.commissionPercentage?.toString() || "",
-        commissionAmount: existingOffer.commissionAmount?.toString() || "",
-        status: existingOffer.status || "draft",
-        featuredImageUrl: existingOffer.featuredImageUrl || "",
-        minimumFollowers: existingOffer.minimumFollowers?.toString() || "",
-        allowedPlatforms: existingOffer.allowedPlatforms || [],
-        geographicRestrictions: existingOffer.geographicRestrictions || [],
-        ageRestriction: existingOffer.ageRestriction || "no_restriction",
-        contentStyleRequirements: existingOffer.contentStyleRequirements || "",
-        brandSafetyRequirements: existingOffer.brandSafetyRequirements || "",
-      });
-    }
-  }, [isEditMode, existingOffer]);
-
   // Fetch company profile to get company ID for folder organization
   const { data: companyProfile } = useQuery<{ id: string }>({
     queryKey: ["/api/profile"],
@@ -446,6 +421,31 @@ export default function CompanyOfferCreate() {
     queryKey: [`/api/offers/${offerId}/videos`],
     enabled: isEditMode && !!offerId && isAuthenticated,
   });
+
+  // Populate form data when editing
+  useEffect(() => {
+    if (isEditMode && existingOffer) {
+      setFormData({
+        title: existingOffer.title || "",
+        productName: existingOffer.productName || "",
+        shortDescription: existingOffer.shortDescription || "",
+        fullDescription: existingOffer.fullDescription || "",
+        primaryNiche: existingOffer.primaryNiche || "",
+        productUrl: existingOffer.productUrl || "",
+        commissionType: existingOffer.commissionType || "per_sale",
+        commissionRate: existingOffer.commissionPercentage?.toString() || "",
+        commissionAmount: existingOffer.commissionAmount?.toString() || "",
+        status: existingOffer.status || "draft",
+        featuredImageUrl: existingOffer.featuredImageUrl || "",
+        minimumFollowers: existingOffer.minimumFollowers?.toString() || "",
+        allowedPlatforms: existingOffer.allowedPlatforms || [],
+        geographicRestrictions: existingOffer.geographicRestrictions || [],
+        ageRestriction: existingOffer.ageRestriction || "no_restriction",
+        contentStyleRequirements: existingOffer.contentStyleRequirements || "",
+        brandSafetyRequirements: existingOffer.brandSafetyRequirements || "",
+      });
+    }
+  }, [isEditMode, existingOffer]);
 
   const uploadWithProgress = (
     uploadParams: any,
