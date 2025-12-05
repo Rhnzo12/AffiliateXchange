@@ -143,6 +143,74 @@ function FeatureCard({ feature, index }: { feature: { icon: any; title: string; 
   );
 }
 
+function HowItWorksSection() {
+  const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
+
+  const steps = [
+    {
+      number: 1,
+      title: "Browse Offers",
+      description: "Explore thousands of affiliate opportunities from verified brands in your niche."
+    },
+    {
+      number: 2,
+      title: "Apply & Get Approved",
+      description: "Submit a quick application and get approved automatically within 7 minutes."
+    },
+    {
+      number: 3,
+      title: "Promote & Earn",
+      description: "Share your unique tracking link and earn commissions on every conversion."
+    }
+  ];
+
+  return (
+    <section className="py-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div
+          ref={headerRef}
+          className={`text-center space-y-4 mb-16 transition-all duration-700 ${
+            headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <h2 className="text-3xl sm:text-4xl font-bold">How It Works</h2>
+          <p className="text-xl text-muted-foreground">Get started in three simple steps</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-12">
+          {steps.map((step, index) => (
+            <HowItWorksStep key={step.number} step={step} index={index} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HowItWorksStep({ step, index }: { step: { number: number; title: string; description: string }; index: number }) {
+  const { ref, isVisible } = useScrollAnimation(0.1);
+
+  return (
+    <div
+      ref={ref}
+      className={`text-center space-y-4 transition-all duration-700 ${
+        isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'
+      }`}
+      style={{ transitionDelay: `${index * 150}ms` }}
+    >
+      <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground text-2xl font-bold transition-all duration-500 ${
+        isVisible ? 'rotate-0' : 'rotate-180'
+      }`}>
+        {step.number}
+      </div>
+      <h3 className="text-xl font-semibold">{step.title}</h3>
+      <p className="text-muted-foreground">
+        {step.description}
+      </p>
+    </div>
+  );
+}
+
 export default function Landing() {
   const [, setLocation] = useLocation();
 
@@ -222,46 +290,7 @@ export default function Landing() {
       <FeaturesSection />
 
       {/* How It Works */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold">How It Works</h2>
-            <p className="text-xl text-muted-foreground">Get started in three simple steps</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-12">
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground text-2xl font-bold">
-                1
-              </div>
-              <h3 className="text-xl font-semibold">Browse Offers</h3>
-              <p className="text-muted-foreground">
-                Explore thousands of affiliate opportunities from verified brands in your niche.
-              </p>
-            </div>
-
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground text-2xl font-bold">
-                2
-              </div>
-              <h3 className="text-xl font-semibold">Apply & Get Approved</h3>
-              <p className="text-muted-foreground">
-                Submit a quick application and get approved automatically within 7 minutes.
-              </p>
-            </div>
-
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground text-2xl font-bold">
-                3
-              </div>
-              <h3 className="text-xl font-semibold">Promote & Earn</h3>
-              <p className="text-muted-foreground">
-                Share your unique tracking link and earn commissions on every conversion.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HowItWorksSection />
 
       {/* Testimonials */}
       <section className="py-20 bg-card/50">
