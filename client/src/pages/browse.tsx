@@ -610,13 +610,12 @@ export default function Browse() {
       if (category === "all") {
         return [];
       }
-      // Toggle the category
-      if (prev.includes(category)) {
-        return prev.filter(c => c !== category);
-      } else {
-        // Remove "all" if it was selected and add the new category
-        return [...prev.filter(c => c !== "all"), category];
+      // If clicking the same category that's already selected, deselect it (go back to "All")
+      if (prev.length === 1 && prev.includes(category)) {
+        return [];
       }
+      // Replace previous selection with the new category (single-select behavior)
+      return [category];
     });
   };
 
