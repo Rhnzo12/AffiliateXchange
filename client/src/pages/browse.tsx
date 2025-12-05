@@ -43,7 +43,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
-import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, ArrowRight, Users, Video, Calendar, Eye, Send, Bookmark, BookmarkPlus, RefreshCcw, Trash2, Loader2 } from "lucide-react";
+import { Search, SlidersHorizontal, TrendingUp, DollarSign, Clock, Star, Play, Heart, Users, Video, Calendar, Eye, Send, Bookmark, BookmarkPlus, RefreshCcw, Trash2, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { proxiedSrc } from "../lib/image";
@@ -592,14 +592,7 @@ export default function Browse() {
     return offersToSort;
   }, [filteredOffers, sortBy]);
 
-  // Get trending offers for the trending section (exclude monthly retainers, hide when trending category is selected)
-  // Show trending section when no specific category selected or when viewing niche categories (not monthly_retainers or trending alone)
-  const showTrendingSection = selectedCategories.length === 0 ||
-    (selectedCategories.length > 0 && !selectedCategories.includes("monthly_retainers") && !selectedCategories.includes("trending")) ||
-    (selectedCategories.length > 1);
-  const trendingOffers = showTrendingSection ? sortedOffers
-    ?.filter(offer => offer.commissionType !== 'monthly_retainer' && (isPriorityOffer(offer) || getCommissionValue(offer) > 15))
-    ?.slice(0, 4) || [] : [];
+  // No separate trending section - all offers shown in main grid
 
   // Separate regular offers and monthly retainers
   const regularOffers = sortedOffers?.filter(offer => offer.commissionType !== 'monthly_retainer') || [];
@@ -1153,178 +1146,11 @@ export default function Browse() {
           </div>
         ) : (
           <>
-            {/* Trending Offers Section - Not on monthly retainers or trending only */}
-            {showTrendingSection && trendingOffers.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>
-              </div>
-              <Button variant="ghost" className="gap-1 text-primary hover:gap-2 transition-all text-sm sm:text-base">
-                See All <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              {trendingOffers.map((offer) => {
-                const isFavorite = favorites.some(f => f.offerId === offer.id);
-                const category = getOfferCategory(offer);
-                const isRetainer = offer.commissionType === 'monthly_retainer';
-
-                // Check if creator has applied to this offer
-                const application = applications.find((app: any) => app.offerId === offer.id);
-                const hasApplied = !!application;
-                const commissionDisplay = getCommissionDisplay(offer);
-
-                return (
-                  <Link key={offer.id} href={offer.isRetainerContract ? `/retainers/${offer.id}` : `/offers/${offer.id}`}>
-                    <Card className={`group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-visible h-full ${
-                      isRetainer ? 'ring-2 ring-purple-400/50 hover:ring-purple-500 hover:shadow-purple-500/20' : ''
-                    }`}>
-                      {/* Thumbnail Container with Logo */}
-                      <div className="relative">
-                        {/* Clean Thumbnail - No Gradient Overlay */}
-                        <div className={`aspect-video relative overflow-hidden rounded-t-lg ${
-                          isRetainer
-                            ? 'bg-gradient-to-br from-purple-100 via-violet-100 to-indigo-100'
-                            : 'bg-gradient-to-br from-purple-100 to-pink-100'
-                        }`}>
-                          {!isRetainer && offer.featuredImageUrl ? (
-                            <img
-                              src={proxiedSrc(offer.featuredImageUrl)}
-                              alt={offer.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                              referrerPolicy="no-referrer"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                          ) : !isRetainer ? (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Play className="h-12 w-12 text-muted-foreground/30" />
-                            </div>
-                          ) : null}
-
-                          {/* Favorite button - Top Left */}
-                          <button
-                            className="absolute top-3 left-3 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-md backdrop-blur-sm"
-                            style={{
-                              width: '36px',
-                              height: '36px',
-                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                              border: 'none',
-                              cursor: 'pointer',
-                              zIndex: 10
-                            }}
-                            onClick={(e) => handleFavoriteToggle(e, offer.id)}
-                            data-testid={`button-favorite-${offer.id}`}
-                            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                          >
-                            <Heart className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
-                          </button>
-
-                          {/* Category Badge - Top Right */}
-                          {category && (
-                            <div className={`absolute top-0 right-0 ${category.color} text-white px-3 py-1.5 rounded-bl-lg shadow-lg font-bold text-xs tracking-wide`}>
-                              {category.label}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Company Logo - Positioned outside thumbnail but inside wrapper */}
-                        {!isRetainer && offer.company?.logoUrl && (
-                          <div className="absolute -bottom-6 sm:-bottom-7 left-3 sm:left-4 h-12 w-12 sm:h-14 sm:w-14 rounded-lg sm:rounded-xl overflow-hidden bg-white shadow-lg border-2 border-background z-20">
-                            <img
-                              src={proxiedSrc(offer.company.logoUrl)}
-                              alt={offer.company.tradeName}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      <CardContent className="p-4 sm:p-5 pt-7 sm:pt-8 space-y-2 sm:space-y-3">
-                        {/* Title */}
-                        <h3 className="font-semibold text-sm sm:text-base line-clamp-2 text-foreground leading-snug">
-                          {offer.title}
-                        </h3>
-
-                        {/* Company Name */}
-                        {offer.company?.tradeName && (
-                          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                            {offer.company.tradeName}
-                          </p>
-                        )}
-
-                        {/* Hashtag Badges */}
-                        <div className="flex flex-wrap gap-1 sm:gap-1.5">
-                          {offer.primaryNiche && (
-                            <Badge variant="secondary" className="text-[10px] sm:text-xs font-normal">
-                              #{offer.primaryNiche}
-                            </Badge>
-                          )}
-                          {offer.secondaryNiche && (
-                            <Badge variant="secondary" className="text-[10px] sm:text-xs font-normal">
-                              #{offer.secondaryNiche}
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Commission and Stats */}
-                        <div className="flex items-end justify-between pt-1 sm:pt-2">
-                          <div>
-                            <div className={`text-xl sm:text-2xl font-bold ${
-                              isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-green-600'
-                            } transition-colors`}>
-                              {commissionDisplay.isCurrency
-                                ? `$${commissionDisplay.value}`
-                                : commissionDisplay.value}
-                            </div>
-                            <div className={`text-[10px] sm:text-xs ${
-                              isRetainer ? 'text-purple-600/70 font-medium' : 'text-muted-foreground'
-                            }`}>
-                              {getCommissionTypeLabel(offer)}
-                            </div>
-                          </div>
-
-                          {/* Active creators */}
-                          <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
-                            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="hidden xs:inline">{offer.activeCreatorsCount || 0} active</span>
-                            <span className="xs:hidden">{offer.activeCreatorsCount || 0}</span>
-                          </div>
-                        </div>
-
-                        {/* Application Status */}
-                        {hasApplied && application && (
-                          <div className="pt-2 sm:pt-3 border-t mt-2 sm:mt-3">
-                            <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                              <div className="flex items-center gap-2">
-                                <Badge variant={getApplicationStatusBadge(application.status).variant} className="text-xs">
-                                  {getApplicationStatusBadge(application.status).label}
-                                </Badge>
-                              </div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground">
-                                <span className="hidden sm:inline">Applied: </span>{formatApplicationDate(application.createdAt)}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
             {/* Main Offers Grid */}
             <div className="space-y-8">
               {/* Main Offers Section */}
               <div className="space-y-4">
-                {/* Section header based on selected categories */}
+                {/* Section header - dynamically changes based on selected filter */}
                 {(() => {
                   // Get niche categories for display
                   const nicheCategories = selectedCategories.filter(
@@ -1332,24 +1158,45 @@ export default function Browse() {
                   );
                   const onlyMonthlyRetainers = selectedCategories.length === 1 && selectedCategories.includes("monthly_retainers");
                   const onlyTrending = selectedCategories.length === 1 && selectedCategories.includes("trending");
+                  const hasTrending = selectedCategories.includes("trending");
+                  const hasMonthlyRetainers = selectedCategories.includes("monthly_retainers");
 
-                  if (onlyMonthlyRetainers) return null; // Headers shown in monthly retainers section
+                  // Don't show header for monthly retainers only (shown in separate section)
+                  if (onlyMonthlyRetainers) return null;
 
-                  if (selectedCategories.length === 0 && regularOffers.length > 0 && trendingOffers.length > 0) {
-                    return <h2 className="text-xl sm:text-2xl font-bold text-foreground">All Offers</h2>;
-                  }
-
+                  // Show "Trending Offers" when only trending is selected
                   if (onlyTrending && sortedOffers.length > 0) {
-                    return <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>;
+                    return (
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
+                        <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>
+                      </div>
+                    );
                   }
 
-                  if (nicheCategories.length > 0 && sortedOffers.length > 0) {
-                    const categoryNames = nicheCategories.map(cat => cat.replace(/_/g, ' ')).join(', ');
+                  // Show "Monthly Retainers Offers" when combined with other categories
+                  if (hasMonthlyRetainers && selectedCategories.length > 1 && !hasTrending && nicheCategories.length === 0) {
+                    return <h2 className="text-xl sm:text-2xl font-bold text-foreground">Monthly Retainers Offers</h2>;
+                  }
+
+                  // Show specific niche name when single niche is selected
+                  if (nicheCategories.length === 1 && !hasTrending && !hasMonthlyRetainers && sortedOffers.length > 0) {
+                    const categoryName = nicheCategories[0].replace(/_/g, ' ');
                     return (
                       <h2 className="text-xl sm:text-2xl font-bold text-foreground capitalize">
-                        {nicheCategories.length === 1 ? `${categoryNames} Offers` : `Filtered Offers (${categoryNames})`}
+                        {categoryName} Offers
                       </h2>
                     );
+                  }
+
+                  // Show "Filtered Offers" for multiple selections
+                  if ((nicheCategories.length > 1 || (nicheCategories.length > 0 && (hasTrending || hasMonthlyRetainers))) && sortedOffers.length > 0) {
+                    return <h2 className="text-xl sm:text-2xl font-bold text-foreground">Filtered Offers</h2>;
+                  }
+
+                  // Default: "All Offers" when no category is selected
+                  if (selectedCategories.length === 0 && sortedOffers.length > 0) {
+                    return <h2 className="text-xl sm:text-2xl font-bold text-foreground">All Offers</h2>;
                   }
 
                   return null;
