@@ -2460,6 +2460,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const message = await storage.createMessage(validated);
 
+      // Send persistent notification to recipient about new message
+      const conversation = await storage.getConversation(message.conversationId);
+      if (conversation) {
+        const isCreatorSender = message.senderId === conversation.creatorId;
+
+        // Get company user ID if recipient is company
+        let recipientId: string | null = null;
+        if (isCreatorSender && conversation.companyId) {
+          const companyProfile = await storage.getCompanyProfileById(conversation.companyId);
+          recipientId = companyProfile?.userId || null;
+        } else {
+          recipientId = conversation.creatorId;
+        }
+
+        if (recipientId) {
+          const senderUser = await storage.getUserById(message.senderId);
+          const senderName = senderUser?.firstName || senderUser?.username || 'Someone';
+          const messagePreview = message.content.length > 100
+            ? message.content.substring(0, 100) + '...'
+            : message.content;
+
+          // Get company name for context if sender is company
+          let companyName = '';
+          if (!isCreatorSender && conversation.companyId) {
+            const companyProfile = await storage.getCompanyProfileById(conversation.companyId);
+            companyName = companyProfile?.legalName || companyProfile?.tradeName || '';
+          }
+
+          await notificationService.sendNotification(
+            recipientId,
+            'new_message',
+            `New message from ${senderName}`,
+            messagePreview,
+            {
+              userName: senderName,
+              companyName: companyName,
+              messagePreview: messagePreview,
+              conversationId: conversation.id,
+              messageId: message.id,
+              linkUrl: `/messages/${conversation.id}`,
+            }
+          );
+        }
+      }
+
       // Auto-moderate message for banned content
       try {
         await moderateMessage(message.id, storage);
@@ -2694,6 +2739,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const review = await storage.createReview(validated);
+
+      // Send notification to company about new review
+      const companyProfile = await storage.getCompanyProfileById(review.companyId);
+      if (companyProfile) {
+        const creatorUser = await storage.getUserById(userId);
+        await notificationService.sendNotification(
+          companyProfile.userId,
+          'review_received',
+          `New Review Received (${review.rating} stars)`,
+          `${creatorUser?.firstName || creatorUser?.username || 'A creator'} left you a ${review.rating}-star review${review.comment ? ': "' + review.comment.substring(0, 50) + (review.comment.length > 50 ? '..."' : '"') : '.'}`,
+          {
+            userName: companyProfile.legalName || companyProfile.tradeName || 'Company',
+            reviewRating: review.rating,
+            reviewText: review.comment,
+            linkUrl: '/company-reviews',
+          }
+        );
+      }
 
       // Auto-moderate review for banned content and low ratings
       try {
