@@ -2,7 +2,8 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { TrendingUp, Users, DollarSign, Shield, Zap, Target, Star, CheckCircle2 } from "lucide-react";
 import { useLocation, Link } from "wouter";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import useEmblaCarousel from "embla-carousel-react";
 
 function useScrollAnimation(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null);
@@ -30,6 +31,13 @@ function useScrollAnimation(threshold = 0.1) {
 
 function FeaturesSection() {
   const { ref: headerRef, isVisible: headerVisible } = useScrollAnimation();
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: true,
+    align: "start",
+    slidesToScroll: 1,
+  });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
   const features = [
     { icon: Zap, title: "Instant Approvals", description: "Get approved in minutes, not days. Start promoting offers within 7 minutes of applying." },
     { icon: DollarSign, title: "High Commissions", description: "Earn competitive rates with multiple commission structures: per-sale, retainers, and hybrid models." },
@@ -39,10 +47,38 @@ function FeaturesSection() {
     { icon: Shield, title: "Verified Brands", description: "Work with confidence. All companies are manually verified to ensure legitimacy." },
   ];
 
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on("select", onSelect);
+    emblaApi.on("reInit", onSelect);
+  }, [emblaApi, onSelect]);
+
+  // Auto-slide functionality
+  useEffect(() => {
+    if (!emblaApi) return;
+
+    const autoplay = setInterval(() => {
+      emblaApi.scrollNext();
+    }, 3000); // Slide every 3 seconds
+
+    return () => clearInterval(autoplay);
+  }, [emblaApi]);
+
+  const scrollTo = useCallback(
+    (index: number) => emblaApi && emblaApi.scrollTo(index),
+    [emblaApi]
+  );
+
   return (
     <section className="py-20 bg-card/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div 
+        <div
           ref={headerRef}
           className={`text-center space-y-4 mb-16 transition-all duration-700 ${
             headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
@@ -54,10 +90,35 @@ function FeaturesSection() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <FeatureCard key={feature.title} feature={feature} index={index} />
-          ))}
+        <div className="relative">
+          <div className="overflow-hidden" ref={emblaRef}>
+            <div className="flex">
+              {features.map((feature, index) => (
+                <div
+                  key={feature.title}
+                  className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] px-4"
+                >
+                  <FeatureCard feature={feature} index={index} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Carousel dots */}
+          <div className="flex justify-center gap-2 mt-8">
+            {features.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => scrollTo(index)}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  index === selectedIndex
+                    ? 'bg-primary w-8'
+                    : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -65,17 +126,10 @@ function FeaturesSection() {
 }
 
 function FeatureCard({ feature, index }: { feature: { icon: any; title: string; description: string }; index: number }) {
-  const { ref, isVisible } = useScrollAnimation(0.1);
   const Icon = feature.icon;
 
   return (
-    <div
-      ref={ref}
-      className={`transition-all duration-700 ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
-      }`}
-      style={{ transitionDelay: `${index * 100}ms` }}
-    >
+    <div className="h-full">
       <Card className="border-card-border h-full">
         <CardContent className="p-6 space-y-4">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary">
