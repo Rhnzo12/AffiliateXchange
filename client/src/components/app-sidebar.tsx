@@ -354,7 +354,7 @@ export function AppSidebar() {
             <p className="text-xs text-muted-foreground leading-relaxed">
               Professional affiliate marketing platform
             </p>
-            <p className="text-[10px] text-muted-foreground/80">
+            <p className="text-xs text-muted-foreground/80">
               © {currentYear} AffiliateXchange. All rights reserved.
             </p>
           </div>

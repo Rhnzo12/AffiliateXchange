@@ -1230,7 +1230,7 @@ export default function Browse() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
               {displayOffers.map((offer) => {
                 const isFavorite = favorites.some(f => f.offerId === offer.id);
                 const category = getOfferCategory(offer);
@@ -1285,10 +1285,10 @@ export default function Browse() {
                           className="rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-lg backdrop-blur-md"
                           style={{
                             position: 'absolute',
-                            top: '12px',
-                            left: '12px',
-                            width: '36px',
-                            height: '36px',
+                            top: '8px',
+                            left: '8px',
+                            width: '44px',
+                            height: '44px',
                             backgroundColor: 'rgba(255, 255, 255, 0.95)',
                             zIndex: 10,
                             border: 'none',
