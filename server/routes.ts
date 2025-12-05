@@ -5420,12 +5420,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Offer not found" });
       }
 
-      // Send notification to company
+      // Send notification to company with direct link to their offer
       await storage.createNotification({
         userId: company.userId,
         type: 'offer_approved',
         title: 'Offer Approved',
         message: `Your offer "${approvedOffer.title}" has been approved and is now live!`,
+        linkUrl: `/company/offers/${approvedOffer.id}`,
         metadata: { offerId: approvedOffer.id },
       });
 
@@ -5447,7 +5448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Offer not found" });
       }
 
-      // Send notification to company
+      // Send notification to company with direct link to their offer
       const company = await storage.getCompanyProfileById(offer.companyId);
       if (company) {
         await storage.createNotification({
@@ -5455,6 +5456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: 'offer_rejected',
           title: 'Offer Rejected',
           message: `Your offer "${offer.title}" has been rejected. Reason: ${reason}`,
+          linkUrl: `/company/offers/${offer.id}`,
           metadata: { offerId: offer.id, reason },
         });
       }
@@ -5478,7 +5480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Offer not found" });
       }
 
-      // Send notification to company
+      // Send notification to company with direct link to edit their offer
       const company = await storage.getCompanyProfileById(offer.companyId);
       if (company) {
         await storage.createNotification({
@@ -5486,6 +5488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: 'offer_edit_requested',
           title: 'Edits Requested for Offer',
           message: `An admin has requested edits to your offer "${offer.title}". Please review the notes and make the necessary changes.`,
+          linkUrl: `/company/offers/${offer.id}/edit`,
           metadata: { offerId: offer.id, notes },
         });
       }
