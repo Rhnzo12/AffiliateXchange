@@ -804,15 +804,15 @@ export default function OfferDetail() {
       </div>
 
       {/* IMPROVED Sticky Tab Navigation - Better active indicator */}
-      <div 
+      <div
         data-sticky-nav
         className="sticky top-[57px] sm:top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b shadow-sm mt-6 sm:mt-8"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex overflow-x-auto hide-scrollbar gap-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6">
+          <div className="flex overflow-x-auto hide-scrollbar gap-4 sm:gap-8">
             <button
               onClick={() => scrollToSection("overview")}
-              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
+              className={`relative px-3 py-2.5 sm:py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
                 activeSection === "overview"
                   ? "text-primary"
                   : "text-gray-500 hover:text-gray-900"
@@ -820,12 +820,12 @@ export default function OfferDetail() {
             >
               Overview
               {activeSection === "overview" && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-primary rounded-t-full" />
               )}
             </button>
             <button
               onClick={() => scrollToSection("videos")}
-              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
+              className={`relative px-3 py-2.5 sm:py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
                 activeSection === "videos"
                   ? "text-primary"
                   : "text-gray-500 hover:text-gray-900"
@@ -833,12 +833,12 @@ export default function OfferDetail() {
             >
               Videos
               {activeSection === "videos" && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-primary rounded-t-full" />
               )}
             </button>
             <button
               onClick={() => scrollToSection("requirements")}
-              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
+              className={`relative px-3 py-2.5 sm:py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
                 activeSection === "requirements"
                   ? "text-primary"
                   : "text-gray-500 hover:text-gray-900"
@@ -846,12 +846,12 @@ export default function OfferDetail() {
             >
               Creator Requirements
               {activeSection === "requirements" && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-primary rounded-t-full" />
               )}
             </button>
             <button
               onClick={() => scrollToSection("reviews")}
-              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
+              className={`relative px-3 py-2.5 sm:py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
                 activeSection === "reviews"
                   ? "text-primary"
                   : "text-gray-500 hover:text-gray-900"
@@ -859,7 +859,7 @@ export default function OfferDetail() {
             >
               Creator Reviews
               {activeSection === "reviews" && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-primary rounded-t-full" />
               )}
             </button>
           </div>
@@ -1028,7 +1028,7 @@ export default function OfferDetail() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {offer.videos.map((video: any) => (
                 <Card
                   key={video.id}
@@ -1401,22 +1401,22 @@ export default function OfferDetail() {
 
       {/* Sticky Apply Button */}
       <div
-        className="fixed bottom-0 right-0 border-t bg-background/95 backdrop-blur-lg shadow-2xl p-3 sm:p-4 z-50"
+        className="fixed bottom-0 right-0 border-t bg-background/95 backdrop-blur-lg shadow-2xl p-2 sm:p-4 z-50"
         style={{
           left: isMobile ? 0 : sidebarState === 'expanded' ? 'var(--sidebar-width, 16rem)' : 'var(--sidebar-width-icon, 3rem)'
         }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             <div className="min-w-0">
-              <div className="text-xs text-muted-foreground whitespace-nowrap">Earn Commission</div>
-              <div className="text-lg sm:text-2xl font-bold text-green-600 whitespace-nowrap">
+              <div className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">Earn Commission</div>
+              <div className="text-base sm:text-2xl font-bold text-green-600 whitespace-nowrap">
                 {formatCommission(offer)}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
             {hasApplied && existingApplication?.createdAt && (
               <Badge variant="secondary" className="hidden lg:flex text-xs whitespace-nowrap">
                 Applied {new Date(existingApplication.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

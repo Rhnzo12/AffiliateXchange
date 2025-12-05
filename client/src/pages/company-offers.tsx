@@ -623,7 +623,7 @@ export default function CompanyOffers() {
                     </div>
 
                     {/* Stats Row */}
-                    <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground pt-2 border-t">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-muted-foreground pt-2 border-t">
                       <div className="flex items-center gap-1">
                         <Eye className="h-3 w-3" />
                         <span>{offer.viewCount || 0} views</span>
@@ -632,7 +632,7 @@ export default function CompanyOffers() {
                         <Users className="h-3 w-3" />
                         <span>{offer.activeCreatorsCount || 0} active</span>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 col-span-2 sm:col-span-1">
                         <MousePointer className="h-3 w-3" />
                         <span>{offer.totalClicks || 0} clicks</span>
                       </div>
