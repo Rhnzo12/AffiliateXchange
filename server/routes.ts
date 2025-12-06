@@ -924,43 +924,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('[Verification Document] Original URL:', documentUrl);
 
-      // Extract public_id from Cloudinary URL
-      // URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}.{extension}
+      // For Cloudinary URLs, fetch and stream the document
+      // Since documents are uploaded as public resources (type: 'upload'),
+      // we can fetch them directly without authentication APIs
       try {
-        const url = new URL(documentUrl);
-        const pathParts = url.pathname.split('/');
+        // Determine the correct fetch URL
+        let fetchUrl: string;
 
-        // Find the index of 'upload'
-        const uploadIndex = pathParts.findIndex(part => part === 'upload');
-        if (uploadIndex === -1) {
-          console.error('[Verification Document] Invalid URL format - no upload path:', documentUrl);
-          throw new Error('Invalid Cloudinary URL format');
+        if (documentUrl.includes('cloudinary.com')) {
+          // Extract public_id from Cloudinary URL
+          // URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}.{extension}
+          const url = new URL(documentUrl);
+          const pathParts = url.pathname.split('/');
+
+          // Find the index of 'upload' or 'authenticated'
+          const uploadIndex = pathParts.findIndex(part => part === 'upload' || part === 'authenticated');
+          if (uploadIndex === -1) {
+            console.error('[Verification Document] Invalid URL format - no upload/authenticated path:', documentUrl);
+            // Fallback to direct URL
+            fetchUrl = documentUrl;
+          } else {
+            // Get resource type (image, raw, video, etc.)
+            const resourceType = pathParts[uploadIndex - 1] || 'image';
+
+            // Skip upload type and version number (v123456), get the rest as public_id
+            const publicIdParts = pathParts.slice(uploadIndex + 2);
+            let publicIdWithExt = publicIdParts.join('/');
+
+            // Remove file extension from public_id (Cloudinary doesn't include it in public_id)
+            const publicId = publicIdWithExt.replace(/\.[^.]+$/, '');
+
+            console.log('[Verification Document] Extracted public_id:', publicId);
+            console.log('[Verification Document] Resource type:', resourceType);
+
+            // Generate a proper URL for the resource
+            // For public uploads (type: 'upload'), we can use cloudinary.url() without authentication
+            fetchUrl = cloudinary.url(publicId, {
+              resource_type: resourceType as any,
+              secure: true,
+              type: 'upload', // These are public uploads
+              sign_url: false, // No signing needed for public resources
+            });
+
+            console.log('[Verification Document] Generated fetch URL');
+          }
+        } else {
+          // Non-Cloudinary URL, use as-is
+          fetchUrl = documentUrl;
         }
 
-        // Get resource type (image, raw, video, etc.)
-        const resourceType = pathParts[uploadIndex - 1] || 'image';
-
-        // Skip 'upload' and version number (v123456), get the rest as public_id
-        const publicIdParts = pathParts.slice(uploadIndex + 2);
-        let publicIdWithExt = publicIdParts.join('/');
-
-        // Remove file extension from public_id (Cloudinary doesn't include it in public_id)
-        const publicId = publicIdWithExt.replace(/\.[^.]+$/, '');
-
-        console.log('[Verification Document] Extracted public_id:', publicId);
-        console.log('[Verification Document] Resource type:', resourceType);
-
-        // Use Cloudinary's private_download_url for authenticated assets
-        // This generates a signed URL that expires after 1 hour
-        const signedUrl = cloudinary.utils.private_download_url(publicId, 'pdf', {
-          resource_type: resourceType as any,
-          expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-        });
-
-        console.log('[Verification Document] Generated private download URL');
-
-        // Fetch the document from Cloudinary using signed URL
-        const fetchRes = await fetch(signedUrl, {
+        // Fetch the document
+        const fetchRes = await fetch(fetchUrl, {
           method: "GET",
           headers: {
             'User-Agent': 'AffiliateXchange-Server/1.0',
@@ -969,70 +983,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!fetchRes.ok) {
           console.error('[Verification Document Proxy] Failed to fetch:', fetchRes.status, fetchRes.statusText);
-          console.error('[Verification Document Proxy] Tried URL:', signedUrl);
-
-          // If private_download_url fails, try with sign_url method
-          console.log('[Verification Document] Trying alternate signing method');
-          const altSignedUrl = cloudinary.url(publicId, {
-            resource_type: resourceType as any,
-            secure: true,
-            sign_url: true,
-            type: 'authenticated',
-            format: 'pdf',
-          });
-
-          const altFetchRes = await fetch(altSignedUrl, {
-            method: "GET",
-            headers: {
-              'User-Agent': 'AffiliateXchange-Server/1.0',
-            },
-          });
-
-          if (!altFetchRes.ok) {
-            console.error('[Verification Document Proxy] Alternate method also failed:', altFetchRes.status);
-            return res.status(altFetchRes.status).send("Failed to fetch document from Cloudinary");
-          }
-
-          // Use the alternate fetch response
-          const contentType = altFetchRes.headers.get("content-type");
-          if (contentType) res.setHeader("Content-Type", contentType);
-
-          const contentLength = altFetchRes.headers.get("content-length");
-          if (contentLength) res.setHeader("Content-Length", contentLength);
-
-          if (document.documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
-            res.setHeader("Content-Disposition", `inline; filename="${document.documentName}"`);
-          }
-
-          if (altFetchRes.body) {
-            const reader = altFetchRes.body.getReader();
-            const pump = async () => {
-              try {
-                while (true) {
-                  const { done, value } = await reader.read();
-                  if (done) break;
-                  res.write(Buffer.from(value));
-                }
-                res.end();
-              } catch (error) {
-                console.error('[Verification Document Proxy] Error streaming:', error);
-                res.end();
-              }
-            };
-            await pump();
-          } else {
-            const arrayBuffer = await altFetchRes.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            res.send(buffer);
-          }
-          return;
+          console.error('[Verification Document Proxy] Tried URL:', fetchUrl);
+          return res.status(fetchRes.status).send("Failed to fetch document from Cloudinary");
         }
 
         console.log('[Verification Document] Successfully fetched document');
 
         // Set appropriate headers
         const contentType = fetchRes.headers.get("content-type");
-        if (contentType) res.setHeader("Content-Type", contentType);
+        if (contentType) {
+          res.setHeader("Content-Type", contentType);
+        } else {
+          // Fallback content type based on file extension
+          if (document.documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
+            res.setHeader("Content-Type", "application/pdf");
+          } else if (documentUrl.toLowerCase().match(/\.(jpg|jpeg)$/i)) {
+            res.setHeader("Content-Type", "image/jpeg");
+          } else if (documentUrl.toLowerCase().endsWith('.png')) {
+            res.setHeader("Content-Type", "image/png");
+          }
+        }
 
         const contentLength = fetchRes.headers.get("content-length");
         if (contentLength) res.setHeader("Content-Length", contentLength);
