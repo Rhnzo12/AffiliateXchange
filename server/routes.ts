@@ -702,25 +702,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const publicIdParts = pathParts.slice(uploadIndex + 2);
         const publicId = publicIdParts.join('/');
 
-        console.log('[Verification Document] Extracted public_id:', publicId, 'resourceType:', resourceType);
+        console.log('[Verification Document] Extracted public_id:', publicId);
+        console.log('[Verification Document] Resource type:', resourceType);
 
-        // Generate signed URL for private/authenticated Cloudinary asset
-        const signedUrl = cloudinary.url(publicId, {
+        // Try generating signed URL with 'authenticated' type first (most common for uploaded files)
+        // Cloudinary's "authenticated" type is used for files that require login but don't need private delivery
+        let signedUrl = cloudinary.url(publicId, {
           resource_type: resourceType as any,
           secure: true,
           sign_url: true,
-          type: 'private',
-          attachment: false, // Display inline, not as download
+          type: 'authenticated',
         });
 
-        console.log('[Verification Document] Generated signed URL');
+        console.log('[Verification Document] Attempting fetch with authenticated type');
 
-        // Fetch the document from Cloudinary using signed URL
-        const fetchRes = await fetch(signedUrl, { method: "GET" });
+        // Try fetching with authenticated type
+        let fetchRes = await fetch(signedUrl, { method: "GET" });
+
+        // If authenticated fails, try with 'private' type
+        if (!fetchRes.ok && fetchRes.status === 404) {
+          console.log('[Verification Document] Authenticated type failed, trying private type');
+          signedUrl = cloudinary.url(publicId, {
+            resource_type: resourceType as any,
+            secure: true,
+            sign_url: true,
+            type: 'private',
+          });
+
+          fetchRes = await fetch(signedUrl, { method: "GET" });
+        }
+
+        // If both fail, try upload type (default)
+        if (!fetchRes.ok && fetchRes.status === 404) {
+          console.log('[Verification Document] Private type failed, trying upload (default) type');
+          signedUrl = cloudinary.url(publicId, {
+            resource_type: resourceType as any,
+            secure: true,
+            sign_url: true,
+            type: 'upload',
+          });
+
+          fetchRes = await fetch(signedUrl, { method: "GET" });
+        }
+
         if (!fetchRes.ok) {
-          console.error('[Verification Document Proxy] Failed to fetch document:', fetchRes.status, fetchRes.statusText);
+          console.error('[Verification Document Proxy] Failed to fetch document after trying all types:', fetchRes.status, fetchRes.statusText);
+          console.error('[Verification Document Proxy] Final URL attempted:', signedUrl);
           return res.status(fetchRes.status).send("Failed to fetch document");
         }
+
+        console.log('[Verification Document] Successfully fetched document');
 
         // Set appropriate headers
         const contentType = fetchRes.headers.get("content-type");
