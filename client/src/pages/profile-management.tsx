@@ -1551,24 +1551,24 @@ export default function Settings() {
 
           <div className="flex-1 space-y-8 min-w-0 max-w-4xl">
 
-      <Card id="profile-info" className="border-card-border scroll-mt-24">
-        <CardHeader className="pb-2 flex items-center justify-between gap-4">
-          <CardTitle>Profile Information</CardTitle>
-          <Button
-            size="sm"
-            onClick={handleProfileActionClick}
-            disabled={updateProfileMutation.isPending}
-            variant={isProfileEditMode ? "default" : "outline"}
-            data-testid="button-save-profile"
-          >
-            {updateProfileMutation.isPending
-              ? "Saving..."
-              : isProfileEditMode
-              ? "Save"
-              : "Edit Profile"}
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-8">
+            <Card id="profile-info" className="border-card-border scroll-mt-24">
+              <CardHeader className="pb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle>Profile Information</CardTitle>
+                <Button
+                  size="sm"
+                  onClick={handleProfileActionClick}
+                  disabled={updateProfileMutation.isPending}
+                  variant={isProfileEditMode ? "default" : "outline"}
+                  data-testid="button-save-profile"
+                >
+                  {updateProfileMutation.isPending
+                    ? "Saving..."
+                    : isProfileEditMode
+                    ? "Save"
+                    : "Edit Profile"}
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-8">
 
           {/* COMPANY PROFILE SECTION */}
           {user?.role === 'company' && (
@@ -1586,9 +1586,11 @@ export default function Settings() {
                       {tradeName?.[0] || 'C'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1.5">
-                    <Camera className="h-3.5 w-3.5" />
-                  </div>
+                  {isProfileEditMode && (
+                    <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1.5">
+                      <Camera className="h-3.5 w-3.5" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-3">
                   <input
@@ -1987,7 +1989,7 @@ export default function Settings() {
               {/* Profile Image and Bio Section */}
               <div className="flex flex-col lg:flex-row gap-6 items-start">
                 <div className="space-y-3">
-                  <div className="relative inline-block group">
+                  <div className={`relative inline-block ${isProfileEditMode ? "group" : ""}`}>
                     <input
                       type="file"
                       accept="image/*"
@@ -1996,14 +1998,16 @@ export default function Settings() {
                       className="hidden"
                       id="profile-image-upload"
                     />
-                    <label
-                      htmlFor="profile-image-upload"
-                      className="absolute inset-0 z-10 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center cursor-pointer text-xs font-medium"
-                      aria-disabled={isProfileEditingDisabled}
-                    >
-                      <Camera className="h-5 w-5 mb-1" />
-                      <span>{isUploadingProfileImage ? 'Uploading...' : 'Update Photo'}</span>
-                    </label>
+                    {isProfileEditMode && (
+                      <label
+                        htmlFor="profile-image-upload"
+                        className="absolute inset-0 z-10 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center cursor-pointer text-xs font-medium"
+                        aria-disabled={isProfileEditingDisabled}
+                      >
+                        <Camera className="h-5 w-5 mb-1" />
+                        <span>{isUploadingProfileImage ? 'Uploading...' : 'Update Photo'}</span>
+                      </label>
+                    )}
                     <Avatar className="h-24 w-24 ring-2 ring-border">
                       <AvatarImage
                         src={proxiedSrc(profileImageUrl || user?.profileImageUrl) || ''}
@@ -2015,7 +2019,7 @@ export default function Settings() {
                       </AvatarFallback>
                     </Avatar>
                   </div>
-                  {profileImageUrl && (
+                  {isProfileEditMode && profileImageUrl && (
                     <Button
                       type="button"
                       variant="outline"
@@ -2031,15 +2035,24 @@ export default function Settings() {
                 {/* Bio Section */}
                 <div className="flex-1 w-full space-y-2">
                   <Label htmlFor="bio">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Tell companies about yourself and your audience..."
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    className="min-h-24 resize-none"
-                    data-testid="textarea-bio"
-                    disabled={isProfileEditingDisabled}
-                  />
+                  {isProfileEditMode ? (
+                    <Textarea
+                      id="bio"
+                      placeholder="Tell companies about yourself and your audience..."
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      className="min-h-24 resize-none"
+                      data-testid="textarea-bio"
+                      disabled={isProfileEditingDisabled}
+                    />
+                  ) : (
+                    <div
+                      className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
+                      data-testid="bio-readonly"
+                    >
+                      {bio?.trim() ? bio : "Add a short bio to tell companies about yourself."}
+                    </div>
+                  )}
                 </div>
               </div>
 
