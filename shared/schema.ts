@@ -133,6 +133,45 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   favorites: many(favorites),
 }));
 
+// Social Account Connection Status Enum
+export const socialConnectionStatusEnum = pgEnum('social_connection_status', ['connected', 'disconnected', 'expired', 'error']);
+
+// Social Account Platform Enum
+export const socialPlatformEnum = pgEnum('social_platform', ['youtube', 'tiktok', 'instagram']);
+
+// Social Account Connections (OAuth-connected accounts)
+export const socialAccountConnections = pgTable("social_account_connections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  platform: socialPlatformEnum("platform").notNull(),
+  platformUserId: varchar("platform_user_id"), // User ID on the platform
+  platformUsername: varchar("platform_username"), // Username/handle on the platform
+  accessToken: text("access_token"), // Encrypted OAuth access token
+  refreshToken: text("refresh_token"), // Encrypted OAuth refresh token
+  tokenExpiresAt: timestamp("token_expires_at"),
+  profileUrl: varchar("profile_url"), // Full profile URL
+  profileImageUrl: varchar("profile_image_url"), // Avatar from the platform
+  followerCount: integer("follower_count"),
+  subscriberCount: integer("subscriber_count"), // For YouTube
+  followingCount: integer("following_count"),
+  videoCount: integer("video_count"),
+  totalViews: integer("total_views"),
+  avgEngagementRate: decimal("avg_engagement_rate", { precision: 5, scale: 2 }),
+  lastSyncedAt: timestamp("last_synced_at"),
+  connectionStatus: socialConnectionStatusEnum("connection_status").notNull().default('disconnected'),
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata"), // Additional platform-specific data
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const socialAccountConnectionsRelations = relations(socialAccountConnections, ({ one }) => ({
+  user: one(users, {
+    fields: [socialAccountConnections.userId],
+    references: [users.id],
+  }),
+}));
+
 // Creator profiles
 export const creatorProfiles = pgTable("creator_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -149,11 +188,12 @@ export const creatorProfiles = pgTable("creator_profiles", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const creatorProfilesRelations = relations(creatorProfiles, ({ one }) => ({
+export const creatorProfilesRelations = relations(creatorProfiles, ({ one, many }) => ({
   user: one(users, {
     fields: [creatorProfiles.userId],
     references: [users.id],
   }),
+  socialConnections: many(socialAccountConnections),
 }));
 
 // Website verification method enum
@@ -1182,6 +1222,7 @@ export const insertBannedKeywordSchema = createInsertSchema(bannedKeywords).omit
 export const insertContentFlagSchema = createInsertSchema(contentFlags).omit({ id: true, createdAt: true });
 export const insertCompanyVerificationDocumentSchema = createInsertSchema(companyVerificationDocuments).omit({ id: true, createdAt: true, uploadedAt: true });
 export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSocialAccountConnectionSchema = createInsertSchema(socialAccountConnections).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Platform Health Monitoring insert schemas
 export const insertApiMetricsSchema = createInsertSchema(apiMetrics).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1246,6 +1287,8 @@ export type CompanyVerificationDocument = typeof companyVerificationDocuments.$i
 export type InsertCompanyVerificationDocument = z.infer<typeof insertCompanyVerificationDocumentSchema>;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type SocialAccountConnection = typeof socialAccountConnections.$inferSelect;
+export type InsertSocialAccountConnection = z.infer<typeof insertSocialAccountConnectionSchema>;
 export type ApiMetrics = typeof apiMetrics.$inferSelect;
 export type InsertApiMetrics = z.infer<typeof insertApiMetricsSchema>;
 export type ApiErrorLog = typeof apiErrorLogs.$inferSelect;

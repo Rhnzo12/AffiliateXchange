@@ -52,6 +52,51 @@ interface MulterFile {
 
 // Extend Express Request type to include multer's file property
 type Request = ExpressRequest;
+
+// Helper function to generate simulated platform data for demo purposes
+// In production, this would be replaced with real API calls to each platform
+function generateSimulatedPlatformData(platform: string, username: string) {
+  // Generate consistent data based on username hash for demo purposes
+  const hash = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const multiplier = (hash % 100) / 10 + 1; // 1-11 multiplier
+
+  const baseFollowers = {
+    youtube: Math.floor(10000 * multiplier),
+    tiktok: Math.floor(50000 * multiplier),
+    instagram: Math.floor(25000 * multiplier),
+  };
+
+  const baseVideos = {
+    youtube: Math.floor(50 * multiplier),
+    tiktok: Math.floor(200 * multiplier),
+    instagram: Math.floor(150 * multiplier),
+  };
+
+  const baseViews = {
+    youtube: Math.floor(500000 * multiplier),
+    tiktok: Math.floor(2000000 * multiplier),
+    instagram: Math.floor(1000000 * multiplier),
+  };
+
+  const followers = baseFollowers[platform as keyof typeof baseFollowers] || 10000;
+  const videoCount = baseVideos[platform as keyof typeof baseVideos] || 50;
+  const totalViews = baseViews[platform as keyof typeof baseViews] || 100000;
+  const engagementRate = Math.round((2 + (hash % 8)) * 10) / 10; // 2-10%
+
+  return {
+    followers,
+    videoCount,
+    totalViews,
+    engagementRate,
+    metadata: {
+      platform,
+      username,
+      lastUpdated: new Date().toISOString(),
+      verified: hash % 3 === 0, // Some accounts are "verified"
+      accountType: hash % 2 === 0 ? 'creator' : 'business',
+    },
+  };
+}
 import {
   insertCreatorProfileSchema,
   insertCompanyProfileSchema,
@@ -428,6 +473,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).send("Invalid role");
     } catch (error: any) {
       res.status(500).send(error.message);
+    }
+  });
+
+  // ===== Social Account Connections =====
+
+  // Get all social connections for the current user
+  app.get("/api/social-connections", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const connections = await storage.getSocialConnections(userId);
+      res.json(connections);
+    } catch (error: any) {
+      console.error("[Social Connections] Error fetching connections:", error);
+      res.status(500).json({ error: "Failed to fetch social connections" });
+    }
+  });
+
+  // Get connection for a specific platform
+  app.get("/api/social-connections/:platform", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const platform = req.params.platform as 'youtube' | 'tiktok' | 'instagram';
+
+      if (!['youtube', 'tiktok', 'instagram'].includes(platform)) {
+        return res.status(400).json({ error: "Invalid platform" });
+      }
+
+      const connection = await storage.getSocialConnectionByPlatform(userId, platform);
+      res.json(connection || null);
+    } catch (error: any) {
+      console.error("[Social Connections] Error fetching connection:", error);
+      res.status(500).json({ error: "Failed to fetch social connection" });
+    }
+  });
+
+  // Connect a social account (simulated connection for demo - real OAuth would be platform-specific)
+  app.post("/api/social-connections/:platform/connect", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const platform = req.params.platform as 'youtube' | 'tiktok' | 'instagram';
+      const { profileUrl, username } = req.body;
+
+      if (!['youtube', 'tiktok', 'instagram'].includes(platform)) {
+        return res.status(400).json({ error: "Invalid platform" });
+      }
+
+      if (!profileUrl) {
+        return res.status(400).json({ error: "Profile URL is required" });
+      }
+
+      // Extract username from URL if not provided
+      let extractedUsername = username;
+      if (!extractedUsername) {
+        // Basic URL parsing to extract username
+        const urlParts = profileUrl.split('/').filter(Boolean);
+        extractedUsername = urlParts[urlParts.length - 1]?.replace('@', '') || 'unknown';
+      }
+
+      // Simulate fetching real data from the platform API
+      // In production, this would use OAuth and real API calls
+      const simulatedData = generateSimulatedPlatformData(platform, extractedUsername);
+
+      const connection = await storage.upsertSocialConnection({
+        userId,
+        platform,
+        platformUsername: extractedUsername,
+        profileUrl,
+        connectionStatus: 'connected',
+        followerCount: simulatedData.followers,
+        subscriberCount: platform === 'youtube' ? simulatedData.followers : null,
+        videoCount: simulatedData.videoCount,
+        totalViews: simulatedData.totalViews,
+        avgEngagementRate: simulatedData.engagementRate.toString(),
+        lastSyncedAt: new Date(),
+        metadata: simulatedData.metadata,
+      });
+
+      // Also update the creator profile with the URL and follower count
+      const updates: any = {};
+      if (platform === 'youtube') {
+        updates.youtubeUrl = profileUrl;
+        updates.youtubeFollowers = simulatedData.followers;
+      } else if (platform === 'tiktok') {
+        updates.tiktokUrl = profileUrl;
+        updates.tiktokFollowers = simulatedData.followers;
+      } else if (platform === 'instagram') {
+        updates.instagramUrl = profileUrl;
+        updates.instagramFollowers = simulatedData.followers;
+      }
+
+      await storage.updateCreatorProfile(userId, updates);
+
+      res.json({
+        success: true,
+        connection,
+        message: `Successfully connected ${platform} account`,
+      });
+    } catch (error: any) {
+      console.error("[Social Connections] Error connecting account:", error);
+      res.status(500).json({ error: "Failed to connect social account" });
+    }
+  });
+
+  // Sync data from a connected platform
+  app.post("/api/social-connections/:platform/sync", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const platform = req.params.platform as 'youtube' | 'tiktok' | 'instagram';
+
+      if (!['youtube', 'tiktok', 'instagram'].includes(platform)) {
+        return res.status(400).json({ error: "Invalid platform" });
+      }
+
+      const existingConnection = await storage.getSocialConnectionByPlatform(userId, platform);
+      if (!existingConnection) {
+        return res.status(404).json({ error: "No connection found for this platform" });
+      }
+
+      // Simulate refreshing data from the platform
+      const simulatedData = generateSimulatedPlatformData(
+        platform,
+        existingConnection.platformUsername || 'user'
+      );
+
+      const updatedConnection = await storage.updateSocialConnection(userId, platform, {
+        followerCount: simulatedData.followers,
+        subscriberCount: platform === 'youtube' ? simulatedData.followers : null,
+        videoCount: simulatedData.videoCount,
+        totalViews: simulatedData.totalViews,
+        avgEngagementRate: simulatedData.engagementRate.toString(),
+        lastSyncedAt: new Date(),
+        metadata: simulatedData.metadata,
+      });
+
+      // Update creator profile as well
+      const updates: any = {};
+      if (platform === 'youtube') {
+        updates.youtubeFollowers = simulatedData.followers;
+      } else if (platform === 'tiktok') {
+        updates.tiktokFollowers = simulatedData.followers;
+      } else if (platform === 'instagram') {
+        updates.instagramFollowers = simulatedData.followers;
+      }
+
+      await storage.updateCreatorProfile(userId, updates);
+
+      res.json({
+        success: true,
+        connection: updatedConnection,
+        message: `Successfully synced ${platform} data`,
+      });
+    } catch (error: any) {
+      console.error("[Social Connections] Error syncing data:", error);
+      res.status(500).json({ error: "Failed to sync social data" });
+    }
+  });
+
+  // Disconnect a social account
+  app.delete("/api/social-connections/:platform", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const platform = req.params.platform as 'youtube' | 'tiktok' | 'instagram';
+
+      if (!['youtube', 'tiktok', 'instagram'].includes(platform)) {
+        return res.status(400).json({ error: "Invalid platform" });
+      }
+
+      const deleted = await storage.deleteSocialConnection(userId, platform);
+
+      if (!deleted) {
+        return res.status(404).json({ error: "Connection not found" });
+      }
+
+      // Clear the URL from creator profile
+      const updates: any = {};
+      if (platform === 'youtube') {
+        updates.youtubeUrl = null;
+        updates.youtubeFollowers = null;
+      } else if (platform === 'tiktok') {
+        updates.tiktokUrl = null;
+        updates.tiktokFollowers = null;
+      } else if (platform === 'instagram') {
+        updates.instagramUrl = null;
+        updates.instagramFollowers = null;
+      }
+
+      await storage.updateCreatorProfile(userId, updates);
+
+      res.json({
+        success: true,
+        message: `Successfully disconnected ${platform} account`,
+      });
+    } catch (error: any) {
+      console.error("[Social Connections] Error disconnecting account:", error);
+      res.status(500).json({ error: "Failed to disconnect social account" });
     }
   });
 
