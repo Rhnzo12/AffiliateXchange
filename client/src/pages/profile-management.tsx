@@ -629,22 +629,18 @@ export default function Settings() {
   };
 
   // Opens document in dialog viewer
-  const handleViewDocument = (documentUrl: string, documentName: string, documentType: string) => {
-    if (!documentUrl) {
+  const handleViewDocument = (documentId: string, documentName: string, documentType: string) => {
+    if (!documentId) {
       toast({
         title: "Error",
-        description: "Missing document URL",
+        description: "Missing document ID",
         variant: "destructive",
       });
       return;
     }
 
-    // Use proxiedSrc to get authenticated URL for private Cloudinary files
-    const proxiedUrl = proxiedSrc(documentUrl);
-
-    // Use the proxied URL directly - browser's native PDF viewer will handle PDFs
-    // and images will display directly
-    const viewerUrl = proxiedUrl || documentUrl;
+    // Use the authenticated backend endpoint to serve the document
+    const viewerUrl = `/api/company/verification-documents/${documentId}/file`;
 
     // Open the document in a dialog viewer
     setCurrentDocumentUrl(viewerUrl);
@@ -653,18 +649,18 @@ export default function Settings() {
   };
 
   // Opens document in new browser tab for download
-  const handleDownloadDocument = (documentUrl: string, documentName: string) => {
-    if (!documentUrl) {
+  const handleDownloadDocument = (documentId: string, documentName: string) => {
+    if (!documentId) {
       toast({
         title: "Error",
-        description: "Missing document URL",
+        description: "Missing document ID",
         variant: "destructive",
       });
       return;
     }
-    // Use proxiedSrc to get authenticated URL for private Cloudinary files
-    const proxiedUrl = proxiedSrc(documentUrl);
-    window.open(proxiedUrl || documentUrl, '_blank');
+    // Use the authenticated backend endpoint to download the document
+    const downloadUrl = `/api/company/verification-documents/${documentId}/file`;
+    window.open(downloadUrl, '_blank');
   };
 
   const formatFileSize = (bytes: number | null): string => {
@@ -1570,7 +1566,7 @@ export default function Settings() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => handleViewDocument(doc.documentUrl, doc.documentName, doc.documentType)}
+                            onClick={() => handleViewDocument(doc.id, doc.documentName, doc.documentType)}
                             title="View document"
                           >
                             <Eye className="h-4 w-4 text-green-600" />
@@ -1580,7 +1576,7 @@ export default function Settings() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => handleDownloadDocument(doc.documentUrl, doc.documentName)}
+                            onClick={() => handleDownloadDocument(doc.id, doc.documentName)}
                             title="Download document"
                           >
                             <Download className="h-4 w-4 text-blue-600" />
