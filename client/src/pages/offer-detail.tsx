@@ -157,7 +157,6 @@ export default function OfferDetail() {
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const [activeSection, setActiveSection] = useState("overview");
   const [isScrolling, setIsScrolling] = useState(false);
-  const [videoDurations, setVideoDurations] = useState<Record<string, number>>({});
   const [errorDialog, setErrorDialog] = useState({ open: false, title: "Error", description: "An error occurred", errorDetails: "" });
 
   const { data: profile, isLoading: profileLoading } = useQuery<any>({
@@ -185,48 +184,6 @@ export default function OfferDetail() {
       }, 500);
     }
   }, [isAuthenticated, isLoading]);
-
-  // Load accurate video durations from metadata when they are missing
-  useEffect(() => {
-    if (!offer?.videos?.length) {
-      setVideoDurations({});
-      return;
-    }
-
-    const videoElements: HTMLVideoElement[] = [];
-
-    offer.videos.forEach((video: any) => {
-      const key = video.id ?? video.videoUrl;
-      if (!video.videoUrl || key === undefined) return;
-
-      // Skip if duration is already present or we have loaded it
-      if (video.duration || videoDurations[key]) return;
-
-      const videoElement = document.createElement("video");
-      videoElement.preload = "metadata";
-      videoElement.src = proxiedSrc(video.videoUrl);
-
-      const handleLoadedMetadata = () => {
-        if (!isNaN(videoElement.duration) && isFinite(videoElement.duration)) {
-          setVideoDurations((prev) => ({
-            ...prev,
-            [key]: Math.round(videoElement.duration),
-          }));
-        }
-      };
-
-      videoElement.addEventListener("loadedmetadata", handleLoadedMetadata);
-      videoElements.push(videoElement);
-    });
-
-    return () => {
-      videoElements.forEach((videoElement) => {
-        videoElement.pause();
-        videoElement.removeAttribute("src");
-        videoElement.load();
-      });
-    };
-  }, [offer?.videos, videoDurations]);
 
   // Improved scroll spy with IntersectionObserver
   useEffect(() => {
@@ -1232,7 +1189,7 @@ export default function OfferDetail() {
 
                     {/* Duration Badge - Always Show */}
                     <div className="absolute bottom-2 right-2 bg-black/90 text-white px-2 py-1 rounded text-xs font-medium">
-                      {formatDuration(video.duration ?? videoDurations[video.id ?? video.videoUrl] ?? 0)}
+                      {video.duration ? formatDuration(video.duration) : "0:00"}
                     </div>
                   </div>
                   
