@@ -1269,7 +1269,7 @@ export default function Settings() {
     <div className="min-h-screen bg-background">
       <TopNavBar />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:pl-2 lg:pr-8 py-8">
-        <div className="mb-6">
+        <div className="sticky top-0 z-10 mb-6 border-b border-border bg-background/90 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <h1 className="text-3xl font-bold">Settings</h1>
           <p className="text-muted-foreground mt-1">Manage your account preferences</p>
         </div>
