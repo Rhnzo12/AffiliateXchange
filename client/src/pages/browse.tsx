@@ -1334,11 +1334,16 @@ export default function Browse() {
                         <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">{offer.shortDescription}</p>
 
                         <div className="flex flex-wrap gap-1 sm:gap-1.5">
-                          {offer.primaryNiche && (
-                            <Badge variant="outline" className={`text-[10px] sm:text-xs border ${NICHE_COLORS[offer.primaryNiche] || 'bg-secondary'}`}>
-                              {offer.primaryNiche}
-                            </Badge>
-                          )}
+                          {offer.primaryNiche && (() => {
+                            const formattedNiche = formatNicheLabel(offer.primaryNiche);
+                            const badgeClass = NICHE_COLORS[formattedNiche] || 'bg-secondary';
+
+                            return (
+                              <Badge variant="outline" className={`text-[10px] sm:text-xs border ${badgeClass}`}>
+                                {formattedNiche}
+                              </Badge>
+                            );
+                          })()}
                         </div>
 
                         <div className="flex items-center justify-between pt-2 sm:pt-3 border-t">
