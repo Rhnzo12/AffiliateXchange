@@ -1953,40 +1953,36 @@ export default function Settings() {
           {/* CREATOR PROFILE SECTION */}
           {user?.role === 'creator' && (
             <>
-              {/* Profile Image Section - Horizontal Layout */}
-              <div className="flex items-center gap-6">
-                <div className="relative">
-                  <Avatar className="h-24 w-24 ring-2 ring-border">
-                    <AvatarImage
-                      src={proxiedSrc(profileImageUrl || user?.profileImageUrl) || ''}
-                      alt={user?.firstName || 'Creator profile'}
-                      referrerPolicy="no-referrer"
+              {/* Profile Image and Bio Section */}
+              <div className="flex flex-col lg:flex-row gap-6 items-start">
+                <div className="space-y-3">
+                  <div className="relative inline-block group">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfileImageUpload}
+                      disabled={isUploadingProfileImage}
+                      className="hidden"
+                      id="profile-image-upload"
                     />
-                    <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                      {user?.firstName?.[0] || user?.username?.[0] || 'C'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1.5">
-                    <Camera className="h-3.5 w-3.5" />
+                    <label
+                      htmlFor="profile-image-upload"
+                      className="absolute inset-0 z-10 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center cursor-pointer text-xs font-medium"
+                    >
+                      <Camera className="h-5 w-5 mb-1" />
+                      <span>{isUploadingProfileImage ? 'Uploading...' : 'Update Photo'}</span>
+                    </label>
+                    <Avatar className="h-24 w-24 ring-2 ring-border">
+                      <AvatarImage
+                        src={proxiedSrc(profileImageUrl || user?.profileImageUrl) || ''}
+                        alt={user?.firstName || 'Creator profile'}
+                        referrerPolicy="no-referrer"
+                      />
+                      <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                        {user?.firstName?.[0] || user?.username?.[0] || 'C'}
+                      </AvatarFallback>
+                    </Avatar>
                   </div>
-                </div>
-                <div className="flex gap-3">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfileImageUpload}
-                    disabled={isUploadingProfileImage}
-                    className="hidden"
-                    id="profile-image-upload"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={isUploadingProfileImage}
-                    onClick={() => document.getElementById('profile-image-upload')?.click()}
-                  >
-                    {isUploadingProfileImage ? 'Uploading...' : 'Upload New'}
-                  </Button>
                   {profileImageUrl && (
                     <Button
                       type="button"
@@ -1998,19 +1994,19 @@ export default function Settings() {
                     </Button>
                   )}
                 </div>
-              </div>
 
-              {/* Bio Section */}
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea
-                  id="bio"
-                  placeholder="Tell companies about yourself and your audience..."
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  className="min-h-24 resize-none"
-                  data-testid="textarea-bio"
-                />
+                {/* Bio Section */}
+                <div className="flex-1 w-full space-y-2">
+                  <Label htmlFor="bio">Bio</Label>
+                  <Textarea
+                    id="bio"
+                    placeholder="Tell companies about yourself and your audience..."
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    className="min-h-24 resize-none"
+                    data-testid="textarea-bio"
+                  />
+                </div>
               </div>
 
               {/* Content Niches Section */}
