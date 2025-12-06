@@ -254,6 +254,13 @@ async function exchangeCodeForToken(
   params.append("redirect_uri", config.redirectUri);
   params.append("grant_type", "authorization_code");
 
+  // Debug logging
+  console.log(`[Social OAuth] Token exchange for ${platform}:`);
+  console.log(`[Social OAuth]   - Token URL: ${config.tokenUrl}`);
+  console.log(`[Social OAuth]   - Client ID: ${config.clientId.substring(0, 20)}...`);
+  console.log(`[Social OAuth]   - Redirect URI: ${config.redirectUri}`);
+  console.log(`[Social OAuth]   - Code length: ${code.length}`);
+
   const response = await fetch(config.tokenUrl, {
     method: "POST",
     headers: {
@@ -265,6 +272,7 @@ async function exchangeCodeForToken(
   if (!response.ok) {
     const error = await response.text();
     console.error(`[Social OAuth] Token exchange failed for ${platform}:`, error);
+    console.error(`[Social OAuth] Make sure redirect URI in Google Cloud Console matches: ${config.redirectUri}`);
     throw new Error(`Failed to exchange code for token: ${error}`);
   }
 
@@ -282,7 +290,17 @@ export function setupSocialOAuth(app: Express) {
   const port = process.env.PORT || 3000;
   const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
 
+  // Debug: Log OAuth configuration status on startup
   console.log("[Social OAuth] Setting up social media OAuth routes");
+  console.log("[Social OAuth] Base URL:", baseUrl);
+  console.log("[Social OAuth] YouTube OAuth configured:", !!process.env.YOUTUBE_CLIENT_ID && !!process.env.YOUTUBE_CLIENT_SECRET);
+  console.log("[Social OAuth] TikTok OAuth configured:", !!process.env.TIKTOK_CLIENT_KEY && !!process.env.TIKTOK_CLIENT_SECRET);
+  console.log("[Social OAuth] Instagram OAuth configured:", !!process.env.INSTAGRAM_CLIENT_ID && !!process.env.INSTAGRAM_CLIENT_SECRET);
+
+  if (process.env.YOUTUBE_CLIENT_ID) {
+    console.log("[Social OAuth] YouTube Client ID starts with:", process.env.YOUTUBE_CLIENT_ID.substring(0, 20) + "...");
+    console.log("[Social OAuth] YouTube redirect URI:", `${baseUrl}/api/oauth/youtube/callback`);
+  }
 
   // OAuth initiation endpoint - starts the OAuth flow
   app.get("/api/oauth/:platform/authorize", isAuthenticated, (req: Request, res: Response) => {
