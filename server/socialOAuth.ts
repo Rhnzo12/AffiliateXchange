@@ -14,11 +14,17 @@ interface OAuthConfig {
 }
 
 // Platform-specific OAuth configurations
+// Note: Each platform requires its own OAuth credentials with the correct redirect URI configured
+// YouTube: Requires YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET (NOT the same as GOOGLE_CLIENT_ID)
+// TikTok: Requires TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET
+// Instagram: Requires INSTAGRAM_CLIENT_ID and INSTAGRAM_CLIENT_SECRET (via Facebook/Meta)
 function getOAuthConfig(platform: string, baseUrl: string): OAuthConfig | null {
   const configs: Record<string, OAuthConfig> = {
     youtube: {
-      clientId: process.env.YOUTUBE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.YOUTUBE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || "",
+      // Only use YouTube-specific credentials, NOT Google OAuth credentials
+      // Google OAuth has different redirect URI and won't work here
+      clientId: process.env.YOUTUBE_CLIENT_ID || "",
+      clientSecret: process.env.YOUTUBE_CLIENT_SECRET || "",
       redirectUri: `${baseUrl}/api/oauth/youtube/callback`,
       authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
       tokenUrl: "https://oauth2.googleapis.com/token",
@@ -38,8 +44,8 @@ function getOAuthConfig(platform: string, baseUrl: string): OAuthConfig | null {
       userInfoUrl: "https://open.tiktokapis.com/v2/user/info/",
     },
     instagram: {
-      clientId: process.env.INSTAGRAM_CLIENT_ID || process.env.FACEBOOK_APP_ID || "",
-      clientSecret: process.env.INSTAGRAM_CLIENT_SECRET || process.env.FACEBOOK_APP_SECRET || "",
+      clientId: process.env.INSTAGRAM_CLIENT_ID || "",
+      clientSecret: process.env.INSTAGRAM_CLIENT_SECRET || "",
       redirectUri: `${baseUrl}/api/oauth/instagram/callback`,
       authUrl: "https://www.facebook.com/v18.0/dialog/oauth",
       tokenUrl: "https://graph.facebook.com/v18.0/oauth/access_token",
@@ -49,6 +55,12 @@ function getOAuthConfig(platform: string, baseUrl: string): OAuthConfig | null {
   };
 
   return configs[platform] || null;
+}
+
+// Check if OAuth is properly configured for a platform
+function isOAuthConfigured(platform: string, baseUrl: string): boolean {
+  const config = getOAuthConfig(platform, baseUrl);
+  return !!(config?.clientId && config?.clientSecret);
 }
 
 // Generate simulated platform data (used when OAuth credentials not configured)
@@ -280,18 +292,21 @@ export function setupSocialOAuth(app: Express) {
       return res.status(400).json({ error: "Invalid platform" });
     }
 
+    // Check if OAuth credentials are properly configured for this platform
+    if (!isOAuthConfigured(platform, baseUrl)) {
+      console.log(`[Social OAuth] No OAuth credentials for ${platform}, using simulated flow`);
+      // Store user ID in session for callback
+      (req.session as any).oauthUserId = (req.user as any).id;
+      (req.session as any).oauthPlatform = platform;
+      // Redirect to simulated callback with a simulated code
+      const simulatedCode = `simulated_${platform}_${Date.now()}`;
+      return res.redirect(`/api/oauth/${platform}/callback?code=${simulatedCode}&simulated=true`);
+    }
+
     const config = getOAuthConfig(platform, baseUrl);
 
     if (!config) {
       return res.status(500).json({ error: "OAuth not configured for this platform" });
-    }
-
-    // Check if OAuth credentials are configured
-    if (!config.clientId || !config.clientSecret) {
-      console.log(`[Social OAuth] No OAuth credentials for ${platform}, using simulated flow`);
-      // Redirect to simulated callback with a simulated code
-      const simulatedCode = `simulated_${platform}_${Date.now()}`;
-      return res.redirect(`/api/oauth/${platform}/callback?code=${simulatedCode}&simulated=true`);
     }
 
     // Store user ID in session for callback
@@ -487,8 +502,7 @@ export function setupSocialOAuth(app: Express) {
       return res.status(400).json({ error: "Invalid platform" });
     }
 
-    const config = getOAuthConfig(platform, baseUrl);
-    const isConfigured = !!(config?.clientId && config?.clientSecret);
+    const isConfigured = isOAuthConfigured(platform, baseUrl);
 
     res.json({
       platform,
