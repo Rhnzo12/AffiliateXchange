@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -142,7 +142,7 @@ const formatResponseTime = (hours: number | null | undefined) => {
 
 export default function OfferDetail() {
   const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [, params] = useRoute("/offers/:id");
   const [, setLocation] = useLocation();
   const { state: sidebarState, isMobile } = useSidebar();
@@ -157,6 +157,11 @@ export default function OfferDetail() {
   const [activeSection, setActiveSection] = useState("overview");
   const [isScrolling, setIsScrolling] = useState(false);
   const [errorDialog, setErrorDialog] = useState({ open: false, title: "Error", description: "An error occurred", errorDetails: "" });
+
+  const { data: profile, isLoading: profileLoading } = useQuery<any>({
+    queryKey: ["/api/profile"],
+    enabled: isAuthenticated && user?.role === "creator",
+  });
 
   // Refs for sections
   const overviewRef = useRef<HTMLDivElement>(null);
@@ -300,6 +305,60 @@ export default function OfferDetail() {
   const hasApplied = !!existingApplication;
   const applicationStatus = existingApplication?.status;
 
+  const creatorPlatforms = useMemo(() => {
+    if (!profile || user?.role !== "creator") return [];
+
+    return [
+      { name: "YouTube", url: profile.youtubeUrl, followers: profile.youtubeFollowers },
+      { name: "TikTok", url: profile.tiktokUrl, followers: profile.tiktokFollowers },
+      { name: "Instagram", url: profile.instagramUrl, followers: profile.instagramFollowers },
+    ];
+  }, [profile, user?.role]);
+
+  const requirementCheck = useMemo(() => {
+    if (!offer || user?.role !== "creator") {
+      return { meets: true, reasons: [] as string[] };
+    }
+
+    if (profileLoading) {
+      return { meets: null as boolean | null, reasons: [] as string[] };
+    }
+
+    if (!profile) {
+      return {
+        meets: false,
+        reasons: ["Set up your creator profile to verify eligibility for this offer."],
+      };
+    }
+
+    const reasons: string[] = [];
+
+    if (offer.minimumFollowers) {
+      const hasRequiredFollowers = creatorPlatforms.some((platform) =>
+        (platform.followers || 0) >= offer.minimumFollowers
+      );
+
+      if (!hasRequiredFollowers) {
+        reasons.push(`Minimum ${Number(offer.minimumFollowers).toLocaleString()} followers required on at least one platform.`);
+      }
+    }
+
+    if (offer.allowedPlatforms?.length) {
+      const hasAllowedPlatform = creatorPlatforms.some(
+        (platform) => platform.url && offer.allowedPlatforms.includes(platform.name)
+      );
+
+      if (!hasAllowedPlatform) {
+        reasons.push(`You need an active presence on one of: ${offer.allowedPlatforms.join(", ")}.`);
+      }
+    }
+
+    return {
+      meets: reasons.length === 0,
+      reasons,
+    };
+  }, [offer, profile, profileLoading, user?.role, creatorPlatforms]);
+
   // Debug log to check application matching
   console.log('[OfferDetail] Checking application status:', {
     offerId,
@@ -312,53 +371,71 @@ export default function OfferDetail() {
 
   // Get apply button configuration based on status
   const getApplyButtonConfig = () => {
-    if (!hasApplied) {
+    if (hasApplied) {
+      // If already applied, gray out the button
+      switch (applicationStatus) {
+        case "pending":
+          return {
+            text: "Applied - Pending",
+            disabled: true,
+            variant: "secondary" as const,
+            icon: <Clock className="h-4 w-4" />,
+          };
+        case "approved":
+          return {
+            text: "Applied - Approved",
+            disabled: true,
+            variant: "outline" as const,
+            icon: <CheckCircle2 className="h-4 w-4" />,
+          };
+        case "active":
+          return {
+            text: "Applied - Active",
+            disabled: true,
+            variant: "outline" as const,
+            icon: <Check className="h-4 w-4" />,
+          };
+        case "rejected":
+          return {
+            text: "Applied - Rejected",
+            disabled: true,
+            variant: "outline" as const,
+            icon: <Check className="h-4 w-4" />,
+          };
+        default:
+          return {
+            text: "Already Applied",
+            disabled: true,
+            variant: "secondary" as const,
+            icon: <Check className="h-4 w-4" />,
+          };
+      }
+    }
+
+    if (requirementCheck.meets === null) {
       return {
-        text: "Apply Now",
-        disabled: false,
-        variant: "default" as const,
-        icon: null,
+        text: "Checking eligibility...",
+        disabled: true,
+        variant: "secondary" as const,
+        icon: <Clock className="h-4 w-4" />,
       };
     }
 
-    // If already applied, gray out the button
-    switch (applicationStatus) {
-      case "pending":
-        return {
-          text: "Applied - Pending",
-          disabled: true,
-          variant: "secondary" as const,
-          icon: <Clock className="h-4 w-4" />,
-        };
-      case "approved":
-        return {
-          text: "Applied - Approved",
-          disabled: true,
-          variant: "outline" as const,
-          icon: <CheckCircle2 className="h-4 w-4" />,
-        };
-      case "active":
-        return {
-          text: "Applied - Active",
-          disabled: true,
-          variant: "outline" as const,
-          icon: <Check className="h-4 w-4" />,
-        };
-      case "rejected":
-        return {
-          text: "Applied - Rejected",
-          disabled: true,
-          variant: "outline" as const,
-          icon: <Check className="h-4 w-4" />,
-        };
-      default:
-        return {
-          text: "Already Applied",
-          disabled: true,
-          variant: "secondary" as const,
-          icon: <Check className="h-4 w-4" />,
-        };
+    if (requirementCheck.meets === false) {
+      return {
+        text: "Requirements Not Met",
+        disabled: true,
+        variant: "secondary" as const,
+        icon: <AlertTriangle className="h-4 w-4" />,
+      };
     }
+
+    return {
+      text: "Apply Now",
+      disabled: false,
+      variant: "default" as const,
+      icon: null,
+    };
   };
 
   const buttonConfig = getApplyButtonConfig();
@@ -1469,13 +1546,29 @@ export default function OfferDetail() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-shrink-0 w-full sm:w-auto">
+            {!hasApplied && requirementCheck.meets === false && (
+              <div className="flex items-start gap-2 text-xs sm:text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 max-w-xl">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-medium">You don't meet this offer's creator requirements.</p>
+                  {requirementCheck.reasons.length > 0 && (
+                    <ul className="list-disc list-inside space-y-0.5 text-red-800 text-xs sm:text-sm leading-tight">
+                      {requirementCheck.reasons.map((reason) => (
+                        <li key={reason}>{reason}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+
             {hasApplied && existingApplication?.createdAt && (
               <Badge variant="secondary" className="hidden lg:flex text-xs whitespace-nowrap">
                 Applied {new Date(existingApplication.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </Badge>
             )}
-            
+
             <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
               <DialogTrigger asChild>
                 <Button
