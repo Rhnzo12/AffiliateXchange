@@ -14,6 +14,7 @@ import {
   creatorProfiles,
   companyProfiles,
   companyVerificationDocuments,
+  socialAccountConnections,
   offers,
   offerVideos,
   applications,
@@ -44,6 +45,8 @@ import {
   type InsertCreatorProfile,
   type CompanyProfile,
   type InsertCompanyProfile,
+  type SocialAccountConnection,
+  type InsertSocialAccountConnection,
   type Offer,
   type InsertOffer,
   type OfferVideo,
@@ -1083,6 +1086,117 @@ export class DatabaseStorage implements IStorage {
       .where(eq(creatorProfiles.userId, userId))
       .returning();
     return result[0];
+  }
+
+  // Social Account Connections
+  async getSocialConnections(userId: string): Promise<SocialAccountConnection[]> {
+    try {
+      const result = await db
+        .select()
+        .from(socialAccountConnections)
+        .where(eq(socialAccountConnections.userId, userId));
+      return result;
+    } catch (error: any) {
+      if (MISSING_SCHEMA_CODES.has(error.code)) {
+        console.log("[Storage] socialAccountConnections table does not exist yet");
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getSocialConnectionByPlatform(
+    userId: string,
+    platform: 'youtube' | 'tiktok' | 'instagram'
+  ): Promise<SocialAccountConnection | undefined> {
+    try {
+      const result = await db
+        .select()
+        .from(socialAccountConnections)
+        .where(
+          and(
+            eq(socialAccountConnections.userId, userId),
+            eq(socialAccountConnections.platform, platform)
+          )
+        )
+        .limit(1);
+      return result[0];
+    } catch (error: any) {
+      if (MISSING_SCHEMA_CODES.has(error.code)) {
+        console.log("[Storage] socialAccountConnections table does not exist yet");
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async createSocialConnection(
+    connection: InsertSocialAccountConnection
+  ): Promise<SocialAccountConnection> {
+    const result = await db
+      .insert(socialAccountConnections)
+      .values({
+        ...connection,
+        id: randomUUID(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return result[0];
+  }
+
+  async updateSocialConnection(
+    userId: string,
+    platform: 'youtube' | 'tiktok' | 'instagram',
+    updates: Partial<InsertSocialAccountConnection>
+  ): Promise<SocialAccountConnection | undefined> {
+    const result = await db
+      .update(socialAccountConnections)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(
+        and(
+          eq(socialAccountConnections.userId, userId),
+          eq(socialAccountConnections.platform, platform)
+        )
+      )
+      .returning();
+    return result[0];
+  }
+
+  async upsertSocialConnection(
+    connection: InsertSocialAccountConnection
+  ): Promise<SocialAccountConnection> {
+    const existing = await this.getSocialConnectionByPlatform(
+      connection.userId,
+      connection.platform as 'youtube' | 'tiktok' | 'instagram'
+    );
+
+    if (existing) {
+      const updated = await this.updateSocialConnection(
+        connection.userId,
+        connection.platform as 'youtube' | 'tiktok' | 'instagram',
+        connection
+      );
+      return updated!;
+    }
+
+    return this.createSocialConnection(connection);
+  }
+
+  async deleteSocialConnection(
+    userId: string,
+    platform: 'youtube' | 'tiktok' | 'instagram'
+  ): Promise<boolean> {
+    const result = await db
+      .delete(socialAccountConnections)
+      .where(
+        and(
+          eq(socialAccountConnections.userId, userId),
+          eq(socialAccountConnections.platform, platform)
+        )
+      )
+      .returning();
+    return result.length > 0;
   }
 
   // Company Profiles
