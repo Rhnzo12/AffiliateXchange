@@ -54,12 +54,13 @@ import {
   Wallet,
   Video,
   Globe,
-  Sparkles,
   Shield,
   Verified,
   Hash,
   ExternalLink,
-  AlertTriangle
+  AlertTriangle,
+  Info,
+  Palette
 } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
 import { VideoPlayer } from "../components/VideoPlayer";
@@ -986,7 +987,7 @@ export default function OfferDetail() {
           <Card className="rounded-2xl shadow-lg">
             <CardHeader>
               <CardTitle className="text-xl sm:text-2xl lg:text-3xl flex items-center gap-3">
-                <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+                <Info className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
                 About This Offer
               </CardTitle>
             </CardHeader>
@@ -1289,7 +1290,7 @@ export default function OfferDetail() {
               {offer.contentStyleRequirements && (
                 <div className="flex items-start gap-4">
                   <div className="h-12 w-12 rounded-xl bg-pink-100 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="h-6 w-6 text-pink-600" />
+                    <Palette className="h-6 w-6 text-pink-600" />
                   </div>
                   <div className="flex-1">
                     <div className="font-semibold text-base sm:text-lg mb-1">

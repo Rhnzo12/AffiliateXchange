@@ -28,7 +28,6 @@ import {
   Users,
   Edit,
   Video,
-  Sparkles,
   Shield,
   Hash,
   Upload,
@@ -38,6 +37,7 @@ import {
   MousePointer,
   Wallet,
   TrendingUp,
+  Info
 } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
 import { apiRequest, queryClient } from "../lib/queryClient";
@@ -824,7 +824,7 @@ export default function CompanyOfferDetail() {
           <Card className="rounded-2xl shadow-lg">
             <CardHeader>
               <CardTitle className="text-xl sm:text-2xl lg:text-3xl flex items-center gap-3">
-                <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+                <Info className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
                 About This Offer
               </CardTitle>
             </CardHeader>
