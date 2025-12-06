@@ -1287,7 +1287,8 @@ export default function Settings() {
         <CardHeader className="text-center pb-2">
           <CardTitle>Profile Information</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent>
+          <div className="max-w-lg mx-auto w-full space-y-6">
           {/* Centered Profile Header */}
           <div className="flex flex-col items-center text-center py-4">
             <Avatar className="h-24 w-24 mb-4 ring-4 ring-primary/10">
@@ -2083,6 +2084,7 @@ export default function Settings() {
               </div>
             </>
           )}
+          </div>
         </CardContent>
       </Card>
 
@@ -2093,7 +2095,8 @@ export default function Settings() {
             Manage your account details and personal information
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent>
+          <div className="max-w-lg mx-auto w-full space-y-6">
           <div className="space-y-3">
             <Label htmlFor="username" className="text-base font-semibold">Username *</Label>
             <Input
@@ -2154,6 +2157,7 @@ export default function Settings() {
               {updateAccountMutation.isPending ? "Saving..." : "Save Account Info"}
             </Button>
           </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -2168,7 +2172,8 @@ export default function Settings() {
             Update your account email address. {user?.googleId && !user?.password ? "As an OAuth user, you can change your email directly." : "You'll need to verify your password to change your email."}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
+          <div className="max-w-lg mx-auto w-full space-y-4">
           {!showEmailChange ? (
             <div className="flex items-center justify-between">
               <div>
@@ -2295,6 +2300,7 @@ export default function Settings() {
               )}
             </div>
           )}
+          </div>
         </CardContent>
       </Card>
 
@@ -2308,7 +2314,8 @@ export default function Settings() {
             Change your password securely with email verification code
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
+          <div className="max-w-lg mx-auto w-full space-y-4">
           {user?.googleId ? (
             <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
               <Shield className="h-4 w-4 text-blue-600" />
@@ -2414,6 +2421,7 @@ export default function Settings() {
                 </Button>
               </div>
             )}
+          </div>
           </CardContent>
         </Card>
 
@@ -2427,7 +2435,8 @@ export default function Settings() {
             Quick password change without email verification (less secure)
           </CardDescription>
         </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
+            <div className="max-w-lg mx-auto w-full space-y-4">
             {user?.googleId ? (
               <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
                 <Shield className="h-4 w-4 text-blue-600" />
@@ -2483,6 +2492,7 @@ export default function Settings() {
                 </Button>
               </>
             )}
+            </div>
           </CardContent>
         </Card>
 
