@@ -12,7 +12,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye, ShieldCheck, User, Mail, Key, KeyRound, LogOut, ExternalLink } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye, ShieldCheck, User, Mail, Key, KeyRound, LogOut, ExternalLink, Camera } from "lucide-react";
 import { TwoFactorSetup } from "../components/TwoFactorSetup";
 import { SettingsNavigation, SettingsSection } from "../components/SettingsNavigation";
 import {
@@ -1284,56 +1284,65 @@ export default function Settings() {
           <div className="flex-1 space-y-8 min-w-0 max-w-4xl">
 
       <Card id="profile-info" className="border-card-border scroll-mt-24">
-        <CardHeader className="text-center pb-2">
+        <CardHeader className="pb-2">
           <CardTitle>Profile Information</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="max-w-lg mx-auto w-full space-y-6">
-          {/* Centered Profile Header */}
-          <div className="flex flex-col items-center text-center py-4">
-            <Avatar className="h-24 w-24 mb-4 ring-4 ring-primary/10">
-              <AvatarImage
-                src={proxiedSrc(user?.role === 'company' ? logoUrl : (profileImageUrl || user?.profileImageUrl)) || ''}
-                alt={user?.role === 'company' ? tradeName || 'Company' : (user?.firstName || 'User')}
-                referrerPolicy="no-referrer"
-              />
-              <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                {user?.role === 'company'
-                  ? (tradeName?.[0] || 'C')
-                  : (user?.firstName?.[0] || user?.email?.[0] || 'U')
-                }
-              </AvatarFallback>
-            </Avatar>
-            <div className="space-y-1">
-              <h3 className="text-xl font-semibold">
-                {user?.role === 'company' ? tradeName || 'Company' : `${user?.firstName} ${user?.lastName}`}
-              </h3>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
-              <Badge variant="secondary" className="mt-2 capitalize">
-                {user?.role} Account
-              </Badge>
-            </div>
-          </div>
-
-          <Separator />
+        <CardContent className="space-y-8">
 
           {/* COMPANY PROFILE SECTION */}
           {user?.role === 'company' && (
             <>
-              {/* Company Basic Info Section */}
-              <div className="space-y-4">
-                <div className="text-center">
-                  <Label className="text-base font-semibold flex items-center justify-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Company Details
-                  </Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Basic information about your company
-                  </p>
+              {/* Company Logo Section - Horizontal Layout */}
+              <div className="flex items-center gap-6">
+                <div className="relative">
+                  <Avatar className="h-24 w-24 ring-2 ring-border">
+                    <AvatarImage
+                      src={proxiedSrc(logoUrl) || ''}
+                      alt={tradeName || 'Company'}
+                      referrerPolicy="no-referrer"
+                    />
+                    <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                      {tradeName?.[0] || 'C'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1.5">
+                    <Camera className="h-3.5 w-3.5" />
+                  </div>
                 </div>
+                <div className="flex gap-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={isUploadingLogo}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isUploadingLogo}
+                    onClick={() => document.getElementById('logo-upload')?.click()}
+                  >
+                    {isUploadingLogo ? 'Uploading...' : 'Upload New'}
+                  </Button>
+                  {logoUrl && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLogoUrl("")}
+                    >
+                      Delete Logo
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-                <div className="space-y-3">
-                  <Label htmlFor="tradeName">Company Name (Trade Name) *</Label>
+              {/* Company Form Fields - Two Column Grid */}
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="tradeName">Company Name (Trade Name) <span className="text-destructive">*</span></Label>
                   <Input
                     id="tradeName"
                     type="text"
@@ -1342,131 +1351,58 @@ export default function Settings() {
                     onChange={(e) => setTradeName(e.target.value)}
                     data-testid="input-trade-name"
                   />
-                  <p className="text-xs text-muted-foreground text-center">
-                    This is the name that will appear on all your offers
-                  </p>
                 </div>
-              </div>
 
-              <Separator />
-
-              {/* Company Logo Section */}
-              <div className="space-y-4">
-                <div className="text-center">
-                  <Label htmlFor="logoUrl" className="text-base font-semibold">Company Logo *</Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {logoUrl ? 'Upload a new logo to replace the current one' : 'Upload your company logo'}
-                  </p>
+                <div className="space-y-2">
+                  <Label htmlFor="legalName">Legal Company Name</Label>
+                  <Input
+                    id="legalName"
+                    type="text"
+                    placeholder="Official registered company name"
+                    value={legalName}
+                    onChange={(e) => setLegalName(e.target.value)}
+                    data-testid="input-legal-name"
+                  />
                 </div>
-                <div className="flex justify-center">
-                  <div className="relative w-full max-w-md">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      disabled={isUploadingLogo}
-                      className="hidden"
-                      id="logo-upload"
-                    />
-                    <label
-                      htmlFor="logo-upload"
-                      className={`border-2 border-dashed rounded-xl p-8 text-center hover:border-primary hover:bg-muted/30 transition-all cursor-pointer block ${
-                        isUploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <div className="flex flex-col items-center gap-3">
-                        {isUploadingLogo ? (
-                          <>
-                            <Upload className="h-10 w-10 text-blue-600 animate-pulse" />
-                            <div className="text-sm font-medium text-blue-600">
-                              Uploading Logo...
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-10 w-10 text-primary" />
-                            <div className="text-sm font-medium">
-                              Click to upload company logo
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              JPG, PNG, GIF, WebP (max 5MB)
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Recommended: 500x500px or larger, square format
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </label>
-                  </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="industry">Industry</Label>
+                  <Select value={industry} onValueChange={setIndustry}>
+                    <SelectTrigger id="industry" data-testid="select-industry">
+                      <SelectValue placeholder="Select your industry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="technology">Technology</SelectItem>
+                      <SelectItem value="ecommerce">E-commerce</SelectItem>
+                      <SelectItem value="fashion">Fashion & Apparel</SelectItem>
+                      <SelectItem value="beauty">Beauty & Cosmetics</SelectItem>
+                      <SelectItem value="health">Health & Wellness</SelectItem>
+                      <SelectItem value="fitness">Fitness</SelectItem>
+                      <SelectItem value="food">Food & Beverage</SelectItem>
+                      <SelectItem value="travel">Travel & Hospitality</SelectItem>
+                      <SelectItem value="finance">Finance & Insurance</SelectItem>
+                      <SelectItem value="education">Education</SelectItem>
+                      <SelectItem value="entertainment">Entertainment</SelectItem>
+                      <SelectItem value="gaming">Gaming</SelectItem>
+                      <SelectItem value="home">Home & Garden</SelectItem>
+                      <SelectItem value="automotive">Automotive</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
 
-              <Separator />
+                <div className="space-y-2">
+                  <Label htmlFor="websiteUrl">Company Website</Label>
+                  <Input
+                    id="websiteUrl"
+                    type="url"
+                    placeholder="https://yourcompany.com"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    data-testid="input-website-url"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="legalName">Legal Company Name</Label>
-                <Input
-                  id="legalName"
-                  type="text"
-                  placeholder="Official registered company name"
-                  value={legalName}
-                  onChange={(e) => setLegalName(e.target.value)}
-                  data-testid="input-legal-name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="industry">Industry</Label>
-                <Select value={industry} onValueChange={setIndustry}>
-                  <SelectTrigger id="industry" data-testid="select-industry">
-                    <SelectValue placeholder="Select your industry" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="technology">Technology</SelectItem>
-                    <SelectItem value="ecommerce">E-commerce</SelectItem>
-                    <SelectItem value="fashion">Fashion & Apparel</SelectItem>
-                    <SelectItem value="beauty">Beauty & Cosmetics</SelectItem>
-                    <SelectItem value="health">Health & Wellness</SelectItem>
-                    <SelectItem value="fitness">Fitness</SelectItem>
-                    <SelectItem value="food">Food & Beverage</SelectItem>
-                    <SelectItem value="travel">Travel & Hospitality</SelectItem>
-                    <SelectItem value="finance">Finance & Insurance</SelectItem>
-                    <SelectItem value="education">Education</SelectItem>
-                    <SelectItem value="entertainment">Entertainment</SelectItem>
-                    <SelectItem value="gaming">Gaming</SelectItem>
-                    <SelectItem value="home">Home & Garden</SelectItem>
-                    <SelectItem value="automotive">Automotive</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="websiteUrl">Company Website</Label>
-                <Input
-                  id="websiteUrl"
-                  type="url"
-                  placeholder="https://yourcompany.com"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  data-testid="input-website-url"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="companyDescription">Company Description</Label>
-                <Textarea
-                  id="companyDescription"
-                  placeholder="Tell creators about your company, products, and what makes you unique..."
-                  value={companyDescription}
-                  onChange={(e) => setCompanyDescription(e.target.value)}
-                  className="min-h-32"
-                  data-testid="textarea-company-description"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="contactName">Contact Name</Label>
                   <Input
@@ -1490,9 +1426,7 @@ export default function Settings() {
                     data-testid="input-contact-job-title"
                   />
                 </div>
-              </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="phoneNumber">Phone Number</Label>
                   <Input
@@ -1504,21 +1438,7 @@ export default function Settings() {
                     data-testid="input-phone-number"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="businessAddress">Business Address</Label>
-                <Textarea
-                  id="businessAddress"
-                  placeholder="Full business address including street, city, state, ZIP, and country"
-                  value={businessAddress}
-                  onChange={(e) => setBusinessAddress(e.target.value)}
-                  className="min-h-20"
-                  data-testid="textarea-business-address"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="companySize">Company Size</Label>
                   <Select value={companySize} onValueChange={setCompanySize}>
@@ -1550,7 +1470,30 @@ export default function Settings() {
                 </div>
               </div>
 
-              <Separator />
+              {/* Full Width Fields */}
+              <div className="space-y-2">
+                <Label htmlFor="companyDescription">Company Description</Label>
+                <Textarea
+                  id="companyDescription"
+                  placeholder="Tell creators about your company, products, and what makes you unique..."
+                  value={companyDescription}
+                  onChange={(e) => setCompanyDescription(e.target.value)}
+                  className="min-h-24"
+                  data-testid="textarea-company-description"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="businessAddress">Business Address</Label>
+                <Textarea
+                  id="businessAddress"
+                  placeholder="Full business address including street, city, state, ZIP, and country"
+                  value={businessAddress}
+                  onChange={(e) => setBusinessAddress(e.target.value)}
+                  className="min-h-20"
+                  data-testid="textarea-business-address"
+                />
+              </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1756,112 +1699,69 @@ export default function Settings() {
           {/* CREATOR PROFILE SECTION */}
           {user?.role === 'creator' && (
             <>
-              {/* Profile Image Section - Centered */}
-              <div className="space-y-4">
-                <div className="text-center">
-                  <Label htmlFor="profileImage" className="text-base font-semibold">Profile Image</Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Upload a profile picture to personalize your account.
-                  </p>
+              {/* Profile Image Section - Horizontal Layout */}
+              <div className="flex items-center gap-6">
+                <div className="relative">
+                  <Avatar className="h-24 w-24 ring-2 ring-border">
+                    <AvatarImage
+                      src={proxiedSrc(profileImageUrl || user?.profileImageUrl) || ''}
+                      alt={user?.firstName || 'Creator profile'}
+                      referrerPolicy="no-referrer"
+                    />
+                    <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                      {user?.firstName?.[0] || user?.username?.[0] || 'C'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1.5">
+                    <Camera className="h-3.5 w-3.5" />
+                  </div>
                 </div>
-
-                {profileImageUrl ? (
-                  <div className="flex justify-center">
-                    <div className="relative inline-block">
-                      <div className="flex flex-col items-center gap-3 p-6 border rounded-xl bg-muted/30">
-                        <Avatar className="h-28 w-28 ring-4 ring-primary/10">
-                          <AvatarImage src={proxiedSrc(profileImageUrl)} alt={user?.firstName || 'Creator profile'} />
-                          <AvatarFallback className="text-3xl bg-primary/10 text-primary">
-                            {user?.firstName?.[0] || user?.username?.[0] || 'C'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="text-center">
-                          <p className="font-medium">Current Profile Image</p>
-                          <p className="text-sm text-muted-foreground">This image will appear on your creator profile.</p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 rounded-full"
-                        onClick={() => setProfileImageUrl("")}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex justify-center">
-                    <div className="relative w-full max-w-md">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleProfileImageUpload}
-                        disabled={isUploadingProfileImage}
-                        className="hidden"
-                        id="profile-image-upload"
-                      />
-                      <label
-                        htmlFor="profile-image-upload"
-                        className={`border-2 border-dashed rounded-xl p-8 text-center hover:border-primary hover:bg-muted/30 transition-all cursor-pointer block ${
-                          isUploadingProfileImage ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                      >
-                        <div className="flex flex-col items-center gap-3">
-                          {isUploadingProfileImage ? (
-                            <>
-                              <Upload className="h-10 w-10 text-blue-600 animate-pulse" />
-                              <div className="text-sm font-medium text-blue-600">
-                                Uploading Image...
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-10 w-10 text-primary" />
-                              <div className="text-sm font-medium">
-                                Click to upload profile image
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                JPG, PNG, GIF, WebP (max 5MB)
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-                )}
+                <div className="flex gap-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfileImageUpload}
+                    disabled={isUploadingProfileImage}
+                    className="hidden"
+                    id="profile-image-upload"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isUploadingProfileImage}
+                    onClick={() => document.getElementById('profile-image-upload')?.click()}
+                  >
+                    {isUploadingProfileImage ? 'Uploading...' : 'Upload New'}
+                  </Button>
+                  {profileImageUrl && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProfileImageUrl("")}
+                    >
+                      Delete Avatar
+                    </Button>
+                  )}
+                </div>
               </div>
 
-              <Separator />
-
               {/* Bio Section */}
-              <div className="space-y-3">
-                <Label htmlFor="bio" className="text-base font-semibold">Bio</Label>
+              <div className="space-y-2">
+                <Label htmlFor="bio">Bio</Label>
                 <Textarea
                   id="bio"
                   placeholder="Tell companies about yourself and your audience..."
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  className="min-h-28 resize-none"
+                  className="min-h-24 resize-none"
                   data-testid="textarea-bio"
                 />
-                <p className="text-xs text-muted-foreground text-center">
-                  A compelling bio helps companies understand your value as a creator.
-                </p>
               </div>
 
-              <Separator />
-
               {/* Content Niches Section */}
-              <div className="space-y-4">
-                <div className="text-center">
-                  <Label htmlFor="niches" className="text-base font-semibold">Content Niches</Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Select the categories that best describe your content
-                  </p>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="niches">Content Niches</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1905,9 +1805,9 @@ export default function Settings() {
                   </PopoverContent>
                 </Popover>
 
-                {/* Display selected niches as badges - Centered */}
+                {/* Display selected niches as badges */}
                 {selectedNiches.length > 0 && (
-                  <div className="flex flex-wrap justify-center gap-2 mt-3">
+                  <div className="flex flex-wrap gap-2 mt-3">
                     {selectedNiches.map((nicheValue) => {
                       const niche = AVAILABLE_NICHES.find(n => n.value === nicheValue);
                       return (
@@ -1926,13 +1826,7 @@ export default function Settings() {
                     })}
                   </div>
                 )}
-
-                <p className="text-xs text-muted-foreground text-center">
-                  Your niches help us recommend relevant offers. Select all that apply to your content.
-                </p>
               </div>
-
-              <Separator />
 
               {/* Video Platform Requirements Section */}
               <div className="space-y-4">
@@ -2084,87 +1978,83 @@ export default function Settings() {
               </div>
             </>
           )}
-          </div>
         </CardContent>
       </Card>
 
       <Card id="account-info" className="border-card-border scroll-mt-24">
-        <CardHeader className="text-center pb-2">
+        <CardHeader className="pb-2">
           <CardTitle>Account Information</CardTitle>
           <CardDescription>
             Manage your account details and personal information
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="max-w-lg mx-auto w-full space-y-6">
-          <div className="space-y-3">
-            <Label htmlFor="username" className="text-base font-semibold">Username *</Label>
-            <Input
-              id="username"
-              type="text"
-              placeholder="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              data-testid="input-username"
-            />
-            <p className="text-xs text-muted-foreground text-center">
-              Your unique username for the platform
-            </p>
+        <CardContent className="space-y-6">
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username <span className="text-destructive">*</span></Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                data-testid="input-username"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={user?.email || ""}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                type="text"
+                placeholder="John"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                data-testid="input-first-name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                type="text"
+                placeholder="Doe"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                data-testid="input-last-name"
+              />
+            </div>
           </div>
 
-          <Separator />
-
-          <div className="space-y-4">
-            <div className="text-center">
-              <Label className="text-base font-semibold">Personal Details</Label>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  type="text"
-                  placeholder="John"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  data-testid="input-first-name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  type="text"
-                  placeholder="Doe"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  data-testid="input-last-name"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Save Button - Centered */}
-          <div className="flex justify-center pt-2">
+          {/* Save Button */}
+          <div className="pt-2">
             <Button
               onClick={() => updateAccountMutation.mutate()}
               disabled={updateAccountMutation.isPending}
-              size="lg"
-              className="min-w-[200px]"
               data-testid="button-save-account"
             >
-              {updateAccountMutation.isPending ? "Saving..." : "Save Account Info"}
+              {updateAccountMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
-          </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Email Change Section */}
       <Card id="change-email" className="border-card-border scroll-mt-24">
-        <CardHeader className="text-center pb-2">
-          <CardTitle className="flex items-center justify-center gap-2">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
             Change Email Address
           </CardTitle>
@@ -2172,8 +2062,7 @@ export default function Settings() {
             Update your account email address. {user?.googleId && !user?.password ? "As an OAuth user, you can change your email directly." : "You'll need to verify your password to change your email."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="max-w-lg mx-auto w-full space-y-4">
+        <CardContent className="space-y-4">
           {!showEmailChange ? (
             <div className="flex items-center justify-between">
               <div>
@@ -2300,13 +2189,12 @@ export default function Settings() {
               )}
             </div>
           )}
-          </div>
         </CardContent>
       </Card>
 
       <Card id="change-password-otp" className="border-card-border scroll-mt-24">
-        <CardHeader className="text-center pb-2">
-          <CardTitle className="flex items-center justify-center gap-2">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2">
             <Key className="h-5 w-5" />
             Change Password with Email Verification
           </CardTitle>
@@ -2314,8 +2202,7 @@ export default function Settings() {
             Change your password securely with email verification code
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="max-w-lg mx-auto w-full space-y-4">
+        <CardContent className="space-y-4">
           {user?.googleId ? (
             <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
               <Shield className="h-4 w-4 text-blue-600" />
@@ -2421,13 +2308,12 @@ export default function Settings() {
                 </Button>
               </div>
             )}
-          </div>
-          </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
 
       <Card id="change-password-legacy" className="border-card-border scroll-mt-24">
-        <CardHeader className="text-center pb-2">
-          <CardTitle className="flex items-center justify-center gap-2">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5" />
             Change Password (Legacy)
           </CardTitle>
@@ -2435,9 +2321,8 @@ export default function Settings() {
             Quick password change without email verification (less secure)
           </CardDescription>
         </CardHeader>
-          <CardContent>
-            <div className="max-w-lg mx-auto w-full space-y-4">
-            {user?.googleId ? (
+        <CardContent className="space-y-4">
+          {user?.googleId ? (
               <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
                 <Shield className="h-4 w-4 text-blue-600" />
                 <AlertTitle className="text-blue-900 dark:text-blue-100">Google Account</AlertTitle>
@@ -2492,9 +2377,8 @@ export default function Settings() {
                 </Button>
               </>
             )}
-            </div>
-          </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
 
       {/* Video Platform Requirement Dialog */}
       <AlertDialog open={showVideoPlatformDialog} onOpenChange={setShowVideoPlatformDialog}>
