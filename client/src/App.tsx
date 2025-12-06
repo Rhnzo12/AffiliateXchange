@@ -76,6 +76,7 @@ import Register from "./pages/register";
 import SelectRole from "./pages/select-role";
 import PrivacyPolicy from "./pages/privacy-policy";
 import TermsOfService from "./pages/terms-of-service";
+import OAuthCallback from "./pages/oauth-callback";
 import { HeaderContentProvider, useHeaderContent } from "./components/HeaderContentContext";
 import { CompanyTourProvider } from "./contexts/CompanyTourContext";
 import { CompanyTour } from "./components/CompanyTour";
@@ -92,6 +93,7 @@ function PublicRouter() {
       <Route path="/select-role" component={SelectRole} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
+      <Route path="/oauth-callback" component={OAuthCallback} />
       <Route component={Landing} />
     </Switch>
   );

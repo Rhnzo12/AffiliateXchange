@@ -14,6 +14,8 @@ import bcrypt from "bcrypt";
 
 import { setupGoogleAuth } from "./googleAuth";
 
+import { setupSocialOAuth } from "./socialOAuth";
+
 import crypto from "crypto";
 
 import { NotificationService } from "./notifications/notificationService";
@@ -229,6 +231,9 @@ export async function setupAuth(app: Express) {
   // Setup Google OAuth
 
   await setupGoogleAuth(app);
+
+  // Setup Social Media OAuth (YouTube, TikTok, Instagram)
+  setupSocialOAuth(app);
 
   // Authentication routes
 

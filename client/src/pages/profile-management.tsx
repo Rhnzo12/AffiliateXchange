@@ -163,9 +163,7 @@ export default function Settings() {
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const [syncingPlatform, setSyncingPlatform] = useState<string | null>(null);
   const [disconnectingPlatform, setDisconnectingPlatform] = useState<string | null>(null);
-  const [showConnectionDialog, setShowConnectionDialog] = useState(false);
-  const [connectionDialogPlatform, setConnectionDialogPlatform] = useState<'youtube' | 'tiktok' | 'instagram' | null>(null);
-  const [connectionDialogUrl, setConnectionDialogUrl] = useState("");
+  const [oauthPopup, setOauthPopup] = useState<Window | null>(null);
 
   // Password change states
   const [currentPassword, setCurrentPassword] = useState("");
@@ -1303,11 +1301,98 @@ export default function Settings() {
     },
   });
 
-  // Social connection handlers
-  const openConnectionDialog = (platform: 'youtube' | 'tiktok' | 'instagram') => {
-    setConnectionDialogPlatform(platform);
-    setConnectionDialogUrl("");
-    setShowConnectionDialog(true);
+  // OAuth popup message handler
+  useEffect(() => {
+    const handleOAuthMessage = (event: MessageEvent) => {
+      // Verify origin for security
+      if (event.origin !== window.location.origin) return;
+
+      const { type, platform, username, followers, error } = event.data;
+
+      if (type === "OAUTH_SUCCESS" && platform) {
+        // Update local state with connected account data
+        if (platform === 'youtube') {
+          setYoutubeUrl(`https://youtube.com/@${username}`);
+          setYoutubeFollowers(followers?.toString() || "");
+        }
+        if (platform === 'tiktok') {
+          setTiktokUrl(`https://tiktok.com/@${username}`);
+          setTiktokFollowers(followers?.toString() || "");
+        }
+        if (platform === 'instagram') {
+          setInstagramUrl(`https://instagram.com/${username}`);
+          setInstagramFollowers(followers?.toString() || "");
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["/api/social-connections"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+
+        toast({
+          title: "Account Connected",
+          description: `Your ${platform.charAt(0).toUpperCase() + platform.slice(1)} account has been connected successfully`,
+        });
+
+        setConnectingPlatform(null);
+        setOauthPopup(null);
+      } else if (type === "OAUTH_ERROR" && platform) {
+        console.error(`OAuth error for ${platform}:`, error);
+        toast({
+          title: "Connection Failed",
+          description: error || `Failed to connect ${platform} account`,
+          variant: "destructive",
+        });
+
+        setConnectingPlatform(null);
+        setOauthPopup(null);
+      }
+    };
+
+    window.addEventListener("message", handleOAuthMessage);
+    return () => window.removeEventListener("message", handleOAuthMessage);
+  }, [queryClient, toast]);
+
+  // Social connection handlers - OAuth popup flow
+  const openOAuthPopup = (platform: 'youtube' | 'tiktok' | 'instagram') => {
+    // Close any existing popup
+    if (oauthPopup && !oauthPopup.closed) {
+      oauthPopup.close();
+    }
+
+    setConnectingPlatform(platform);
+
+    // Calculate popup position (centered)
+    const width = 600;
+    const height = 700;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+
+    // Open OAuth authorization URL in popup
+    const popup = window.open(
+      `/api/oauth/${platform}/authorize`,
+      `oauth_${platform}`,
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+    );
+
+    if (popup) {
+      setOauthPopup(popup);
+
+      // Check if popup is closed manually
+      const checkPopupClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkPopupClosed);
+          setConnectingPlatform(null);
+          setOauthPopup(null);
+        }
+      }, 500);
+    } else {
+      // Popup blocked
+      setConnectingPlatform(null);
+      toast({
+        title: "Popup Blocked",
+        description: "Please allow popups to connect your social account",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleConnectionToggle = async (platform: 'youtube' | 'tiktok' | 'instagram', isConnected: boolean) => {
@@ -1315,76 +1400,8 @@ export default function Settings() {
       // Disconnect
       await handleDisconnectPlatform(platform);
     } else {
-      // Open connection dialog
-      openConnectionDialog(platform);
-    }
-  };
-
-  const handleConnectionDialogSubmit = async () => {
-    if (!connectionDialogPlatform || !connectionDialogUrl) {
-      toast({
-        title: "URL Required",
-        description: "Please enter your profile URL",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setConnectingPlatform(connectionDialogPlatform);
-
-    try {
-      const response = await fetch(`/api/social-connections/${connectionDialogPlatform}/connect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ profileUrl: connectionDialogUrl }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to connect account");
-      }
-
-      const result = await response.json();
-
-      // Update local state with fetched follower counts
-      if (result.connection) {
-        const followers = result.connection.followerCount;
-        const platform = connectionDialogPlatform;
-        if (platform === 'youtube') {
-          setYoutubeUrl(connectionDialogUrl);
-          setYoutubeFollowers(followers?.toString() || "");
-        }
-        if (platform === 'tiktok') {
-          setTiktokUrl(connectionDialogUrl);
-          setTiktokFollowers(followers?.toString() || "");
-        }
-        if (platform === 'instagram') {
-          setInstagramUrl(connectionDialogUrl);
-          setInstagramFollowers(followers?.toString() || "");
-        }
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["/api/social-connections"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-
-      toast({
-        title: "Account Connected",
-        description: `Your ${connectionDialogPlatform.charAt(0).toUpperCase() + connectionDialogPlatform.slice(1)} account has been connected successfully`,
-      });
-
-      setShowConnectionDialog(false);
-      setConnectionDialogPlatform(null);
-      setConnectionDialogUrl("");
-    } catch (error: any) {
-      console.error(`Error connecting ${connectionDialogPlatform}:`, error);
-      toast({
-        title: "Connection Failed",
-        description: error.message || `Failed to connect account`,
-        variant: "destructive",
-      });
-    } finally {
-      setConnectingPlatform(null);
+      // Open OAuth popup
+      openOAuthPopup(platform);
     }
   };
 
@@ -2698,108 +2715,7 @@ export default function Settings() {
         </DialogContent>
       </Dialog>
 
-      {/* Social Account Connection Dialog */}
-      <Dialog open={showConnectionDialog} onOpenChange={(open) => {
-        if (!open) {
-          setShowConnectionDialog(false);
-          setConnectionDialogPlatform(null);
-          setConnectionDialogUrl("");
-        }
-      }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
-              {connectionDialogPlatform === 'youtube' && (
-                <div className="h-10 w-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                  <svg className="h-6 w-6 text-red-600" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                  </svg>
                 </div>
-              )}
-              {connectionDialogPlatform === 'tiktok' && (
-                <div className="h-10 w-10 rounded-lg bg-black/10 dark:bg-white/10 flex items-center justify-center">
-                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
-                  </svg>
-                </div>
-              )}
-              {connectionDialogPlatform === 'instagram' && (
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-                  <svg className="h-6 w-6 text-pink-600" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                  </svg>
-                </div>
-              )}
-              Connect {connectionDialogPlatform ? connectionDialogPlatform.charAt(0).toUpperCase() + connectionDialogPlatform.slice(1) : ''} Account
-            </DialogTitle>
-            <DialogDescription>
-              Enter your {connectionDialogPlatform === 'youtube' ? 'channel' : 'profile'} URL to connect your account and automatically sync your follower data.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="connection-url">
-                {connectionDialogPlatform === 'youtube' ? 'Channel URL' : 'Profile URL'}
-              </Label>
-              <Input
-                id="connection-url"
-                type="url"
-                placeholder={
-                  connectionDialogPlatform === 'youtube'
-                    ? 'https://youtube.com/@yourchannel'
-                    : connectionDialogPlatform === 'tiktok'
-                    ? 'https://tiktok.com/@yourusername'
-                    : 'https://instagram.com/yourusername'
-                }
-                value={connectionDialogUrl}
-                onChange={(e) => setConnectionDialogUrl(e.target.value)}
-                disabled={connectingPlatform !== null}
-              />
-            </div>
-
-            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-              <RelaLogo className="h-5 w-5 flex-shrink-0 mt-0.5" />
-              <div className="text-xs text-muted-foreground">
-                <p className="font-medium mb-1">Powered by Rela</p>
-                <p>We'll securely fetch your public profile data including follower count, videos, and engagement metrics.</p>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="flex gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowConnectionDialog(false);
-                setConnectionDialogPlatform(null);
-                setConnectionDialogUrl("");
-              }}
-              disabled={connectingPlatform !== null}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConnectionDialogSubmit}
-              disabled={!connectionDialogUrl || connectingPlatform !== null}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-            >
-              {connectingPlatform ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <Link2 className="h-4 w-4 mr-2" />
-                  Connect Account
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-          </div>
         </div>
       </div>
     </div>
