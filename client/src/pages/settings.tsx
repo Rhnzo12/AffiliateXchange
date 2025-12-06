@@ -629,20 +629,17 @@ export default function Settings() {
   };
 
   // Opens document in dialog viewer
-  const handleViewDocument = (documentUrl: string, documentName: string, documentType: string) => {
-    if (!documentUrl) {
+  const handleViewDocument = (documentId: string, documentName: string, documentType: string) => {
+    if (!documentId) {
       toast({
         title: "Error",
-        description: "Missing document URL",
+        description: "Missing document ID",
         variant: "destructive",
       });
       return;
     }
-    // For PDFs, use Google Docs Viewer for better compatibility with Cloudinary
-    let viewerUrl = documentUrl;
-    if (documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
-      viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(documentUrl)}&embedded=true`;
-    }
+    // Use the authenticated backend endpoint to serve the document
+    const viewerUrl = `/api/company/verification-documents/${documentId}/file`;
     // Open the document in a dialog viewer
     setCurrentDocumentUrl(viewerUrl);
     setCurrentDocumentName(documentName);
@@ -650,17 +647,18 @@ export default function Settings() {
   };
 
   // Opens document in new browser tab for download
-  const handleDownloadDocument = (documentUrl: string, documentName: string) => {
-    if (!documentUrl) {
+  const handleDownloadDocument = (documentId: string, documentName: string) => {
+    if (!documentId) {
       toast({
         title: "Error",
-        description: "Missing document URL",
+        description: "Missing document ID",
         variant: "destructive",
       });
       return;
     }
-    // Open the original URL directly
-    window.open(documentUrl, '_blank');
+    // Use the authenticated backend endpoint to download the document
+    const downloadUrl = `/api/company/verification-documents/${documentId}/file`;
+    window.open(downloadUrl, '_blank');
   };
 
   const formatFileSize = (bytes: number | null): string => {

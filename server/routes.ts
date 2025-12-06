@@ -656,6 +656,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Serve/proxy a verification document with authentication
+  app.get("/api/company/verification-documents/:id/file", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const userRole = (req.user as any).role;
+      const documentId = req.params.id;
+
+      // Get the document
+      const document = await storage.getVerificationDocumentById(documentId);
+      if (!document) {
+        return res.status(404).send("Document not found");
+      }
+
+      // Verify authorization: must be the document owner or an admin
+      if (userRole !== 'admin') {
+        const companyProfile = await storage.getCompanyProfile(userId);
+        if (!companyProfile || document.companyId !== companyProfile.id) {
+          return res.status(403).send("Not authorized to access this document");
+        }
+      }
+
+      // Proxy the document from Cloudinary
+      const documentUrl = document.documentUrl;
+      if (!documentUrl) {
+        return res.status(404).send("Document URL not found");
+      }
+
+      // Fetch the document from Cloudinary
+      const fetchRes = await fetch(documentUrl, { method: "GET" });
+      if (!fetchRes.ok) {
+        console.error('[Verification Document Proxy] Failed to fetch document:', fetchRes.status, fetchRes.statusText);
+        return res.status(fetchRes.status).send("Failed to fetch document");
+      }
+
+      // Set appropriate headers
+      const contentType = fetchRes.headers.get("content-type");
+      if (contentType) res.setHeader("Content-Type", contentType);
+
+      const contentLength = fetchRes.headers.get("content-length");
+      if (contentLength) res.setHeader("Content-Length", contentLength);
+
+      // Set content disposition for PDFs to display inline
+      if (document.documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
+        res.setHeader("Content-Disposition", `inline; filename="${document.documentName}"`);
+      }
+
+      // Stream the response
+      if (fetchRes.body) {
+        const reader = fetchRes.body.getReader();
+        const pump = async () => {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              res.write(Buffer.from(value));
+            }
+            res.end();
+          } catch (error) {
+            console.error('[Verification Document Proxy] Error streaming document:', error);
+            res.end();
+          }
+        };
+        await pump();
+      } else {
+        const arrayBuffer = await fetchRes.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        res.send(buffer);
+      }
+    } catch (error: any) {
+      console.error("Serve verification document error:", error);
+      res.status(500).send(error?.message || "Failed to serve document");
+    }
+  });
+
   // Admin: Get verification documents for a specific company
   app.get("/api/admin/companies/:id/verification-documents", requireAuth, requireRole('admin'), async (req, res) => {
     try {
