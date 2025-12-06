@@ -548,6 +548,17 @@ export default function OfferDetail() {
   const hasMoreCompanyDescription =
     companyDescription && companyHighlight && companyDescription !== companyHighlight;
   const visibleCompanyDescription = showFullCompanyDescription ? companyDescription : companyHighlight;
+  const mainNiches = useMemo(() => {
+    if (!offer) return [];
+
+    const niches: string[] = [];
+
+    if (offer.primaryNiche) niches.push(offer.primaryNiche);
+    if (offer.secondaryNiche) niches.push(offer.secondaryNiche);
+    if (Array.isArray(offer.additionalNiches)) niches.push(...offer.additionalNiches);
+
+    return niches.filter(Boolean);
+  }, [offer]);
 
   // Loading state
   if (isLoading || offerLoading) {
@@ -692,8 +703,8 @@ export default function OfferDetail() {
                     </div>
                   )}
 
-                  {/* Company quick info - show industry and website */}
-                  {(offer.company?.industry || offer.company?.websiteUrl) && (
+                  {/* Company quick info - show industry, website, and niches */}
+                  {(offer.company?.industry || offer.company?.websiteUrl || mainNiches.length > 0) && (
                     <div className="flex flex-wrap items-center gap-3 mb-4 text-sm text-gray-700">
                       {offer.company?.industry && (
                         <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg capitalize">
@@ -707,14 +718,30 @@ export default function OfferDetail() {
                           href={offer.company.websiteUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-primary hover:underline break-all"
+                          className="flex items-center gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
                         >
                           <Globe className="h-4 w-4" />
-                          <span className="truncate max-w-xs sm:max-w-sm">
+                          <span className="truncate max-w-[14rem] sm:max-w-[18rem] font-medium">
                             {offer.company.websiteUrl.replace(/^https?:\/\//, '')}
                           </span>
                           <ExternalLink className="h-3 w-3 flex-shrink-0" />
                         </a>
+                      )}
+
+                      {mainNiches.length > 0 && (
+                        <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg text-blue-800">
+                          <Hash className="h-4 w-4 text-blue-600" />
+                          <div className="flex flex-wrap gap-1">
+                            {mainNiches.map((niche) => (
+                              <span
+                                key={niche}
+                                className="px-2 py-0.5 rounded-full bg-white text-blue-800 text-xs font-medium border border-blue-100"
+                              >
+                                {niche}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
