@@ -624,12 +624,15 @@ export default function Browse() {
       if (category === "all") {
         return [];
       }
-      // If clicking the same category that's already selected, deselect it (go back to "All")
-      if (prev.length === 1 && prev.includes(category)) {
-        return [];
-      }
-      // Replace previous selection with the new category (single-select behavior)
-      return [category];
+      const isSelected = prev.includes(category);
+
+      // Toggle category selection while keeping other selections intact
+      const nextSelections = isSelected
+        ? prev.filter((cat) => cat !== category)
+        : [...prev, category];
+
+      // If nothing remains selected, treat as "All"
+      return nextSelections;
     });
   };
 
