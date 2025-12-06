@@ -682,16 +682,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send("Document URL not found");
       }
 
+      console.log('[Verification Document] Original URL:', documentUrl);
+
       // Extract public_id from Cloudinary URL
-      // URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}
-      // or: https://res.cloudinary.com/{cloud}/raw/upload/v{version}/{public_id}
+      // URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}.{extension}
       try {
         const url = new URL(documentUrl);
         const pathParts = url.pathname.split('/');
 
-        // Find the index of 'upload' and get everything after the version number
+        // Find the index of 'upload'
         const uploadIndex = pathParts.findIndex(part => part === 'upload');
         if (uploadIndex === -1) {
+          console.error('[Verification Document] Invalid URL format - no upload path:', documentUrl);
           throw new Error('Invalid Cloudinary URL format');
         }
 
@@ -700,55 +702,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Skip 'upload' and version number (v123456), get the rest as public_id
         const publicIdParts = pathParts.slice(uploadIndex + 2);
-        const publicId = publicIdParts.join('/');
+        let publicIdWithExt = publicIdParts.join('/');
+
+        // Remove file extension from public_id (Cloudinary doesn't include it in public_id)
+        const publicId = publicIdWithExt.replace(/\.[^.]+$/, '');
 
         console.log('[Verification Document] Extracted public_id:', publicId);
         console.log('[Verification Document] Resource type:', resourceType);
 
-        // Try generating signed URL with 'authenticated' type first (most common for uploaded files)
-        // Cloudinary's "authenticated" type is used for files that require login but don't need private delivery
-        let signedUrl = cloudinary.url(publicId, {
+        // Use Cloudinary's private_download_url for authenticated assets
+        // This generates a signed URL that expires after 1 hour
+        const signedUrl = cloudinary.utils.private_download_url(publicId, 'pdf', {
           resource_type: resourceType as any,
-          secure: true,
-          sign_url: true,
-          type: 'authenticated',
+          expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         });
 
-        console.log('[Verification Document] Attempting fetch with authenticated type');
+        console.log('[Verification Document] Generated private download URL');
 
-        // Try fetching with authenticated type
-        let fetchRes = await fetch(signedUrl, { method: "GET" });
-
-        // If authenticated fails, try with 'private' type
-        if (!fetchRes.ok && fetchRes.status === 404) {
-          console.log('[Verification Document] Authenticated type failed, trying private type');
-          signedUrl = cloudinary.url(publicId, {
-            resource_type: resourceType as any,
-            secure: true,
-            sign_url: true,
-            type: 'private',
-          });
-
-          fetchRes = await fetch(signedUrl, { method: "GET" });
-        }
-
-        // If both fail, try upload type (default)
-        if (!fetchRes.ok && fetchRes.status === 404) {
-          console.log('[Verification Document] Private type failed, trying upload (default) type');
-          signedUrl = cloudinary.url(publicId, {
-            resource_type: resourceType as any,
-            secure: true,
-            sign_url: true,
-            type: 'upload',
-          });
-
-          fetchRes = await fetch(signedUrl, { method: "GET" });
-        }
+        // Fetch the document from Cloudinary using signed URL
+        const fetchRes = await fetch(signedUrl, {
+          method: "GET",
+          headers: {
+            'User-Agent': 'AffiliateXchange-Server/1.0',
+          },
+        });
 
         if (!fetchRes.ok) {
-          console.error('[Verification Document Proxy] Failed to fetch document after trying all types:', fetchRes.status, fetchRes.statusText);
-          console.error('[Verification Document Proxy] Final URL attempted:', signedUrl);
-          return res.status(fetchRes.status).send("Failed to fetch document");
+          console.error('[Verification Document Proxy] Failed to fetch:', fetchRes.status, fetchRes.statusText);
+          console.error('[Verification Document Proxy] Tried URL:', signedUrl);
+
+          // If private_download_url fails, try with sign_url method
+          console.log('[Verification Document] Trying alternate signing method');
+          const altSignedUrl = cloudinary.url(publicId, {
+            resource_type: resourceType as any,
+            secure: true,
+            sign_url: true,
+            type: 'authenticated',
+            format: 'pdf',
+          });
+
+          const altFetchRes = await fetch(altSignedUrl, {
+            method: "GET",
+            headers: {
+              'User-Agent': 'AffiliateXchange-Server/1.0',
+            },
+          });
+
+          if (!altFetchRes.ok) {
+            console.error('[Verification Document Proxy] Alternate method also failed:', altFetchRes.status);
+            return res.status(altFetchRes.status).send("Failed to fetch document from Cloudinary");
+          }
+
+          // Use the alternate fetch response
+          const contentType = altFetchRes.headers.get("content-type");
+          if (contentType) res.setHeader("Content-Type", contentType);
+
+          const contentLength = altFetchRes.headers.get("content-length");
+          if (contentLength) res.setHeader("Content-Length", contentLength);
+
+          if (document.documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
+            res.setHeader("Content-Disposition", `inline; filename="${document.documentName}"`);
+          }
+
+          if (altFetchRes.body) {
+            const reader = altFetchRes.body.getReader();
+            const pump = async () => {
+              try {
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  res.write(Buffer.from(value));
+                }
+                res.end();
+              } catch (error) {
+                console.error('[Verification Document Proxy] Error streaming:', error);
+                res.end();
+              }
+            };
+            await pump();
+          } else {
+            const arrayBuffer = await altFetchRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            res.send(buffer);
+          }
+          return;
         }
 
         console.log('[Verification Document] Successfully fetched document');
