@@ -2205,25 +2205,6 @@ export default function Settings() {
                   </div>
                 </div>
 
-                {/* Powered by Rela */}
-                <div className="flex items-center justify-center gap-2 pt-2">
-                  <span className="text-xs text-muted-foreground">Powered by</span>
-                  <RelaLogo className="h-5 w-5" />
-                  <span className="text-xs font-medium">Rela</span>
-                </div>
-              </div>
-
-              {/* Save Button - Centered */}
-              <div className="flex justify-center pt-4">
-                <Button
-                  onClick={handleSaveProfile}
-                  disabled={updateProfileMutation.isPending}
-                  size="lg"
-                  className="min-w-[200px]"
-                  data-testid="button-save-profile"
-                >
-                  {updateProfileMutation.isPending ? "Saving..." : "Save Profile Changes"}
-                </Button>
               </div>
             </>
           )}
