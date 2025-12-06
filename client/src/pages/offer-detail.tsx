@@ -463,7 +463,13 @@ export default function OfferDetail() {
       ? reviews.reduce((acc: number, r: any) => acc + (r.overallRating || 0), 0) / reviews.length
       : 0);
 
-  const companyHighlight = getCompanyHighlight(offer?.company?.description);
+  const [showFullCompanyDescription, setShowFullCompanyDescription] = useState(false);
+
+  const companyDescription = offer?.company?.description?.trim() || "";
+  const companyHighlight = getCompanyHighlight(companyDescription);
+  const hasMoreCompanyDescription =
+    companyDescription && companyHighlight && companyDescription !== companyHighlight;
+  const visibleCompanyDescription = showFullCompanyDescription ? companyDescription : companyHighlight;
 
   // Loading state
   if (isLoading || offerLoading) {
@@ -610,9 +616,26 @@ export default function OfferDetail() {
                   
                   {/* Company Description - NEW: Added */}
                   {companyHighlight && (
-                    <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
-                      {companyHighlight}
-                    </p>
+                    <div className="space-y-2">
+                      <p
+                        className={`text-gray-600 text-base sm:text-lg leading-relaxed ${
+                          showFullCompanyDescription ? "whitespace-pre-wrap" : ""
+                        }`}
+                      >
+                        {visibleCompanyDescription}
+                      </p>
+
+                      {hasMoreCompanyDescription && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-0 h-auto text-primary"
+                          onClick={() => setShowFullCompanyDescription((prev) => !prev)}
+                        >
+                          {showFullCompanyDescription ? "See less" : "See more"}
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -950,9 +973,26 @@ export default function OfferDetail() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {companyHighlight && (
-                  <p className="text-muted-foreground text-base sm:text-lg whitespace-pre-wrap leading-relaxed">
-                    {companyHighlight}
-                  </p>
+                  <div className="space-y-2">
+                    <p
+                      className={`text-muted-foreground text-base sm:text-lg leading-relaxed ${
+                        showFullCompanyDescription ? "whitespace-pre-wrap" : ""
+                      }`}
+                    >
+                      {visibleCompanyDescription}
+                    </p>
+
+                    {hasMoreCompanyDescription && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-auto"
+                        onClick={() => setShowFullCompanyDescription((prev) => !prev)}
+                      >
+                        {showFullCompanyDescription ? "See less" : "See more"}
+                      </Button>
+                    )}
+                  </div>
                 )}
 
                 <div className="grid gap-4">
