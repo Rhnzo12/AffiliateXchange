@@ -88,6 +88,20 @@ const normalizeNicheValue = (value?: string | null): string => {
     .replace(/\s+/g, "_");
 };
 
+// Helper function to format niche/category names for display
+const formatNicheLabel = (value?: string | null): string => {
+  if (!value) return "";
+
+  const cleanedValue = value
+    .toString()
+    .replace(/_/g, " ")
+    .replace(/\s*&\s*/g, " & ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return cleanedValue.replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 const getOfferNicheValues = (offer: any): string[] => {
   const primary = normalizeNicheValue(offer?.primaryNiche);
   const secondary = normalizeNicheValue(offer?.secondaryNiche);
@@ -352,7 +366,7 @@ export default function Browse() {
       { label: "All", value: "all" },
       { label: "Trending", value: "trending" },
       { label: "Monthly Retainers", value: "monthly_retainers" },
-      ...niches.map((niche) => ({ label: niche.name, value: normalizeNicheValue(niche.name) })),
+      ...niches.map((niche) => ({ label: formatNicheLabel(niche.name), value: normalizeNicheValue(niche.name) })),
     ],
     [niches],
   );
@@ -905,7 +919,7 @@ export default function Browse() {
                               htmlFor={`niche-${niche.id}`}
                               className="text-sm font-normal cursor-pointer"
                             >
-                              {niche.name}
+                              {formatNicheLabel(niche.name)}
                             </Label>
                           </div>
                         );
@@ -1180,7 +1194,7 @@ export default function Browse() {
 
                   // Show specific niche name when single niche is selected
                   if (nicheCategories.length === 1 && !hasTrending && !hasMonthlyRetainers && sortedOffers.length > 0) {
-                    const categoryName = nicheCategories[0].replace(/_/g, ' ');
+                    const categoryName = formatNicheLabel(nicheCategories[0]);
                     return (
                       <h2 className="text-xl sm:text-2xl font-bold text-foreground capitalize">
                         {categoryName} Offers
@@ -1320,11 +1334,16 @@ export default function Browse() {
                         <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">{offer.shortDescription}</p>
 
                         <div className="flex flex-wrap gap-1 sm:gap-1.5">
-                          {offer.primaryNiche && (
-                            <Badge variant="outline" className={`text-[10px] sm:text-xs border ${NICHE_COLORS[offer.primaryNiche] || 'bg-secondary'}`}>
-                              {offer.primaryNiche}
-                            </Badge>
-                          )}
+                          {offer.primaryNiche && (() => {
+                            const formattedNiche = formatNicheLabel(offer.primaryNiche);
+                            const badgeClass = NICHE_COLORS[formattedNiche] || 'bg-secondary';
+
+                            return (
+                              <Badge variant="outline" className={`text-[10px] sm:text-xs border ${badgeClass}`}>
+                                {formattedNiche}
+                              </Badge>
+                            );
+                          })()}
                         </div>
 
                         <div className="flex items-center justify-between pt-2 sm:pt-3 border-t">
