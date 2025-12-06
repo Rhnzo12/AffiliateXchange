@@ -1284,30 +1284,33 @@ export default function Settings() {
           <div className="flex-1 space-y-8 min-w-0 max-w-4xl">
 
       <Card id="profile-info" className="border-card-border scroll-mt-24">
-        <CardHeader>
+        <CardHeader className="text-center pb-2">
           <CardTitle>Profile Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
+          {/* Centered Profile Header */}
+          <div className="flex flex-col items-center text-center py-4">
+            <Avatar className="h-24 w-24 mb-4 ring-4 ring-primary/10">
               <AvatarImage
                 src={proxiedSrc(user?.role === 'company' ? logoUrl : (profileImageUrl || user?.profileImageUrl)) || ''}
                 alt={user?.role === 'company' ? tradeName || 'Company' : (user?.firstName || 'User')}
                 referrerPolicy="no-referrer"
               />
-              <AvatarFallback className="text-lg">
+              <AvatarFallback className="text-2xl bg-primary/10 text-primary">
                 {user?.role === 'company'
                   ? (tradeName?.[0] || 'C')
                   : (user?.firstName?.[0] || user?.email?.[0] || 'U')
                 }
               </AvatarFallback>
             </Avatar>
-            <div>
-              <div className="font-semibold">
+            <div className="space-y-1">
+              <h3 className="text-xl font-semibold">
                 {user?.role === 'company' ? tradeName || 'Company' : `${user?.firstName} ${user?.lastName}`}
-              </div>
-              <div className="text-sm text-muted-foreground">{user?.email}</div>
-              <div className="text-xs text-muted-foreground capitalize mt-1">{user?.role} Account</div>
+              </h3>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+              <Badge variant="secondary" className="mt-2 capitalize">
+                {user?.role} Account
+              </Badge>
             </div>
           </div>
 
@@ -1316,70 +1319,89 @@ export default function Settings() {
           {/* COMPANY PROFILE SECTION */}
           {user?.role === 'company' && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="tradeName" className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Company Name (Trade Name) *
-                </Label>
-                <Input
-                  id="tradeName"
-                  type="text"
-                  placeholder="Your Company Name"
-                  value={tradeName}
-                  onChange={(e) => setTradeName(e.target.value)}
-                  data-testid="input-trade-name"
-                />
-                <p className="text-xs text-muted-foreground">
-                  This is the name that will appear on all your offers
-                </p>
-              </div>
+              {/* Company Basic Info Section */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <Label className="text-base font-semibold flex items-center justify-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Company Details
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Basic information about your company
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="logoUrl">Company Logo *</Label>
-                <p className="text-xs text-muted-foreground">
-                  {logoUrl ? 'Upload a new logo to replace the current one' : 'Upload your company logo'}
-                </p>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    disabled={isUploadingLogo}
-                    className="hidden"
-                    id="logo-upload"
+                <div className="space-y-3">
+                  <Label htmlFor="tradeName">Company Name (Trade Name) *</Label>
+                  <Input
+                    id="tradeName"
+                    type="text"
+                    placeholder="Your Company Name"
+                    value={tradeName}
+                    onChange={(e) => setTradeName(e.target.value)}
+                    data-testid="input-trade-name"
                   />
-                  <label
-                    htmlFor="logo-upload"
-                    className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block ${
-                      isUploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      {isUploadingLogo ? (
-                        <>
-                          <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
-                          <div className="text-sm font-medium text-blue-600">
-                            Uploading Logo...
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-8 w-8 text-primary" />
-                          <div className="text-sm font-medium">
-                            Click to upload company logo
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            JPG, PNG, GIF, WebP (max 5MB)
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Recommended: 500x500px or larger, square format
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </label>
+                  <p className="text-xs text-muted-foreground text-center">
+                    This is the name that will appear on all your offers
+                  </p>
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Company Logo Section */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <Label htmlFor="logoUrl" className="text-base font-semibold">Company Logo *</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {logoUrl ? 'Upload a new logo to replace the current one' : 'Upload your company logo'}
+                  </p>
+                </div>
+                <div className="flex justify-center">
+                  <div className="relative w-full max-w-md">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      disabled={isUploadingLogo}
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    <label
+                      htmlFor="logo-upload"
+                      className={`border-2 border-dashed rounded-xl p-8 text-center hover:border-primary hover:bg-muted/30 transition-all cursor-pointer block ${
+                        isUploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-3">
+                        {isUploadingLogo ? (
+                          <>
+                            <Upload className="h-10 w-10 text-blue-600 animate-pulse" />
+                            <div className="text-sm font-medium text-blue-600">
+                              Uploading Logo...
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-10 w-10 text-primary" />
+                            <div className="text-sm font-medium">
+                              Click to upload company logo
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              JPG, PNG, GIF, WebP (max 5MB)
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Recommended: 500x500px or larger, square format
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
 
               <div className="space-y-2">
                 <Label htmlFor="legalName">Legal Company Name</Label>
@@ -1705,112 +1727,140 @@ export default function Settings() {
 
               {/* Show warning if critical fields are missing */}
               {(!tradeName || !logoUrl) && (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <p className="text-sm text-yellow-800">
-                    <strong>\u26A0\uFE0F Important:</strong> Please fill in your Company Name and upload a Logo. 
+                <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <AlertTitle className="text-yellow-900 dark:text-yellow-300">Important</AlertTitle>
+                  <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                    Please fill in your Company Name and upload a Logo.
                     These are required for your offers to display properly.
-                  </p>
-                </div>
+                  </AlertDescription>
+                </Alert>
               )}
 
-              <Button
-                onClick={handleSaveProfile}
-                disabled={updateProfileMutation.isPending}
-                data-testid="button-save-profile"
-              >
-                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
+              {/* Save Button - Centered */}
+              <div className="flex justify-center pt-4">
+                <Button
+                  onClick={handleSaveProfile}
+                  disabled={updateProfileMutation.isPending}
+                  size="lg"
+                  className="min-w-[200px]"
+                  data-testid="button-save-profile"
+                >
+                  {updateProfileMutation.isPending ? "Saving..." : "Save Profile Changes"}
+                </Button>
+              </div>
             </>
           )}
 
           {/* CREATOR PROFILE SECTION */}
           {user?.role === 'creator' && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="profileImage">Profile Image</Label>
-                <p className="text-sm text-muted-foreground">
-                  Upload a profile picture to personalize your account.
-                </p>
+              {/* Profile Image Section - Centered */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <Label htmlFor="profileImage" className="text-base font-semibold">Profile Image</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Upload a profile picture to personalize your account.
+                  </p>
+                </div>
 
                 {profileImageUrl ? (
-                  <div className="relative inline-block">
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <Avatar className="h-24 w-24">
-                        <AvatarImage src={proxiedSrc(profileImageUrl)} alt={user?.firstName || 'Creator profile'} />
-                        <AvatarFallback className="text-2xl">
-                          {user?.firstName?.[0] || user?.username?.[0] || 'C'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">Current Profile Image</p>
-                        <p className="text-sm text-muted-foreground">This image will appear on your creator profile.</p>
+                  <div className="flex justify-center">
+                    <div className="relative inline-block">
+                      <div className="flex flex-col items-center gap-3 p-6 border rounded-xl bg-muted/30">
+                        <Avatar className="h-28 w-28 ring-4 ring-primary/10">
+                          <AvatarImage src={proxiedSrc(profileImageUrl)} alt={user?.firstName || 'Creator profile'} />
+                          <AvatarFallback className="text-3xl bg-primary/10 text-primary">
+                            {user?.firstName?.[0] || user?.username?.[0] || 'C'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="text-center">
+                          <p className="font-medium">Current Profile Image</p>
+                          <p className="text-sm text-muted-foreground">This image will appear on your creator profile.</p>
+                        </div>
                       </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 rounded-full"
+                        onClick={() => setProfileImageUrl("")}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute -top-2 -right-2"
-                      onClick={() => setProfileImageUrl("")}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
                   </div>
                 ) : (
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfileImageUpload}
-                      disabled={isUploadingProfileImage}
-                      className="hidden"
-                      id="profile-image-upload"
-                    />
-                    <label
-                      htmlFor="profile-image-upload"
-                      className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block ${
-                        isUploadingProfileImage ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        {isUploadingProfileImage ? (
-                          <>
-                            <Upload className="h-8 w-8 text-blue-600 animate-pulse" />
-                            <div className="text-sm font-medium text-blue-600">
-                              Uploading Image...
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-8 w-8 text-primary" />
-                            <div className="text-sm font-medium">
-                              Click to upload profile image
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              JPG, PNG, GIF, WebP (max 5MB)
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </label>
+                  <div className="flex justify-center">
+                    <div className="relative w-full max-w-md">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileImageUpload}
+                        disabled={isUploadingProfileImage}
+                        className="hidden"
+                        id="profile-image-upload"
+                      />
+                      <label
+                        htmlFor="profile-image-upload"
+                        className={`border-2 border-dashed rounded-xl p-8 text-center hover:border-primary hover:bg-muted/30 transition-all cursor-pointer block ${
+                          isUploadingProfileImage ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-3">
+                          {isUploadingProfileImage ? (
+                            <>
+                              <Upload className="h-10 w-10 text-blue-600 animate-pulse" />
+                              <div className="text-sm font-medium text-blue-600">
+                                Uploading Image...
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-10 w-10 text-primary" />
+                              <div className="text-sm font-medium">
+                                Click to upload profile image
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                JPG, PNG, GIF, WebP (max 5MB)
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </label>
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
+              <Separator />
+
+              {/* Bio Section */}
+              <div className="space-y-3">
+                <Label htmlFor="bio" className="text-base font-semibold">Bio</Label>
                 <Textarea
                   id="bio"
                   placeholder="Tell companies about yourself and your audience..."
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  className="min-h-24"
+                  className="min-h-28 resize-none"
                   data-testid="textarea-bio"
                 />
+                <p className="text-xs text-muted-foreground text-center">
+                  A compelling bio helps companies understand your value as a creator.
+                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="niches">Content Niches</Label>
+              <Separator />
+
+              {/* Content Niches Section */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <Label htmlFor="niches" className="text-base font-semibold">Content Niches</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Select the categories that best describe your content
+                  </p>
+                </div>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1854,18 +1904,18 @@ export default function Settings() {
                   </PopoverContent>
                 </Popover>
 
-                {/* Display selected niches as badges */}
+                {/* Display selected niches as badges - Centered */}
                 {selectedNiches.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap justify-center gap-2 mt-3">
                     {selectedNiches.map((nicheValue) => {
                       const niche = AVAILABLE_NICHES.find(n => n.value === nicheValue);
                       return (
-                        <Badge key={nicheValue} variant="secondary" className="gap-1">
+                        <Badge key={nicheValue} variant="secondary" className="gap-1 px-3 py-1">
                           {niche?.label || nicheValue}
                           <button
                             type="button"
                             onClick={() => removeNiche(nicheValue)}
-                            className="ml-1 hover:text-destructive"
+                            className="ml-1 hover:text-destructive transition-colors"
                             aria-label={`Remove ${niche?.label || nicheValue}`}
                           >
                             <X className="h-3 w-3" />
@@ -1876,126 +1926,176 @@ export default function Settings() {
                   </div>
                 )}
 
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground text-center">
                   Your niches help us recommend relevant offers. Select all that apply to your content.
                 </p>
               </div>
 
-              {/* Video Platform Requirement Alert */}
-              <Alert className={`${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'}`}>
-                <Video className={`h-5 w-5 ${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-600' : 'text-blue-600'}`} />
-                <AlertTitle className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-900 dark:text-red-300' : 'text-blue-900 dark:text-blue-300'}>
-                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? '\u26A0\uFE0F Video Platform Required' : '\u2713 Video Platform Requirements'}
-                </AlertTitle>
-                <AlertDescription className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-800 dark:text-red-200' : 'text-blue-800 dark:text-blue-200'}>
-                  {!youtubeUrl && !tiktokUrl && !instagramUrl ? (
-                    <>
-                      <strong>You must add at least one video platform to use AffiliateXchange.</strong>
-                      <br />
-                      We only accept video content creators (YouTube, TikTok, or Instagram). Text-only bloggers and podcasters without video are not supported at this time.
-                    </>
-                  ) : (
-                    <>
-                      <strong>Great!</strong> You have at least one video platform set up. Make sure to keep your platform URLs updated for the best experience.
-                    </>
-                  )}
-                </AlertDescription>
-              </Alert>
+              <Separator />
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="youtube">YouTube Channel URL</Label>
-                  <Input
-                    id="youtube"
-                    type="url"
-                    placeholder="https://youtube.com/@yourchannel"
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    data-testid="input-youtube"
-                  />
+              {/* Video Platform Requirements Section */}
+              <div className="space-y-4">
+                <div className="text-center">
+                  <Label className="text-base font-semibold">Video Platforms</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Connect your video platforms to showcase your content
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="youtube-followers">YouTube Subscribers</Label>
-                  <Input
-                    id="youtube-followers"
-                    type="number"
-                    placeholder="10000"
-                    value={youtubeFollowers}
-                    onChange={(e) => setYoutubeFollowers(e.target.value)}
-                    data-testid="input-youtube-followers"
-                  />
+
+                {/* Video Platform Status Alert */}
+                <Alert className={`${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-green-500 bg-green-50 dark:bg-green-950/20'}`}>
+                  <Video className={`h-5 w-5 ${!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-600' : 'text-green-600'}`} />
+                  <AlertTitle className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-900 dark:text-red-300' : 'text-green-900 dark:text-green-300'}>
+                    {!youtubeUrl && !tiktokUrl && !instagramUrl ? 'Video Platform Required' : 'Video Platform Requirements'}
+                  </AlertTitle>
+                  <AlertDescription className={!youtubeUrl && !tiktokUrl && !instagramUrl ? 'text-red-800 dark:text-red-200' : 'text-green-800 dark:text-green-200'}>
+                    {!youtubeUrl && !tiktokUrl && !instagramUrl ? (
+                      <>
+                        <strong>You must add at least one video platform to use AffiliateXchange.</strong>
+                        <br />
+                        We only accept video content creators (YouTube, TikTok, or Instagram). Text-only bloggers and podcasters without video are not supported at this time.
+                      </>
+                    ) : (
+                      <>
+                        <strong>Great!</strong> You have at least one video platform set up. Make sure to keep your platform URLs updated for the best experience.
+                      </>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              </div>
+
+              {/* Platform Input Fields */}
+              <div className="space-y-6">
+                {/* YouTube */}
+                <div className="p-4 border rounded-lg bg-muted/20 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                      <Video className="h-4 w-4 text-red-600" />
+                    </div>
+                    <span className="font-medium">YouTube</span>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="youtube">Channel URL</Label>
+                      <Input
+                        id="youtube"
+                        type="url"
+                        placeholder="https://youtube.com/@yourchannel"
+                        value={youtubeUrl}
+                        onChange={(e) => setYoutubeUrl(e.target.value)}
+                        data-testid="input-youtube"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="youtube-followers">Subscribers</Label>
+                      <Input
+                        id="youtube-followers"
+                        type="number"
+                        placeholder="10000"
+                        value={youtubeFollowers}
+                        onChange={(e) => setYoutubeFollowers(e.target.value)}
+                        data-testid="input-youtube-followers"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* TikTok */}
+                <div className="p-4 border rounded-lg bg-muted/20 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center">
+                      <Video className="h-4 w-4" />
+                    </div>
+                    <span className="font-medium">TikTok</span>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="tiktok">Profile URL</Label>
+                      <Input
+                        id="tiktok"
+                        type="url"
+                        placeholder="https://tiktok.com/@yourusername"
+                        value={tiktokUrl}
+                        onChange={(e) => setTiktokUrl(e.target.value)}
+                        data-testid="input-tiktok"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tiktok-followers">Followers</Label>
+                      <Input
+                        id="tiktok-followers"
+                        type="number"
+                        placeholder="50000"
+                        value={tiktokFollowers}
+                        onChange={(e) => setTiktokFollowers(e.target.value)}
+                        data-testid="input-tiktok-followers"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Instagram */}
+                <div className="p-4 border rounded-lg bg-muted/20 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                      <Video className="h-4 w-4 text-pink-600" />
+                    </div>
+                    <span className="font-medium">Instagram</span>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="instagram">Profile URL</Label>
+                      <Input
+                        id="instagram"
+                        type="url"
+                        placeholder="https://instagram.com/yourusername"
+                        value={instagramUrl}
+                        onChange={(e) => setInstagramUrl(e.target.value)}
+                        data-testid="input-instagram"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="instagram-followers">Followers</Label>
+                      <Input
+                        id="instagram-followers"
+                        type="number"
+                        placeholder="25000"
+                        value={instagramFollowers}
+                        onChange={(e) => setInstagramFollowers(e.target.value)}
+                        data-testid="input-instagram-followers"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="tiktok">TikTok Profile URL</Label>
-                  <Input
-                    id="tiktok"
-                    type="url"
-                    placeholder="https://tiktok.com/@yourusername"
-                    value={tiktokUrl}
-                    onChange={(e) => setTiktokUrl(e.target.value)}
-                    data-testid="input-tiktok"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tiktok-followers">TikTok Followers</Label>
-                  <Input
-                    id="tiktok-followers"
-                    type="number"
-                    placeholder="50000"
-                    value={tiktokFollowers}
-                    onChange={(e) => setTiktokFollowers(e.target.value)}
-                    data-testid="input-tiktok-followers"
-                  />
-                </div>
+              {/* Save Button - Centered */}
+              <div className="flex justify-center pt-4">
+                <Button
+                  onClick={handleSaveProfile}
+                  disabled={updateProfileMutation.isPending}
+                  size="lg"
+                  className="min-w-[200px]"
+                  data-testid="button-save-profile"
+                >
+                  {updateProfileMutation.isPending ? "Saving..." : "Save Profile Changes"}
+                </Button>
               </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="instagram">Instagram Profile URL</Label>
-                  <Input
-                    id="instagram"
-                    type="url"
-                    placeholder="https://instagram.com/yourusername"
-                    value={instagramUrl}
-                    onChange={(e) => setInstagramUrl(e.target.value)}
-                    data-testid="input-instagram"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="instagram-followers">Instagram Followers</Label>
-                  <Input
-                    id="instagram-followers"
-                    type="number"
-                    placeholder="25000"
-                    value={instagramFollowers}
-                    onChange={(e) => setInstagramFollowers(e.target.value)}
-                    data-testid="input-instagram-followers"
-                  />
-                </div>
-              </div>
-
-              <Button
-                onClick={handleSaveProfile}
-                disabled={updateProfileMutation.isPending}
-                data-testid="button-save-profile"
-              >
-                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
             </>
           )}
         </CardContent>
       </Card>
 
       <Card id="account-info" className="border-card-border scroll-mt-24">
-        <CardHeader>
+        <CardHeader className="text-center pb-2">
           <CardTitle>Account Information</CardTitle>
+          <CardDescription>
+            Manage your account details and personal information
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username *</Label>
+        <CardContent className="space-y-6">
+          <div className="space-y-3">
+            <Label htmlFor="username" className="text-base font-semibold">Username *</Label>
             <Input
               id="username"
               type="text"
@@ -2004,51 +2104,64 @@ export default function Settings() {
               onChange={(e) => setUsername(e.target.value)}
               data-testid="input-username"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground text-center">
               Your unique username for the platform
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                type="text"
-                placeholder="John"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                data-testid="input-first-name"
-              />
-            </div>
+          <Separator />
 
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                type="text"
-                placeholder="Doe"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                data-testid="input-last-name"
-              />
+          <div className="space-y-4">
+            <div className="text-center">
+              <Label className="text-base font-semibold">Personal Details</Label>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  placeholder="John"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  data-testid="input-first-name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Doe"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  data-testid="input-last-name"
+                />
+              </div>
             </div>
           </div>
 
-          <Button
-            onClick={() => updateAccountMutation.mutate()}
-            disabled={updateAccountMutation.isPending}
-            data-testid="button-save-account"
-          >
-            {updateAccountMutation.isPending ? "Saving..." : "Save Account Info"}
-          </Button>
+          {/* Save Button - Centered */}
+          <div className="flex justify-center pt-2">
+            <Button
+              onClick={() => updateAccountMutation.mutate()}
+              disabled={updateAccountMutation.isPending}
+              size="lg"
+              className="min-w-[200px]"
+              data-testid="button-save-account"
+            >
+              {updateAccountMutation.isPending ? "Saving..." : "Save Account Info"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       {/* Email Change Section */}
       <Card id="change-email" className="border-card-border scroll-mt-24">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="text-center pb-2">
+          <CardTitle className="flex items-center justify-center gap-2">
+            <Mail className="h-5 w-5" />
             Change Email Address
           </CardTitle>
           <CardDescription>
@@ -2186,8 +2299,11 @@ export default function Settings() {
       </Card>
 
       <Card id="change-password-otp" className="border-card-border scroll-mt-24">
-        <CardHeader>
-          <CardTitle>Change Password with Email Verification</CardTitle>
+        <CardHeader className="text-center pb-2">
+          <CardTitle className="flex items-center justify-center gap-2">
+            <Key className="h-5 w-5" />
+            Change Password with Email Verification
+          </CardTitle>
           <CardDescription>
             Change your password securely with email verification code
           </CardDescription>
@@ -2302,8 +2418,11 @@ export default function Settings() {
         </Card>
 
       <Card id="change-password-legacy" className="border-card-border scroll-mt-24">
-        <CardHeader>
-          <CardTitle>Change Password (Legacy)</CardTitle>
+        <CardHeader className="text-center pb-2">
+          <CardTitle className="flex items-center justify-center gap-2">
+            <KeyRound className="h-5 w-5" />
+            Change Password (Legacy)
+          </CardTitle>
           <CardDescription>
             Quick password change without email verification (less secure)
           </CardDescription>
