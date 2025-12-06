@@ -677,52 +677,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Proxy the document from Cloudinary
       const documentUrl = document.documentUrl;
       if (!documentUrl) {
         return res.status(404).send("Document URL not found");
       }
 
-      // Fetch the document from Cloudinary
-      const fetchRes = await fetch(documentUrl, { method: "GET" });
-      if (!fetchRes.ok) {
-        console.error('[Verification Document Proxy] Failed to fetch document:', fetchRes.status, fetchRes.statusText);
-        return res.status(fetchRes.status).send("Failed to fetch document");
-      }
+      // Extract public_id from Cloudinary URL
+      // URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}
+      // or: https://res.cloudinary.com/{cloud}/raw/upload/v{version}/{public_id}
+      try {
+        const url = new URL(documentUrl);
+        const pathParts = url.pathname.split('/');
 
-      // Set appropriate headers
-      const contentType = fetchRes.headers.get("content-type");
-      if (contentType) res.setHeader("Content-Type", contentType);
+        // Find the index of 'upload' and get everything after the version number
+        const uploadIndex = pathParts.findIndex(part => part === 'upload');
+        if (uploadIndex === -1) {
+          throw new Error('Invalid Cloudinary URL format');
+        }
 
-      const contentLength = fetchRes.headers.get("content-length");
-      if (contentLength) res.setHeader("Content-Length", contentLength);
+        // Get resource type (image, raw, video, etc.)
+        const resourceType = pathParts[uploadIndex - 1] || 'image';
 
-      // Set content disposition for PDFs to display inline
-      if (document.documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
-        res.setHeader("Content-Disposition", `inline; filename="${document.documentName}"`);
-      }
+        // Skip 'upload' and version number (v123456), get the rest as public_id
+        const publicIdParts = pathParts.slice(uploadIndex + 2);
+        const publicId = publicIdParts.join('/');
 
-      // Stream the response
-      if (fetchRes.body) {
-        const reader = fetchRes.body.getReader();
-        const pump = async () => {
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              res.write(Buffer.from(value));
+        console.log('[Verification Document] Extracted public_id:', publicId, 'resourceType:', resourceType);
+
+        // Generate signed URL for private/authenticated Cloudinary asset
+        const signedUrl = cloudinary.url(publicId, {
+          resource_type: resourceType as any,
+          secure: true,
+          sign_url: true,
+          type: 'private',
+          attachment: false, // Display inline, not as download
+        });
+
+        console.log('[Verification Document] Generated signed URL');
+
+        // Fetch the document from Cloudinary using signed URL
+        const fetchRes = await fetch(signedUrl, { method: "GET" });
+        if (!fetchRes.ok) {
+          console.error('[Verification Document Proxy] Failed to fetch document:', fetchRes.status, fetchRes.statusText);
+          return res.status(fetchRes.status).send("Failed to fetch document");
+        }
+
+        // Set appropriate headers
+        const contentType = fetchRes.headers.get("content-type");
+        if (contentType) res.setHeader("Content-Type", contentType);
+
+        const contentLength = fetchRes.headers.get("content-length");
+        if (contentLength) res.setHeader("Content-Length", contentLength);
+
+        // Set content disposition for PDFs to display inline
+        if (document.documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
+          res.setHeader("Content-Disposition", `inline; filename="${document.documentName}"`);
+        }
+
+        // Stream the response
+        if (fetchRes.body) {
+          const reader = fetchRes.body.getReader();
+          const pump = async () => {
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                res.write(Buffer.from(value));
+              }
+              res.end();
+            } catch (error) {
+              console.error('[Verification Document Proxy] Error streaming document:', error);
+              res.end();
             }
-            res.end();
-          } catch (error) {
-            console.error('[Verification Document Proxy] Error streaming document:', error);
-            res.end();
-          }
-        };
-        await pump();
-      } else {
-        const arrayBuffer = await fetchRes.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        res.send(buffer);
+          };
+          await pump();
+        } else {
+          const arrayBuffer = await fetchRes.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          res.send(buffer);
+        }
+      } catch (urlError: any) {
+        console.error('[Verification Document] URL parsing error:', urlError);
+        return res.status(500).send("Failed to parse document URL");
       }
     } catch (error: any) {
       console.error("Serve verification document error:", error);
