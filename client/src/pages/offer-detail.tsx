@@ -121,6 +121,17 @@ const getCommissionTypeLabel = (offer: any) => {
   return offer.commissionType.replace(/_/g, " ");
 };
 
+// Helper to show a short company highlight instead of the full bio
+const getCompanyHighlight = (description: string | undefined | null, maxLength = 200) => {
+  if (!description) return "";
+
+  // Use the first paragraph/line as the highlight
+  const firstParagraph = description.split(/\n\s*\n?/)[0]?.trim() || "";
+  if (firstParagraph.length <= maxLength) return firstParagraph;
+
+  return `${firstParagraph.slice(0, maxLength).trimEnd()}...`;
+};
+
 // Helper to format response time for display
 const formatResponseTime = (hours: number | null | undefined) => {
   if (hours === null || hours === undefined) return "No responses yet";
@@ -447,10 +458,12 @@ export default function OfferDetail() {
   });
 
   // Calculate average rating
-  const averageRating = offer?.company?.averageRating || 
-    (reviews && reviews.length > 0 
-      ? reviews.reduce((acc: number, r: any) => acc + (r.overallRating || 0), 0) / reviews.length 
+  const averageRating = offer?.company?.averageRating ||
+    (reviews && reviews.length > 0
+      ? reviews.reduce((acc: number, r: any) => acc + (r.overallRating || 0), 0) / reviews.length
       : 0);
+
+  const companyHighlight = getCompanyHighlight(offer?.company?.description);
 
   // Loading state
   if (isLoading || offerLoading) {
@@ -596,9 +609,9 @@ export default function OfferDetail() {
                   )}
                   
                   {/* Company Description - NEW: Added */}
-                  {offer.company?.description && (
+                  {companyHighlight && (
                     <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
-                      {offer.company.description}
+                      {companyHighlight}
                     </p>
                   )}
                 </div>
@@ -936,9 +949,9 @@ export default function OfferDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {offer.company.description && (
+                {companyHighlight && (
                   <p className="text-muted-foreground text-base sm:text-lg whitespace-pre-wrap leading-relaxed">
-                    {offer.company.description}
+                    {companyHighlight}
                   </p>
                 )}
 
