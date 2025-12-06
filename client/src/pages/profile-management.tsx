@@ -2046,7 +2046,7 @@ export default function Settings() {
                       disabled={isProfileEditingDisabled}
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground" data-testid="bio-readonly">
+                    <p className="text-sm font-semibold text-muted-foreground" data-testid="bio-readonly">
                       {bio?.trim() ? bio : "Add a short bio to tell companies about yourself."}
                     </p>
                   )}
