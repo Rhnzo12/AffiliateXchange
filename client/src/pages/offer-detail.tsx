@@ -562,7 +562,7 @@ export default function OfferDetail() {
                     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
                       {offer.company?.tradeName || offer.company?.legalName || offer.title}
                     </h1>
-                    {offer.company?.status === 'approved' && (
+                    {offer.company?.websiteVerified && (
                       <Badge className="bg-green-500 hover:bg-green-600 text-white gap-1.5 px-3 py-1 text-sm">
                         <Verified className="h-4 w-4" />
                         Verified
