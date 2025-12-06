@@ -43,6 +43,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import { Checkbox } from "../components/ui/checkbox";
 import { Badge } from "../components/ui/badge";
+import { Switch } from "../components/ui/switch";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { proxiedSrc } from "../lib/image";
@@ -162,6 +163,9 @@ export default function Settings() {
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const [syncingPlatform, setSyncingPlatform] = useState<string | null>(null);
   const [disconnectingPlatform, setDisconnectingPlatform] = useState<string | null>(null);
+  const [showConnectionDialog, setShowConnectionDialog] = useState(false);
+  const [connectionDialogPlatform, setConnectionDialogPlatform] = useState<'youtube' | 'tiktok' | 'instagram' | null>(null);
+  const [connectionDialogUrl, setConnectionDialogUrl] = useState("");
 
   // Password change states
   const [currentPassword, setCurrentPassword] = useState("");
@@ -1300,33 +1304,40 @@ export default function Settings() {
   });
 
   // Social connection handlers
-  const handleConnectPlatform = async (platform: 'youtube' | 'tiktok' | 'instagram') => {
-    // Get the current URL for this platform from state
-    const urlMap = {
-      youtube: youtubeUrl,
-      tiktok: tiktokUrl,
-      instagram: instagramUrl,
-    };
+  const openConnectionDialog = (platform: 'youtube' | 'tiktok' | 'instagram') => {
+    setConnectionDialogPlatform(platform);
+    setConnectionDialogUrl("");
+    setShowConnectionDialog(true);
+  };
 
-    const profileUrl = urlMap[platform];
+  const handleConnectionToggle = async (platform: 'youtube' | 'tiktok' | 'instagram', isConnected: boolean) => {
+    if (isConnected) {
+      // Disconnect
+      await handleDisconnectPlatform(platform);
+    } else {
+      // Open connection dialog
+      openConnectionDialog(platform);
+    }
+  };
 
-    if (!profileUrl) {
+  const handleConnectionDialogSubmit = async () => {
+    if (!connectionDialogPlatform || !connectionDialogUrl) {
       toast({
         title: "URL Required",
-        description: `Please enter your ${platform.charAt(0).toUpperCase() + platform.slice(1)} profile URL first`,
+        description: "Please enter your profile URL",
         variant: "destructive",
       });
       return;
     }
 
-    setConnectingPlatform(platform);
+    setConnectingPlatform(connectionDialogPlatform);
 
     try {
-      const response = await fetch(`/api/social-connections/${platform}/connect`, {
+      const response = await fetch(`/api/social-connections/${connectionDialogPlatform}/connect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ profileUrl }),
+        body: JSON.stringify({ profileUrl: connectionDialogUrl }),
       });
 
       if (!response.ok) {
@@ -1339,9 +1350,19 @@ export default function Settings() {
       // Update local state with fetched follower counts
       if (result.connection) {
         const followers = result.connection.followerCount;
-        if (platform === 'youtube') setYoutubeFollowers(followers?.toString() || "");
-        if (platform === 'tiktok') setTiktokFollowers(followers?.toString() || "");
-        if (platform === 'instagram') setInstagramFollowers(followers?.toString() || "");
+        const platform = connectionDialogPlatform;
+        if (platform === 'youtube') {
+          setYoutubeUrl(connectionDialogUrl);
+          setYoutubeFollowers(followers?.toString() || "");
+        }
+        if (platform === 'tiktok') {
+          setTiktokUrl(connectionDialogUrl);
+          setTiktokFollowers(followers?.toString() || "");
+        }
+        if (platform === 'instagram') {
+          setInstagramUrl(connectionDialogUrl);
+          setInstagramFollowers(followers?.toString() || "");
+        }
       }
 
       queryClient.invalidateQueries({ queryKey: ["/api/social-connections"] });
@@ -1349,13 +1370,17 @@ export default function Settings() {
 
       toast({
         title: "Account Connected",
-        description: `Your ${platform.charAt(0).toUpperCase() + platform.slice(1)} account has been connected successfully`,
+        description: `Your ${connectionDialogPlatform.charAt(0).toUpperCase() + connectionDialogPlatform.slice(1)} account has been connected successfully`,
       });
+
+      setShowConnectionDialog(false);
+      setConnectionDialogPlatform(null);
+      setConnectionDialogUrl("");
     } catch (error: any) {
-      console.error(`Error connecting ${platform}:`, error);
+      console.error(`Error connecting ${connectionDialogPlatform}:`, error);
       toast({
         title: "Connection Failed",
-        description: error.message || `Failed to connect ${platform} account`,
+        description: error.message || `Failed to connect account`,
         variant: "destructive",
       });
     } finally {
@@ -2071,267 +2096,103 @@ export default function Settings() {
                 </Alert>
               </div>
 
-              {/* Platform Input Fields with Rela Integration */}
-              <div className="space-y-6">
-                {/* YouTube */}
-                <div className={`p-4 border rounded-lg space-y-4 ${getConnectionForPlatform('youtube') ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : 'bg-muted/20'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <RelaLogo className="h-7 w-7" />
-                      <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                        <Video className="h-4 w-4 text-red-600" />
-                      </div>
-                      <span className="font-medium">YouTube</span>
-                      {getConnectionForPlatform('youtube') && (
-                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Connected
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getConnectionForPlatform('youtube') ? (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSyncPlatform('youtube')}
-                            disabled={syncingPlatform === 'youtube'}
-                          >
-                            <RefreshCw className={`h-4 w-4 mr-1 ${syncingPlatform === 'youtube' ? 'animate-spin' : ''}`} />
-                            {syncingPlatform === 'youtube' ? 'Syncing...' : 'Sync'}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDisconnectPlatform('youtube')}
-                            disabled={disconnectingPlatform === 'youtube'}
-                          >
-                            <Unlink className="h-4 w-4 mr-1" />
-                            {disconnectingPlatform === 'youtube' ? 'Disconnecting...' : 'Disconnect'}
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => handleConnectPlatform('youtube')}
-                          disabled={connectingPlatform === 'youtube' || !youtubeUrl}
-                          className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-                        >
-                          <Link2 className="h-4 w-4 mr-1" />
-                          {connectingPlatform === 'youtube' ? 'Connecting...' : 'Connect'}
-                        </Button>
-                      )}
-                    </div>
+              {/* Connected Accounts Section */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold">Connected Accounts</h3>
+
+                {/* Security Notice */}
+                <div className="flex items-start gap-3 p-4 bg-muted/30 rounded-lg border">
+                  <div className="h-6 w-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="youtube">Channel URL</Label>
-                      <Input
-                        id="youtube"
-                        type="url"
-                        placeholder="https://youtube.com/@yourchannel"
-                        value={youtubeUrl}
-                        onChange={(e) => setYoutubeUrl(e.target.value)}
-                        data-testid="input-youtube"
-                        disabled={!!getConnectionForPlatform('youtube')}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="youtube-followers">Subscribers {getConnectionForPlatform('youtube') && <span className="text-xs text-muted-foreground">(auto-synced)</span>}</Label>
-                      <Input
-                        id="youtube-followers"
-                        type="number"
-                        placeholder="10000"
-                        value={youtubeFollowers}
-                        onChange={(e) => setYoutubeFollowers(e.target.value)}
-                        data-testid="input-youtube-followers"
-                        disabled={!!getConnectionForPlatform('youtube')}
-                        className={getConnectionForPlatform('youtube') ? 'bg-muted' : ''}
-                      />
-                    </div>
+                  <div>
+                    <p className="font-medium text-sm">Secure Your Account</p>
+                    <p className="text-sm text-muted-foreground">
+                      Connect your social accounts to automatically sync followers and verify your profile. Your data is securely stored and never shared.
+                    </p>
                   </div>
-                  {getConnectionForPlatform('youtube') && (
-                    <div className="text-xs text-muted-foreground flex items-center gap-2">
-                      <CheckCircle2 className="h-3 w-3 text-green-600" />
-                      Last synced: {getConnectionForPlatform('youtube')?.lastSyncedAt ? new Date(getConnectionForPlatform('youtube')!.lastSyncedAt!).toLocaleString() : 'Just now'}
-                    </div>
-                  )}
                 </div>
 
-                {/* TikTok */}
-                <div className={`p-4 border rounded-lg space-y-4 ${getConnectionForPlatform('tiktok') ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : 'bg-muted/20'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <RelaLogo className="h-7 w-7" />
-                      <div className="h-8 w-8 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center">
-                        <Video className="h-4 w-4" />
+                {/* Platform Connection Cards */}
+                <div className="divide-y border rounded-lg bg-card">
+                  {/* YouTube */}
+                  <div className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                        <svg className="h-6 w-6 text-red-600" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
                       </div>
-                      <span className="font-medium">TikTok</span>
-                      {getConnectionForPlatform('tiktok') && (
-                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Connected
-                        </Badge>
-                      )}
+                      <div>
+                        <p className="font-medium">YouTube</p>
+                        <p className="text-sm text-muted-foreground">
+                          {getConnectionForPlatform('youtube')
+                            ? `${getConnectionForPlatform('youtube')?.followerCount?.toLocaleString() || 0} subscribers`
+                            : 'Connect your channel'}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {getConnectionForPlatform('tiktok') ? (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSyncPlatform('tiktok')}
-                            disabled={syncingPlatform === 'tiktok'}
-                          >
-                            <RefreshCw className={`h-4 w-4 mr-1 ${syncingPlatform === 'tiktok' ? 'animate-spin' : ''}`} />
-                            {syncingPlatform === 'tiktok' ? 'Syncing...' : 'Sync'}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDisconnectPlatform('tiktok')}
-                            disabled={disconnectingPlatform === 'tiktok'}
-                          >
-                            <Unlink className="h-4 w-4 mr-1" />
-                            {disconnectingPlatform === 'tiktok' ? 'Disconnecting...' : 'Disconnect'}
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => handleConnectPlatform('tiktok')}
-                          disabled={connectingPlatform === 'tiktok' || !tiktokUrl}
-                          className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-                        >
-                          <Link2 className="h-4 w-4 mr-1" />
-                          {connectingPlatform === 'tiktok' ? 'Connecting...' : 'Connect'}
-                        </Button>
-                      )}
-                    </div>
+                    <Switch
+                      checked={!!getConnectionForPlatform('youtube')}
+                      onCheckedChange={(checked) => handleConnectionToggle('youtube', !checked)}
+                      disabled={connectingPlatform === 'youtube' || disconnectingPlatform === 'youtube'}
+                    />
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="tiktok">Profile URL</Label>
-                      <Input
-                        id="tiktok"
-                        type="url"
-                        placeholder="https://tiktok.com/@yourusername"
-                        value={tiktokUrl}
-                        onChange={(e) => setTiktokUrl(e.target.value)}
-                        data-testid="input-tiktok"
-                        disabled={!!getConnectionForPlatform('tiktok')}
-                      />
+
+                  {/* TikTok */}
+                  <div className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-black/10 dark:bg-white/10 flex items-center justify-center">
+                        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium">TikTok</p>
+                        <p className="text-sm text-muted-foreground">
+                          {getConnectionForPlatform('tiktok')
+                            ? `${getConnectionForPlatform('tiktok')?.followerCount?.toLocaleString() || 0} followers`
+                            : 'Connect your profile'}
+                        </p>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tiktok-followers">Followers {getConnectionForPlatform('tiktok') && <span className="text-xs text-muted-foreground">(auto-synced)</span>}</Label>
-                      <Input
-                        id="tiktok-followers"
-                        type="number"
-                        placeholder="50000"
-                        value={tiktokFollowers}
-                        onChange={(e) => setTiktokFollowers(e.target.value)}
-                        data-testid="input-tiktok-followers"
-                        disabled={!!getConnectionForPlatform('tiktok')}
-                        className={getConnectionForPlatform('tiktok') ? 'bg-muted' : ''}
-                      />
-                    </div>
+                    <Switch
+                      checked={!!getConnectionForPlatform('tiktok')}
+                      onCheckedChange={(checked) => handleConnectionToggle('tiktok', !checked)}
+                      disabled={connectingPlatform === 'tiktok' || disconnectingPlatform === 'tiktok'}
+                    />
                   </div>
-                  {getConnectionForPlatform('tiktok') && (
-                    <div className="text-xs text-muted-foreground flex items-center gap-2">
-                      <CheckCircle2 className="h-3 w-3 text-green-600" />
-                      Last synced: {getConnectionForPlatform('tiktok')?.lastSyncedAt ? new Date(getConnectionForPlatform('tiktok')!.lastSyncedAt!).toLocaleString() : 'Just now'}
+
+                  {/* Instagram */}
+                  <div className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                        <svg className="h-6 w-6 text-pink-600" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium">Instagram</p>
+                        <p className="text-sm text-muted-foreground">
+                          {getConnectionForPlatform('instagram')
+                            ? `${getConnectionForPlatform('instagram')?.followerCount?.toLocaleString() || 0} followers`
+                            : 'Connect your profile'}
+                        </p>
+                      </div>
                     </div>
-                  )}
+                    <Switch
+                      checked={!!getConnectionForPlatform('instagram')}
+                      onCheckedChange={(checked) => handleConnectionToggle('instagram', !checked)}
+                      disabled={connectingPlatform === 'instagram' || disconnectingPlatform === 'instagram'}
+                    />
+                  </div>
                 </div>
 
-                {/* Instagram */}
-                <div className={`p-4 border rounded-lg space-y-4 ${getConnectionForPlatform('instagram') ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : 'bg-muted/20'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <RelaLogo className="h-7 w-7" />
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-                        <Video className="h-4 w-4 text-pink-600" />
-                      </div>
-                      <span className="font-medium">Instagram</span>
-                      {getConnectionForPlatform('instagram') && (
-                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Connected
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getConnectionForPlatform('instagram') ? (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSyncPlatform('instagram')}
-                            disabled={syncingPlatform === 'instagram'}
-                          >
-                            <RefreshCw className={`h-4 w-4 mr-1 ${syncingPlatform === 'instagram' ? 'animate-spin' : ''}`} />
-                            {syncingPlatform === 'instagram' ? 'Syncing...' : 'Sync'}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDisconnectPlatform('instagram')}
-                            disabled={disconnectingPlatform === 'instagram'}
-                          >
-                            <Unlink className="h-4 w-4 mr-1" />
-                            {disconnectingPlatform === 'instagram' ? 'Disconnecting...' : 'Disconnect'}
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => handleConnectPlatform('instagram')}
-                          disabled={connectingPlatform === 'instagram' || !instagramUrl}
-                          className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-                        >
-                          <Link2 className="h-4 w-4 mr-1" />
-                          {connectingPlatform === 'instagram' ? 'Connecting...' : 'Connect'}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="instagram">Profile URL</Label>
-                      <Input
-                        id="instagram"
-                        type="url"
-                        placeholder="https://instagram.com/yourusername"
-                        value={instagramUrl}
-                        onChange={(e) => setInstagramUrl(e.target.value)}
-                        data-testid="input-instagram"
-                        disabled={!!getConnectionForPlatform('instagram')}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="instagram-followers">Followers {getConnectionForPlatform('instagram') && <span className="text-xs text-muted-foreground">(auto-synced)</span>}</Label>
-                      <Input
-                        id="instagram-followers"
-                        type="number"
-                        placeholder="25000"
-                        value={instagramFollowers}
-                        onChange={(e) => setInstagramFollowers(e.target.value)}
-                        data-testid="input-instagram-followers"
-                        disabled={!!getConnectionForPlatform('instagram')}
-                        className={getConnectionForPlatform('instagram') ? 'bg-muted' : ''}
-                      />
-                    </div>
-                  </div>
-                  {getConnectionForPlatform('instagram') && (
-                    <div className="text-xs text-muted-foreground flex items-center gap-2">
-                      <CheckCircle2 className="h-3 w-3 text-green-600" />
-                      Last synced: {getConnectionForPlatform('instagram')?.lastSyncedAt ? new Date(getConnectionForPlatform('instagram')!.lastSyncedAt!).toLocaleString() : 'Just now'}
-                    </div>
-                  )}
+                {/* Powered by Rela */}
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <span className="text-xs text-muted-foreground">Powered by</span>
+                  <RelaLogo className="h-5 w-5" />
+                  <span className="text-xs font-medium">Rela</span>
                 </div>
               </div>
 
@@ -2832,6 +2693,108 @@ export default function Settings() {
               onClick={() => setIsPdfViewerOpen(false)}
             >
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Social Account Connection Dialog */}
+      <Dialog open={showConnectionDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowConnectionDialog(false);
+          setConnectionDialogPlatform(null);
+          setConnectionDialogUrl("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              {connectionDialogPlatform === 'youtube' && (
+                <div className="h-10 w-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <svg className="h-6 w-6 text-red-600" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
+                </div>
+              )}
+              {connectionDialogPlatform === 'tiktok' && (
+                <div className="h-10 w-10 rounded-lg bg-black/10 dark:bg-white/10 flex items-center justify-center">
+                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                  </svg>
+                </div>
+              )}
+              {connectionDialogPlatform === 'instagram' && (
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                  <svg className="h-6 w-6 text-pink-600" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                </div>
+              )}
+              Connect {connectionDialogPlatform ? connectionDialogPlatform.charAt(0).toUpperCase() + connectionDialogPlatform.slice(1) : ''} Account
+            </DialogTitle>
+            <DialogDescription>
+              Enter your {connectionDialogPlatform === 'youtube' ? 'channel' : 'profile'} URL to connect your account and automatically sync your follower data.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="connection-url">
+                {connectionDialogPlatform === 'youtube' ? 'Channel URL' : 'Profile URL'}
+              </Label>
+              <Input
+                id="connection-url"
+                type="url"
+                placeholder={
+                  connectionDialogPlatform === 'youtube'
+                    ? 'https://youtube.com/@yourchannel'
+                    : connectionDialogPlatform === 'tiktok'
+                    ? 'https://tiktok.com/@yourusername'
+                    : 'https://instagram.com/yourusername'
+                }
+                value={connectionDialogUrl}
+                onChange={(e) => setConnectionDialogUrl(e.target.value)}
+                disabled={connectingPlatform !== null}
+              />
+            </div>
+
+            <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+              <RelaLogo className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-muted-foreground">
+                <p className="font-medium mb-1">Powered by Rela</p>
+                <p>We'll securely fetch your public profile data including follower count, videos, and engagement metrics.</p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowConnectionDialog(false);
+                setConnectionDialogPlatform(null);
+                setConnectionDialogUrl("");
+              }}
+              disabled={connectingPlatform !== null}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConnectionDialogSubmit}
+              disabled={!connectionDialogUrl || connectingPlatform !== null}
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+            >
+              {connectingPlatform ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Connect Account
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
