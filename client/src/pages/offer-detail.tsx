@@ -666,7 +666,7 @@ export default function OfferDetail() {
                       </Badge>
                     )}
                   </div>
-                  
+
                   {/* Star Rating - IMPROVED: Better styling */}
                   {averageRating > 0 && (
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -691,7 +691,34 @@ export default function OfferDetail() {
                       </span>
                     </div>
                   )}
-                  
+
+                  {/* Company quick info - show industry and website */}
+                  {(offer.company?.industry || offer.company?.websiteUrl) && (
+                    <div className="flex flex-wrap items-center gap-3 mb-4 text-sm text-gray-700">
+                      {offer.company?.industry && (
+                        <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg capitalize">
+                          <TrendingUp className="h-4 w-4 text-primary" />
+                          <span>{offer.company.industry.replace(/_/g, ' ')}</span>
+                        </div>
+                      )}
+
+                      {offer.company?.websiteUrl && (
+                        <a
+                          href={offer.company.websiteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-primary hover:underline break-all"
+                        >
+                          <Globe className="h-4 w-4" />
+                          <span className="truncate max-w-xs sm:max-w-sm">
+                            {offer.company.websiteUrl.replace(/^https?:\/\//, '')}
+                          </span>
+                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                        </a>
+                      )}
+                    </div>
+                  )}
+
                   {/* Company Description - NEW: Added */}
                   {companyHighlight && (
                     <div className="space-y-2">
@@ -1040,103 +1067,6 @@ export default function OfferDetail() {
             </CardContent>
           </Card>
 
-          {/* About the Company */}
-          {offer.company && (
-            <Card className="mt-6 rounded-2xl shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-xl sm:text-2xl lg:text-3xl flex items-center gap-3">
-                  <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-                  About {offer.company.tradeName || offer.company.legalName}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {companyHighlight && (
-                  <div className="space-y-2">
-                    <p
-                      className={`text-muted-foreground text-base sm:text-lg leading-relaxed ${
-                        showFullCompanyDescription ? "whitespace-pre-wrap" : ""
-                      }`}
-                    >
-                      {visibleCompanyDescription}
-                    </p>
-
-                    {hasMoreCompanyDescription && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-auto"
-                        onClick={() => setShowFullCompanyDescription((prev) => !prev)}
-                      >
-                        {showFullCompanyDescription ? "See less" : "See more"}
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                <div className="grid gap-4">
-                  {offer.company.industry && (
-                    <div className="flex items-start gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <TrendingUp className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Industry</div>
-                        <div className="text-sm text-muted-foreground capitalize">
-                          {offer.company.industry.replace(/_/g, ' ')}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {offer.company.websiteUrl && (
-                    <div className="flex items-start gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Globe className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium">Website</div>
-                        <a 
-                          href={offer.company.websiteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline break-all flex items-center gap-1"
-                        >
-                          {offer.company.websiteUrl.replace(/^https?:\/\//, '')}
-                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                        </a>
-                      </div>
-                    </div>
-                  )}
-
-                  {offer.company.yearFounded && (
-                    <div className="flex items-start gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Clock className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Founded</div>
-                        <div className="text-sm text-muted-foreground">{offer.company.yearFounded}</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {offer.company.companySize && (
-                    <div className="flex items-start gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Users className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Company Size</div>
-                        <div className="text-sm text-muted-foreground capitalize">
-                          {offer.company.companySize.replace(/_/g, ' ')}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* Videos Section */}
