@@ -710,14 +710,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('[Verification Document] Extracted public_id:', publicId);
         console.log('[Verification Document] Resource type:', resourceType);
 
-        // Use Cloudinary's private_download_url for authenticated assets
-        // This generates a signed URL that expires after 1 hour
-        const signedUrl = cloudinary.utils.private_download_url(publicId, 'pdf', {
+        // Detect file format from the document name or URL
+        const fileExtension = document.documentName.split('.').pop()?.toLowerCase() ||
+                             publicIdWithExt.split('.').pop()?.toLowerCase() || 'pdf';
+        console.log('[Verification Document] Detected format:', fileExtension);
+
+        // Generate a standard signed URL for the document
+        // Using type: 'upload' (default) which works for standard uploads
+        const signedUrl = cloudinary.url(publicId, {
           resource_type: resourceType as any,
-          expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+          secure: true,
+          sign_url: true,
+          type: 'upload',
+          format: fileExtension,
         });
 
-        console.log('[Verification Document] Generated private download URL');
+        console.log('[Verification Document] Generated signed URL');
 
         // Fetch the document from Cloudinary using signed URL
         const fetchRes = await fetch(signedUrl, {
@@ -731,41 +739,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('[Verification Document Proxy] Failed to fetch:', fetchRes.status, fetchRes.statusText);
           console.error('[Verification Document Proxy] Tried URL:', signedUrl);
 
-          // If private_download_url fails, try with sign_url method
-          console.log('[Verification Document] Trying alternate signing method');
-          const altSignedUrl = cloudinary.url(publicId, {
+          // Try without format specifier (let Cloudinary auto-detect)
+          console.log('[Verification Document] Trying without format specifier');
+          const autoDetectUrl = cloudinary.url(publicId, {
             resource_type: resourceType as any,
             secure: true,
             sign_url: true,
-            type: 'authenticated',
-            format: 'pdf',
+            type: 'upload',
           });
 
-          const altFetchRes = await fetch(altSignedUrl, {
+          const autoDetectRes = await fetch(autoDetectUrl, {
             method: "GET",
             headers: {
               'User-Agent': 'AffiliateXchange-Server/1.0',
             },
           });
 
-          if (!altFetchRes.ok) {
-            console.error('[Verification Document Proxy] Alternate method also failed:', altFetchRes.status);
-            return res.status(altFetchRes.status).send("Failed to fetch document from Cloudinary");
+          if (!autoDetectRes.ok) {
+            console.error('[Verification Document Proxy] Auto-detect also failed:', autoDetectRes.status);
+            return res.status(autoDetectRes.status).send("Failed to fetch document from Cloudinary");
           }
 
-          // Use the alternate fetch response
-          const contentType = altFetchRes.headers.get("content-type");
+          // Use the auto-detect response
+          const contentType = autoDetectRes.headers.get("content-type");
           if (contentType) res.setHeader("Content-Type", contentType);
 
-          const contentLength = altFetchRes.headers.get("content-length");
+          const contentLength = autoDetectRes.headers.get("content-length");
           if (contentLength) res.setHeader("Content-Length", contentLength);
 
           if (document.documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
             res.setHeader("Content-Disposition", `inline; filename="${document.documentName}"`);
           }
 
-          if (altFetchRes.body) {
-            const reader = altFetchRes.body.getReader();
+          if (autoDetectRes.body) {
+            const reader = autoDetectRes.body.getReader();
             const pump = async () => {
               try {
                 while (true) {
@@ -781,7 +788,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
             await pump();
           } else {
-            const arrayBuffer = await altFetchRes.arrayBuffer();
+            const arrayBuffer = await autoDetectRes.arrayBuffer();
             const buffer = Buffer.from(arrayBuffer);
             res.send(buffer);
           }

@@ -518,7 +518,6 @@ export default function Settings() {
         body: JSON.stringify({
           folder,
           resourceType: 'image', // Use 'image' for both images and PDFs - Cloudinary handles PDFs under image type
-          type: "private",
           contentType: file.type,
           fileName: file.name
         }),
