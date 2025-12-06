@@ -638,11 +638,14 @@ export default function Settings() {
       });
       return;
     }
-    // For PDFs, use Google Docs Viewer for better compatibility with Cloudinary
-    let viewerUrl = documentUrl;
-    if (documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
-      viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(documentUrl)}&embedded=true`;
-    }
+
+    // Use proxiedSrc to get authenticated URL for private Cloudinary files
+    const proxiedUrl = proxiedSrc(documentUrl);
+
+    // Use the proxied URL directly - browser's native PDF viewer will handle PDFs
+    // and images will display directly
+    const viewerUrl = proxiedUrl || documentUrl;
+
     // Open the document in a dialog viewer
     setCurrentDocumentUrl(viewerUrl);
     setCurrentDocumentName(documentName);
@@ -659,8 +662,9 @@ export default function Settings() {
       });
       return;
     }
-    // Open the original URL directly
-    window.open(documentUrl, '_blank');
+    // Use proxiedSrc to get authenticated URL for private Cloudinary files
+    const proxiedUrl = proxiedSrc(documentUrl);
+    window.open(proxiedUrl || documentUrl, '_blank');
   };
 
   const formatFileSize = (bytes: number | null): string => {
