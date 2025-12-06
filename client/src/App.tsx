@@ -278,6 +278,11 @@ function ProtectedRouter() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [location] = useLocation();
 
+  // Handle OAuth callback page separately (no sidebar/layout needed)
+  if (location.startsWith('/oauth-callback')) {
+    return <OAuthCallback />;
+  }
+
   // Fetch conversations to get unread count
   const { data: conversations } = useQuery<any[]>({
     queryKey: ["/api/conversations"],
