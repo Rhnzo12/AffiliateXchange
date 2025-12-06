@@ -2046,12 +2046,9 @@ export default function Settings() {
                       disabled={isProfileEditingDisabled}
                     />
                   ) : (
-                    <div
-                      className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
-                      data-testid="bio-readonly"
-                    >
+                    <p className="text-sm text-muted-foreground" data-testid="bio-readonly">
                       {bio?.trim() ? bio : "Add a short bio to tell companies about yourself."}
-                    </div>
+                    </p>
                   )}
                 </div>
               </div>
@@ -2112,15 +2109,17 @@ export default function Settings() {
                       return (
                         <Badge key={nicheValue} variant="secondary" className="gap-1 px-3 py-1">
                           {niche?.label || nicheValue}
-                          <button
-                            type="button"
-                            onClick={() => removeNiche(nicheValue)}
-                            className="ml-1 hover:text-destructive transition-colors"
-                            aria-label={`Remove ${niche?.label || nicheValue}`}
-                            disabled={isProfileEditingDisabled}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
+                          {isProfileEditMode && (
+                            <button
+                              type="button"
+                              onClick={() => removeNiche(nicheValue)}
+                              className="ml-1 hover:text-destructive transition-colors"
+                              aria-label={`Remove ${niche?.label || nicheValue}`}
+                              disabled={isProfileEditingDisabled}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
                         </Badge>
                       );
                     })}
@@ -2199,7 +2198,7 @@ export default function Settings() {
                       checked={!!getConnectionForPlatform('youtube')}
                       onCheckedChange={(checked) => handleConnectionToggle('youtube', !checked)}
                       disabled={
-                        isProfileEditingDisabled ||
+                        updateProfileMutation.isPending ||
                         connectingPlatform === 'youtube' ||
                         disconnectingPlatform === 'youtube'
                       }
@@ -2227,7 +2226,7 @@ export default function Settings() {
                       checked={!!getConnectionForPlatform('tiktok')}
                       onCheckedChange={(checked) => handleConnectionToggle('tiktok', !checked)}
                       disabled={
-                        isProfileEditingDisabled ||
+                        updateProfileMutation.isPending ||
                         connectingPlatform === 'tiktok' ||
                         disconnectingPlatform === 'tiktok'
                       }
@@ -2255,7 +2254,7 @@ export default function Settings() {
                       checked={!!getConnectionForPlatform('instagram')}
                       onCheckedChange={(checked) => handleConnectionToggle('instagram', !checked)}
                       disabled={
-                        isProfileEditingDisabled ||
+                        updateProfileMutation.isPending ||
                         connectingPlatform === 'instagram' ||
                         disconnectingPlatform === 'instagram'
                       }
