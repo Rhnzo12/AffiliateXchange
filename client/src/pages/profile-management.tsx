@@ -159,6 +159,8 @@ export default function Settings() {
   // Dialog state for video platform warning
   const [showVideoPlatformDialog, setShowVideoPlatformDialog] = useState(false);
 
+  const [isProfileEditMode, setIsProfileEditMode] = useState(false);
+
   // Social connection states
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const [syncingPlatform, setSyncingPlatform] = useState<string | null>(null);
@@ -1284,6 +1286,7 @@ export default function Settings() {
       return result;
     },
     onSuccess: () => {
+      setIsProfileEditMode(false);
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       // Clear saved form data from localStorage since changes are now persisted
@@ -1511,6 +1514,15 @@ export default function Settings() {
     updateProfileMutation.mutate();
   };
 
+  const handleProfileActionClick = () => {
+    if (!isProfileEditMode) {
+      setIsProfileEditMode(true);
+      return;
+    }
+
+    handleSaveProfile();
+  };
+
   // Define navigation sections based on user role
   const settingsSections: SettingsSection[] = useMemo(() => {
     const sections: SettingsSection[] = [
@@ -1522,6 +1534,8 @@ export default function Settings() {
     ];
     return sections;
   }, []);
+
+  const isProfileEditingDisabled = !isProfileEditMode || updateProfileMutation.isPending;
 
   return (
     <div className="min-h-screen bg-background">
@@ -1538,8 +1552,21 @@ export default function Settings() {
           <div className="flex-1 space-y-8 min-w-0 max-w-4xl">
 
       <Card id="profile-info" className="border-card-border scroll-mt-24">
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 flex items-center justify-between gap-4">
           <CardTitle>Profile Information</CardTitle>
+          <Button
+            size="sm"
+            onClick={handleProfileActionClick}
+            disabled={updateProfileMutation.isPending}
+            variant={isProfileEditMode ? "default" : "outline"}
+            data-testid="button-save-profile"
+          >
+            {updateProfileMutation.isPending
+              ? "Saving..."
+              : isProfileEditMode
+              ? "Save"
+              : "Edit Profile"}
+          </Button>
         </CardHeader>
         <CardContent className="space-y-8">
 
@@ -1568,14 +1595,14 @@ export default function Settings() {
                     type="file"
                     accept="image/*"
                     onChange={handleLogoUpload}
-                    disabled={isUploadingLogo}
+                    disabled={isProfileEditingDisabled || isUploadingLogo}
                     className="hidden"
                     id="logo-upload"
                   />
                   <Button
                     type="button"
                     size="sm"
-                    disabled={isUploadingLogo}
+                    disabled={isProfileEditingDisabled || isUploadingLogo}
                     onClick={() => document.getElementById('logo-upload')?.click()}
                   >
                     {isUploadingLogo ? 'Uploading...' : 'Upload New'}
@@ -1585,6 +1612,7 @@ export default function Settings() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      disabled={isProfileEditingDisabled}
                       onClick={() => setLogoUrl("")}
                     >
                       Delete Logo
@@ -1604,6 +1632,7 @@ export default function Settings() {
                     value={tradeName}
                     onChange={(e) => setTradeName(e.target.value)}
                     data-testid="input-trade-name"
+                    disabled={isProfileEditingDisabled}
                   />
                 </div>
 
@@ -1616,13 +1645,14 @@ export default function Settings() {
                     value={legalName}
                     onChange={(e) => setLegalName(e.target.value)}
                     data-testid="input-legal-name"
+                    disabled={isProfileEditingDisabled}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="industry">Industry</Label>
-                  <Select value={industry} onValueChange={setIndustry}>
-                    <SelectTrigger id="industry" data-testid="select-industry">
+                  <Select value={industry} onValueChange={setIndustry} disabled={isProfileEditingDisabled}>
+                    <SelectTrigger id="industry" data-testid="select-industry" disabled={isProfileEditingDisabled}>
                       <SelectValue placeholder="Select your industry" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1654,6 +1684,7 @@ export default function Settings() {
                     value={websiteUrl}
                     onChange={(e) => setWebsiteUrl(e.target.value)}
                     data-testid="input-website-url"
+                    disabled={isProfileEditingDisabled}
                   />
                 </div>
 
@@ -1666,6 +1697,7 @@ export default function Settings() {
                     value={contactName}
                     onChange={(e) => setContactName(e.target.value)}
                     data-testid="input-contact-name"
+                    disabled={isProfileEditingDisabled}
                   />
                 </div>
 
@@ -1678,6 +1710,7 @@ export default function Settings() {
                     value={contactJobTitle}
                     onChange={(e) => setContactJobTitle(e.target.value)}
                     data-testid="input-contact-job-title"
+                    disabled={isProfileEditingDisabled}
                   />
                 </div>
 
@@ -1690,13 +1723,14 @@ export default function Settings() {
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     data-testid="input-phone-number"
+                    disabled={isProfileEditingDisabled}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="companySize">Company Size</Label>
-                  <Select value={companySize} onValueChange={setCompanySize}>
-                    <SelectTrigger id="companySize" data-testid="select-company-size">
+                  <Select value={companySize} onValueChange={setCompanySize} disabled={isProfileEditingDisabled}>
+                    <SelectTrigger id="companySize" data-testid="select-company-size" disabled={isProfileEditingDisabled}>
                       <SelectValue placeholder="Select company size" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1720,6 +1754,7 @@ export default function Settings() {
                     value={yearFounded}
                     onChange={(e) => setYearFounded(e.target.value)}
                     data-testid="input-year-founded"
+                    disabled={isProfileEditingDisabled}
                   />
                 </div>
               </div>
@@ -1734,6 +1769,7 @@ export default function Settings() {
                   onChange={(e) => setCompanyDescription(e.target.value)}
                   className="min-h-24"
                   data-testid="textarea-company-description"
+                  disabled={isProfileEditingDisabled}
                 />
               </div>
 
@@ -1746,6 +1782,7 @@ export default function Settings() {
                   onChange={(e) => setBusinessAddress(e.target.value)}
                   className="min-h-20"
                   data-testid="textarea-business-address"
+                  disabled={isProfileEditingDisabled}
                 />
               </div>
 
@@ -1808,6 +1845,7 @@ export default function Settings() {
                             className="h-8 w-8"
                             onClick={() => handleRemoveDocument(doc.id)}
                             title="Delete document"
+                            disabled={isProfileEditingDisabled}
                           >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
@@ -1824,15 +1862,16 @@ export default function Settings() {
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
                       onChange={handleDocumentUpload}
-                      disabled={isUploadingDocument}
+                      disabled={isProfileEditingDisabled || isUploadingDocument}
                       className="hidden"
                       id="document-upload"
                     />
                     <label
                       htmlFor="document-upload"
                       className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer block ${
-                        isUploadingDocument ? 'opacity-50 cursor-not-allowed' : ''
+                        isUploadingDocument || isProfileEditingDisabled ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
+                      aria-disabled={isProfileEditingDisabled}
                     >
                       <div className="flex flex-col items-center gap-2">
                         {isUploadingDocument ? (
@@ -1878,48 +1917,52 @@ export default function Settings() {
                     <Input
                       id="linkedinUrl"
                       type="url"
-                      placeholder="https://linkedin.com/company/yourcompany"
-                      value={linkedinUrl}
-                      onChange={(e) => setLinkedinUrl(e.target.value)}
-                      data-testid="input-linkedin-url"
-                    />
-                  </div>
+                    placeholder="https://linkedin.com/company/yourcompany"
+                    value={linkedinUrl}
+                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                    data-testid="input-linkedin-url"
+                    disabled={isProfileEditingDisabled}
+                  />
+                </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="twitterUrl">Twitter/X Profile</Label>
                     <Input
                       id="twitterUrl"
                       type="url"
-                      placeholder="https://twitter.com/yourcompany"
-                      value={twitterUrl}
-                      onChange={(e) => setTwitterUrl(e.target.value)}
-                      data-testid="input-twitter-url"
-                    />
-                  </div>
+                    placeholder="https://twitter.com/yourcompany"
+                    value={twitterUrl}
+                    onChange={(e) => setTwitterUrl(e.target.value)}
+                    data-testid="input-twitter-url"
+                    disabled={isProfileEditingDisabled}
+                  />
+                </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="facebookUrl">Facebook Page</Label>
                     <Input
                       id="facebookUrl"
                       type="url"
-                      placeholder="https://facebook.com/yourcompany"
-                      value={facebookUrl}
-                      onChange={(e) => setFacebookUrl(e.target.value)}
-                      data-testid="input-facebook-url"
-                    />
-                  </div>
+                    placeholder="https://facebook.com/yourcompany"
+                    value={facebookUrl}
+                    onChange={(e) => setFacebookUrl(e.target.value)}
+                    data-testid="input-facebook-url"
+                    disabled={isProfileEditingDisabled}
+                  />
+                </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="companyInstagramUrl">Instagram Profile</Label>
                     <Input
                       id="companyInstagramUrl"
                       type="url"
-                      placeholder="https://instagram.com/yourcompany"
-                      value={companyInstagramUrl}
-                      onChange={(e) => setCompanyInstagramUrl(e.target.value)}
-                      data-testid="input-company-instagram-url"
-                    />
-                  </div>
+                    placeholder="https://instagram.com/yourcompany"
+                    value={companyInstagramUrl}
+                    onChange={(e) => setCompanyInstagramUrl(e.target.value)}
+                    data-testid="input-company-instagram-url"
+                    disabled={isProfileEditingDisabled}
+                  />
+                </div>
                 </div>
               </div>
 
@@ -1935,18 +1978,6 @@ export default function Settings() {
                 </Alert>
               )}
 
-              {/* Save Button - Centered */}
-              <div className="flex justify-center pt-4">
-                <Button
-                  onClick={handleSaveProfile}
-                  disabled={updateProfileMutation.isPending}
-                  size="lg"
-                  className="min-w-[200px]"
-                  data-testid="button-save-profile"
-                >
-                  {updateProfileMutation.isPending ? "Saving..." : "Save Profile Changes"}
-                </Button>
-              </div>
             </>
           )}
 
@@ -1961,13 +1992,14 @@ export default function Settings() {
                       type="file"
                       accept="image/*"
                       onChange={handleProfileImageUpload}
-                      disabled={isUploadingProfileImage}
+                      disabled={isProfileEditingDisabled || isUploadingProfileImage}
                       className="hidden"
                       id="profile-image-upload"
                     />
                     <label
                       htmlFor="profile-image-upload"
                       className="absolute inset-0 z-10 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center cursor-pointer text-xs font-medium"
+                      aria-disabled={isProfileEditingDisabled}
                     >
                       <Camera className="h-5 w-5 mb-1" />
                       <span>{isUploadingProfileImage ? 'Uploading...' : 'Update Photo'}</span>
@@ -1989,6 +2021,7 @@ export default function Settings() {
                       variant="outline"
                       size="sm"
                       onClick={() => setProfileImageUrl("")}
+                      disabled={isProfileEditingDisabled}
                     >
                       Delete Avatar
                     </Button>
@@ -2005,6 +2038,7 @@ export default function Settings() {
                     onChange={(e) => setBio(e.target.value)}
                     className="min-h-24 resize-none"
                     data-testid="textarea-bio"
+                    disabled={isProfileEditingDisabled}
                   />
                 </div>
               </div>
@@ -2019,6 +2053,7 @@ export default function Settings() {
                       role="combobox"
                       className="w-full justify-between font-normal"
                       data-testid="button-select-niches"
+                      disabled={isProfileEditingDisabled}
                     >
                       {selectedNiches.length === 0 ? (
                         <span className="text-muted-foreground">Select your content niches...</span>
@@ -2041,6 +2076,7 @@ export default function Settings() {
                               id={`niche-${niche.value}`}
                               checked={selectedNiches.includes(niche.value)}
                               onCheckedChange={() => toggleNiche(niche.value)}
+                              disabled={isProfileEditingDisabled}
                             />
                             <label
                               htmlFor={`niche-${niche.value}`}
@@ -2068,6 +2104,7 @@ export default function Settings() {
                             onClick={() => removeNiche(nicheValue)}
                             className="ml-1 hover:text-destructive transition-colors"
                             aria-label={`Remove ${niche?.label || nicheValue}`}
+                            disabled={isProfileEditingDisabled}
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -2148,7 +2185,11 @@ export default function Settings() {
                     <Switch
                       checked={!!getConnectionForPlatform('youtube')}
                       onCheckedChange={(checked) => handleConnectionToggle('youtube', !checked)}
-                      disabled={connectingPlatform === 'youtube' || disconnectingPlatform === 'youtube'}
+                      disabled={
+                        isProfileEditingDisabled ||
+                        connectingPlatform === 'youtube' ||
+                        disconnectingPlatform === 'youtube'
+                      }
                     />
                   </div>
 
@@ -2172,7 +2213,11 @@ export default function Settings() {
                     <Switch
                       checked={!!getConnectionForPlatform('tiktok')}
                       onCheckedChange={(checked) => handleConnectionToggle('tiktok', !checked)}
-                      disabled={connectingPlatform === 'tiktok' || disconnectingPlatform === 'tiktok'}
+                      disabled={
+                        isProfileEditingDisabled ||
+                        connectingPlatform === 'tiktok' ||
+                        disconnectingPlatform === 'tiktok'
+                      }
                     />
                   </div>
 
@@ -2196,7 +2241,11 @@ export default function Settings() {
                     <Switch
                       checked={!!getConnectionForPlatform('instagram')}
                       onCheckedChange={(checked) => handleConnectionToggle('instagram', !checked)}
-                      disabled={connectingPlatform === 'instagram' || disconnectingPlatform === 'instagram'}
+                      disabled={
+                        isProfileEditingDisabled ||
+                        connectingPlatform === 'instagram' ||
+                        disconnectingPlatform === 'instagram'
+                      }
                     />
                   </div>
                 </div>
