@@ -7995,9 +7995,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("invalid url");
       }
 
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
+      // Only allow known safe hosts to avoid open proxy / SSRF
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com"];
       const hostname = parsed.hostname || "";
-      const allowed = allowedHosts.some((h) => hostname.endsWith(h));
+      const allowed = allowedHosts.some((h) => hostname === h || hostname.endsWith("." + h));
       if (!allowed) return res.status(403).send("forbidden host");
 
       if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
