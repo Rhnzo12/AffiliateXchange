@@ -2,30 +2,12 @@ export const isCloudinaryHost = (url?: string) => {
   if (!url) return false;
   try {
     const u = new URL(url);
-    // Allow Cloudinary hosts for proxied assets (legacy support)
+    // Only allow Cloudinary hosts for proxied assets
     return u.hostname.endsWith("cloudinary.com") ||
            u.hostname.endsWith("res.cloudinary.com");
   } catch (e) {
     return false;
   }
-};
-
-export const isGCSHost = (url?: string) => {
-  if (!url) return false;
-  try {
-    const u = new URL(url);
-    // GCS URLs can be in two formats:
-    // - https://storage.googleapis.com/bucket-name/path
-    // - https://bucket-name.storage.googleapis.com/path
-    return u.hostname === "storage.googleapis.com" ||
-           u.hostname.endsWith(".storage.googleapis.com");
-  } catch (e) {
-    return false;
-  }
-};
-
-export const isStorageHost = (url?: string) => {
-  return isCloudinaryHost(url) || isGCSHost(url);
 };
 
 export const isVideoUrl = (url?: string) => {
@@ -54,8 +36,7 @@ export const proxiedSrc = (src?: string | null) => {
   }
 
   try {
-    // Check if it's a storage host (Cloudinary or GCS)
-    if (isStorageHost(src)) {
+    if (isCloudinaryHost(src)) {
       // For videos, use the video proxy endpoint that supports range requests
       if (isVideoUrl(src)) {
         return `/proxy/video?url=${encodeURIComponent(src)}`;
@@ -64,7 +45,7 @@ export const proxiedSrc = (src?: string | null) => {
       if (isImageUrl(src)) {
         return `/proxy/image?url=${encodeURIComponent(src)}`;
       }
-      // For other assets (e.g., PDFs), use the generic file proxy
+      // For other Cloudinary/GCS assets (e.g., PDFs), use the generic file proxy
       return `/proxy/file?url=${encodeURIComponent(src)}`;
     }
   } catch (e) {

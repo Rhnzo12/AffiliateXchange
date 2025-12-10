@@ -7,7 +7,7 @@ import passport from "passport";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-// Note: Cloudinary import removed - now using GCS via ObjectStorageService
+import { v2 as cloudinary } from 'cloudinary';
 import { db } from "./db";
 import { offerVideos, applications, analytics, offers, companyProfiles, payments, conversations, messages, bannedKeywords, contentFlags } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
@@ -7776,7 +7776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only allow known safe hosts to avoid open proxy / SSRF
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com"];
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
       const hostname = parsed.hostname || "";
       const allowed = allowedHosts.some((h) => hostname.endsWith(h));
       if (!allowed) return res.status(403).send("forbidden host");
@@ -7860,7 +7860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only allow known safe hosts to avoid open proxy / SSRF
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com"];
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
       const hostname = parsed.hostname || "";
       const allowed = allowedHosts.some((h) => hostname.endsWith(h));
       if (!allowed) return res.status(403).send("forbidden host");
@@ -8331,16 +8331,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const filename = req.params.filename;
       const isDownload = req.query.download === 'true';
+      const customName = req.query.name as string | undefined;
       const ext = filename.split('.').pop()?.toLowerCase();
       const resourceType = ['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext || '') ? 'video' : ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '') ? 'image' : 'raw';
 
-      const objectStorageService = new ObjectStorageService();
-      const url = await objectStorageService.getSignedViewUrl(filename, {
-        resourceType: resourceType as any,
-        expiresIn: 3600, // 1 hour
+      const url = cloudinary.url(filename, {
+        resource_type: resourceType as any,
+        secure: true,
+        sign_url: true,
+        type: 'authenticated',
+        attachment: isDownload ? (customName || filename.split('/').pop()) : undefined,
       });
 
-      console.log('[Signed URL API] Generated GCS signed URL for:', filename, isDownload ? '(download)' : '(view)');
+      console.log('[Signed URL API] Generated Cloudinary signed URL for:', filename, isDownload ? '(download)' : '(view)');
       res.json({ url });
     } catch (error: any) {
       console.error('Error generating signed URL:', error);
@@ -8366,16 +8369,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const uploadResult = await objectStorageService.uploadBuffer(file.buffer, {
         folder,
         resourceType,
-        publicId: file.originalname,
-        contentType: file.mimetype,
       });
 
       res.json({
         message: 'File uploaded successfully',
-        filename: uploadResult.objectPath,
+        filename: uploadResult.public_id,
         originalName: file.originalname,
-        url: uploadResult.url,
-        publicUrl: uploadResult.url,
+        url: uploadResult.secure_url,
+        publicUrl: uploadResult.secure_url,
       });
     } catch (error: any) {
       console.error('Error in direct upload:', error);
