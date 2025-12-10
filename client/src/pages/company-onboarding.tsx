@@ -357,33 +357,22 @@ export default function CompanyOnboarding() {
     }
   };
 
-  // Helper to extract file path from GCS or Cloudinary URLs
-  const extractFilePathFromUrl = (documentUrl: string): string => {
-    const url = new URL(documentUrl);
-    const pathParts = url.pathname.split('/').filter(Boolean);
-
-    // Handle GCS URLs: https://storage.googleapis.com/{bucket}/{path}
-    if (url.hostname === 'storage.googleapis.com' || url.hostname.endsWith('.storage.googleapis.com')) {
-      // Skip bucket name (first part), return rest as file path
-      return pathParts.slice(1).join('/');
-    }
-
-    // Handle Cloudinary URLs: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}
-    if (url.hostname.includes('cloudinary.com')) {
+  const handleViewDocument = async (documentUrl: string) => {
+    try {
+      // Extract Cloudinary public_id from the URL
+      // Cloudinary URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}
+      const url = new URL(documentUrl);
+      const pathParts = url.pathname.split('/');
+      
+      // Find the index of 'upload' and get everything after the version number
       const uploadIndex = pathParts.findIndex(part => part === 'upload');
       if (uploadIndex === -1) {
         throw new Error('Invalid Cloudinary URL format');
       }
+      
       // Skip 'upload' and version number (v123456), get the rest as public_id
-      return pathParts.slice(uploadIndex + 2).join('/');
-    }
-
-    throw new Error('Unknown storage URL format');
-  };
-
-  const handleViewDocument = async (documentUrl: string) => {
-    try {
-      const filePath = extractFilePathFromUrl(documentUrl);
+      const publicIdParts = pathParts.slice(uploadIndex + 2);
+      const filePath = publicIdParts.join('/');
 
       // Fetch signed URL from the API
       const response = await fetch(`/api/get-signed-url/${filePath}`, {
@@ -408,7 +397,20 @@ export default function CompanyOnboarding() {
 
   const handleDownloadDocument = async (documentUrl: string, documentName: string) => {
     try {
-      const filePath = extractFilePathFromUrl(documentUrl);
+      // Extract Cloudinary public_id from the URL
+      // Cloudinary URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}
+      const url = new URL(documentUrl);
+      const pathParts = url.pathname.split('/');
+      
+      // Find the index of 'upload' and get everything after the version number
+      const uploadIndex = pathParts.findIndex(part => part === 'upload');
+      if (uploadIndex === -1) {
+        throw new Error('Invalid Cloudinary URL format');
+      }
+      
+      // Skip 'upload' and version number (v123456), get the rest as public_id
+      const publicIdParts = pathParts.slice(uploadIndex + 2);
+      const filePath = publicIdParts.join('/');
 
       // Fetch signed URL with download flag from the API
       const response = await fetch(`/api/get-signed-url/${filePath}?download=true&name=${encodeURIComponent(documentName)}`, {
