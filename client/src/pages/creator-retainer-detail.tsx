@@ -59,6 +59,8 @@ import {
   TooltipTrigger,
 } from "../components/ui/tooltip";
 import { uploadToCloudinary } from "../lib/cloudinary-upload";
+import { useCreatorPageTour } from "../components/CreatorTour";
+import { CREATOR_TOUR_IDS, retainerDetailTourSteps } from "../lib/creatorTourConfig";
 
 const uploadDeliverableSchema = z.object({
   platformUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
@@ -104,6 +106,9 @@ export default function CreatorRetainerDetail() {
   const [applyOpen, setApplyOpen] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
 
+  // Quick tour for retainer detail page
+  useCreatorPageTour(CREATOR_TOUR_IDS.RETAINER_DETAIL, retainerDetailTourSteps);
+
   const { data: contract, isLoading } = useQuery<any>({
     queryKey: [`/api/retainer-contracts/${contractId}`],
     enabled: !!contractId,
@@ -116,6 +121,16 @@ export default function CreatorRetainerDetail() {
   const { data: deliverables } = useQuery<any[]>({
     queryKey: [`/api/retainer-contracts/${contractId}/deliverables`],
     enabled: !!contractId && myApplication?.some((app: any) => app.contractId === contractId && app.status === "approved"),
+  });
+
+  // Fetch platform fee settings
+  const { data: feeSettings } = useQuery<{
+    platformFeePercentage: number;
+    stripeFeePercentage: number;
+    totalFeePercentage: number;
+    totalFeeDisplay: string;
+  }>({
+    queryKey: ["/api/platform/fees"],
   });
 
   const form = useForm<UploadDeliverableForm>({
@@ -214,6 +229,7 @@ export default function CreatorRetainerDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/retainer-contracts/${contractId}/deliverables`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/retainer-contracts"] });
       toast({
         title: "Deliverable Submitted",
         description: "Your video has been submitted for review.",
@@ -346,6 +362,7 @@ export default function CreatorRetainerDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/retainer-contracts/${contractId}/deliverables`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/retainer-contracts"] });
       toast({
         title: "Revision Submitted",
         description: "Your revised video has been submitted for review.",
@@ -427,9 +444,10 @@ export default function CreatorRetainerDetail() {
   const contractMonthlyAmount = Number(contract.monthlyAmount) || 0;
   const contractVideosPerMonth = Math.max(1, Number(contract.videosPerMonth) || 1);
   const basePerVideo = contractMonthlyAmount / contractVideosPerMonth;
-  // Default total fee estimate (4% platform + 3% processing). Actual fees may vary for partnership companies.
-  const DEFAULT_TOTAL_FEE = 0.07;
-  const platformFee = contractMonthlyAmount * DEFAULT_TOTAL_FEE;
+  // Use dynamic fee from platform settings, fallback to 7% if not loaded
+  const totalFeePercentage = feeSettings?.totalFeePercentage ?? 0.07;
+  const totalFeeDisplay = feeSettings?.totalFeeDisplay ?? "7%";
+  const platformFee = contractMonthlyAmount * totalFeePercentage;
   const creatorTakeHome = Math.max(contractMonthlyAmount - platformFee, 0);
   const hasRetainerTiers = Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0;
 
@@ -644,7 +662,7 @@ export default function CreatorRetainerDetail() {
                       ) : videoUrl ? (
                         <>
                           <Video className="h-4 w-4 mr-2" />
-                          Video Uploaded \u2713
+                          Video Uploaded ✓
                         </>
                       ) : (
                         <>
@@ -655,7 +673,7 @@ export default function CreatorRetainerDetail() {
                     </Button>
                     {videoUrl && (
                       <p className="text-xs text-green-600">
-                        \u2713 Video uploaded successfully
+                        ✓ Video uploaded successfully
                       </p>
                     )}
                     {!videoUrl && (
@@ -789,7 +807,7 @@ export default function CreatorRetainerDetail() {
                     )}
                   </Button>
                   {resubmitVideoUrl && (
-                    <p className="text-xs text-green-600 mt-2">\u2713 Video ready to submit</p>
+                    <p className="text-xs text-green-600 mt-2">✓ Video ready to submit</p>
                   )}
                 </div>
               </div>
@@ -981,7 +999,7 @@ export default function CreatorRetainerDetail() {
                     <TooltipTrigger asChild>
                       <Info className="h-3.5 w-3.5" />
                     </TooltipTrigger>
-                    <TooltipContent>AffiliateXchange charges a 7% platform fee.</TooltipContent>
+                    <TooltipContent>AffiliateXchange charges a {totalFeeDisplay} platform fee.</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
@@ -1261,7 +1279,7 @@ export default function CreatorRetainerDetail() {
                   <span className="font-semibold">{formatCurrency(contractMonthlyAmount, { maximumFractionDigits: 0 })}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Platform fee (7%)</span>
+                  <span>Platform fee ({totalFeeDisplay})</span>
                   <span className="font-semibold">{formatCurrency(platformFee, { maximumFractionDigits: 0 })}</span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -1392,7 +1410,7 @@ export default function CreatorRetainerDetail() {
                             )}
                             {deliverable.reviewedAt && (
                               <p className="text-xs text-muted-foreground">
-                                \u2705 Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}
+                                ✅ Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}
                               </p>
                             )}
                           </div>

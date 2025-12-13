@@ -758,6 +758,7 @@ export interface IStorage {
   getRetainerContracts(filters?: any): Promise<any[]>;
   getRetainerContractsByCompany(companyId: string): Promise<any[]>;
   getRetainerContractsByCreator(creatorId: string): Promise<any[]>;
+  getContractsWithApprovedApplicationsByCreator(creatorId: string): Promise<any[]>;
   getOpenRetainerContracts(): Promise<any[]>;
   getActiveRetainerCreatorsCount(contractId: string): Promise<number>;
   createRetainerContract(contract: any): Promise<any>;
@@ -778,6 +779,7 @@ export interface IStorage {
   getRetainerDeliverablesByContract(contractId: string): Promise<any[]>;
   getRetainerDeliverablesByCreator(creatorId: string): Promise<any[]>;
   getRetainerDeliverablesForMonth(contractId: string, monthNumber: number): Promise<any[]>;
+  getRetainerDeliverableCountByContract(contractId: string): Promise<number>;
   createRetainerDeliverable(deliverable: any): Promise<any>;
   updateRetainerDeliverable(id: string, updates: any): Promise<any>;
   approveRetainerDeliverable(id: string, reviewNotes?: string): Promise<any>;
@@ -2143,6 +2145,111 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async requestOfferDelete(offerId: string, reason: string): Promise<Offer | undefined> {
+    const result = await db
+      .update(offers)
+      .set({
+        pendingAction: "delete",
+        pendingActionRequestedAt: new Date(),
+        pendingActionReason: reason,
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, offerId))
+      .returning();
+    return result[0];
+  }
+
+  async requestOfferSuspend(offerId: string, reason: string): Promise<Offer | undefined> {
+    const result = await db
+      .update(offers)
+      .set({
+        pendingAction: "suspend",
+        pendingActionRequestedAt: new Date(),
+        pendingActionReason: reason,
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, offerId))
+      .returning();
+    return result[0];
+  }
+
+  async approveOfferDelete(offerId: string): Promise<Offer | undefined> {
+    // First get the offer to return its data before deletion
+    const offer = await this.getOffer(offerId);
+    if (!offer) return undefined;
+
+    // Delete the offer
+    await db
+      .delete(offers)
+      .where(eq(offers.id, offerId));
+
+    return offer;
+  }
+
+  async rejectOfferDelete(offerId: string): Promise<Offer | undefined> {
+    const result = await db
+      .update(offers)
+      .set({
+        pendingAction: null,
+        pendingActionRequestedAt: null,
+        pendingActionReason: null,
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, offerId))
+      .returning();
+    return result[0];
+  }
+
+  async approveOfferSuspend(offerId: string): Promise<Offer | undefined> {
+    const result = await db
+      .update(offers)
+      .set({
+        status: "paused",
+        pendingAction: null,
+        pendingActionRequestedAt: null,
+        pendingActionReason: null,
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, offerId))
+      .returning();
+    return result[0];
+  }
+
+  async rejectOfferSuspend(offerId: string): Promise<Offer | undefined> {
+    const result = await db
+      .update(offers)
+      .set({
+        pendingAction: null,
+        pendingActionRequestedAt: null,
+        pendingActionReason: null,
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, offerId))
+      .returning();
+    return result[0];
+  }
+
+  async cancelOfferPendingAction(offerId: string): Promise<Offer | undefined> {
+    const result = await db
+      .update(offers)
+      .set({
+        pendingAction: null,
+        pendingActionRequestedAt: null,
+        pendingActionReason: null,
+        updatedAt: new Date()
+      })
+      .where(eq(offers.id, offerId))
+      .returning();
+    return result[0];
+  }
+
+  async getOffersWithPendingActions(): Promise<Offer[]> {
+    return await db
+      .select()
+      .from(offers)
+      .where(sql`${offers.pendingAction} IS NOT NULL`);
+  }
+
   async adjustOfferListingFee(offerId: string, fee: string): Promise<Offer | undefined> {
     const result = await db
       .update(offers)
@@ -3433,20 +3540,27 @@ export class DatabaseStorage implements IStorage {
 
   async getAnalyticsTimeSeriesByCreator(creatorId: string, dateRange: string): Promise<any[]> {
     try {
-      const whereClauses: any[] = [eq(applications.creatorId, creatorId)];
-
+      // Calculate date filter
+      let startDate: Date | null = null;
       if (dateRange !== "all") {
         let daysBack = 30;
         if (dateRange === "7d") daysBack = 7;
         else if (dateRange === "30d") daysBack = 30;
         else if (dateRange === "90d") daysBack = 90;
 
-        const startDate = new Date();
+        startDate = new Date();
         startDate.setDate(startDate.getDate() - daysBack);
-        whereClauses.push(sql`${analytics.date} >= ${startDate}`);
       }
 
-      const result = await db
+      // Query 1: Get affiliate analytics (clicks, conversions, affiliate earnings)
+      const affiliateWhereClauses: any[] = [
+        eq(applications.creatorId, creatorId),
+      ];
+      if (startDate) {
+        affiliateWhereClauses.push(sql`${analytics.date} >= ${startDate}`);
+      }
+
+      const affiliateResult = await db
         .select({
           date: sql<string>`TO_CHAR(${analytics.date}, 'Mon DD')`,
           isoDate: analytics.date,
@@ -3456,11 +3570,68 @@ export class DatabaseStorage implements IStorage {
         })
         .from(analytics)
         .innerJoin(applications, eq(analytics.applicationId, applications.id))
-        .where(and(...whereClauses))
+        .where(and(...affiliateWhereClauses))
         .groupBy(analytics.date)
         .orderBy(analytics.date);
 
-      return result || [];
+      // Query 2: Get retainer payments (retainer earnings by completion date)
+      const retainerWhereClauses: any[] = [
+        eq(retainerPayments.creatorId, creatorId),
+        eq(retainerPayments.status, 'completed'),
+      ];
+      if (startDate) {
+        retainerWhereClauses.push(sql`COALESCE(${retainerPayments.completedAt}, ${retainerPayments.createdAt}) >= ${startDate}`);
+      }
+
+      const retainerResult = await db
+        .select({
+          date: sql<string>`TO_CHAR(DATE(COALESCE(${retainerPayments.completedAt}, ${retainerPayments.createdAt})), 'Mon DD')`,
+          isoDate: sql<Date>`DATE(COALESCE(${retainerPayments.completedAt}, ${retainerPayments.createdAt}))`,
+          retainerEarnings: sql<number>`COALESCE(SUM(CAST(${retainerPayments.netAmount} AS DECIMAL)), 0)`,
+        })
+        .from(retainerPayments)
+        .where(and(...retainerWhereClauses))
+        .groupBy(sql`DATE(COALESCE(${retainerPayments.completedAt}, ${retainerPayments.createdAt}))`)
+        .orderBy(sql`DATE(COALESCE(${retainerPayments.completedAt}, ${retainerPayments.createdAt}))`);
+
+      // Merge affiliate and retainer data by date
+      const dataMap = new Map<string, { date: string; isoDate: Date; clicks: number; conversions: number; earnings: number }>();
+
+      // Add affiliate data
+      for (const row of affiliateResult || []) {
+        const dateKey = new Date(row.isoDate).toISOString().split('T')[0];
+        dataMap.set(dateKey, {
+          date: row.date,
+          isoDate: new Date(row.isoDate),
+          clicks: Number(row.clicks) || 0,
+          conversions: Number(row.conversions) || 0,
+          earnings: Number(row.earnings) || 0,
+        });
+      }
+
+      // Add/merge retainer earnings
+      for (const row of retainerResult || []) {
+        const dateKey = new Date(row.isoDate).toISOString().split('T')[0];
+        const existing = dataMap.get(dateKey);
+        if (existing) {
+          existing.earnings += Number(row.retainerEarnings) || 0;
+        } else {
+          dataMap.set(dateKey, {
+            date: row.date,
+            isoDate: new Date(row.isoDate),
+            clicks: 0,
+            conversions: 0,
+            earnings: Number(row.retainerEarnings) || 0,
+          });
+        }
+      }
+
+      // Sort by date and return
+      const result = Array.from(dataMap.values()).sort((a, b) =>
+        a.isoDate.getTime() - b.isoDate.getTime()
+      );
+
+      return result;
     } catch (error) {
       console.error("[getAnalyticsTimeSeriesByCreator] Error:", error);
       return [];
@@ -4270,6 +4441,41 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getContractsWithApprovedApplicationsByCreator(creatorId: string): Promise<any[]> {
+    try {
+      const results = await db
+        .select()
+        .from(retainerContracts)
+        .innerJoin(retainerApplications, eq(retainerContracts.id, retainerApplications.contractId))
+        .leftJoin(companyProfiles, eq(retainerContracts.companyId, companyProfiles.id))
+        .leftJoin(users, eq(companyProfiles.userId, users.id))
+        .where(
+          and(
+            eq(retainerApplications.creatorId, creatorId),
+            eq(retainerApplications.status, "approved")
+          )
+        )
+        .orderBy(desc(retainerContracts.createdAt));
+
+      return Promise.all(
+        results.map(async (r: any) => ({
+          ...r.retainer_contracts,
+          company: r.company_profiles,
+          companyUser: r.users,
+          activeCreators: await this.getActiveRetainerCreatorsCount(r.retainer_contracts.id),
+        }))
+      );
+    } catch (error) {
+      if (isMissingRelationError(error, "retainer_contracts")) {
+        console.warn(
+          "[Storage] retainer_contracts relation missing while fetching contracts with approved applications - returning empty array.",
+        );
+        return [];
+      }
+      throw error;
+    }
+  }
+
   async getOpenRetainerContracts(): Promise<any[]> {
     try {
       const results = await db
@@ -4467,6 +4673,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(retainerDeliverables.contractId, contractId))
       .orderBy(desc(retainerDeliverables.submittedAt));
     return results;
+  }
+
+  async getRetainerDeliverableCountByContract(contractId: string): Promise<number> {
+    const results = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(retainerDeliverables)
+      .where(eq(retainerDeliverables.contractId, contractId));
+    return results[0]?.count || 0;
   }
 
   async getRetainerDeliverablesByCreator(creatorId: string): Promise<any[]> {
@@ -6097,12 +6311,15 @@ async deleteAllVerificationDocumentsForCompany(companyId: string): Promise<boole
         : (newCreatorsThisPeriod > 0 ? 100 : 0);
       const netGrowth = newCreatorsThisPeriod - churnedCreatorsThisPeriod;
 
-      // Get timeline data
+      // Get timeline data - simplified to avoid complex subqueries
       const dateFormat = groupBy === 'day'
         ? 'Mon DD'
         : groupBy === 'week'
           ? 'Mon DD'
           : 'Mon YYYY';
+
+      // Build interval string based on groupBy
+      const intervalStr = groupBy === 'day' ? '1 day' : groupBy === 'week' ? '1 week' : '1 month';
 
       const groupByExpr = groupBy === 'day'
         ? sql`DATE(${applications.createdAt})`
@@ -6110,18 +6327,11 @@ async deleteAllVerificationDocumentsForCompany(companyId: string): Promise<boole
           ? sql`DATE_TRUNC('week', ${applications.createdAt})`
           : sql`DATE_TRUNC('month', ${applications.createdAt})`;
 
+      // Simplified timeline query - count distinct creators per period
       const timelineResult = await db
         .select({
           period: sql<string>`TO_CHAR(${groupByExpr}, ${dateFormat})`,
-          newCreators: sql<number>`COUNT(DISTINCT ${applications.creatorId}) FILTER (
-            WHERE ${applications.creatorId} IN (
-              SELECT a2.creator_id
-              FROM ${applications} a2
-              GROUP BY a2.creator_id
-              HAVING MIN(a2.created_at) >= ${groupByExpr}
-                AND MIN(a2.created_at) < ${groupByExpr} + INTERVAL '1 ${sql.raw(groupBy)}'
-            )
-          )::int`,
+          newCreators: sql<number>`COUNT(DISTINCT ${applications.creatorId})::int`,
           activeCreators: sql<number>`COUNT(DISTINCT ${applications.creatorId}) FILTER (
             WHERE ${applications.status} IN ('approved', 'active')
           )::int`,
@@ -6134,7 +6344,7 @@ async deleteAllVerificationDocumentsForCompany(companyId: string): Promise<boole
       const timeline = (timelineResult || []).map((row) => ({
         period: row.period || '',
         newCreators: Number(row.newCreators || 0),
-        churnedCreators: 0, // Calculated per period is complex, simplified here
+        churnedCreators: 0,
         activeCreators: Number(row.activeCreators || 0),
         churnRate: 0,
       }));
@@ -6257,12 +6467,15 @@ async deleteAllVerificationDocumentsForCompany(companyId: string): Promise<boole
         : (newCompaniesThisPeriod > 0 ? 100 : 0);
       const netGrowth = newCompaniesThisPeriod - churnedCompaniesThisPeriod;
 
-      // Get timeline data
+      // Get timeline data - simplified to avoid complex subqueries
       const dateFormat = groupBy === 'day'
         ? 'Mon DD'
         : groupBy === 'week'
           ? 'Mon DD'
           : 'Mon YYYY';
+
+      // Build interval string based on groupBy
+      const intervalStr = groupBy === 'day' ? '1 day' : groupBy === 'week' ? '1 week' : '1 month';
 
       const groupByExpr = groupBy === 'day'
         ? sql`DATE(${offers.createdAt})`
@@ -6270,18 +6483,11 @@ async deleteAllVerificationDocumentsForCompany(companyId: string): Promise<boole
           ? sql`DATE_TRUNC('week', ${offers.createdAt})`
           : sql`DATE_TRUNC('month', ${offers.createdAt})`;
 
+      // Simplified timeline query - count distinct companies per period
       const timelineResult = await db
         .select({
           period: sql<string>`TO_CHAR(${groupByExpr}, ${dateFormat})`,
-          newCompanies: sql<number>`COUNT(DISTINCT ${offers.companyId}) FILTER (
-            WHERE ${offers.companyId} IN (
-              SELECT o2.company_id
-              FROM ${offers} o2
-              GROUP BY o2.company_id
-              HAVING MIN(o2.created_at) >= ${groupByExpr}
-                AND MIN(o2.created_at) < ${groupByExpr} + INTERVAL '1 ${sql.raw(groupBy)}'
-            )
-          )::int`,
+          newCompanies: sql<number>`COUNT(DISTINCT ${offers.companyId})::int`,
           activeCompanies: sql<number>`COUNT(DISTINCT ${offers.companyId}) FILTER (
             WHERE ${offers.status} = 'approved'
           )::int`,
@@ -6294,7 +6500,7 @@ async deleteAllVerificationDocumentsForCompany(companyId: string): Promise<boole
       const timeline = (timelineResult || []).map((row) => ({
         period: row.period || '',
         newCompanies: Number(row.newCompanies || 0),
-        churnedCompanies: 0, // Simplified
+        churnedCompanies: 0,
         activeCompanies: Number(row.activeCompanies || 0),
         churnRate: 0,
       }));

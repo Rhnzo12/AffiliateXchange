@@ -20,6 +20,12 @@ import {
   SidebarFooter,
   useSidebar,
 } from "./ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
 import {
   Home,
@@ -47,7 +53,8 @@ import {
 export function AppSidebar() {
   const { user } = useAuth();
   const [location] = useLocation();
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile, state } = useSidebar();
+  const isCollapsed = state === "collapsed";
   const currentYear = new Date().getFullYear();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
@@ -276,6 +283,43 @@ export function AppSidebar() {
                 const isOpen = hasChildren ? openMenus[item.title] ?? isActive : false
 
                 if (hasChildren) {
+                  // When collapsed, use dropdown menu for items with children
+                  if (isCollapsed) {
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className={`flex w-8 h-8 items-center justify-center rounded-md p-2 transition-all duration-200 hover:text-primary hover:font-bold ${isActive ? "text-primary font-bold" : ""}`}
+                              data-testid={`nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                            >
+                              <item.icon className="h-4 w-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent side="right" align="start" sideOffset={8} className="min-w-[200px] z-[100]">
+                            {item.children?.map((child) => (
+                              <DropdownMenuItem
+                                key={child.url}
+                                asChild
+                                className="hover:bg-transparent focus:bg-transparent cursor-pointer"
+                              >
+                                <Link
+                                  href={child.url}
+                                  onClick={handleNavClick}
+                                  className={`hover:text-primary hover:font-bold transition-all duration-200 ${location === child.url ? "text-primary font-bold" : ""}`}
+                                >
+                                  <child.icon className="h-4 w-4 mr-2" />
+                                  <span>{child.title}</span>
+                                </Link>
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </SidebarMenuItem>
+                    )
+                  }
+
+                  // When expanded, use inline submenu
                   return (
                     <SidebarMenuItem key={item.title} className="group/item">
                       <SidebarMenuButton
@@ -288,7 +332,7 @@ export function AppSidebar() {
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
                       </SidebarMenuButton>
-                      <SidebarMenuSub className={isOpen ? "flex" : "hidden"}>
+                      <SidebarMenuSub className={isOpen ? "" : "hidden"}>
                         {item.children?.map((child) => (
                           <SidebarMenuSubItem key={child.url}>
                             <SidebarMenuSubButton

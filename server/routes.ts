@@ -7,9 +7,8 @@ import passport from "passport";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { v2 as cloudinary } from 'cloudinary';
 import { db } from "./db";
-import { offerVideos, applications, analytics, offers, companyProfiles, payments, conversations, messages, bannedKeywords, contentFlags } from "../shared/schema";
+import { offerVideos, applications, analytics, offers, companyProfiles, payments, retainerPayments, conversations, messages, bannedKeywords, contentFlags } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
@@ -29,7 +28,7 @@ import {
   generatePaymentInvoice,
   generateCompanyChargeInvoice,
 } from "./invoiceService";
-import { calculateFees, formatFeePercentage, DEFAULT_PLATFORM_FEE_PERCENTAGE, STRIPE_PROCESSING_FEE_PERCENTAGE, getCompanyPlatformFeePercentage } from "./feeCalculator";
+import { calculateFees, formatFeePercentage, DEFAULT_PLATFORM_FEE_PERCENTAGE, STRIPE_PROCESSING_FEE_PERCENTAGE, getCompanyPlatformFeePercentage, clearFeeSettingsCache, getPlatformFeeSettings } from "./feeCalculator";
 import { NotificationService } from "./notifications/notificationService";
 import bcrypt from "bcrypt";
 import { PriorityListingScheduler } from "./priorityListingScheduler";
@@ -778,14 +777,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { percentage: platformFeePercentage, isCustom } = await getCompanyPlatformFeePercentage(companyProfile.id);
-      const totalFeePercentage = platformFeePercentage + STRIPE_PROCESSING_FEE_PERCENTAGE;
+      const { stripeFee: stripeFeePercentage } = await getPlatformFeeSettings();
+      const totalFeePercentage = platformFeePercentage + stripeFeePercentage;
       const creatorPayoutPercentage = 1 - totalFeePercentage;
 
       return res.json({
         platformFeePercentage,
         platformFeeDisplay: formatFeePercentage(platformFeePercentage),
-        processingFeePercentage: STRIPE_PROCESSING_FEE_PERCENTAGE,
-        processingFeeDisplay: formatFeePercentage(STRIPE_PROCESSING_FEE_PERCENTAGE),
+        processingFeePercentage: stripeFeePercentage,
+        processingFeeDisplay: formatFeePercentage(stripeFeePercentage),
         totalFeePercentage,
         totalFeeDisplay: formatFeePercentage(totalFeePercentage),
         creatorPayoutPercentage,
@@ -863,23 +863,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to delete this document" });
       }
 
-      // Delete from cloud storage first
+      // Delete from GCS storage first
       if (document.documentUrl) {
         try {
           const objectStorageService = new ObjectStorageService();
-          // Extract file path from GCS URL
-          // URL format: https://storage.googleapis.com/bucket-name/path/to/file
           const url = new URL(document.documentUrl);
-          const pathParts = url.pathname.split('/');
-          // Remove empty string and bucket name, keep the rest as file path
-          const filePath = pathParts.slice(2).join('/');
+          const pathParts = url.pathname.split('/').filter(Boolean);
+          // Remove bucket name, keep the rest as file path
+          // URL format: https://storage.googleapis.com/bucket-name/path/to/file
+          const filePath = pathParts.slice(1).join('/');
 
           if (filePath) {
-            await objectStorageService.deleteResource(filePath, 'raw');
-            console.log('[Verification Documents] Deleted file from GCS:', filePath);
+            const result = await objectStorageService.deleteResource(filePath, 'raw');
+            console.log('[Verification Documents] Deleted file from GCS:', filePath, 'Result:', result);
           }
         } catch (storageError) {
-          console.error('[Verification Documents] Error deleting from cloud storage:', storageError);
+          console.error('[Verification Documents] Error deleting from GCS:', storageError);
           // Continue with database deletion even if storage deletion fails
         }
       }
@@ -902,6 +901,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const userRole = (req.user as any).role;
       const documentId = req.params.id;
+      const isDownload = req.query.download === 'true';
 
       // Get the document
       const document = await storage.getVerificationDocumentById(documentId);
@@ -924,57 +924,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('[Verification Document] Original URL:', documentUrl);
 
-      // For Cloudinary URLs, fetch and stream the document
-      // Since documents are uploaded as public resources (type: 'upload'),
-      // we can fetch them directly without authentication APIs
+      // Fetch the document from GCS using a signed URL
       try {
-        // Determine the correct fetch URL
-        let fetchUrl: string;
+        // Generate a signed URL to access the document from GCS
+        const objectStorageService = new ObjectStorageService();
+        const signedUrl = await objectStorageService.getSignedViewUrl(documentUrl, {
+          expiresIn: 300, // 5 minutes, just enough to fetch the document
+        });
 
-        if (documentUrl.includes('cloudinary.com')) {
-          // Extract public_id from Cloudinary URL
-          // URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}.{extension}
-          const url = new URL(documentUrl);
-          const pathParts = url.pathname.split('/');
+        console.log('[Verification Document] Generated signed URL for fetch');
 
-          // Find the index of 'upload' or 'authenticated'
-          const uploadIndex = pathParts.findIndex(part => part === 'upload' || part === 'authenticated');
-          if (uploadIndex === -1) {
-            console.error('[Verification Document] Invalid URL format - no upload/authenticated path:', documentUrl);
-            // Fallback to direct URL
-            fetchUrl = documentUrl;
-          } else {
-            // Get resource type (image, raw, video, etc.)
-            const resourceType = pathParts[uploadIndex - 1] || 'image';
-
-            // Skip upload type and version number (v123456), get the rest as public_id
-            const publicIdParts = pathParts.slice(uploadIndex + 2);
-            let publicIdWithExt = publicIdParts.join('/');
-
-            // Remove file extension from public_id (Cloudinary doesn't include it in public_id)
-            const publicId = publicIdWithExt.replace(/\.[^.]+$/, '');
-
-            console.log('[Verification Document] Extracted public_id:', publicId);
-            console.log('[Verification Document] Resource type:', resourceType);
-
-            // Generate a proper URL for the resource
-            // For public uploads (type: 'upload'), we can use cloudinary.url() without authentication
-            fetchUrl = cloudinary.url(publicId, {
-              resource_type: resourceType as any,
-              secure: true,
-              type: 'upload', // These are public uploads
-              sign_url: false, // No signing needed for public resources
-            });
-
-            console.log('[Verification Document] Generated fetch URL');
-          }
-        } else {
-          // Non-Cloudinary URL, use as-is
-          fetchUrl = documentUrl;
-        }
-
-        // Fetch the document
-        const fetchRes = await fetch(fetchUrl, {
+        // Fetch the document using the signed URL
+        const fetchRes = await fetch(signedUrl, {
           method: "GET",
           headers: {
             'User-Agent': 'AffiliateXchange-Server/1.0',
@@ -983,8 +944,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!fetchRes.ok) {
           console.error('[Verification Document Proxy] Failed to fetch:', fetchRes.status, fetchRes.statusText);
-          console.error('[Verification Document Proxy] Tried URL:', fetchUrl);
-          return res.status(fetchRes.status).send("Failed to fetch document from Cloudinary");
+          console.error('[Verification Document Proxy] Original URL:', documentUrl);
+          return res.status(fetchRes.status).send("Failed to fetch document from storage");
         }
 
         console.log('[Verification Document] Successfully fetched document');
@@ -1007,8 +968,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const contentLength = fetchRes.headers.get("content-length");
         if (contentLength) res.setHeader("Content-Length", contentLength);
 
-        // Set content disposition for PDFs to display inline
-        if (document.documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
+        // Set content disposition based on download mode
+        if (isDownload) {
+          // Force download with attachment disposition
+          res.setHeader("Content-Disposition", `attachment; filename="${document.documentName}"`);
+        } else if (document.documentType === 'pdf' || documentUrl.toLowerCase().endsWith('.pdf')) {
+          // Display inline for PDFs when viewing
+          res.setHeader("Content-Disposition", `inline; filename="${document.documentName}"`);
+        } else {
+          // Display inline for images when viewing
           res.setHeader("Content-Disposition", `inline; filename="${document.documentName}"`);
         }
 
@@ -1574,12 +1542,197 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Delete assets from cloud storage before deleting the offer
+      const { ObjectStorageService } = await import('./objectStorage');
+      const objectStorage = new ObjectStorageService();
+
+      // Delete featured image if exists
+      if (offer.featuredImageUrl) {
+        try {
+          const imagePublicId = objectStorage.extractPublicIdFromUrl(offer.featuredImageUrl);
+          if (imagePublicId) {
+            await objectStorage.deleteResource(imagePublicId, 'image');
+            console.log(`[Offer Delete] Deleted featured image: ${imagePublicId}`);
+          }
+        } catch (error: any) {
+          console.error(`[Offer Delete] Failed to delete featured image: ${error.message}`);
+        }
+      }
+
+      // Delete all offer videos and their thumbnails
+      const offerVideos = await storage.getOfferVideos(offerId);
+      for (const video of offerVideos) {
+        if (video.videoUrl) {
+          try {
+            const videoPublicId = objectStorage.extractPublicIdFromUrl(video.videoUrl);
+            if (videoPublicId) {
+              await objectStorage.deleteResource(videoPublicId, 'video');
+              console.log(`[Offer Delete] Deleted video: ${videoPublicId}`);
+            }
+          } catch (error: any) {
+            console.error(`[Offer Delete] Failed to delete video ${video.id}: ${error.message}`);
+          }
+        }
+        if (video.thumbnailUrl) {
+          try {
+            const thumbnailPublicId = objectStorage.extractPublicIdFromUrl(video.thumbnailUrl);
+            if (thumbnailPublicId) {
+              await objectStorage.deleteResource(thumbnailPublicId, 'image');
+              console.log(`[Offer Delete] Deleted thumbnail: ${thumbnailPublicId}`);
+            }
+          } catch (error: any) {
+            console.error(`[Offer Delete] Failed to delete thumbnail: ${error.message}`);
+          }
+        }
+      }
+
       // Delete the offer (cascades to videos, applications, favorites per DB constraints)
       await storage.deleteOffer(offerId);
 
       res.json({ success: true, message: "Offer deleted successfully" });
     } catch (error: any) {
       console.error('[DELETE /api/offers/:id] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Request offer deletion (requires admin approval)
+  app.post("/api/offers/:id/request-delete", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const offerId = req.params.id;
+      const { reason } = req.body;
+
+      // Verify ownership
+      const offer = await storage.getOffer(offerId);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile || offer.companyId !== companyProfile.id) {
+        return res.status(403).json({ error: "Unauthorized: You don't own this offer" });
+      }
+
+      // Check if there's already a pending action
+      if (offer.pendingAction) {
+        return res.status(400).json({
+          error: "Pending action exists",
+          message: `This offer already has a pending ${offer.pendingAction} request.`
+        });
+      }
+
+      // Request deletion
+      const updatedOffer = await storage.requestOfferDelete(offerId, reason || "No reason provided");
+
+      // Notify all admins about the delete request
+      const adminUsers = await storage.getUsersByRole('admin');
+      for (const admin of adminUsers) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'offer_delete_requested',
+          title: 'Offer Deletion Request',
+          message: `Company "${companyProfile.tradeName || companyProfile.legalName}" has requested to delete offer "${offer.title}". Reason: ${reason || "No reason provided"}`,
+          linkUrl: `/admin/offers/${offerId}`,
+          metadata: { offerId, companyId: companyProfile.id, reason },
+        });
+      }
+
+      res.json({ success: true, offer: updatedOffer });
+    } catch (error: any) {
+      console.error('[POST /api/offers/:id/request-delete] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Request offer suspension (requires admin approval)
+  app.post("/api/offers/:id/request-suspend", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const offerId = req.params.id;
+      const { reason } = req.body;
+
+      // Verify ownership
+      const offer = await storage.getOffer(offerId);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile || offer.companyId !== companyProfile.id) {
+        return res.status(403).json({ error: "Unauthorized: You don't own this offer" });
+      }
+
+      // Check if already paused
+      if (offer.status === 'paused') {
+        return res.status(400).json({
+          error: "Already suspended",
+          message: "This offer is already suspended."
+        });
+      }
+
+      // Check if there's already a pending action
+      if (offer.pendingAction) {
+        return res.status(400).json({
+          error: "Pending action exists",
+          message: `This offer already has a pending ${offer.pendingAction} request.`
+        });
+      }
+
+      // Request suspension
+      const updatedOffer = await storage.requestOfferSuspend(offerId, reason || "No reason provided");
+
+      // Notify all admins about the suspend request
+      const adminUsers = await storage.getUsersByRole('admin');
+      for (const admin of adminUsers) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'offer_suspend_requested',
+          title: 'Offer Suspension Request',
+          message: `Company "${companyProfile.tradeName || companyProfile.legalName}" has requested to suspend offer "${offer.title}". Reason: ${reason || "No reason provided"}`,
+          linkUrl: `/admin/offers/${offerId}`,
+          metadata: { offerId, companyId: companyProfile.id, reason },
+        });
+      }
+
+      res.json({ success: true, offer: updatedOffer });
+    } catch (error: any) {
+      console.error('[POST /api/offers/:id/request-suspend] Error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Cancel pending action request
+  app.post("/api/offers/:id/cancel-pending-action", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const offerId = req.params.id;
+
+      // Verify ownership
+      const offer = await storage.getOffer(offerId);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile || offer.companyId !== companyProfile.id) {
+        return res.status(403).json({ error: "Unauthorized: You don't own this offer" });
+      }
+
+      // Check if there's a pending action to cancel
+      if (!offer.pendingAction) {
+        return res.status(400).json({
+          error: "No pending action",
+          message: "This offer doesn't have a pending action to cancel."
+        });
+      }
+
+      // Cancel the pending action
+      const updatedOffer = await storage.cancelOfferPendingAction(offerId);
+
+      res.json({ success: true, offer: updatedOffer });
+    } catch (error: any) {
+      console.error('[POST /api/offers/:id/cancel-pending-action] Error:', error);
       res.status(500).send(error.message);
     }
   });
@@ -3135,12 +3288,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await notificationService.sendNotification(
           companyProfile.userId,
           'review_received',
-          `New Review Received (${review.rating} stars)`,
-          `${creatorUser?.firstName || creatorUser?.username || 'A creator'} left you a ${review.rating}-star review${review.comment ? ': "' + review.comment.substring(0, 50) + (review.comment.length > 50 ? '..."' : '"') : '.'}`,
+          `New Review Received (${review.overallRating} stars)`,
+          `${creatorUser?.firstName || creatorUser?.username || 'A creator'} left you a ${review.overallRating}-star review${review.reviewText ? ': "' + review.reviewText.substring(0, 50) + (review.reviewText.length > 50 ? '..."' : '"') : '.'}`,
           {
             userName: companyProfile.legalName || companyProfile.tradeName || 'Company',
-            reviewRating: review.rating,
-            reviewText: review.comment,
+            reviewRating: review.overallRating,
+            reviewText: review.reviewText ?? undefined,
             linkUrl: '/company-reviews',
           }
         );
@@ -3705,6 +3858,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           providerTransactionId: paymentResult.transactionId,
           providerResponse: paymentResult.providerResponse,
           completedAt: new Date(),
+          description: 'Payment completed successfully',
         });
 
         console.log(`[Payment] SUCCESS - Sent $${payment.netAmount} to creator. TX ID: ${paymentResult.transactionId}`);
@@ -4154,6 +4308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           providerTransactionId: paymentResult.transactionId,
           providerResponse: paymentResult.providerResponse,
           completedAt: new Date(),
+          description: 'Payment completed successfully',
         });
 
         res.json(updatedPayment);
@@ -4460,40 +4615,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user.createdAt && new Date(user.createdAt) >= oneWeekAgo
       ).length;
 
-      // Get all payments for financial data
-      const allPayments = await db
+      // Get all affiliate payments (from offers/commissions)
+      const allAffiliatePayments = await db
         .select()
         .from(payments);
 
-      const filteredPayments = allPayments.filter(p =>
+      const filteredAffiliatePayments = allAffiliatePayments.filter(p =>
         !p.initiatedAt || new Date(p.initiatedAt) >= startDate
       );
 
-      // Calculate financial metrics
-      let totalPayouts = 0;
-      let pendingPayouts = 0;
-      let completedPayouts = 0;
-      let disputedPaymentsAmt = 0;
-      let platformFees = 0;
-      let processingFees = 0;
+      // Get all retainer payments (from contracts/deliverables)
+      const allRetainerPayments = await db
+        .select()
+        .from(retainerPayments);
 
-      for (const payment of filteredPayments) {
+      const filteredRetainerPayments = allRetainerPayments.filter(p =>
+        !p.initiatedAt || new Date(p.initiatedAt) >= startDate
+      );
+
+      // Calculate financial metrics - Affiliate payments
+      let affiliatePayouts = 0;
+      let affiliatePendingPayouts = 0;
+      let affiliateCompletedPayouts = 0;
+      let affiliateDisputedPayouts = 0;
+      let affiliatePlatformFees = 0;
+      let affiliateProcessingFees = 0;
+
+      for (const payment of filteredAffiliatePayments) {
         const platform = Number(payment.platformFeeAmount || 0);
         const processing = Number(payment.stripeFeeAmount || 0);
         const net = Number(payment.netAmount || 0);
 
-        totalPayouts += net;
-        platformFees += platform;
-        processingFees += processing;
+        affiliatePayouts += net;
+        affiliatePlatformFees += platform;
+        affiliateProcessingFees += processing;
 
         if (payment.status === 'pending' || payment.status === 'processing') {
-          pendingPayouts += net;
+          affiliatePendingPayouts += net;
         } else if (payment.status === 'completed') {
-          completedPayouts += net;
+          affiliateCompletedPayouts += net;
         } else if (payment.status === 'failed') {
-          disputedPaymentsAmt += net;
+          affiliateDisputedPayouts += net;
         }
       }
+
+      // Calculate financial metrics - Retainer payments
+      let retainerPayouts = 0;
+      let retainerPendingPayouts = 0;
+      let retainerCompletedPayouts = 0;
+      let retainerDisputedPayouts = 0;
+      let retainerPlatformFees = 0;
+      let retainerProcessingFees = 0;
+
+      for (const payment of filteredRetainerPayments) {
+        const platform = Number(payment.platformFeeAmount || 0);
+        const processing = Number(payment.processingFeeAmount || 0);
+        const net = Number(payment.netAmount || 0);
+
+        retainerPayouts += net;
+        retainerPlatformFees += platform;
+        retainerProcessingFees += processing;
+
+        if (payment.status === 'pending' || payment.status === 'processing') {
+          retainerPendingPayouts += net;
+        } else if (payment.status === 'completed') {
+          retainerCompletedPayouts += net;
+        } else if (payment.status === 'failed') {
+          retainerDisputedPayouts += net;
+        }
+      }
+
+      // Combined totals
+      const totalPayouts = affiliatePayouts + retainerPayouts;
+      const pendingPayouts = affiliatePendingPayouts + retainerPendingPayouts;
+      const completedPayouts = affiliateCompletedPayouts + retainerCompletedPayouts;
+      const disputedPaymentsAmt = affiliateDisputedPayouts + retainerDisputedPayouts;
+      const platformFees = affiliatePlatformFees + retainerPlatformFees;
+      const processingFees = affiliateProcessingFees + retainerProcessingFees;
 
       // Get offers for listing fees
       const allOffers = await storage.getOffers({});
@@ -4504,13 +4702,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const totalRevenue = listingFees + platformFees + processingFees;
 
-      // Calculate growth (compare to previous period)
+      // Calculate growth (compare to previous period) - include both affiliate and retainer
       const previousStartDate = new Date(startDate.getTime() - (now.getTime() - startDate.getTime()));
-      const previousPayments = allPayments.filter(p =>
+      const previousAffiliatePayments = allAffiliatePayments.filter(p =>
         p.initiatedAt && new Date(p.initiatedAt) >= previousStartDate && new Date(p.initiatedAt) < startDate
       );
-      const previousRevenue = previousPayments.reduce((sum, p) =>
+      const previousRetainerPaymentsFiltered = allRetainerPayments.filter(p =>
+        p.initiatedAt && new Date(p.initiatedAt) >= previousStartDate && new Date(p.initiatedAt) < startDate
+      );
+      const previousAffiliateRevenue = previousAffiliatePayments.reduce((sum, p) =>
         sum + Number(p.platformFeeAmount || 0) + Number(p.stripeFeeAmount || 0), 0);
+      const previousRetainerRevenue = previousRetainerPaymentsFiltered.reduce((sum, p) =>
+        sum + Number(p.platformFeeAmount || 0) + Number(p.processingFeeAmount || 0), 0);
+      const previousRevenue = previousAffiliateRevenue + previousRetainerRevenue;
       const revenueGrowth = previousRevenue > 0
         ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
         : 0;
@@ -4549,23 +4753,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
-      // Calculate revenue by period (group by week/day)
-      const revenueByPeriod: Array<{ period: string; listingFees: number; platformFees: number; processingFees: number; total: number }> = [];
-      const periodMap = new Map<string, { listingFees: number; platformFees: number; processingFees: number }>();
+      // Calculate revenue by period (group by week/day) - include both affiliate and retainer
+      const revenueByPeriod: Array<{ period: string; listingFees: number; platformFees: number; processingFees: number; affiliateFees: number; retainerFees: number; total: number }> = [];
+      const periodMap = new Map<string, { listingFees: number; platformFees: number; processingFees: number; affiliateFees: number; retainerFees: number }>();
 
-      for (const payment of filteredPayments) {
+      // Add affiliate payments to period map
+      for (const payment of filteredAffiliatePayments) {
         const date = payment.initiatedAt ? new Date(payment.initiatedAt) : new Date();
         const periodKey = date.toISOString().split('T')[0];
-        const existing = periodMap.get(periodKey) || { listingFees: 0, platformFees: 0, processingFees: 0 };
+        const existing = periodMap.get(periodKey) || { listingFees: 0, platformFees: 0, processingFees: 0, affiliateFees: 0, retainerFees: 0 };
+        const fees = Number(payment.platformFeeAmount || 0) + Number(payment.stripeFeeAmount || 0);
         existing.platformFees += Number(payment.platformFeeAmount || 0);
         existing.processingFees += Number(payment.stripeFeeAmount || 0);
+        existing.affiliateFees += fees;
+        periodMap.set(periodKey, existing);
+      }
+
+      // Add retainer payments to period map
+      for (const payment of filteredRetainerPayments) {
+        const date = payment.initiatedAt ? new Date(payment.initiatedAt) : new Date();
+        const periodKey = date.toISOString().split('T')[0];
+        const existing = periodMap.get(periodKey) || { listingFees: 0, platformFees: 0, processingFees: 0, affiliateFees: 0, retainerFees: 0 };
+        const fees = Number(payment.platformFeeAmount || 0) + Number(payment.processingFeeAmount || 0);
+        existing.platformFees += Number(payment.platformFeeAmount || 0);
+        existing.processingFees += Number(payment.processingFeeAmount || 0);
+        existing.retainerFees += fees;
         periodMap.set(periodKey, existing);
       }
 
       for (const offer of filteredOffers) {
         const date = offer.createdAt ? new Date(offer.createdAt) : new Date();
         const periodKey = date.toISOString().split('T')[0];
-        const existing = periodMap.get(periodKey) || { listingFees: 0, platformFees: 0, processingFees: 0 };
+        const existing = periodMap.get(periodKey) || { listingFees: 0, platformFees: 0, processingFees: 0, affiliateFees: 0, retainerFees: 0 };
         existing.listingFees += Number(offer.listingFee || 0);
         periodMap.set(periodKey, existing);
       }
@@ -4577,6 +4796,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           listingFees: data.listingFees,
           platformFees: data.platformFees,
           processingFees: data.processingFees,
+          affiliateFees: data.affiliateFees,
+          retainerFees: data.retainerFees,
           total: data.listingFees + data.platformFees + data.processingFees,
         });
       }
@@ -4639,7 +4860,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companySpend.set(offer.companyId, existing);
       }
 
-      for (const payment of filteredPayments) {
+      // Add affiliate payment spend
+      for (const payment of filteredAffiliatePayments) {
+        if (!payment.companyId) continue;
+        const existing = companySpend.get(payment.companyId) || { spend: 0, offers: 0, creators: 0 };
+        existing.spend += Number(payment.grossAmount || 0);
+        companySpend.set(payment.companyId, existing);
+      }
+
+      // Add retainer payment spend
+      for (const payment of filteredRetainerPayments) {
         if (!payment.companyId) continue;
         const existing = companySpend.get(payment.companyId) || { spend: 0, offers: 0, creators: 0 };
         existing.spend += Number(payment.grossAmount || 0);
@@ -4683,12 +4913,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get suspended users (those without active status)
       const suspendedUsersCount = allUsers.filter((u: any) => u.isSuspended).length;
 
+      // Calculate total fees by type for revenue breakdown
+      const totalAffiliateFees = affiliatePlatformFees + affiliateProcessingFees;
+      const totalRetainerFees = retainerPlatformFees + retainerProcessingFees;
+
       const response = {
         financial: {
           totalRevenue,
           listingFees,
           platformFees,
           processingFees,
+          // Affiliate breakdown
+          affiliatePlatformFees,
+          affiliateProcessingFees,
+          affiliatePayouts,
+          affiliatePendingPayouts,
+          affiliateCompletedPayouts,
+          // Retainer breakdown
+          retainerPlatformFees,
+          retainerProcessingFees,
+          retainerPayouts,
+          retainerPendingPayouts,
+          retainerCompletedPayouts,
+          // Combined totals
           totalPayouts,
           pendingPayouts,
           completedPayouts,
@@ -4698,10 +4945,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           revenueByPeriod,
           payoutsByPeriod: [],
           revenueBySource: [
-            { source: 'Listing Fees', amount: listingFees },
-            { source: 'Platform Fees (4%)', amount: platformFees },
-            { source: 'Processing Fees (3%)', amount: processingFees },
+            { source: 'Listing Fees', amount: listingFees, type: 'listing' },
+            { source: 'Affiliate Fees', amount: totalAffiliateFees, type: 'affiliate' },
+            { source: 'Retainer Fees', amount: totalRetainerFees, type: 'retainer' },
           ].filter(s => s.amount > 0),
+          // Transaction counts
+          affiliateTransactionCount: filteredAffiliatePayments.length,
+          retainerTransactionCount: filteredRetainerPayments.length,
+          totalTransactionCount: filteredAffiliatePayments.length + filteredRetainerPayments.length,
         },
         users: {
           totalUsers: allUsers.length,
@@ -5230,6 +5481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Company not found" });
       }
 
+      const { platformFee: defaultPlatformFee, stripeFee: processingFee } = await getPlatformFeeSettings();
       const customFee = company.customPlatformFeePercentage;
       const hasCustomFee = customFee !== null && customFee !== undefined;
 
@@ -5238,12 +5490,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyName: company.legalName,
         customPlatformFeePercentage: hasCustomFee ? parseFloat(customFee.toString()) : null,
         customPlatformFeeDisplay: hasCustomFee ? `${(parseFloat(customFee.toString()) * 100).toFixed(2)}%` : null,
-        defaultPlatformFeePercentage: DEFAULT_PLATFORM_FEE_PERCENTAGE,
-        defaultPlatformFeeDisplay: `${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
-        processingFeePercentage: STRIPE_PROCESSING_FEE_PERCENTAGE,
-        processingFeeDisplay: `${(STRIPE_PROCESSING_FEE_PERCENTAGE * 100)}%`,
-        effectivePlatformFee: hasCustomFee ? parseFloat(customFee.toString()) : DEFAULT_PLATFORM_FEE_PERCENTAGE,
-        effectiveTotalFee: (hasCustomFee ? parseFloat(customFee.toString()) : DEFAULT_PLATFORM_FEE_PERCENTAGE) + STRIPE_PROCESSING_FEE_PERCENTAGE,
+        defaultPlatformFeePercentage: defaultPlatformFee,
+        defaultPlatformFeeDisplay: `${(defaultPlatformFee * 100)}%`,
+        processingFeePercentage: processingFee,
+        processingFeeDisplay: `${(processingFee * 100)}%`,
+        effectivePlatformFee: hasCustomFee ? parseFloat(customFee.toString()) : defaultPlatformFee,
+        effectiveTotalFee: (hasCustomFee ? parseFloat(customFee.toString()) : defaultPlatformFee) + processingFee,
         isUsingCustomFee: hasCustomFee,
       });
     } catch (error: any) {
@@ -5300,13 +5552,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[Admin] Updated platform fee for company ${companyId} (${company.legalName}) to ${(feeValue * 100).toFixed(2)}%`);
 
+      const { stripeFee: processingFee } = await getPlatformFeeSettings();
+
       res.json({
         success: true,
         message: `Platform fee updated to ${(feeValue * 100).toFixed(2)}% for ${company.legalName}`,
         companyId: companyId,
         customPlatformFeePercentage: feeValue,
         customPlatformFeeDisplay: `${(feeValue * 100).toFixed(2)}%`,
-        effectiveTotalFee: feeValue + STRIPE_PROCESSING_FEE_PERCENTAGE,
+        effectiveTotalFee: feeValue + processingFee,
       });
     } catch (error: any) {
       console.error('[update-company-fee] Error:', error);
@@ -5325,6 +5579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const previousFee = company.customPlatformFeePercentage;
+      const { platformFee: defaultPlatformFee, stripeFee: processingFee } = await getPlatformFeeSettings();
 
       // Update company profile to remove custom fee
       await storage.updateCompanyProfileById(companyId, {
@@ -5338,7 +5593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         action: 'remove_company_fee',
         entityType: 'company',
         entityId: companyId,
-        reason: `Removed custom platform fee for ${company.legalName}, reverting to default ${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
+        reason: `Removed custom platform fee for ${company.legalName}, reverting to default ${(defaultPlatformFee * 100)}%`,
         changes: {
           previousFee: previousFee,
           companyName: company.legalName,
@@ -5349,11 +5604,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         success: true,
-        message: `Custom platform fee removed for ${company.legalName}. Now using default ${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
+        message: `Custom platform fee removed for ${company.legalName}. Now using default ${(defaultPlatformFee * 100)}%`,
         companyId: companyId,
-        defaultPlatformFeePercentage: DEFAULT_PLATFORM_FEE_PERCENTAGE,
-        defaultPlatformFeeDisplay: `${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
-        effectiveTotalFee: DEFAULT_PLATFORM_FEE_PERCENTAGE + STRIPE_PROCESSING_FEE_PERCENTAGE,
+        defaultPlatformFeePercentage: defaultPlatformFee,
+        defaultPlatformFeeDisplay: `${(defaultPlatformFee * 100)}%`,
+        effectiveTotalFee: defaultPlatformFee + processingFee,
       });
     } catch (error: any) {
       console.error('[remove-company-fee] Error:', error);
@@ -5365,11 +5620,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/companies-with-custom-fees", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const companies = await storage.getCompaniesWithCustomFees();
+      const { platformFee: defaultPlatformFee, stripeFee: processingFee } = await getPlatformFeeSettings();
 
       res.json({
         count: companies.length,
-        defaultPlatformFeePercentage: DEFAULT_PLATFORM_FEE_PERCENTAGE,
-        defaultPlatformFeeDisplay: `${(DEFAULT_PLATFORM_FEE_PERCENTAGE * 100)}%`,
+        defaultPlatformFeePercentage: defaultPlatformFee,
+        defaultPlatformFeeDisplay: `${(defaultPlatformFee * 100)}%`,
         companies: companies.map(company => ({
           id: company.id,
           legalName: company.legalName,
@@ -5377,8 +5633,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customPlatformFeePercentage: company.customPlatformFeePercentage ? parseFloat(company.customPlatformFeePercentage.toString()) : null,
           customPlatformFeeDisplay: company.customPlatformFeePercentage ? `${(parseFloat(company.customPlatformFeePercentage.toString()) * 100).toFixed(2)}%` : null,
           effectiveTotalFee: company.customPlatformFeePercentage
-            ? parseFloat(company.customPlatformFeePercentage.toString()) + STRIPE_PROCESSING_FEE_PERCENTAGE
-            : DEFAULT_PLATFORM_FEE_PERCENTAGE + STRIPE_PROCESSING_FEE_PERCENTAGE,
+            ? parseFloat(company.customPlatformFeePercentage.toString()) + processingFee
+            : defaultPlatformFee + processingFee,
         })),
       });
     } catch (error: any) {
@@ -6011,6 +6267,216 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get offers with pending actions (delete/suspend requests)
+  app.get("/api/admin/offers/pending-actions", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const offers = await storage.getOffersWithPendingActions();
+      res.json(offers);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Admin approve delete request
+  app.post("/api/admin/offers/:id/approve-delete", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const offer = await storage.getOffer(req.params.id);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      if (offer.pendingAction !== 'delete') {
+        return res.status(400).json({ error: "This offer does not have a pending delete request" });
+      }
+
+      // Get company info for notification before deletion
+      const company = await storage.getCompanyProfileById(offer.companyId);
+      const offerTitle = offer.title;
+
+      // Delete assets from cloud storage before deleting the offer
+      const { ObjectStorageService } = await import('./objectStorage');
+      const objectStorage = new ObjectStorageService();
+      const assetDeletionErrors: string[] = [];
+
+      // Delete featured image if exists
+      if (offer.featuredImageUrl) {
+        try {
+          const imagePublicId = objectStorage.extractPublicIdFromUrl(offer.featuredImageUrl);
+          if (imagePublicId) {
+            await objectStorage.deleteResource(imagePublicId, 'image');
+            console.log(`[Offer Delete] Deleted featured image: ${imagePublicId}`);
+          }
+        } catch (error: any) {
+          const errorMsg = `Failed to delete featured image: ${error.message}`;
+          console.error(`[Offer Delete] ${errorMsg}`);
+          assetDeletionErrors.push(errorMsg);
+        }
+      }
+
+      // Delete all offer videos and their thumbnails
+      const offerVideos = await storage.getOfferVideos(offer.id);
+      for (const video of offerVideos) {
+        // Delete video file
+        if (video.videoUrl) {
+          try {
+            const videoPublicId = objectStorage.extractPublicIdFromUrl(video.videoUrl);
+            if (videoPublicId) {
+              await objectStorage.deleteResource(videoPublicId, 'video');
+              console.log(`[Offer Delete] Deleted video: ${videoPublicId}`);
+            }
+          } catch (error: any) {
+            const errorMsg = `Failed to delete video ${video.id}: ${error.message}`;
+            console.error(`[Offer Delete] ${errorMsg}`);
+            assetDeletionErrors.push(errorMsg);
+          }
+        }
+
+        // Delete thumbnail if exists
+        if (video.thumbnailUrl) {
+          try {
+            const thumbnailPublicId = objectStorage.extractPublicIdFromUrl(video.thumbnailUrl);
+            if (thumbnailPublicId) {
+              await objectStorage.deleteResource(thumbnailPublicId, 'image');
+              console.log(`[Offer Delete] Deleted thumbnail: ${thumbnailPublicId}`);
+            }
+          } catch (error: any) {
+            const errorMsg = `Failed to delete thumbnail for video ${video.id}: ${error.message}`;
+            console.error(`[Offer Delete] ${errorMsg}`);
+            assetDeletionErrors.push(errorMsg);
+          }
+        }
+      }
+
+      if (assetDeletionErrors.length > 0) {
+        console.warn(`[Offer Delete] Asset deletion completed with ${assetDeletionErrors.length} error(s)`);
+      }
+
+      // Approve and delete the offer
+      await storage.approveOfferDelete(req.params.id);
+
+      // Notify company about approval
+      if (company) {
+        await storage.createNotification({
+          userId: company.userId,
+          type: 'offer_delete_approved',
+          title: 'Offer Deletion Approved',
+          message: `Your request to delete offer "${offerTitle}" has been approved. The offer has been permanently deleted.`,
+          metadata: { offerTitle },
+        });
+      }
+
+      res.json({ success: true, message: "Offer deleted successfully" });
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Admin reject delete request
+  app.post("/api/admin/offers/:id/reject-delete", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { reason } = req.body;
+
+      const offer = await storage.getOffer(req.params.id);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      if (offer.pendingAction !== 'delete') {
+        return res.status(400).json({ error: "This offer does not have a pending delete request" });
+      }
+
+      // Reject the delete request (clears pending action)
+      const updatedOffer = await storage.rejectOfferDelete(req.params.id);
+
+      // Notify company about rejection
+      const company = await storage.getCompanyProfileById(offer.companyId);
+      if (company) {
+        await storage.createNotification({
+          userId: company.userId,
+          type: 'offer_delete_rejected',
+          title: 'Offer Deletion Request Rejected',
+          message: `Your request to delete offer "${offer.title}" has been rejected.${reason ? ` Reason: ${reason}` : ''}`,
+          linkUrl: `/company/offers/${offer.id}`,
+          metadata: { offerId: offer.id, reason },
+        });
+      }
+
+      res.json({ success: true, offer: updatedOffer });
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Admin approve suspend request
+  app.post("/api/admin/offers/:id/approve-suspend", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const offer = await storage.getOffer(req.params.id);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      if (offer.pendingAction !== 'suspend') {
+        return res.status(400).json({ error: "This offer does not have a pending suspend request" });
+      }
+
+      // Approve and suspend the offer (changes status to 'paused')
+      const updatedOffer = await storage.approveOfferSuspend(req.params.id);
+
+      // Notify company about approval
+      const company = await storage.getCompanyProfileById(offer.companyId);
+      if (company) {
+        await storage.createNotification({
+          userId: company.userId,
+          type: 'offer_suspend_approved',
+          title: 'Offer Suspension Approved',
+          message: `Your request to suspend offer "${offer.title}" has been approved. The offer is now paused and not visible to creators.`,
+          linkUrl: `/company/offers/${offer.id}`,
+          metadata: { offerId: offer.id },
+        });
+      }
+
+      res.json({ success: true, offer: updatedOffer });
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Admin reject suspend request
+  app.post("/api/admin/offers/:id/reject-suspend", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { reason } = req.body;
+
+      const offer = await storage.getOffer(req.params.id);
+      if (!offer) {
+        return res.status(404).json({ error: "Offer not found" });
+      }
+
+      if (offer.pendingAction !== 'suspend') {
+        return res.status(400).json({ error: "This offer does not have a pending suspend request" });
+      }
+
+      // Reject the suspend request (clears pending action)
+      const updatedOffer = await storage.rejectOfferSuspend(req.params.id);
+
+      // Notify company about rejection
+      const company = await storage.getCompanyProfileById(offer.companyId);
+      if (company) {
+        await storage.createNotification({
+          userId: company.userId,
+          type: 'offer_suspend_rejected',
+          title: 'Offer Suspension Request Rejected',
+          message: `Your request to suspend offer "${offer.title}" has been rejected.${reason ? ` Reason: ${reason}` : ''}`,
+          linkUrl: `/company/offers/${offer.id}`,
+          metadata: { offerId: offer.id, reason },
+        });
+      }
+
+      res.json({ success: true, offer: updatedOffer });
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
+  });
+
   app.get("/api/admin/creators", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const creators = await storage.getCreatorsForAdmin();
@@ -6410,6 +6876,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const setting = await storage.updatePlatformSetting(req.params.key, value.toString(), userId);
 
+      // Clear fee settings cache if fee-related setting was updated
+      if (req.params.key.includes('fee') || req.params.key.includes('percentage')) {
+        clearFeeSettingsCache();
+      }
+
       // Log the settings change
       const { logAuditAction, AuditActions, EntityTypes } = await import('./auditLog');
       await logAuditAction(userId, {
@@ -6444,9 +6915,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedBy: userId,
       });
 
+      // Clear fee settings cache if fee-related setting was created
+      if (key.includes('fee') || key.includes('percentage')) {
+        clearFeeSettingsCache();
+      }
+
       res.json(setting);
     } catch (error: any) {
       console.error('[Platform Settings] Error creating setting:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  // Public endpoint to get current platform fee settings (for client display)
+  app.get("/api/platform/fees", async (req, res) => {
+    try {
+      const { platformFee, stripeFee } = await getPlatformFeeSettings();
+      const totalFee = platformFee + stripeFee;
+
+      res.json({
+        platformFeePercentage: platformFee,
+        platformFeeDisplay: `${(platformFee * 100).toFixed(0)}%`,
+        stripeFeePercentage: stripeFee,
+        stripeFeeDisplay: `${(stripeFee * 100).toFixed(0)}%`,
+        totalFeePercentage: totalFee,
+        totalFeeDisplay: `${(totalFee * 100).toFixed(0)}%`,
+      });
+    } catch (error: any) {
+      console.error('[Platform Fees] Error fetching fee settings:', error);
       res.status(500).send(error.message);
     }
   });
@@ -7776,55 +8272,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only allow known safe hosts to avoid open proxy / SSRF
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com"];
       const hostname = parsed.hostname || "";
       const allowed = allowedHosts.some((h) => hostname.endsWith(h));
       if (!allowed) return res.status(403).send("forbidden host");
 
       if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
 
-      // Cloudinary assets are public by default; legacy GCS signing logic kept for reference
-      // let fetchUrl = url;
-      // if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
-      //   try {
-      //     const pathParts = parsed.pathname.split('/').filter(p => p);
-      //     if (pathParts.length >= 2) {
-      //       const filePath = pathParts.slice(1).join('/');
-      //       const { Storage } = await import('@google-cloud/storage');
-      //       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
-      //       const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
-      //       let gcsStorage: any;
-      //       const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-      //       if (credentialsJson) {
-      //         const credentials = JSON.parse(credentialsJson);
-      //         gcsStorage = new Storage({
-      //           projectId: projectId || credentials.project_id,
-      //           credentials,
-      //         });
-      //       } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-      //         gcsStorage = new Storage({
-      //           projectId,
-      //           keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-      //         });
-      //       } else {
-      //         gcsStorage = new Storage({ projectId });
-      //       }
-      //       const [signedUrl] = await gcsStorage
-      //         .bucket(bucketName)
-      //         .file(filePath)
-      //         .getSignedUrl({
-      //           version: 'v4',
-      //           action: 'read',
-      //           expires: Date.now() + 60 * 60 * 1000,
-      //         });
-      //       fetchUrl = signedUrl;
-      //       console.log('[Proxy Image] Generated signed URL for GCS file:', filePath);
-      //     }
-      //   } catch (signedUrlError) {
-      //     console.error('[Proxy Image] Failed to generate signed URL:', signedUrlError);
-      //   }
-      // }
-      const fetchUrl = url;
+      // Generate signed URLs for GCS files (they are private by default)
+      let fetchUrl = url;
+      if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
+        try {
+          const pathParts = parsed.pathname.split('/').filter(p => p);
+          if (pathParts.length >= 2) {
+            const filePath = pathParts.slice(1).join('/');
+            const { Storage } = await import('@google-cloud/storage');
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
+            const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
+            let gcsStorage: any;
+            const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
+            if (credentialsJson) {
+              const credentials = JSON.parse(credentialsJson);
+              gcsStorage = new Storage({
+                projectId: projectId || credentials.project_id,
+                credentials,
+              });
+            } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+              gcsStorage = new Storage({
+                projectId,
+                keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+              });
+            } else {
+              gcsStorage = new Storage({ projectId });
+            }
+            const [signedUrl] = await gcsStorage
+              .bucket(bucketName)
+              .file(filePath)
+              .getSignedUrl({
+                version: 'v4',
+                action: 'read',
+                expires: Date.now() + 60 * 60 * 1000,
+              });
+            fetchUrl = signedUrl;
+            console.log('[Proxy Image] Generated signed URL for GCS file:', filePath);
+          }
+        } catch (signedUrlError) {
+          console.error('[Proxy Image] Failed to generate signed URL:', signedUrlError);
+        }
+      }
 
       const fetchRes = await fetch(fetchUrl, { method: "GET" });
       if (!fetchRes.ok) return res.status(fetchRes.status).send("failed to fetch image");
@@ -7860,57 +8355,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only allow known safe hosts to avoid open proxy / SSRF
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com"];
       const hostname = parsed.hostname || "";
       const allowed = allowedHosts.some((h) => hostname.endsWith(h));
       if (!allowed) return res.status(403).send("forbidden host");
 
       if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
 
-      // Cloudinary assets are public by default; legacy GCS signing logic kept for reference
-      // let fetchUrl = url;
-      // if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
-      //   try {
-      //     const pathParts = parsed.pathname.split('/').filter(p => p);
-      //     if (pathParts.length >= 2) {
-      //       const filePath = pathParts.slice(1).join('/');
-      //       const { Storage } = await import('@google-cloud/storage');
-      //       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
-      //       const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
-      //       let gcsStorage: any;
-      //       const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
-      //       if (credentialsJson) {
-      //         const credentials = JSON.parse(credentialsJson);
-      //         gcsStorage = new Storage({
-      //           projectId: projectId || credentials.project_id,
-      //           credentials,
-      //         });
-      //       }
-      //       else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-      //         gcsStorage = new Storage({
-      //           projectId,
-      //           keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-      //         });
-      //       }
-      //       else {
-      //         gcsStorage = new Storage({ projectId });
-      //       }
-      //       const [signedUrl] = await gcsStorage
-      //         .bucket(bucketName)
-      //         .file(filePath)
-      //         .getSignedUrl({
-      //           version: 'v4',
-      //           action: 'read',
-      //           expires: Date.now() + 60 * 60 * 1000,
-      //         });
-      //       fetchUrl = signedUrl;
-      //       console.log('[Proxy Video] Generated signed URL for GCS file:', filePath);
-      //     }
-      //   } catch (signedUrlError) {
-      //     console.error('[Proxy Video] Failed to generate signed URL:', signedUrlError);
-      //   }
-      // }
-      const fetchUrl = url;
+      // Generate signed URLs for GCS files (they are private by default)
+      let fetchUrl = url;
+      if (hostname.endsWith("storage.googleapis.com") || hostname.endsWith("googleapis.com")) {
+        try {
+          const pathParts = parsed.pathname.split('/').filter(p => p);
+          if (pathParts.length >= 2) {
+            const filePath = pathParts.slice(1).join('/');
+            const { Storage } = await import('@google-cloud/storage');
+            const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
+            const bucketName = process.env.GOOGLE_CLOUD_BUCKET_NAME;
+            let gcsStorage: any;
+            const credentialsJson = process.env.GOOGLE_CLOUD_CREDENTIALS_JSON;
+            if (credentialsJson) {
+              const credentials = JSON.parse(credentialsJson);
+              gcsStorage = new Storage({
+                projectId: projectId || credentials.project_id,
+                credentials,
+              });
+            } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+              gcsStorage = new Storage({
+                projectId,
+                keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+              });
+            } else {
+              gcsStorage = new Storage({ projectId });
+            }
+            const [signedUrl] = await gcsStorage
+              .bucket(bucketName)
+              .file(filePath)
+              .getSignedUrl({
+                version: 'v4',
+                action: 'read',
+                expires: Date.now() + 60 * 60 * 1000,
+              });
+            fetchUrl = signedUrl;
+            console.log('[Proxy Video] Generated signed URL for GCS file:', filePath);
+          }
+        } catch (signedUrlError) {
+          console.error('[Proxy Video] Failed to generate signed URL:', signedUrlError);
+        }
+      }
 
       // Get the range header from the request (for video seeking)
       const range = req.headers.range;
@@ -7995,9 +8487,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("invalid url");
       }
 
-      const allowedHosts = ["res.cloudinary.com", "cloudinary.com"];
+      // Only allow known safe hosts to avoid open proxy / SSRF
+      const allowedHosts = ["res.cloudinary.com", "cloudinary.com", "storage.googleapis.com"];
       const hostname = parsed.hostname || "";
-      const allowed = allowedHosts.some((h) => hostname.endsWith(h));
+      const allowed = allowedHosts.some((h) => hostname === h || hostname.endsWith("." + h));
       if (!allowed) return res.status(403).send("forbidden host");
 
       if (parsed.protocol !== "https:") return res.status(400).send("only https urls are allowed");
@@ -8331,19 +8824,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const filename = req.params.filename;
       const isDownload = req.query.download === 'true';
-      const customName = req.query.name as string | undefined;
       const ext = filename.split('.').pop()?.toLowerCase();
       const resourceType = ['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext || '') ? 'video' : ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '') ? 'image' : 'raw';
 
-      const url = cloudinary.url(filename, {
-        resource_type: resourceType as any,
-        secure: true,
-        sign_url: true,
-        type: 'authenticated',
-        attachment: isDownload ? (customName || filename.split('/').pop()) : undefined,
+      const objectStorageService = new ObjectStorageService();
+      const url = await objectStorageService.getSignedViewUrl(filename, {
+        resourceType: resourceType as any,
+        expiresIn: 3600, // 1 hour
       });
 
-      console.log('[Signed URL API] Generated Cloudinary signed URL for:', filename, isDownload ? '(download)' : '(view)');
+      console.log('[Signed URL API] Generated GCS signed URL for:', filename, isDownload ? '(download)' : '(view)');
       res.json({ url });
     } catch (error: any) {
       console.error('Error generating signed URL:', error);
@@ -8369,14 +8859,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const uploadResult = await objectStorageService.uploadBuffer(file.buffer, {
         folder,
         resourceType,
+        publicId: file.originalname,
+        contentType: file.mimetype,
       });
 
       res.json({
         message: 'File uploaded successfully',
-        filename: uploadResult.public_id,
+        filename: uploadResult.objectPath,
         originalName: file.originalname,
-        url: uploadResult.secure_url,
-        publicUrl: uploadResult.secure_url,
+        url: uploadResult.url,
+        publicUrl: uploadResult.url,
       });
     } catch (error: any) {
       console.error('Error in direct upload:', error);
@@ -8399,6 +8891,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ objectPath: logoUrl });
     } catch (error) {
       console.error("Error setting company logo:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Delete company logo - removes from storage and database
+  app.delete("/api/company-logos", requireAuth, requireRole('company'), async (req, res) => {
+    const userId = (req.user as any).id;
+    try {
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+
+      const currentLogoUrl = companyProfile.logoUrl;
+
+      // Delete from Google Cloud Storage if logo exists
+      if (currentLogoUrl) {
+        try {
+          const logoPublicId = sharedObjectStorageService.extractPublicIdFromUrl(currentLogoUrl);
+          if (logoPublicId) {
+            await sharedObjectStorageService.deleteResource(logoPublicId, 'image');
+            console.log(`[Company Logo Delete] Deleted logo from storage: ${logoPublicId}`);
+          }
+        } catch (storageError: any) {
+          // Log but don't fail if storage deletion fails - still update database
+          console.error(`[Company Logo Delete] Storage deletion error: ${storageError.message}`);
+        }
+      }
+
+      // Update database to remove logo URL
+      await storage.updateCompanyProfile(userId, { logoUrl: null });
+
+      res.status(200).json({ success: true, message: "Logo deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting company logo:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -8500,7 +9027,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // RETAINER CONTRACTS ROUTES
   // =====================================================
 
-  // Get all retainer contracts for creator (open contracts + contracts assigned to them)
+  // Get all retainer contracts for creator (open contracts + contracts with approved applications)
   app.get("/api/retainer-contracts", requireAuth, requireRole('creator'), async (req, res) => {
     try {
       const userId = (req.user as any).id;
@@ -8508,14 +9035,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get open contracts (for browsing/applying)
       const openContracts = await storage.getOpenRetainerContracts();
 
-      // Get contracts assigned to this creator (their approved contracts)
-      const myContracts = await storage.getRetainerContractsByCreator(userId);
+      // Get contracts where the creator has an approved application
+      const myApprovedContracts = await storage.getContractsWithApprovedApplicationsByCreator(userId);
 
-      // Combine and deduplicate (in case a contract is both open and assigned)
+      // Combine and deduplicate (in case a contract is both open and has approved application)
       const contractMap = new Map();
 
-      // Add my contracts first (higher priority)
-      myContracts.forEach(contract => {
+      // Add approved contracts first (higher priority - these are the creator's active retainers)
+      myApprovedContracts.forEach(contract => {
         contractMap.set(contract.id, contract);
       });
 
@@ -8526,10 +9053,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Convert map back to array
+      // Convert map back to array and add submitted video counts
       const allContracts = Array.from(contractMap.values());
 
-      res.json(allContracts);
+      // Add submittedVideos count to each contract
+      const contractsWithCounts = await Promise.all(
+        allContracts.map(async (contract) => {
+          const submittedVideos = await storage.getRetainerDeliverableCountByContract(contract.id);
+          return {
+            ...contract,
+            submittedVideos,
+          };
+        })
+      );
+
+      res.json(contractsWithCounts);
     } catch (error: any) {
       res.status(500).send(error.message);
     }
@@ -8750,23 +9288,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!contract || contract.assignedCreatorId !== userId) return res.status(403).send("Forbidden");
       const deliverable = await storage.createRetainerDeliverable({ ...validated, creatorId: userId });
 
-      // Send notification to company user
+      // Send notification to company user about new video upload
+      console.log(`[Deliverable] Sending notification for contract ${contract.id}, companyId: ${contract.companyId}`);
       const companyProfile = await storage.getCompanyProfileById(contract.companyId);
+      console.log(`[Deliverable] Company profile found:`, companyProfile ? `userId: ${companyProfile.userId}` : 'null');
       if (companyProfile) {
         const creatorUser = await storage.getUserById(userId);
-        await notificationService.sendNotification(
-          companyProfile.userId,
-          'deliverable_submitted',
-          'New Deliverable Submitted for Review',
-          `${creatorUser?.firstName || creatorUser?.username || 'A creator'} submitted a new deliverable for "${contract.title}" (Month ${deliverable.monthNumber}, Video #${deliverable.videoNumber}).`,
-          {
-            userName: creatorUser?.firstName || creatorUser?.username || 'Creator',
-            contractTitle: contract.title,
-            monthNumber: deliverable.monthNumber.toString(),
-            videoNumber: deliverable.videoNumber.toString(),
-            linkUrl: `/company/retainers/${contract.id}`,
-          }
-        );
+        const creatorName = creatorUser?.firstName || creatorUser?.username || 'A creator';
+        console.log(`[Deliverable] Sending notification to company user ${companyProfile.userId} for deliverable from ${creatorName}`);
+        try {
+          await notificationService.sendNotification(
+            companyProfile.userId,
+            'deliverable_submitted',
+            'New Video Uploaded for Review',
+            `${creatorName} uploaded a new video for "${contract.title}" (Month ${deliverable.monthNumber}, Video #${deliverable.videoNumber}). Please review the deliverable.`,
+            {
+              creatorName,
+              contractTitle: contract.title,
+              monthNumber: deliverable.monthNumber,
+              videoNumber: deliverable.videoNumber,
+              contractId: contract.id,
+              deliverableId: deliverable.id,
+              linkUrl: `/company/retainers/${contract.id}`,
+            }
+          );
+          console.log(`[Deliverable] Notification sent successfully`);
+        } catch (notifError) {
+          console.error(`[Deliverable] Error sending notification:`, notifError);
+        }
+      } else {
+        console.warn(`[Deliverable] No company profile found for companyId: ${contract.companyId}`);
       }
 
       res.json(deliverable);
@@ -8816,22 +9367,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reviewNotes: null,
       } as any);
 
-      // Send notification to company user
+      // Send notification to company user about resubmitted video
       const contract = await storage.getRetainerContract(deliverable.contractId);
       if (contract) {
         const companyProfile = await storage.getCompanyProfileById(contract.companyId);
         if (companyProfile) {
           const creatorUser = await storage.getUserById(userId);
+          const creatorName = creatorUser?.firstName || creatorUser?.username || 'A creator';
           await notificationService.sendNotification(
             companyProfile.userId,
             'deliverable_resubmitted',
-            'Deliverable Resubmitted After Revision',
-            `${creatorUser?.firstName || creatorUser?.username || 'A creator'} has resubmitted the deliverable for "${contract.title}" (Month ${deliverable.monthNumber}, Video #${deliverable.videoNumber}) after making revisions.`,
+            'Video Resubmitted After Revision',
+            `${creatorName} has resubmitted the video for "${contract.title}" (Month ${deliverable.monthNumber}, Video #${deliverable.videoNumber}) after making requested revisions. Please review the updated deliverable.`,
             {
-              userName: creatorUser?.firstName || creatorUser?.username || 'Creator',
+              creatorName,
               contractTitle: contract.title,
-              monthNumber: deliverable.monthNumber.toString(),
-              videoNumber: deliverable.videoNumber.toString(),
+              monthNumber: deliverable.monthNumber,
+              videoNumber: deliverable.videoNumber,
+              contractId: contract.id,
+              deliverableId: deliverable.id,
               linkUrl: `/company/retainers/${contract.id}`,
             }
           );

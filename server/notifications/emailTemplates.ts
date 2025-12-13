@@ -27,10 +27,11 @@ interface EmailTemplateData {
   riskIndicators?: string[];
   // Deliverable fields
   contractTitle?: string;
-  monthNumber?: string;
-  videoNumber?: string;
+  monthNumber?: number;
+  videoNumber?: number;
   reason?: string;
   revisionInstructions?: string;
+  creatorName?: string;
 }
 
 const baseStyles = `
@@ -227,7 +228,7 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
     <body>
       <div class="container">
         <div class="header" style="background-color: #10B981;">
-          <h1>\u1F4B0 Payment Received!</h1>
+          <h1>💰 Payment Received!</h1>
         </div>
         <div class="content">
           <p>Hi ${data.userName},</p>
@@ -265,7 +266,7 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
 
             <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
               <p style="margin: 0; font-size: 14px; color: #1E40AF;">
-                \u1F4A1 <strong>How fees are calculated:</strong><br>
+                💡 <strong>How fees are calculated:</strong><br>
                 Platform fee (${data.platformFeePercentage || '4%'}) and processing fee (${data.processingFeePercentage || '3%'}) are automatically deducted from your gross earnings. The remaining amount is what you receive.
               </p>
             </div>
@@ -307,7 +308,7 @@ export function paymentApprovedEmail(data: EmailTemplateData): { subject: string
     <body>
       <div class="container">
         <div class="header" style="background-color: #10B981;">
-          <h1>\u2713 Payment Sent Successfully!</h1>
+          <h1>✅ Payment Sent Successfully!</h1>
         </div>
         <div class="content">
           <p>Hi ${data.userName},</p>
@@ -345,14 +346,14 @@ export function paymentApprovedEmail(data: EmailTemplateData): { subject: string
 
             <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
               <p style="margin: 0; font-size: 14px; color: #1E40AF;">
-                \u1F4A1 <strong>Payment Structure:</strong><br>
+                💡 <strong>Payment Structure:</strong><br>
                 The platform and processing fees (7% total) are deducted from the gross amount. The creator receives the net amount after fees.
               </p>
             </div>
           ` : ''}
 
           <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;">
-            <p style="margin: 0; color: #065F46;">\u2713 Payment processed successfully</p>
+            <p style="margin: 0; color: #065F46;">✅ Payment processed successfully</p>
             <p style="margin: 5px 0 0 0; color: #047857; font-size: 14px;">The creator will receive the funds according to their payment method settings.</p>
           </div>
 
@@ -486,6 +487,236 @@ export function offerRejectedEmail(data: EmailTemplateData): { subject: string; 
           <p>Your offer <strong>"${data.offerTitle}"</strong> requires some adjustments before it can be published.</p>
           <p>Please review the feedback and resubmit your offer.</p>
           <a href="${data.linkUrl || toAbsoluteUrl('/company-offers')}" class="button">View Offer</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function offerDeleteRequestedEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Offer Deletion Request: "${data.offerTitle}"`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #EF4444;">
+          <h1>Offer Deletion Request</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p><strong>${data.companyName}</strong> has requested to delete their offer <strong>"${data.offerTitle}"</strong>.</p>
+
+          ${data.reason ? `
+            <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #374151;">Reason for Deletion:</h3>
+              <p style="margin: 0; color: #6B7280;">${data.reason}</p>
+            </div>
+          ` : ''}
+
+          <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; font-weight: 600; color: #92400E;">Action Required</p>
+            <p style="margin: 5px 0 0 0; color: #78350F; font-size: 14px;">Please review this request and approve or reject the deletion.</p>
+          </div>
+
+          <a href="${data.linkUrl || toAbsoluteUrl('/admin/offers')}" class="button" style="background-color: #EF4444;">Review Request</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function offerDeleteApprovedEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Offer Deletion Approved: "${data.offerTitle}"`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #10B981;">
+          <h1>Offer Deletion Approved</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>Your request to delete the offer <strong>"${data.offerTitle}"</strong> has been approved.</p>
+
+          <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #065F46;">The offer has been successfully deleted from the marketplace.</p>
+          </div>
+
+          <a href="${data.linkUrl || toAbsoluteUrl('/company/offers')}" class="button" style="background-color: #10B981;">View Your Offers</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function offerDeleteRejectedEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Offer Deletion Request Rejected: "${data.offerTitle}"`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #EF4444;">
+          <h1>Deletion Request Rejected</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>Your request to delete the offer <strong>"${data.offerTitle}"</strong> has been rejected by the admin.</p>
+
+          <div style="background-color: #FEE2E2; border-left: 4px solid #EF4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #991B1B;">The offer will remain active on the marketplace. If you have questions, please contact support.</p>
+          </div>
+
+          <a href="${data.linkUrl || toAbsoluteUrl('/company/offers')}" class="button">View Offer</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function offerSuspendRequestedEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Offer Suspension Request: "${data.offerTitle}"`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #F59E0B;">
+          <h1>Offer Suspension Request</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p><strong>${data.companyName}</strong> has requested to suspend their offer <strong>"${data.offerTitle}"</strong>.</p>
+
+          ${data.reason ? `
+            <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #374151;">Reason for Suspension:</h3>
+              <p style="margin: 0; color: #6B7280;">${data.reason}</p>
+            </div>
+          ` : ''}
+
+          <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; font-weight: 600; color: #92400E;">Action Required</p>
+            <p style="margin: 5px 0 0 0; color: #78350F; font-size: 14px;">Please review this request and approve or reject the suspension.</p>
+          </div>
+
+          <a href="${data.linkUrl || toAbsoluteUrl('/admin/offers')}" class="button" style="background-color: #F59E0B;">Review Request</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function offerSuspendApprovedEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Offer Suspension Approved: "${data.offerTitle}"`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #10B981;">
+          <h1>Offer Suspension Approved</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>Your request to suspend the offer <strong>"${data.offerTitle}"</strong> has been approved.</p>
+
+          <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #065F46;">The offer has been suspended and is no longer visible to creators. You can request to reactivate it at any time.</p>
+          </div>
+
+          <a href="${data.linkUrl || toAbsoluteUrl('/company/offers')}" class="button" style="background-color: #10B981;">View Your Offers</a>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from Affiliate Marketplace.</p>
+          <p>Update your <a href="${toAbsoluteUrl('/settings')}">notification preferences</a> anytime.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
+export function offerSuspendRejectedEmail(data: EmailTemplateData): { subject: string; html: string } {
+  const subject = `Offer Suspension Request Rejected: "${data.offerTitle}"`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>${baseStyles}</style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header" style="background-color: #EF4444;">
+          <h1>Suspension Request Rejected</h1>
+        </div>
+        <div class="content">
+          <p>Hi ${data.userName},</p>
+          <p>Your request to suspend the offer <strong>"${data.offerTitle}"</strong> has been rejected by the admin.</p>
+
+          <div style="background-color: #FEE2E2; border-left: 4px solid #EF4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #991B1B;">The offer will remain active on the marketplace. If you have questions, please contact support.</p>
+          </div>
+
+          <a href="${data.linkUrl || toAbsoluteUrl('/company/offers')}" class="button">View Offer</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
@@ -885,7 +1116,7 @@ export function accountDeletionOtpEmail(data: EmailTemplateData): { subject: str
           </div>
 
           <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0; border-radius: 4px;">
-            <p style="margin: 0; font-weight: 600; color: #92400E;">\u26A0\uFE0F Important:</p>
+            <p style="margin: 0; font-weight: 600; color: #92400E;">⚠️ Important:</p>
             <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #78350F;">
               <li style="margin-bottom: 8px;">This code will expire in <strong>15 minutes</strong></li>
               <li style="margin-bottom: 8px;">Account deletion is permanent and cannot be undone</li>
@@ -935,7 +1166,7 @@ export function passwordChangeOtpEmail(data: EmailTemplateData): { subject: stri
           </div>
 
           <div style="background-color: #DBEAFE; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0; border-radius: 4px;">
-            <p style="margin: 0; font-weight: 600; color: #1E40AF;">\u2139\uFE0F Important:</p>
+            <p style="margin: 0; font-weight: 600; color: #1E40AF;">ℹ️ Important:</p>
             <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #1E3A8A;">
               <li style="margin-bottom: 8px;">This code will expire in <strong>15 minutes</strong></li>
               <li style="margin-bottom: 8px;">Enter this code to complete your password change</li>
@@ -987,7 +1218,7 @@ export function contentFlaggedEmail(data: ContentFlaggedEmailData): { subject: s
         bodyContent = `
           <p>Good news! Your ${contentType} has been reviewed by our moderation team and <strong>no issues were found</strong>.</p>
           <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0; border-radius: 4px;">
-            <p style="margin: 0; color: #065F46;">\u2713 The flag on your content has been dismissed. No further action is required.</p>
+            <p style="margin: 0; color: #065F46;">✅ The flag on your content has been dismissed. No further action is required.</p>
           </div>
         `;
         break;
@@ -1145,7 +1376,7 @@ export function highRiskCompanyEmail(data: EmailTemplateData): { subject: string
 }
 
 export function deliverableSubmittedEmail(data: EmailTemplateData): { subject: string; html: string } {
-  const subject = `New Deliverable Submitted for Review`;
+  const subject = `New Video Uploaded for Review - ${data.contractTitle}`;
 
   const html = `
     <!DOCTYPE html>
@@ -1156,20 +1387,21 @@ export function deliverableSubmittedEmail(data: EmailTemplateData): { subject: s
     <body>
       <div class="container">
         <div class="header" style="background-color: #3B82F6;">
-          <h1>📹 New Deliverable Submitted</h1>
+          <h1>📹 New Video Uploaded</h1>
         </div>
         <div class="content">
           <p>Hi ${data.userName},</p>
-          <p>${data.companyName || 'A creator'} has submitted a new deliverable for your retainer contract.</p>
+          <p><strong>${data.creatorName || 'A creator'}</strong> has uploaded a new video for your retainer contract.</p>
 
           <div style="background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 20px; margin: 20px 0; border-radius: 4px;">
             <h3 style="margin: 0 0 10px 0; color: #1E40AF;">Contract: ${data.contractTitle}</h3>
             <p style="margin: 0; color: #1E3A8A;"><strong>Month ${data.monthNumber}, Video #${data.videoNumber}</strong></p>
+            <p style="margin: 10px 0 0 0; color: #3B82F6;">Submitted by: ${data.creatorName || 'Creator'}</p>
           </div>
 
-          <p>Please review the submitted deliverable and either approve it, request revisions, or reject it.</p>
+          <p>Please review the submitted video and either approve it, request revisions, or reject it.</p>
 
-          <a href="${data.linkUrl || toAbsoluteUrl('/company/retainers')}" class="button" style="background-color: #3B82F6;">Review Deliverable</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/company/retainers')}" class="button" style="background-color: #3B82F6;">Review Video Now</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>
@@ -1184,7 +1416,7 @@ export function deliverableSubmittedEmail(data: EmailTemplateData): { subject: s
 }
 
 export function deliverableResubmittedEmail(data: EmailTemplateData): { subject: string; html: string } {
-  const subject = `Deliverable Resubmitted After Revision`;
+  const subject = `Video Resubmitted After Revision - ${data.contractTitle}`;
 
   const html = `
     <!DOCTYPE html>
@@ -1195,20 +1427,21 @@ export function deliverableResubmittedEmail(data: EmailTemplateData): { subject:
     <body>
       <div class="container">
         <div class="header" style="background-color: #8B5CF6;">
-          <h1>🔄 Deliverable Resubmitted</h1>
+          <h1>🔄 Video Resubmitted</h1>
         </div>
         <div class="content">
           <p>Hi ${data.userName},</p>
-          <p>${data.companyName || 'A creator'} has resubmitted their deliverable after making the requested revisions.</p>
+          <p><strong>${data.creatorName || 'A creator'}</strong> has resubmitted their video after making the requested revisions.</p>
 
           <div style="background-color: #F5F3FF; border-left: 4px solid #8B5CF6; padding: 20px; margin: 20px 0; border-radius: 4px;">
             <h3 style="margin: 0 0 10px 0; color: #6D28D9;">Contract: ${data.contractTitle}</h3>
             <p style="margin: 0; color: #5B21B6;"><strong>Month ${data.monthNumber}, Video #${data.videoNumber}</strong></p>
+            <p style="margin: 10px 0 0 0; color: #8B5CF6;">Resubmitted by: ${data.creatorName || 'Creator'}</p>
           </div>
 
-          <p>Please review the updated deliverable to ensure the revisions meet your requirements.</p>
+          <p>Please review the updated video to ensure the revisions meet your requirements.</p>
 
-          <a href="${data.linkUrl || toAbsoluteUrl('/company/retainers')}" class="button" style="background-color: #8B5CF6;">Review Updated Deliverable</a>
+          <a href="${data.linkUrl || toAbsoluteUrl('/company/retainers')}" class="button" style="background-color: #8B5CF6;">Review Updated Video</a>
         </div>
         <div class="footer">
           <p>This is an automated notification from Affiliate Marketplace.</p>

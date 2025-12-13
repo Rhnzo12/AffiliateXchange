@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { queryClient } from "../lib/queryClient";
 import { useLocation, useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -730,6 +731,9 @@ export default function CompanyOfferCreate() {
     },
     onSuccess: (data) => {
       console.log(isEditMode ? "Offer update complete:" : "Offer creation complete:", data);
+      // Invalidate offers cache so the list updates immediately
+      queryClient.invalidateQueries({ queryKey: ["/api/company/offers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/company/stats"] });
       toast({
         title: isEditMode ? "Offer Updated" : "Offer Submitted for Review",
         description: isEditMode
@@ -1754,11 +1758,11 @@ export default function CompanyOfferCreate() {
                       <>
                         <Video className="h-8 w-8 text-green-600" />
                         <div className="text-sm font-medium text-green-600">
-                          Video Ready \u2713
+                          Video Ready ✓
                         </div>
                         {currentVideo.thumbnailUrl && (
                           <div className="text-xs text-green-600">
-                            Thumbnail generated \u2713
+                            Thumbnail generated ✓
                           </div>
                         )}
                       </>

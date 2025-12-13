@@ -77,6 +77,8 @@ import SelectRole from "./pages/select-role";
 import PrivacyPolicy from "./pages/privacy-policy";
 import TermsOfService from "./pages/terms-of-service";
 import OAuthCallback from "./pages/oauth-callback";
+import ForgotPassword from "./pages/forgot-password";
+import ResetPassword from "./pages/reset-password";
 import { HeaderContentProvider, useHeaderContent } from "./components/HeaderContentContext";
 import { CompanyTourProvider } from "./contexts/CompanyTourContext";
 import { CompanyTour } from "./components/CompanyTour";
@@ -91,6 +93,8 @@ function PublicRouter() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/select-role" component={SelectRole} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/oauth-callback" component={OAuthCallback} />
@@ -156,24 +160,26 @@ function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, chil
 
               {/* Right Side Navigation Icons */}
               <div className="flex items-center gap-2 sm:gap-3">
-                {/* Messages Icon */}
-                <Link href={user?.role === 'company' ? '/company/messages' : '/messages'}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="relative h-8 w-8 sm:h-9 sm:w-9 hover:bg-primary/10"
-                  >
-                    <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
-                    {unreadCount > 0 && (
-                      <Badge
-                        variant="destructive"
-                        className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[9px] font-bold leading-none rounded-full border border-background"
-                      >
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </Link>
+                {/* Messages Icon - Hidden for admin users */}
+                {user?.role !== 'admin' && (
+                  <Link href={user?.role === 'company' ? '/company/messages' : '/messages'}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="relative h-8 w-8 sm:h-9 sm:w-9 hover:bg-primary/10"
+                    >
+                      <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
+                      {unreadCount > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[9px] font-bold leading-none rounded-full border border-background"
+                        >
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </Link>
+                )}
 
                 {/* Notification Center with Dropdown */}
                 <NotificationCenter />
@@ -374,7 +380,7 @@ function ProtectedRouter() {
               <Route path="/company/offers/create" component={CompanyOfferCreate} />
               <Route path="/company/offers/:id/edit" component={CompanyOfferCreate} />
               <Route path="/company/offers/:id" component={CompanyOfferDetail} />
-              <Route path="/company/creator-workflow" component={CompanyCreatorWorkflow} />
+              <Route path="/company/creator-workflow" component={() => <CompanyCreatorWorkflow />} />
               <Route path="/company/videos" component={() => <CompanyCreatorWorkflow defaultTab="videos" />} />
               <Route path="/company/retainers" component={CompanyRetainers} />
               <Route path="/company/retainers/:id" component={CompanyRetainerDetail} />
@@ -398,6 +404,7 @@ function ProtectedRouter() {
               <Route path="/admin/companies" component={AdminCompanies} />
               <Route path="/admin/companies/:id" component={AdminCompanyDetail} />
               <Route path="/admin/offers" component={AdminOffers} />
+              <Route path="/admin/offers/:id" component={AdminOfferDetail} />
               <Route path="/admin-offer-detail/:id" component={AdminOfferDetail} />
               <Route path="/admin/creators" component={AdminCreators} />
               <Route path="/admin/reviews" component={AdminReviews} />
@@ -465,7 +472,7 @@ function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   // Define public routes
-  const publicRoutes = ['/login', '/register', '/select-role', '/privacy-policy', '/terms-of-service'];
+  const publicRoutes = ['/login', '/register', '/select-role', '/forgot-password', '/reset-password', '/privacy-policy', '/terms-of-service'];
   const isPublicRoute = publicRoutes.includes(location);
 
   // While loading, show a loading state

@@ -149,6 +149,17 @@ export default function CreatorRetainers() {
     queryKey: ["/api/creator/retainer-applications"],
   });
 
+  // Fetch platform fee settings
+  const { data: feeSettings } = useQuery<{
+    totalFeePercentage: number;
+    totalFeeDisplay: string;
+  }>({
+    queryKey: ["/api/platform/fees"],
+  });
+
+  const totalFeePercentage = feeSettings?.totalFeePercentage ?? 0.07;
+  const totalFeeDisplay = feeSettings?.totalFeeDisplay ?? "7%";
+
   const maxMonthlyAmount = useMemo(() => {
     if (!contracts?.length) return 10000;
 
@@ -246,7 +257,7 @@ export default function CreatorRetainers() {
         };
       case 'approved':
         return { 
-          badge: 'Approved \u2713', 
+          badge: 'Approved ✓', 
           buttonText: 'Application Approved', 
           disabled: true,
           variant: 'default' as const,
@@ -409,10 +420,10 @@ export default function CreatorRetainers() {
   const totalActiveNet = useMemo(
     () =>
       activeContracts.reduce(
-        (sum, { contract }) => sum + Number(contract?.monthlyAmount || 0) * 0.93,
+        (sum, { contract }) => sum + Number(contract?.monthlyAmount || 0) * (1 - totalFeePercentage),
         0
       ),
-    [activeContracts]
+    [activeContracts, totalFeePercentage]
   );
 
   const totalActiveVideos = useMemo(
@@ -436,7 +447,7 @@ export default function CreatorRetainers() {
   const selectedTierId = form.watch("selectedTierId");
   const activeTier =
     selectedTierOptions.find((tier: any) => (tier.name || tier.id)?.toString() === selectedTierId) || selectedTierOptions[0];
-  const selectedTierNet = Number(activeTier?.monthlyAmount || 0) * 0.93;
+  const selectedTierNet = Number(activeTier?.monthlyAmount || 0) * (1 - totalFeePercentage);
   const selectedTierPerVideo =
     Number(activeTier?.monthlyAmount || 0) / Math.max(1, Number(activeTier?.videosPerMonth || 1));
 
@@ -734,7 +745,7 @@ export default function CreatorRetainers() {
                   const delivered = Number(contract?.submittedVideos || 0);
                   const totalVideos = Number(contract?.videosPerMonth || 1);
                   const progressValue = Math.min(100, Math.round((delivered / totalVideos) * 100));
-                  const netAmount = Number(contract?.monthlyAmount || 0) * 0.93;
+                  const netAmount = Number(contract?.monthlyAmount || 0) * (1 - totalFeePercentage);
                   const remainingVideos = Math.max(0, totalVideos - delivered);
 
                   return (
@@ -868,46 +879,43 @@ export default function CreatorRetainers() {
                 const monthlyAmount = Number(contract.monthlyAmount || 0);
 
                 return (
-                  <Card
+                  <Link
                     key={contract.id}
-                    className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-primary/30 hover:ring-primary/50 hover:shadow-primary/20"
-                    data-testid={`retainer-card-${contract.id}`}
+                    href={`/retainers/${contract.id}`}
+                    className="block"
                   >
-                    <CardHeader className="pb-4">
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              <CardTitle className="text-xl" data-testid={`text-retainer-title-${contract.id}`}>
-                                {contract.title}
-                              </CardTitle>
-                              {applicationStatus.badge && (
-                                <Badge
-                                  variant={
-                                    applicationStatus.variant === "default" && applicationStatus.badge.includes("Approved")
-                                      ? "default"
-                                      : applicationStatus.variant === "destructive"
-                                      ? "destructive"
-                                      : "secondary"
-                                  }
-                                  className={applicationStatus.badge.includes("Approved") ? "bg-green-500 hover:bg-green-600" : ""}
-                                >
-                                  {applicationStatus.badge}
-                                </Badge>
-                              )}
+                    <Card
+                      className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-primary/30 hover:ring-primary/50 hover:shadow-primary/20"
+                      data-testid={`retainer-card-${contract.id}`}
+                    >
+                      <CardHeader className="pb-4">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <CardTitle className="text-xl" data-testid={`text-retainer-title-${contract.id}`}>
+                                  {contract.title}
+                                </CardTitle>
+                                {applicationStatus.badge && (
+                                  <Badge
+                                    variant={
+                                      applicationStatus.variant === "default" && applicationStatus.badge.includes("Approved")
+                                        ? "default"
+                                        : applicationStatus.variant === "destructive"
+                                        ? "destructive"
+                                        : "secondary"
+                                    }
+                                    className={applicationStatus.badge.includes("Approved") ? "bg-green-500 hover:bg-green-600" : ""}
+                                  >
+                                    {applicationStatus.badge}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
+                            <Badge variant="outline" className="shrink-0">
+                              {contract.requiredPlatform}
+                            </Badge>
                           </div>
-                          <Link href={`/retainers/${contract.id}`}>
-                            <Button
-                              variant="outline"
-                              className="group/btn hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200 font-medium shrink-0"
-                              data-testid={`button-view-retainer-${contract.id}`}
-                            >
-                              <Eye className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200" />
-                              View Details
-                            </Button>
-                          </Link>
-                        </div>
                         <p className="text-muted-foreground line-clamp-2 leading-relaxed">
                           {contract.description}
                         </p>
@@ -1016,6 +1024,7 @@ export default function CreatorRetainers() {
                       )}
                     </CardContent>
                   </Card>
+                  </Link>
                 );
               })}
             </div>
@@ -1073,7 +1082,7 @@ export default function CreatorRetainers() {
                               className="grid gap-3 md:grid-cols-2"
                             >
                               {selectedTierOptions.map((tier: any, index: number) => {
-                                const tierNet = Number(tier.monthlyAmount || 0) * 0.93;
+                                const tierNet = Number(tier.monthlyAmount || 0) * (1 - totalFeePercentage);
                                 const tierPerVideo =
                                   Number(tier.monthlyAmount || 0) / Math.max(1, Number(tier.videosPerMonth || 1));
                                 const tierId = (tier.name || tier.id || index).toString();
@@ -1097,7 +1106,7 @@ export default function CreatorRetainers() {
                                         ${Number(tier.monthlyAmount || 0).toLocaleString()} / mo • {tier.videosPerMonth} videos • {tier.durationMonths} months
                                       </p>
                                       <p className="text-xs text-muted-foreground">
-                                        ${tierPerVideo.toFixed(2)} per video • Net ${tierNet.toLocaleString()} after 7% fee
+                                        ${tierPerVideo.toFixed(2)} per video • Net ${tierNet.toLocaleString()} after ${totalFeeDisplay} fee
                                       </p>
                                     </div>
                                   </label>
@@ -1308,7 +1317,7 @@ export default function CreatorRetainers() {
               </ul>
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mt-4">
                 <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>\u1F4A1 Next Step:</strong> Add your video platform URL in your profile settings, then come back to apply!
+                  <strong>💡 Next Step:</strong> Add your video platform URL in your profile settings, then come back to apply!
                 </p>
               </div>
             </AlertDialogDescription>

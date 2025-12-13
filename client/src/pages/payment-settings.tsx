@@ -139,6 +139,16 @@ function StatusBadge({ status, isDisputed = false }: { status: PaymentStatus; is
 
 function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
   const { toast } = useToast();
+
+  // Fetch platform fee settings for display
+  const { data: feeSettings } = useQuery<{
+    stripeFeeDisplay: string;
+  }>({
+    queryKey: ["/api/platform/fees"],
+  });
+
+  const stripeFeeDisplay = feeSettings?.stripeFeeDisplay ?? "3%";
+
   const { totalEarnings, pendingEarnings, completedEarnings, processingEarnings, disputedEarnings } = useMemo(() => {
     const totals = payments.reduce(
       (acc, payment) => {
@@ -297,7 +307,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
                     Platform Fee
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Processing (3%)
+                    Processing ({stripeFeeDisplay})
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Net Amount
@@ -308,14 +318,14 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 sticky right-0 bg-gray-50 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {payments.map((payment) => (
-                  <tr key={payment.id} className="transition hover:bg-gray-50">
+                  <tr key={payment.id} className="transition hover:bg-gray-50 group">
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                       {payment.id.slice(0, 8)}...
                     </td>
@@ -342,7 +352,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
                         ? new Date(payment.completedAt).toLocaleDateString()
                         : new Date(payment.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">
+                    <td className="whitespace-nowrap px-6 py-4 sticky right-0 bg-white group-hover:bg-gray-50 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                       <Link href={`/payments/${payment.id}`}>
                         <Button variant="outline" size="sm" className="gap-2">
                           <Eye className="h-4 w-4" />
@@ -410,6 +420,19 @@ function PaymentMethodSettings({
   emptyDescription?: string;
   showFeeBreakdown?: boolean;
 }) {
+  // Fetch platform fee settings for display
+  const { data: feeSettings } = useQuery<{
+    platformFeeDisplay: string;
+    stripeFeeDisplay: string;
+    totalFeeDisplay: string;
+  }>({
+    queryKey: ["/api/platform/fees"],
+  });
+
+  const platformFeeDisplay = feeSettings?.platformFeeDisplay ?? "4%";
+  const stripeFeeDisplay = feeSettings?.stripeFeeDisplay ?? "3%";
+  const totalFeeDisplay = feeSettings?.totalFeeDisplay ?? "7%";
+
   const isAddDisabled =
     isSubmitting ||
     (payoutMethod === "etransfer" && !payoutEmail) ||
@@ -632,15 +655,15 @@ function PaymentMethodSettings({
           <div className="space-y-2 text-sm text-blue-800">
             <div className="flex justify-between">
               <span>Platform Fee:</span>
-              <span className="font-medium">Varies by company (default 4%)</span>
+              <span className="font-medium">Varies by company (default {platformFeeDisplay})</span>
             </div>
             <div className="flex justify-between">
               <span>Processing Fee:</span>
-              <span className="font-medium">3% of gross earnings</span>
+              <span className="font-medium">{stripeFeeDisplay} of gross earnings</span>
             </div>
             <div className="mt-2 flex justify-between border-t-2 border-blue-300 pt-2 font-bold">
               <span>Total Deduction:</span>
-              <span>Platform fee + 3% processing</span>
+              <span>{totalFeeDisplay}</span>
             </div>
             <p className="mt-2 text-xs text-blue-600">
               Note: Platform fees may vary by company partnership agreements.
@@ -1080,14 +1103,14 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 sticky right-0 bg-gray-50 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {filteredPayouts.map((payout) => (
-                  <tr key={payout.id} className="transition hover:bg-gray-50">
+                  <tr key={payout.id} className="transition hover:bg-gray-50 group">
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                       {payout.id.slice(0, 8)}...
                     </td>
@@ -1108,7 +1131,7 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
                         ? new Date(payout.completedAt).toLocaleDateString()
                         : new Date(payout.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">
+                    <td className="whitespace-nowrap px-6 py-4 sticky right-0 bg-white group-hover:bg-gray-50 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                       <Link href={`/payments/${payout.id}`}>
                         <Button variant="outline" size="sm" className="gap-2">
                           <Eye className="h-4 w-4" />
@@ -1141,6 +1164,16 @@ function AdminPaymentDashboard({
   payments: CreatorPayment[];
 }) {
   const { toast } = useToast();
+
+  // Fetch platform fee settings for display
+  const { data: feeSettings } = useQuery<{
+    totalFeeDisplay: string;
+  }>({
+    queryKey: ["/api/platform/fees"],
+  });
+
+  const totalFeeDisplay = feeSettings?.totalFeeDisplay ?? "7%";
+
   const [selectedPayments, setSelectedPayments] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -1366,7 +1399,7 @@ function AdminPaymentDashboard({
             <TrendingUp className="h-5 w-5 text-purple-100" />
           </div>
           <div className="text-3xl font-bold">${totalPlatformRevenue.toFixed(2)}</div>
-          <div className="mt-1 text-xs text-purple-100">7% of GMV</div>
+          <div className="mt-1 text-xs text-purple-100">{totalFeeDisplay} of GMV</div>
         </div>
 
         <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
@@ -1496,14 +1529,14 @@ function AdminPaymentDashboard({
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 sticky right-0 bg-gray-50 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {filteredPayments.map((payment) => (
-                  <tr key={payment.id} className="transition hover:bg-gray-50 cursor-pointer">
+                  <tr key={payment.id} className="transition hover:bg-gray-50 cursor-pointer group">
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                       <Link href={`/payments/${payment.id}`} className="block hover:text-primary">
                         {payment.id.slice(0, 8)}...
@@ -1541,7 +1574,7 @@ function AdminPaymentDashboard({
                           : new Date(payment.createdAt).toLocaleDateString()}
                       </Link>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm sticky right-0 bg-white group-hover:bg-gray-50 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.1)]" onClick={(e) => e.stopPropagation()}>
                       {payment.status === 'pending' && (
                         <Button
                           size="sm"
@@ -1699,7 +1732,7 @@ function AdminPaymentDashboard({
               </p>
 
               <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 mt-4">
-                <p className="text-sm font-semibold text-blue-900 mb-1">\u2705 Notification Sent Automatically</p>
+                <p className="text-sm font-semibold text-blue-900 mb-1">✅ Notification Sent Automatically</p>
                 <p className="text-xs text-blue-800">
                   The company has been automatically notified via email and in-app notification about this insufficient funds issue.
                 </p>
@@ -1887,37 +1920,31 @@ function AdminPaymentDashboard({
 
 function AdminPaymentSettings() {
   const { toast } = useToast();
-  const [settlementSchedule, setSettlementSchedule] = useState("weekly");
-  const [reservePercentage, setReservePercentage] = useState("10");
-  const [minimumBalance, setMinimumBalance] = useState("5000");
-  const [autoDisburse, setAutoDisburse] = useState(true);
   const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; description: string }>({
     open: false,
     title: "",
     description: "",
   });
-  const [notificationEmail, setNotificationEmail] = useState("finance@affiliatexchange.com");
-  const [escalationEmail, setEscalationEmail] = useState("compliance@affiliatexchange.com");
-  const [includeReports, setIncludeReports] = useState(true);
-  const [smsEscalation, setSmsEscalation] = useState(true);
+
+  // Fee configuration state (using correct database keys)
+  const [platformFeePercentage, setPlatformFeePercentage] = useState("4");
+  const [stripeFeePercentage, setStripeFeePercentage] = useState("3");
+  const [minimumPayoutThreshold, setMinimumPayoutThreshold] = useState("50");
+  const [payoutReservePercentage, setPayoutReservePercentage] = useState("10");
 
   // Fetch platform settings
   const { data: platformSettings } = useQuery<Array<{key: string; value: string}>>({
     queryKey: ["/api/admin/settings"],
   });
 
-  // Load settings from backend
+  // Load fee settings from backend
   useEffect(() => {
     if (platformSettings) {
       const settingsMap = new Map(platformSettings.map(s => [s.key, s.value]));
-      if (settingsMap.has("payment.settlement_schedule")) setSettlementSchedule(settingsMap.get("payment.settlement_schedule")!);
-      if (settingsMap.has("payment.reserve_percentage")) setReservePercentage(settingsMap.get("payment.reserve_percentage")!);
-      if (settingsMap.has("payment.minimum_balance")) setMinimumBalance(settingsMap.get("payment.minimum_balance")!);
-      if (settingsMap.has("payment.auto_disburse")) setAutoDisburse(settingsMap.get("payment.auto_disburse") === "true");
-      if (settingsMap.has("payment.notification_email")) setNotificationEmail(settingsMap.get("payment.notification_email")!);
-      if (settingsMap.has("payment.escalation_email")) setEscalationEmail(settingsMap.get("payment.escalation_email")!);
-      if (settingsMap.has("payment.include_reports")) setIncludeReports(settingsMap.get("payment.include_reports") === "true");
-      if (settingsMap.has("payment.sms_escalation")) setSmsEscalation(settingsMap.get("payment.sms_escalation") === "true");
+      if (settingsMap.has("platform_fee_percentage")) setPlatformFeePercentage(settingsMap.get("platform_fee_percentage")!);
+      if (settingsMap.has("stripe_processing_fee_percentage")) setStripeFeePercentage(settingsMap.get("stripe_processing_fee_percentage")!);
+      if (settingsMap.has("minimum_payout_threshold")) setMinimumPayoutThreshold(settingsMap.get("minimum_payout_threshold")!);
+      if (settingsMap.has("payout_reserve_percentage")) setPayoutReservePercentage(settingsMap.get("payout_reserve_percentage")!);
     }
   }, [platformSettings]);
 
@@ -1929,6 +1956,7 @@ function AdminPaymentSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/platform/fees"] });
     },
     onError: (error: Error) => {
       setErrorDialog({
@@ -1939,34 +1967,17 @@ function AdminPaymentSettings() {
     },
   });
 
-  const saveDisbursementSettings = async () => {
+  const saveFeeSettings = async () => {
     try {
       await Promise.all([
-        updateSettingMutation.mutateAsync({ key: "payment.settlement_schedule", value: settlementSchedule }),
-        updateSettingMutation.mutateAsync({ key: "payment.reserve_percentage", value: reservePercentage }),
-        updateSettingMutation.mutateAsync({ key: "payment.minimum_balance", value: minimumBalance }),
-        updateSettingMutation.mutateAsync({ key: "payment.auto_disburse", value: autoDisburse.toString() }),
+        updateSettingMutation.mutateAsync({ key: "platform_fee_percentage", value: platformFeePercentage }),
+        updateSettingMutation.mutateAsync({ key: "stripe_processing_fee_percentage", value: stripeFeePercentage }),
+        updateSettingMutation.mutateAsync({ key: "minimum_payout_threshold", value: minimumPayoutThreshold }),
+        updateSettingMutation.mutateAsync({ key: "payout_reserve_percentage", value: payoutReservePercentage }),
       ]);
       toast({
         title: "Success",
-        description: "Disbursement settings updated successfully",
-      });
-    } catch (error) {
-      // Error already handled by mutation
-    }
-  };
-
-  const saveNotificationSettings = async () => {
-    try {
-      await Promise.all([
-        updateSettingMutation.mutateAsync({ key: "payment.notification_email", value: notificationEmail }),
-        updateSettingMutation.mutateAsync({ key: "payment.escalation_email", value: escalationEmail }),
-        updateSettingMutation.mutateAsync({ key: "payment.include_reports", value: includeReports.toString() }),
-        updateSettingMutation.mutateAsync({ key: "payment.sms_escalation", value: smsEscalation.toString() }),
-      ]);
-      toast({
-        title: "Success",
-        description: "Notification preferences saved successfully",
+        description: "Fee settings updated successfully",
       });
     } catch (error) {
       // Error already handled by mutation
@@ -2094,86 +2105,85 @@ function AdminPaymentSettings() {
     <div className="space-y-6">
       <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
         <div className="mb-6">
-          <h3 className="text-lg font-bold text-gray-900">Disbursement Controls</h3>
+          <h3 className="text-lg font-bold text-gray-900">Fee Configuration</h3>
           <p className="mt-1 text-sm text-gray-600">
-            Configure how platform-wide payouts are released to creators and external partners.
+            Configure platform fees and payout thresholds. These settings are synced across the entire platform.
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="admin-settlement-schedule">Settlement Schedule</Label>
-            <Select value={settlementSchedule} onValueChange={setSettlementSchedule}>
-              <SelectTrigger id="admin-settlement-schedule">
-                <SelectValue placeholder="Select schedule" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-gray-500">
-              Determines how frequently approved creator payments are bundled for release.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="admin-reserve-percentage">Platform Reserve %</Label>
+            <Label htmlFor="platform-fee">Platform Fee (%)</Label>
             <Input
-              id="admin-reserve-percentage"
+              id="platform-fee"
               type="number"
               min={0}
-              max={50}
-              value={reservePercentage}
-              onChange={(event) => setReservePercentage(event.target.value)}
+              max={100}
+              step="0.1"
+              value={platformFeePercentage}
+              onChange={(e) => setPlatformFeePercentage(e.target.value)}
             />
             <p className="text-xs text-gray-500">
-              Holdback applied to every payout to maintain compliance and risk buffers.
+              Percentage fee charged on each transaction (e.g., 4 for 4%).
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="admin-minimum-balance">Minimum Operating Balance ($)</Label>
+            <Label htmlFor="stripe-fee">Processing Fee (%)</Label>
             <Input
-              id="admin-minimum-balance"
+              id="stripe-fee"
               type="number"
               min={0}
-              step="100"
-              value={minimumBalance}
-              onChange={(event) => setMinimumBalance(event.target.value)}
+              max={100}
+              step="0.1"
+              value={stripeFeePercentage}
+              onChange={(e) => setStripeFeePercentage(e.target.value)}
             />
             <p className="text-xs text-gray-500">
-              Payouts pause automatically if platform funds fall below this threshold.
+              Stripe/payment processor fee percentage (e.g., 3 for 3%).
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Automatic Disbursement</Label>
-            <div className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Enable auto-processing</p>
-                <p className="text-xs text-gray-500">
-                  When disabled, finance must manually trigger every payout batch.
-                </p>
-              </div>
-              <Switch checked={autoDisburse} onCheckedChange={setAutoDisburse} aria-label="Toggle automatic disbursement" />
-            </div>
+            <Label htmlFor="min-payout">Minimum Payout ($)</Label>
+            <Input
+              id="min-payout"
+              type="number"
+              min={0}
+              step="1"
+              value={minimumPayoutThreshold}
+              onChange={(e) => setMinimumPayoutThreshold(e.target.value)}
+            />
+            <p className="text-xs text-gray-500">
+              Minimum balance required before a payout can be processed.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reserve-percentage">Reserve Percentage (%)</Label>
+            <Input
+              id="reserve-percentage"
+              type="number"
+              min={0}
+              max={100}
+              step="1"
+              value={payoutReservePercentage}
+              onChange={(e) => setPayoutReservePercentage(e.target.value)}
+            />
+            <p className="text-xs text-gray-500">
+              Percentage held in reserve for chargebacks and disputes.
+            </p>
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+        <div className="mt-6 flex justify-end">
           <Button
             className="bg-blue-600 text-white hover:bg-blue-700"
-            onClick={saveDisbursementSettings}
+            onClick={saveFeeSettings}
             disabled={updateSettingMutation.isPending}
           >
-            {updateSettingMutation.isPending ? "Saving..." : "Update Disbursement Policy"}
+            {updateSettingMutation.isPending ? "Saving..." : "Save Fee Settings"}
           </Button>
-          <span className="text-xs text-gray-500">
-            Last reviewed 2 days ago by Finance Ops.
-          </span>
         </div>
       </div>
 
@@ -2310,79 +2320,6 @@ function AdminPaymentSettings() {
         </div>
       </div>
 
-      <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
-        <div className="mb-6">
-          <h3 className="text-lg font-bold text-gray-900">Notifications & Escalation</h3>
-          <p className="mt-1 text-sm text-gray-600">
-            Control who is notified when payouts process, fail, or require manual review.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="admin-notification-email">Primary Finance Contact</Label>
-            <Input
-              id="admin-notification-email"
-              type="email"
-              value={notificationEmail}
-              onChange={(event) => setNotificationEmail(event.target.value)}
-            />
-            <p className="text-xs text-gray-500">Daily settlement summaries are delivered to this inbox.</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="admin-escalation-email">Escalation Contact</Label>
-            <Input
-              id="admin-escalation-email"
-              type="email"
-              value={escalationEmail}
-              onChange={(event) => setEscalationEmail(event.target.value)}
-            />
-            <p className="text-xs text-gray-500">Disputes and compliance holds are routed here for fast action.</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Attach financial reports</Label>
-            <div className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Include CSV exports in alerts</p>
-                <p className="text-xs text-gray-500">Automate weekly payout exports for accounting reconciliation.</p>
-              </div>
-              <Switch
-                checked={includeReports}
-                onCheckedChange={setIncludeReports}
-                aria-label="Toggle report attachments"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">SMS escalation</Label>
-            <div className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Trigger SMS on payout failures</p>
-                <p className="text-xs text-gray-500">Sends texts to the escalation contact when urgent action is required.</p>
-              </div>
-              <Switch
-                checked={smsEscalation}
-                onCheckedChange={setSmsEscalation}
-                aria-label="Toggle SMS escalation"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-end">
-          <Button
-            className="bg-blue-600 text-white hover:bg-blue-700"
-            onClick={saveNotificationSettings}
-            disabled={updateSettingMutation.isPending}
-          >
-            {updateSettingMutation.isPending ? "Saving..." : "Save Notification Preferences"}
-          </Button>
-        </div>
-      </div>
-
       <GenericErrorDialog
         open={errorDialog.open}
         onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
@@ -2455,6 +2392,8 @@ export default function PaymentSettings() {
       });
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
+      // Redirect to payment management (overview) tab
+      setActiveTab("overview");
     } else if (onboardingStatus === 'refresh') {
       setErrorDialog({
         open: true,
@@ -2471,6 +2410,21 @@ export default function PaymentSettings() {
     queryKey: ["/api/payment-settings"],
     enabled: isAuthenticated,
   });
+
+  // Fetch platform fee settings
+  const { data: feeSettings } = useQuery<{
+    platformFeePercentage: number;
+    platformFeeDisplay: string;
+    stripeFeePercentage: number;
+    stripeFeeDisplay: string;
+    totalFeePercentage: number;
+    totalFeeDisplay: string;
+  }>({
+    queryKey: ["/api/platform/fees"],
+  });
+
+  const platformFeeDisplay = feeSettings?.platformFeeDisplay ?? "4%";
+  const stripeFeeDisplay = feeSettings?.stripeFeeDisplay ?? "3%";
 
   // Fetch payments based on user role
   const { data: creatorPayments = [] } = useQuery<CreatorPayment[]>({
@@ -2512,10 +2466,16 @@ export default function PaymentSettings() {
         const result = await res.json();
 
         // Step 3: Redirect to Stripe onboarding
+        // Use the correct route based on user role
+        const paymentSettingsPath = user?.role === 'creator'
+          ? '/creator/payment-settings'
+          : user?.role === 'company'
+            ? '/company/payment-settings'
+            : '/payment-settings';
         const onboardingRes = await apiRequest("POST", "/api/stripe-connect/onboarding-link", {
           accountId: accountData.accountId,
-          returnUrl: `${window.location.origin}/settings/payment?stripe_onboarding=success`,
-          refreshUrl: `${window.location.origin}/settings/payment?stripe_onboarding=refresh`,
+          returnUrl: `${window.location.origin}${paymentSettingsPath}?stripe_onboarding=success`,
+          refreshUrl: `${window.location.origin}${paymentSettingsPath}?stripe_onboarding=refresh`,
         });
         const onboardingData = await onboardingRes.json();
 
@@ -2551,6 +2511,8 @@ export default function PaymentSettings() {
       setPaypalEmail("");
       setCryptoWalletAddress("");
       setCryptoNetwork("");
+      // Redirect to payment management (overview) tab
+      setActiveTab("overview");
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {

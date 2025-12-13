@@ -91,6 +91,19 @@ type AdminAnalytics = {
     listingFees: number;
     platformFees: number;
     processingFees: number;
+    // Affiliate breakdown
+    affiliatePlatformFees: number;
+    affiliateProcessingFees: number;
+    affiliatePayouts: number;
+    affiliatePendingPayouts: number;
+    affiliateCompletedPayouts: number;
+    // Retainer breakdown
+    retainerPlatformFees: number;
+    retainerProcessingFees: number;
+    retainerPayouts: number;
+    retainerPendingPayouts: number;
+    retainerCompletedPayouts: number;
+    // Combined totals
     totalPayouts: number;
     pendingPayouts: number;
     completedPayouts: number;
@@ -102,6 +115,8 @@ type AdminAnalytics = {
       listingFees: number;
       platformFees: number;
       processingFees: number;
+      affiliateFees: number;
+      retainerFees: number;
       total: number;
     }>;
     payoutsByPeriod: Array<{
@@ -112,7 +127,12 @@ type AdminAnalytics = {
     revenueBySource: Array<{
       source: string;
       amount: number;
+      type: string;
     }>;
+    // Transaction counts
+    affiliateTransactionCount: number;
+    retainerTransactionCount: number;
+    totalTransactionCount: number;
   };
   users: {
     totalUsers: number;
@@ -306,7 +326,7 @@ export default function AdminAnalytics() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isAuthenticated, isLoading } = useAuth();
-  const [dateRange, setDateRange] = useState("30d");
+  const [dateRange, setDateRange] = useState("all");
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
 
   useEffect(() => {
@@ -337,6 +357,8 @@ export default function AdminAnalytics() {
       return res.json();
     },
     enabled: isAuthenticated && user?.role === "admin",
+    staleTime: 0, // Always consider data stale to ensure fresh data on refetch
+    refetchOnMount: "always", // Always refetch when component mounts
   });
 
   // Platform Health Query
@@ -356,6 +378,8 @@ export default function AdminAnalytics() {
       return res.json();
     },
     enabled: isAuthenticated && user?.role === "admin",
+    staleTime: 0, // Always consider data stale for real-time health monitoring
+    refetchOnMount: "always",
     refetchInterval: 60000, // Refresh every minute
   });
 
@@ -376,7 +400,24 @@ export default function AdminAnalytics() {
       return res.json();
     },
     enabled: isAuthenticated && user?.role === "admin",
+    staleTime: 0, // Always consider data stale for accurate churn metrics
+    refetchOnMount: "always",
   });
+
+  // Fee Settings Query
+  const { data: feeSettings } = useQuery<{
+    platformFeePercentage: number;
+    platformFeeDisplay: string;
+    stripeFeePercentage: number;
+    stripeFeeDisplay: string;
+    totalFeePercentage: number;
+    totalFeeDisplay: string;
+  }>({
+    queryKey: ["/api/platform/fees"],
+  });
+
+  const platformFeeDisplay = feeSettings?.platformFeeDisplay ?? "4%";
+  const stripeFeeDisplay = feeSettings?.stripeFeeDisplay ?? "3%";
 
   // Mutation to create health snapshot
   const createSnapshotMutation = useMutation({
@@ -624,10 +665,15 @@ export default function AdminAnalytics() {
           <Button
             variant="outline"
             className="gap-2"
-            onClick={() => refetch()}
-            disabled={analyticsLoading}
+            onClick={() => {
+              // Refresh all analytics data
+              refetch();
+              refetchHealth();
+              queryClient.invalidateQueries({ queryKey: ["/api/admin/churn-analytics"] });
+            }}
+            disabled={analyticsLoading || healthLoading || churnLoading}
           >
-            <RefreshCw className={`h-4 w-4 ${analyticsLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${(analyticsLoading || healthLoading || churnLoading) ? "animate-spin" : ""}`} />
             Refresh
           </Button>
         </div>
@@ -718,29 +764,33 @@ export default function AdminAnalytics() {
                 </CardContent>
               </Card>
 
-              <Card className="border-card-border">
+              <Card className="border-card-border bg-blue-50/50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Platform Fees</CardTitle>
-                  <PieChart className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Affiliate Fees</CardTitle>
+                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">Offers</Badge>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold font-mono">
-                    ${(analytics?.financial?.platformFees || 0).toFixed(2)}
+                  <div className="text-2xl font-bold font-mono text-blue-600">
+                    ${((analytics?.financial?.affiliatePlatformFees || 0) + (analytics?.financial?.affiliateProcessingFees || 0)).toFixed(2)}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">4% commission on payouts</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {analytics?.financial?.affiliateTransactionCount || 0} transactions
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-card-border">
+              <Card className="border-card-border bg-purple-50/50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Processing Fees</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Retainer Fees</CardTitle>
+                  <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200">Contracts</Badge>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold font-mono">
-                    ${(analytics?.financial?.processingFees || 0).toFixed(2)}
+                  <div className="text-2xl font-bold font-mono text-purple-600">
+                    ${((analytics?.financial?.retainerPlatformFees || 0) + (analytics?.financial?.retainerProcessingFees || 0)).toFixed(2)}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">3% payment processing</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {analytics?.financial?.retainerTransactionCount || 0} transactions
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -756,7 +806,14 @@ export default function AdminAnalytics() {
                   <div className="text-2xl font-bold font-mono">
                     ${(analytics?.financial?.totalPayouts || 0).toFixed(2)}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">To creators</p>
+                  <div className="flex gap-2 mt-2 text-xs">
+                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                      Affiliate: ${(analytics?.financial?.affiliatePayouts || 0).toFixed(2)}
+                    </span>
+                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                      Retainer: ${(analytics?.financial?.retainerPayouts || 0).toFixed(2)}
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -769,7 +826,14 @@ export default function AdminAnalytics() {
                   <div className="text-2xl font-bold font-mono text-yellow-600">
                     ${(analytics?.financial?.pendingPayouts || 0).toFixed(2)}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Awaiting approval</p>
+                  <div className="flex gap-2 mt-2 text-xs">
+                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                      Affiliate: ${(analytics?.financial?.affiliatePendingPayouts || 0).toFixed(2)}
+                    </span>
+                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                      Retainer: ${(analytics?.financial?.retainerPendingPayouts || 0).toFixed(2)}
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -781,7 +845,14 @@ export default function AdminAnalytics() {
                   <div className="text-2xl font-bold font-mono text-green-600">
                     ${(analytics?.financial?.completedPayouts || 0).toFixed(2)}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Successfully processed</p>
+                  <div className="flex gap-2 mt-2 text-xs">
+                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                      Affiliate: ${(analytics?.financial?.affiliateCompletedPayouts || 0).toFixed(2)}
+                    </span>
+                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                      Retainer: ${(analytics?.financial?.retainerCompletedPayouts || 0).toFixed(2)}
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1329,12 +1400,35 @@ export default function AdminAnalytics() {
                         <BarChart data={analytics.platform.offersByNiche} layout="vertical">
                           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                           <XAxis type="number" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                          <YAxis dataKey="niche" type="category" width={100} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                          <YAxis
+                            dataKey="niche"
+                            type="category"
+                            width={150}
+                            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                            tickFormatter={(value) => {
+                              // Format niche names: replace underscores with spaces and capitalize
+                              return value
+                                .replace(/_/g, ' ')
+                                .replace(/&/g, '&')
+                                .split(' ')
+                                .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                                .join(' ');
+                            }}
+                          />
                           <Tooltip
                             contentStyle={{
                               backgroundColor: "hsl(var(--popover))",
                               border: "1px solid hsl(var(--border))",
                               borderRadius: "6px",
+                            }}
+                            formatter={(value: any, name: any) => [value, 'Count']}
+                            labelFormatter={(label) => {
+                              return label
+                                .replace(/_/g, ' ')
+                                .replace(/&/g, '&')
+                                .split(' ')
+                                .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                                .join(' ');
                             }}
                           />
                           <Bar dataKey="count" fill="#2563eb" radius={[0, 4, 4, 0]} />
@@ -1721,7 +1815,7 @@ export default function AdminAnalytics() {
               <Card className="border-card-border">
                 <CardHeader>
                   <CardTitle>Recent Errors</CardTitle>
-                  <CardDescription>Latest API errors</CardDescription>
+                  <CardDescription>API errors from the last 24 hours (excludes normal auth checks)</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Table>

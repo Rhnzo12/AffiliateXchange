@@ -12,7 +12,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye, ShieldCheck, User, Mail, Key, KeyRound, LogOut, ExternalLink, Camera, Link2, RefreshCw, CheckCircle2, Unlink } from "lucide-react";
+import { Upload, Building2, X, ChevronsUpDown, Download, Trash2, Shield, AlertTriangle, Video, Globe, FileText, Plus, Eye, ShieldCheck, User, Mail, Key, KeyRound, LogOut, ExternalLink, Camera, Link2, RefreshCw, CheckCircle2, Unlink, Loader2, Image, Maximize2 } from "lucide-react";
 import { TwoFactorSetup } from "../components/TwoFactorSetup";
 import { SettingsNavigation, SettingsSection } from "../components/SettingsNavigation";
 import {
@@ -140,6 +140,10 @@ export default function Settings() {
   const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
   const [currentDocumentUrl, setCurrentDocumentUrl] = useState("");
   const [currentDocumentName, setCurrentDocumentName] = useState("");
+  const [currentDocumentId, setCurrentDocumentId] = useState("");
+  const [currentDocumentType, setCurrentDocumentType] = useState("");
+  const [isDocumentLoading, setIsDocumentLoading] = useState(true);
+  const [documentError, setDocumentError] = useState(false);
 
   // Account info states
   const [username, setUsername] = useState("");
@@ -293,7 +297,8 @@ export default function Settings() {
       // Load creator profile data
       if (user?.role === 'creator') {
         setBio(profile.bio || "");
-        setProfileImageUrl(profile.profileImageUrl || "");
+        // profileImageUrl is stored in user table, not creator_profiles table
+        setProfileImageUrl(user?.profileImageUrl || "");
         setSelectedNiches(profile.niches || []);
         setYoutubeUrl(profile.youtubeUrl || "");
         setTiktokUrl(profile.tiktokUrl || "");
@@ -324,7 +329,7 @@ export default function Settings() {
         setVerificationDocumentUrl(profile.verificationDocumentUrl || "");
       }
     }
-  }, [profile, user?.role]);
+  }, [profile, user?.role, user?.profileImageUrl]);
 
   // Save form state to localStorage whenever fields change
   useEffect(() => {
@@ -703,14 +708,18 @@ export default function Settings() {
     // Use the authenticated backend endpoint to serve the document
     const viewerUrl = `/api/company/verification-documents/${documentId}/file`;
 
-    // Open the document in a dialog viewer
+    // Reset states and open the document in a dialog viewer
+    setIsDocumentLoading(true);
+    setDocumentError(false);
+    setCurrentDocumentId(documentId);
     setCurrentDocumentUrl(viewerUrl);
     setCurrentDocumentName(documentName);
+    setCurrentDocumentType(documentType);
     setIsPdfViewerOpen(true);
   };
 
-  // Opens document in new browser tab for download
-  const handleDownloadDocument = (documentId: string, documentName: string) => {
+  // Downloads document via backend endpoint
+  const handleDownloadDocument = async (documentId: string, documentName: string) => {
     if (!documentId) {
       toast({
         title: "Error",
@@ -719,9 +728,30 @@ export default function Settings() {
       });
       return;
     }
-    // Use the authenticated backend endpoint to download the document
-    const downloadUrl = `/api/company/verification-documents/${documentId}/file`;
-    window.open(downloadUrl, '_blank');
+    try {
+      // Use the authenticated backend endpoint with download parameter
+      const downloadUrl = `/api/company/verification-documents/${documentId}/file?download=true`;
+      const response = await fetch(downloadUrl, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error("Failed to download document");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = documentName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download document",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatFileSize = (bytes: number | null): string => {
@@ -1289,6 +1319,10 @@ export default function Settings() {
       setIsProfileEditMode(false);
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      // Invalidate company stats to update navbar logo for company users
+      if (user?.role === 'company') {
+        queryClient.invalidateQueries({ queryKey: ["/api/company/stats"] });
+      }
       // Clear saved form data from localStorage since changes are now persisted
       localStorage.removeItem('settings-form-data');
       toast({
@@ -1300,6 +1334,30 @@ export default function Settings() {
       setErrorDialog({
         title: "Error",
         message: error.message || "Failed to update profile",
+      });
+    },
+  });
+
+  // Delete company logo mutation
+  const deleteLogoMutation = useMutation({
+    mutationFn: async () => {
+      const result = await apiRequest("DELETE", "/api/company-logos");
+      return result;
+    },
+    onSuccess: () => {
+      setLogoUrl("");
+      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/company/stats"] });
+      toast({
+        title: "Success",
+        description: "Logo deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      setErrorDialog({
+        title: "Error",
+        message: error.message || "Failed to delete logo",
       });
     },
   });
@@ -1514,19 +1572,9 @@ export default function Settings() {
     updateProfileMutation.mutate();
   };
 
-  const handleProfileActionClick = () => {
-    if (!isProfileEditMode) {
-      setIsProfileEditMode(true);
-      return;
-    }
-
-    handleSaveProfile();
-  };
-
   // Define navigation sections based on user role
   const settingsSections: SettingsSection[] = useMemo(() => {
     const sections: SettingsSection[] = [
-      { id: "profile-info", label: "Profile Information", icon: <User className="h-4 w-4" /> },
       { id: "account-info", label: "Account Information", icon: <User className="h-4 w-4" /> },
       { id: "change-email", label: "Change Email", icon: <Mail className="h-4 w-4" /> },
       { id: "change-password-otp", label: "Password (Email Verify)", icon: <Key className="h-4 w-4" /> },
@@ -1551,30 +1599,88 @@ export default function Settings() {
 
           <div className="flex-1 space-y-8 min-w-0 max-w-4xl">
 
-            <Card id="profile-info" className="border-card-border scroll-mt-24">
+            <Card id="account-info" className="border-card-border scroll-mt-24">
               <CardHeader className="pb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle>Profile Information</CardTitle>
+                <div>
+                  <CardTitle>Account Information</CardTitle>
+                  <CardDescription className="mt-1">
+                    Manage your account details and personal information
+                  </CardDescription>
+                </div>
                 <Button
                   size="sm"
-                  onClick={handleProfileActionClick}
+                  onClick={() => setIsProfileEditMode(!isProfileEditMode)}
                   disabled={updateProfileMutation.isPending}
                   variant={isProfileEditMode ? "default" : "outline"}
-                  data-testid="button-save-profile"
+                  data-testid="button-edit-profile"
                 >
-                  {updateProfileMutation.isPending
-                    ? "Saving..."
-                    : isProfileEditMode
-                    ? "Save"
-                    : "Edit Profile"}
+                  {isProfileEditMode ? "Cancel" : "Edit Profile"}
                 </Button>
               </CardHeader>
               <CardContent className="space-y-8">
 
-          {/* COMPANY PROFILE SECTION */}
-          {user?.role === 'company' && (
-            <>
-              {/* Company Logo Section - Horizontal Layout */}
-              <div className="flex items-center gap-6">
+                {/* Basic Account Information Section */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold border-b pb-2">Basic Information</h3>
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="username">Username <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="username"
+                        type="text"
+                        placeholder="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        disabled={!isProfileEditMode}
+                        data-testid="input-username"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={user?.email || ""}
+                        disabled
+                        className="bg-muted"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        type="text"
+                        placeholder="John"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        disabled={!isProfileEditMode}
+                        data-testid="input-first-name"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        type="text"
+                        placeholder="Doe"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        disabled={!isProfileEditMode}
+                        data-testid="input-last-name"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* COMPANY PROFILE SECTION */}
+                {user?.role === 'company' && (
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold border-b pb-2">Company Profile</h3>
+                    {/* Company Logo Section - Horizontal Layout */}
+                    <div className="flex items-center gap-6">
                 <div className="relative">
                   <Avatar className="h-24 w-24 ring-2 ring-border">
                     <AvatarImage
@@ -1614,10 +1720,10 @@ export default function Settings() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      disabled={isProfileEditingDisabled}
-                      onClick={() => setLogoUrl("")}
+                      disabled={isProfileEditingDisabled || deleteLogoMutation.isPending}
+                      onClick={() => deleteLogoMutation.mutate()}
                     >
-                      Delete Logo
+                      {deleteLogoMutation.isPending ? 'Deleting...' : 'Delete Logo'}
                     </Button>
                   )}
                 </div>
@@ -1978,15 +2084,15 @@ export default function Settings() {
                     These are required for your offers to display properly.
                   </AlertDescription>
                 </Alert>
-              )}
+                    )}
+                  </div>
+                )}
 
-            </>
-          )}
-
-          {/* CREATOR PROFILE SECTION */}
-          {user?.role === 'creator' && (
-            <>
-              {/* Profile Image and Bio Section */}
+                {/* CREATOR PROFILE SECTION */}
+                {user?.role === 'creator' && (
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold border-b pb-2">Creator Profile</h3>
+                    {/* Profile Image and Bio Section */}
               <div className="flex flex-col lg:flex-row gap-6 items-start">
                 <div className="space-y-3">
                   <div className={`relative inline-block ${isProfileEditMode ? "group" : ""}`}>
@@ -2262,81 +2368,58 @@ export default function Settings() {
                   </div>
                 </div>
 
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+                    </div>
+                  </div>
+                )}
 
-      <Card id="account-info" className="border-card-border scroll-mt-24">
-        <CardHeader className="pb-2">
-          <CardTitle>Account Information</CardTitle>
-          <CardDescription>
-            Manage your account details and personal information
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username <span className="text-destructive">*</span></Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                data-testid="input-username"
-              />
-            </div>
+                {/* ADMIN PROFILE SECTION */}
+                {user?.role === 'admin' && (
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold border-b pb-2">Administrator Profile</h3>
+                    <div className="flex items-center gap-6">
+                      <Avatar className="h-24 w-24 ring-2 ring-border">
+                        <AvatarImage
+                          src={proxiedSrc(user?.profileImageUrl) || ''}
+                          alt={user?.firstName || 'Admin'}
+                          referrerPolicy="no-referrer"
+                        />
+                        <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                          <Shield className="h-10 w-10" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="space-y-1">
+                        <p className="text-lg font-semibold">{user?.firstName} {user?.lastName}</p>
+                        <Badge variant="secondary" className="gap-1">
+                          <Shield className="h-3 w-3" />
+                          Administrator
+                        </Badge>
+                        <p className="text-sm text-muted-foreground">
+                          Full access to platform administration
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={user?.email || ""}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                type="text"
-                placeholder="John"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                data-testid="input-first-name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                type="text"
-                placeholder="Doe"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                data-testid="input-last-name"
-              />
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="pt-2">
-            <Button
-              onClick={() => updateAccountMutation.mutate()}
-              disabled={updateAccountMutation.isPending}
-              data-testid="button-save-account"
-            >
-              {updateAccountMutation.isPending ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+                {/* Save Button - saves both profile and account info */}
+                <div className="pt-4 border-t">
+                  <Button
+                    onClick={() => {
+                      // Save profile info if in edit mode (for company/creator)
+                      if (isProfileEditMode && (user?.role === 'company' || user?.role === 'creator')) {
+                        handleSaveProfile();
+                      }
+                      // Also save account info
+                      updateAccountMutation.mutate();
+                    }}
+                    disabled={!isProfileEditMode || updateAccountMutation.isPending || updateProfileMutation.isPending}
+                    data-testid="button-save-account"
+                  >
+                    {(updateAccountMutation.isPending || updateProfileMutation.isPending) ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
       {/* Email Change Section */}
       <Card id="change-email" className="border-card-border scroll-mt-24">
@@ -2673,7 +2756,7 @@ export default function Settings() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-6 w-6" />
-              \u26A0\uFE0F Video Platform Required
+              ⚠️ Video Platform Required
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-4 text-base">
               <p className="font-semibold text-foreground">
@@ -2692,7 +2775,7 @@ export default function Settings() {
               </p>
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <p className="text-sm text-blue-900 dark:text-blue-100">
-                  <strong>\u1F4A1 Tip:</strong> Add your YouTube, TikTok, or Instagram URL in the fields above, then click Save Changes again.
+                  <strong>💡 Tip:</strong> Add your YouTube, TikTok, or Instagram URL in the fields above, then click Save Changes again.
                 </p>
               </div>
             </AlertDialogDescription>
@@ -2712,44 +2795,129 @@ export default function Settings() {
         description={errorDialog?.message || "An error occurred"}
       />
 
-      {/* PDF Viewer Dialog */}
+      {/* Document Viewer Dialog */}
       <Dialog open={isPdfViewerOpen} onOpenChange={setIsPdfViewerOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              {currentDocumentName || "Document Viewer"}
-            </DialogTitle>
-            <DialogDescription>
-              Verification document preview
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 border rounded-lg overflow-hidden bg-muted/10">
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b bg-muted/30">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                {currentDocumentType === 'image' ? (
+                  <Image className="h-5 w-5 text-primary" />
+                ) : (
+                  <FileText className="h-5 w-5 text-primary" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-semibold text-lg truncate" title={currentDocumentName}>
+                  {currentDocumentName || "Document"}
+                </h2>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Badge variant="secondary" className="text-xs">
+                    {currentDocumentType === 'image' ? 'Image' : 'PDF'}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">Verification Document</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Document Content */}
+          <div className="flex-1 min-h-0 relative bg-muted/20">
+            {/* Loading State */}
+            {isDocumentLoading && !documentError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-10">
+                <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground">Loading document...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {documentError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background z-10">
+                <div className="text-center p-6">
+                  <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                    <AlertTriangle className="h-8 w-8 text-destructive" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">Failed to load document</h3>
+                  <p className="text-muted-foreground mb-4">The document could not be displayed in the preview.</p>
+                  <div className="flex gap-2 justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setDocumentError(false);
+                        setIsDocumentLoading(true);
+                        setCurrentDocumentUrl(`${currentDocumentUrl}?retry=${Date.now()}`);
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Retry
+                    </Button>
+                    <Button onClick={() => window.open(currentDocumentUrl, '_blank')}>
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open in New Tab
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Document Display */}
             {currentDocumentUrl && (
-              <iframe
-                src={currentDocumentUrl}
-                className="w-full h-full"
-                title={currentDocumentName}
-              />
+              currentDocumentType === 'image' ? (
+                <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
+                  <img
+                    src={currentDocumentUrl}
+                    alt={currentDocumentName}
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                    onLoad={() => setIsDocumentLoading(false)}
+                    onError={() => {
+                      setIsDocumentLoading(false);
+                      setDocumentError(true);
+                    }}
+                  />
+                </div>
+              ) : (
+                <iframe
+                  src={currentDocumentUrl}
+                  className="w-full h-full border-0"
+                  title={currentDocumentName}
+                  onLoad={() => setIsDocumentLoading(false)}
+                  onError={() => {
+                    setIsDocumentLoading(false);
+                    setDocumentError(true);
+                  }}
+                />
+              )
             )}
           </div>
-          <DialogFooter className="flex-row justify-between items-center">
+
+          {/* Footer */}
+          <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleDownloadDocument(currentDocumentId, currentDocumentName)}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.open(currentDocumentUrl, '_blank')}
+                className="gap-2"
+              >
+                <Maximize2 className="h-4 w-4" />
+                Open in New Tab
+              </Button>
+            </div>
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open(currentDocumentUrl, '_blank')}
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open in New Tab
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
               onClick={() => setIsPdfViewerOpen(false)}
             >
               Close
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
