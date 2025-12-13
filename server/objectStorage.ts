@@ -20,10 +20,20 @@ function initializeStorage(): Storage {
       credentials: credentials,
     });
   } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
+    const keyfileValue = process.env.GOOGLE_CLOUD_KEYFILE;
+    // Check if GOOGLE_CLOUD_KEYFILE contains JSON content instead of a file path
+    if (keyfileValue.trim().startsWith('{')) {
+      // It's JSON content, parse and use as credentials
+      const credentials = JSON.parse(keyfileValue);
+      return new Storage({
+        projectId: credentials.project_id || process.env.GOOGLE_CLOUD_PROJECT_ID,
+        credentials: credentials,
+      });
+    }
     // Use keyfile path (for local development)
     return new Storage({
       projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-      keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
+      keyFilename: keyfileValue,
     });
   } else {
     // Use Application Default Credentials

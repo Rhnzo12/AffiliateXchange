@@ -22,12 +22,24 @@ async function configureCORS() {
       });
       console.log('\u2713 Using credentials from environment variable');
     } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-      // Use keyfile path (for local development)
-      storage = new Storage({
-        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-        keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-      });
-      console.log('\u2713 Using credentials from keyfile:', process.env.GOOGLE_CLOUD_KEYFILE);
+      const keyfileValue = process.env.GOOGLE_CLOUD_KEYFILE;
+      // Check if GOOGLE_CLOUD_KEYFILE contains JSON content instead of a file path
+      if (keyfileValue.trim().startsWith('{')) {
+        // It's JSON content, parse and use as credentials
+        const credentials = JSON.parse(keyfileValue);
+        storage = new Storage({
+          projectId: credentials.project_id || process.env.GOOGLE_CLOUD_PROJECT_ID,
+          credentials: credentials,
+        });
+        console.log('\u2713 Using credentials from GOOGLE_CLOUD_KEYFILE (parsed as JSON)');
+      } else {
+        // Use keyfile path (for local development)
+        storage = new Storage({
+          projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+          keyFilename: keyfileValue,
+        });
+        console.log('\u2713 Using credentials from keyfile:', keyfileValue);
+      }
     } else {
       // Use Application Default Credentials
       storage = new Storage({

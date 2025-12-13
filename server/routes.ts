@@ -8298,10 +8298,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 credentials,
               });
             } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-              gcsStorage = new Storage({
-                projectId,
-                keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-              });
+              const keyfileValue = process.env.GOOGLE_CLOUD_KEYFILE;
+              // Check if GOOGLE_CLOUD_KEYFILE contains JSON content instead of a file path
+              if (keyfileValue.trim().startsWith('{')) {
+                const credentials = JSON.parse(keyfileValue);
+                gcsStorage = new Storage({
+                  projectId: projectId || credentials.project_id,
+                  credentials,
+                });
+              } else {
+                gcsStorage = new Storage({
+                  projectId,
+                  keyFilename: keyfileValue,
+                });
+              }
             } else {
               gcsStorage = new Storage({ projectId });
             }
@@ -8381,10 +8391,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 credentials,
               });
             } else if (process.env.GOOGLE_CLOUD_KEYFILE) {
-              gcsStorage = new Storage({
-                projectId,
-                keyFilename: process.env.GOOGLE_CLOUD_KEYFILE,
-              });
+              const keyfileValue = process.env.GOOGLE_CLOUD_KEYFILE;
+              // Check if GOOGLE_CLOUD_KEYFILE contains JSON content instead of a file path
+              if (keyfileValue.trim().startsWith('{')) {
+                const credentials = JSON.parse(keyfileValue);
+                gcsStorage = new Storage({
+                  projectId: projectId || credentials.project_id,
+                  credentials,
+                });
+              } else {
+                gcsStorage = new Storage({
+                  projectId,
+                  keyFilename: keyfileValue,
+                });
+              }
             } else {
               gcsStorage = new Storage({ projectId });
             }
