@@ -45,7 +45,7 @@ import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Textarea } from "../components/ui/textarea";
-import { DollarSign, Video, Calendar, Briefcase, CheckCircle, XCircle, Clock, ExternalLink, Play, Eye, EyeOff, Edit3, Trash2, PauseCircle, PlayCircle } from "lucide-react";
+import { DollarSign, Video, Calendar, Briefcase, CheckCircle, XCircle, Clock, ExternalLink, Play, Eye, EyeOff, Edit3, Trash2, PauseCircle, PlayCircle, ArrowLeft } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { VideoPlayer } from "../components/VideoPlayer";
@@ -542,6 +542,14 @@ export default function CompanyRetainerDetail() {
   return (
     <div className="space-y-6">
       <TopNavBar />
+      <Button
+        variant="ghost"
+        onClick={() => setLocation("/company/retainers")}
+        className="w-fit"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Back to Retainers
+      </Button>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">{contract.title}</h1>
