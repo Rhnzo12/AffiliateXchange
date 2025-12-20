@@ -31,6 +31,7 @@ const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
+const MOBILE_NAVBAR_HEIGHT = "72px"
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed"
@@ -188,9 +189,18 @@ function Sidebar({
           data-slot="sidebar"
           data-mobile="true"
           className="bg-sidebar text-sidebar-foreground w-[var(--sidebar-width)] p-0 [&>button]:hidden"
+          overlayClassName="top-[72px] h-[calc(100vh-72px)]"
+          overlayStyle={{
+            top: MOBILE_NAVBAR_HEIGHT,
+            bottom: "auto",
+            height: `calc(100vh - ${MOBILE_NAVBAR_HEIGHT})`,
+          }}
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+              top: MOBILE_NAVBAR_HEIGHT,
+              bottom: "auto",
+              height: `calc(100vh - ${MOBILE_NAVBAR_HEIGHT})`,
             } as React.CSSProperties
           }
           side={side}

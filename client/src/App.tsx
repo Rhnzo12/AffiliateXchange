@@ -152,13 +152,6 @@ function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, chil
                 <div className="flex items-center justify-between gap-4 py-3 sm:py-4">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <SidebarTrigger data-testid="button-sidebar-toggle" className="md:hidden" />
-                    <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
-                      <img src="/logo.png" alt="AffiliateXchange Logo" className="h-9 w-9 rounded-md object-cover shrink-0" />
-                      <div className="leading-tight min-w-0">
-                        <p className="text-sm sm:text-base font-semibold text-foreground truncate">AffiliateXchange</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Creator & Brand Marketplace</p>
-                      </div>
-                    </Link>
                   </div>
 
                   {/* Right Side Navigation Icons */}
