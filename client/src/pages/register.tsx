@@ -294,16 +294,22 @@ export default function Register() {
                       <div className="space-y-1 leading-none">
                         <FormLabel className="text-sm font-normal">
                           I agree to the{" "}
-                          <Link href="/terms-of-service">
-                            <a className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                              Terms of Service
-                            </a>
+                          <Link
+                            href="/terms-of-service"
+                            className="text-primary hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Terms of Service
                           </Link>
                           {" "}and{" "}
-                          <Link href="/privacy-policy">
-                            <a className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                              Privacy Policy
-                            </a>
+                          <Link
+                            href="/privacy-policy"
+                            className="text-primary hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Privacy Policy
                           </Link>
                         </FormLabel>
                         <FormMessage />
@@ -353,16 +359,12 @@ export default function Register() {
 
             <div className="mt-4 pt-4 border-t text-center text-xs text-muted-foreground">
               <div className="flex justify-center gap-4">
-                <Link href="/privacy-policy">
-                  <a className="hover:text-foreground transition-colors">
-                    Privacy Policy
-                  </a>
+                <Link href="/privacy-policy" className="hover:text-foreground transition-colors">
+                  Privacy Policy
                 </Link>
                 <span>•</span>
-                <Link href="/terms-of-service">
-                  <a className="hover:text-foreground transition-colors">
-                    Terms of Service
-                  </a>
+                <Link href="/terms-of-service" className="hover:text-foreground transition-colors">
+                  Terms of Service
                 </Link>
               </div>
             </div>
