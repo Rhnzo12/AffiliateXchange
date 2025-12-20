@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../components/ui/form";
 import { Input } from "../components/ui/input";
 import { useToast } from "../hooks/use-toast";
-import { Mail, Eye, EyeOff, Shield, ArrowLeft, Key } from "lucide-react";
+import { Mail, Eye, EyeOff, Shield, ArrowLeft, Key, Home } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { loginSchema } from "../../../shared/validation";
@@ -184,6 +184,14 @@ export default function Login() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-6">
+          <Link
+            href="/"
+            className="mx-auto inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+            data-testid="link-home"
+          >
+            <Home className="h-4 w-4" />
+            Back to home
+          </Link>
           <div className="flex items-center justify-center gap-2">
             <img src="/logo.png" alt="AffiliateXchange Logo" className="h-10 w-10 rounded-md object-cover" />
             <span className="text-2xl font-bold">AffiliateXchange</span>
@@ -295,6 +303,14 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
+        <Link
+          href="/"
+          className="mx-auto inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+          data-testid="link-home"
+        >
+          <Home className="h-4 w-4" />
+          Back to home
+        </Link>
         <div className="flex items-center justify-center gap-2">
           <img src="/logo.png" alt="AffiliateXchange Logo" className="h-10 w-10 rounded-md object-cover" />
           <span className="text-2xl font-bold">AffiliateXchange</span>
