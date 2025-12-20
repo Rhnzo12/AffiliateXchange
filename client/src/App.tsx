@@ -140,132 +140,145 @@ function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, chil
 
   const { headerContent } = useHeaderContent();
 
- return (
+  return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
 
           {!hideHeader && (
-            <header className="relative flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0 bg-background sticky top-0 z-50">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <SidebarTrigger data-testid="button-sidebar-toggle" className="md:hidden" />
+            <div className="sticky top-0 z-50 bg-background border-b">
+              <div className="max-w-screen-2xl mx-auto px-4 sm:px-6">
+                <div className="flex items-center justify-between gap-4 py-3 sm:py-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <SidebarTrigger data-testid="button-sidebar-toggle" className="md:hidden" />
+                    <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
+                      <img src="/logo.png" alt="AffiliateXchange Logo" className="h-9 w-9 rounded-md object-cover shrink-0" />
+                      <div className="leading-tight min-w-0">
+                        <p className="text-sm sm:text-base font-semibold text-foreground truncate">AffiliateXchange</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Creator & Brand Marketplace</p>
+                      </div>
+                    </Link>
+                  </div>
 
-                {headerContent && (
-                  <div className="w-full max-w-xl ml-auto">
+                  {/* Right Side Navigation Icons */}
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    {/* Messages Icon - Hidden for admin users */}
+                    {user?.role !== 'admin' && (
+                      <Link href={user?.role === 'company' ? '/company/messages' : '/messages'}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="relative h-8 w-8 sm:h-9 sm:w-9 hover:bg-primary/10"
+                        >
+                          <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
+                          {unreadCount > 0 && (
+                            <Badge
+                              variant="destructive"
+                              className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[9px] font-bold leading-none rounded-full border border-background"
+                            >
+                              {unreadCount > 9 ? '9+' : unreadCount}
+                            </Badge>
+                          )}
+                        </Button>
+                      </Link>
+                    )}
+
+                    {/* Notification Center with Dropdown */}
+                    <NotificationCenter />
+
+                    {/* Profile Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center gap-1.5 sm:gap-2 md:gap-3 hover:opacity-80 transition-opacity focus:outline-none">
+                          <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-primary/20 flex-shrink-0">
+                            <AvatarImage
+                              src={proxiedSrc(user?.role === 'company' ? companyProfile?.logoUrl : user?.profileImageUrl) || ''}
+                              alt={user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
+                              referrerPolicy="no-referrer"
+                            />
+                            <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs sm:text-sm">
+                              {user?.role === 'company'
+                                ? (companyProfile?.tradeName?.[0] || 'C')
+                                : (user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+                              }
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="text-left max-w-[100px] sm:max-w-[120px] md:max-w-[160px] min-w-0 hidden sm:block">
+                            <p className="text-xs sm:text-sm font-medium leading-none text-foreground truncate">
+                              {user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
+                            </p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{user?.role === 'company' ? 'Brand' : 'Creator'}</p>
+                          </div>
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem className="flex items-center gap-2 font-medium">
+                          <Avatar className="h-8 w-8 border border-primary/20">
+                            <AvatarImage
+                              src={proxiedSrc(user?.role === 'company' ? companyProfile?.logoUrl : user?.profileImageUrl) || ''}
+                              alt={user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
+                              referrerPolicy="no-referrer"
+                            />
+                            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                              {user?.role === 'company'
+                                ? (companyProfile?.tradeName?.[0] || 'C')
+                                : (user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+                              }
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="text-sm font-semibold text-foreground truncate">
+                              {user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
+                            </span>
+                            <span className="text-xs text-muted-foreground truncate">{user?.email || 'No email'}</span>
+                          </div>
+                        </DropdownMenuItem>
+                        {/* Company Status Badge */}
+                        {user?.role === 'company' && (() => {
+                          const statusInfo = getCompanyStatusInfo(companyProfile);
+                          if (!statusInfo) return null;
+                          return (
+                            <div className="px-2 py-1.5">
+                              <Badge variant="outline" className={`w-full justify-center text-xs font-medium ${statusInfo.className}`}>
+                                {statusInfo.label}
+                              </Badge>
+                            </div>
+                          );
+                        })()}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link href="/profile-management" className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            Profile Management
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/settings" className="flex items-center gap-2">
+                            <SettingsIcon className="h-4 w-4" />
+                            Settings
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive hover:!text-destructive" onClick={onLogout}>
+                          <LogOut className="h-4 w-4" />
+                          Log out
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </div>
+
+              {headerContent && (
+                <div className="border-t bg-background">
+                  <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
                     {headerContent}
                   </div>
-                )}
-              </div>
-
-              {/* Right Side Navigation Icons */}
-              <div className="flex items-center gap-2 sm:gap-3">
-                {/* Messages Icon - Hidden for admin users */}
-                {user?.role !== 'admin' && (
-                  <Link href={user?.role === 'company' ? '/company/messages' : '/messages'}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="relative h-8 w-8 sm:h-9 sm:w-9 hover:bg-primary/10"
-                    >
-                      <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
-                      {unreadCount > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center text-[9px] font-bold leading-none rounded-full border border-background"
-                        >
-                          {unreadCount > 9 ? '9+' : unreadCount}
-                        </Badge>
-                      )}
-                    </Button>
-                  </Link>
-                )}
-
-                {/* Notification Center with Dropdown */}
-                <NotificationCenter />
-
-                {/* Profile Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-1.5 sm:gap-2 md:gap-3 hover:opacity-80 transition-opacity focus:outline-none">
-                      <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-primary/20 flex-shrink-0">
-                        <AvatarImage
-                          src={proxiedSrc(user?.role === 'company' ? companyProfile?.logoUrl : user?.profileImageUrl) || ''}
-                          alt={user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
-                          referrerPolicy="no-referrer"
-                        />
-                        <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs sm:text-sm">
-                          {user?.role === 'company'
-                            ? (companyProfile?.tradeName?.[0] || 'C')
-                            : (user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-                          }
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="text-left max-w-[100px] sm:max-w-[120px] md:max-w-[160px] min-w-0 hidden sm:block">
-                        <p className="text-xs sm:text-sm font-medium leading-none text-foreground truncate">
-                          {user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
-                        </p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{user?.role === 'company' ? 'Brand' : 'Creator'}</p>
-                      </div>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem className="flex items-center gap-2 font-medium">
-                      <Avatar className="h-8 w-8 border border-primary/20">
-                        <AvatarImage
-                          src={proxiedSrc(user?.role === 'company' ? companyProfile?.logoUrl : user?.profileImageUrl) || ''}
-                          alt={user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
-                          referrerPolicy="no-referrer"
-                        />
-                        <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                          {user?.role === 'company'
-                            ? (companyProfile?.tradeName?.[0] || 'C')
-                            : (user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-                          }
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-sm font-semibold text-foreground truncate">
-                          {user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
-                        </span>
-                        <span className="text-xs text-muted-foreground truncate">{user?.email || 'No email'}</span>
-                      </div>
-                    </DropdownMenuItem>
-                    {/* Company Status Badge */}
-                    {user?.role === 'company' && (() => {
-                      const statusInfo = getCompanyStatusInfo(companyProfile);
-                      if (!statusInfo) return null;
-                      return (
-                        <div className="px-2 py-1.5">
-                          <Badge variant="outline" className={`w-full justify-center text-xs font-medium ${statusInfo.className}`}>
-                            {statusInfo.label}
-                          </Badge>
-                        </div>
-                      );
-                    })()}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile-management" className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Profile Management
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/settings" className="flex items-center gap-2">
-                        <SettingsIcon className="h-4 w-4" />
-                        Settings
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive hover:!text-destructive" onClick={onLogout}>
-                      <LogOut className="h-4 w-4" />
-                      Log out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </header>
+                </div>
+              )}
+            </div>
           )}
 
           <main className="flex-1 overflow-y-auto">
