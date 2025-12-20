@@ -4,6 +4,7 @@ import { TrendingUp, Users, DollarSign, Shield, Zap, Target, Star, CheckCircle2 
 import { useLocation, Link } from "wouter";
 import { useEffect, useRef, useState, useCallback } from "react";
 import useEmblaCarousel from "embla-carousel-react";
+import { AnimatedPromoPopup } from "../components/AnimatedPromoPopup";
 
 function useScrollAnimation(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null);
@@ -230,6 +231,7 @@ function HowItWorksStep({ step, index }: { step: { number: number; title: string
 
 export default function Landing() {
   const [, setLocation] = useLocation();
+  const [showHeroPopup, setShowHeroPopup] = useState(false);
 
   const handleLogin = () => {
     setLocation("/login");
@@ -239,8 +241,22 @@ export default function Landing() {
     setLocation("/register");
   };
 
+  useEffect(() => {
+    const timer = setTimeout(() => setShowHeroPopup(true), 900);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
+      <AnimatedPromoPopup
+        open={showHeroPopup}
+        onClose={() => setShowHeroPopup(false)}
+        title="Fresh campaigns drop daily"
+        message="Brands are adding new affiliate offers every single morning. Save your favorites now so you can pitch before they fill their roster."
+        highlight="Slow & smooth intro"
+        primaryActionLabel="Explore offers"
+        secondaryActionLabel="Skip for now"
+      />
       {/* Header */}
       <header className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
