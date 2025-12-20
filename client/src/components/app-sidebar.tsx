@@ -19,6 +19,7 @@ import {
   SidebarHeader,
   SidebarFooter,
   useSidebar,
+  SidebarTrigger,
 } from "./ui/sidebar";
 import {
   DropdownMenu,
@@ -260,12 +261,18 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b px-4 py-4 group-data-[collapsible=icon]:p-2">
-        <Link href="/" onClick={handleNavClick}>
-          <div className="flex items-center gap-2 cursor-pointer">
-            <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover shrink-0" />
-            <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">AffiliateXchange</span>
-          </div>
-        </Link>
+        <div className="flex items-center gap-3">
+          <SidebarTrigger
+            aria-label="Toggle navigation menu"
+            className="h-9 w-9 shrink-0 rounded-md border border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          />
+          <Link href="/" onClick={handleNavClick}>
+            <div className="flex items-center gap-2 cursor-pointer">
+              <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover shrink-0" />
+              <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">AffiliateXchange</span>
+            </div>
+          </Link>
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
