@@ -436,16 +436,18 @@ export default function Login() {
 
               <div className="mt-4 pt-4 border-t text-center text-xs text-muted-foreground">
                 <div className="flex justify-center gap-4">
-                  <Link href="/privacy-policy">
-                    <a className="hover:text-foreground transition-colors">
-                      Privacy Policy
-                    </a>
+                  <Link
+                    href="/privacy-policy"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Privacy Policy
                   </Link>
                   <span>•</span>
-                  <Link href="/terms-of-service">
-                    <a className="hover:text-foreground transition-colors">
-                      Terms of Service
-                    </a>
+                  <Link
+                    href="/terms-of-service"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Terms of Service
                   </Link>
                 </div>
               </div>
