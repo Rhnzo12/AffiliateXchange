@@ -134,7 +134,7 @@ function getCompanyStatusInfo(companyProfile: any) {
 
 function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, children, hideHeader = false }: { user: any; unreadCount: number; companyProfile?: any; onLogout: () => void; children: ReactNode; hideHeader?: boolean }) {
   const style = {
-    "--sidebar-width": "16rem",
+    "--sidebar-width": "18rem",
     "--sidebar-width-icon": "3rem",
   };
 
@@ -149,7 +149,7 @@ function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, chil
           {!hideHeader && (
             <header className="relative flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b shrink-0 bg-background sticky top-0 z-50">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
+                <SidebarTrigger data-testid="button-sidebar-toggle" className="md:hidden" />
 
                 {headerContent && (
                   <div className="w-full max-w-xl ml-auto">
