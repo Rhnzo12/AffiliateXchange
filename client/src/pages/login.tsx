@@ -15,10 +15,24 @@ import { loginSchema } from "../../../shared/validation";
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-const formAnimation = {
-  initial: { opacity: 0, scale: 0.96, y: 16 },
-  animate: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
+const headerAnimation = {
+  initial: { opacity: 0, y: 12 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] },
+  },
 };
+
+const createCardAnimation = (delay = 0) => ({
+  initial: { opacity: 0, scale: 0.96, y: 16 },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: { duration: 0.9, delay, ease: [0.16, 1, 0.3, 1] },
+  },
+});
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
@@ -190,117 +204,117 @@ export default function Login() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-6">
-        <div className="flex items-center justify-center gap-2">
-          <img src="/logo.png" alt="AffiliateXchange Logo" className="h-10 w-10 rounded-md object-cover" />
-          <span className="text-2xl font-bold">AffiliateXchange</span>
-        </div>
+          <motion.div {...headerAnimation} className="flex items-center justify-center gap-2">
+            <img src="/logo.png" alt="AffiliateXchange Logo" className="h-10 w-10 rounded-md object-cover" />
+            <span className="text-2xl font-bold">AffiliateXchange</span>
+          </motion.div>
 
-        <motion.div {...formAnimation}>
-          <Card>
-            <CardHeader className="space-y-0">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleBack}
-                      className="h-8 w-8"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Shield className="h-5 w-5" />
-                        Two-Factor Authentication
-                      </CardTitle>
-                      <CardDescription>
-                        {useBackupCode
-                          ? "Enter one of your backup codes"
-                          : "Enter the 6-digit code from your authenticator app"}
-                      </CardDescription>
+          <motion.div {...createCardAnimation(0.25)}>
+            <Card>
+              <CardHeader className="space-y-0">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleBack}
+                        className="h-8 w-8"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Shield className="h-5 w-5" />
+                          Two-Factor Authentication
+                        </CardTitle>
+                        <CardDescription>
+                          {useBackupCode
+                            ? "Enter one of your backup codes"
+                            : "Enter the 6-digit code from your authenticator app"}
+                        </CardDescription>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors shrink-0"
-                  data-testid="link-home"
-                >
-                  <Home className="h-4 w-4" />
-                  Back to home
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleVerify2FA} className="space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    value={twoFactorCode}
-                    onChange={(e) => {
-                      if (useBackupCode) {
-                        // Allow alphanumeric and dashes for backup codes
-                        setTwoFactorCode(e.target.value.toUpperCase().slice(0, 9));
-                      } else {
-                        // Only digits for TOTP
-                        setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                      }
-                    }}
-                    placeholder={useBackupCode ? "XXXX-XXXX" : "000000"}
-                    className={`text-center text-2xl tracking-widest font-mono ${
-                      useBackupCode ? "" : ""
-                    }`}
-                    maxLength={useBackupCode ? 9 : 6}
-                    autoComplete="one-time-code"
-                    autoFocus
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={
-                    isVerifying2FA ||
-                    (useBackupCode
-                      ? twoFactorCode.replace(/-/g, "").length !== 8
-                      : twoFactorCode.length !== 6)
-                  }
-                >
-                  {isVerifying2FA ? "Verifying..." : "Verify"}
-                </Button>
-
-                <div className="text-center">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setUseBackupCode(!useBackupCode);
-                      setTwoFactorCode("");
-                    }}
-                    className="text-sm"
+                  <Link
+                    href="/"
+                    className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors shrink-0"
+                    data-testid="link-home"
                   >
-                    {useBackupCode ? (
-                      <>
-                        <Shield className="h-4 w-4 mr-1" />
-                        Use authenticator app instead
-                      </>
-                    ) : (
-                      <>
-                        <Key className="h-4 w-4 mr-1" />
-                        Use a backup code instead
-                      </>
-                    )}
-                  </Button>
+                    <Home className="h-4 w-4" />
+                    Back to home
+                  </Link>
                 </div>
-              </form>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleVerify2FA} className="space-y-4">
+                  <div className="space-y-2">
+                    <Input
+                      value={twoFactorCode}
+                      onChange={(e) => {
+                        if (useBackupCode) {
+                          // Allow alphanumeric and dashes for backup codes
+                          setTwoFactorCode(e.target.value.toUpperCase().slice(0, 9));
+                        } else {
+                          // Only digits for TOTP
+                          setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                        }
+                      }}
+                      placeholder={useBackupCode ? "XXXX-XXXX" : "000000"}
+                      className={`text-center text-2xl tracking-widest font-mono ${
+                        useBackupCode ? "" : ""
+                      }`}
+                      maxLength={useBackupCode ? 9 : 6}
+                      autoComplete="one-time-code"
+                      autoFocus
+                    />
+                  </div>
 
-        {/* Generic Error Dialog */}
-        <GenericErrorDialog
-          open={errorDialog.open}
-          onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={
+                      isVerifying2FA ||
+                      (useBackupCode
+                        ? twoFactorCode.replace(/-/g, "").length !== 8
+                        : twoFactorCode.length !== 6)
+                    }
+                  >
+                    {isVerifying2FA ? "Verifying..." : "Verify"}
+                  </Button>
+
+                  <div className="text-center">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setUseBackupCode(!useBackupCode);
+                        setTwoFactorCode("");
+                      }}
+                      className="text-sm"
+                    >
+                      {useBackupCode ? (
+                        <>
+                          <Shield className="h-4 w-4 mr-1" />
+                          Use authenticator app instead
+                        </>
+                      ) : (
+                        <>
+                          <Key className="h-4 w-4 mr-1" />
+                          Use a backup code instead
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Generic Error Dialog */}
+          <GenericErrorDialog
+            open={errorDialog.open}
+            onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
             title={errorDialog.title}
             description={errorDialog.description}
             errorDetails={errorDialog.errorDetails}
@@ -315,12 +329,12 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
-        <div className="flex items-center justify-center gap-2">
+        <motion.div {...headerAnimation} className="flex items-center justify-center gap-2">
           <img src="/logo.png" alt="AffiliateXchange Logo" className="h-10 w-10 rounded-md object-cover" />
           <span className="text-2xl font-bold">AffiliateXchange</span>
-        </div>
+        </motion.div>
 
-        <motion.div {...formAnimation}>
+        <motion.div {...createCardAnimation(0.25)}>
           <Card>
             <CardHeader className="space-y-0">
               <div className="flex items-start justify-between gap-4">
