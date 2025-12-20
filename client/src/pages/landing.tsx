@@ -411,15 +411,17 @@ export default function Landing() {
               <span className="font-bold">AffiliateXchange</span>
             </div>
             <div className="flex gap-6 text-sm">
-              <Link href="/privacy-policy">
-                <a className="text-muted-foreground hover:text-foreground transition-colors">
-                  Privacy Policy
-                </a>
+              <Link
+                href="/privacy-policy"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Privacy Policy
               </Link>
-              <Link href="/terms-of-service">
-                <a className="text-muted-foreground hover:text-foreground transition-colors">
-                  Terms of Service
-                </a>
+              <Link
+                href="/terms-of-service"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Terms of Service
               </Link>
             </div>
             <p className="text-sm text-muted-foreground">
