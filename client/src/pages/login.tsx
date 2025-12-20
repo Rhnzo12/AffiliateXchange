@@ -10,9 +10,15 @@ import { useToast } from "../hooks/use-toast";
 import { Mail, Eye, EyeOff, Shield, ArrowLeft, Key, Home } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { motion } from "framer-motion";
 import { loginSchema } from "../../../shared/validation";
 
 type LoginForm = z.infer<typeof loginSchema>;
+
+const formAnimation = {
+  initial: { opacity: 0, scale: 0.96, y: 16 },
+  animate: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
+};
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
@@ -184,11 +190,12 @@ export default function Login() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-6">
-          <div className="flex items-center justify-center gap-2">
-            <img src="/logo.png" alt="AffiliateXchange Logo" className="h-10 w-10 rounded-md object-cover" />
-            <span className="text-2xl font-bold">AffiliateXchange</span>
-          </div>
+        <div className="flex items-center justify-center gap-2">
+          <img src="/logo.png" alt="AffiliateXchange Logo" className="h-10 w-10 rounded-md object-cover" />
+          <span className="text-2xl font-bold">AffiliateXchange</span>
+        </div>
 
+        <motion.div {...formAnimation}>
           <Card>
             <CardHeader className="space-y-0">
               <div className="flex items-start justify-between gap-4">
@@ -288,11 +295,12 @@ export default function Login() {
               </form>
             </CardContent>
           </Card>
+        </motion.div>
 
-          {/* Generic Error Dialog */}
-          <GenericErrorDialog
-            open={errorDialog.open}
-            onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+        {/* Generic Error Dialog */}
+        <GenericErrorDialog
+          open={errorDialog.open}
+          onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
             title={errorDialog.title}
             description={errorDialog.description}
             errorDetails={errorDialog.errorDetails}
@@ -312,136 +320,138 @@ export default function Login() {
           <span className="text-2xl font-bold">AffiliateXchange</span>
         </div>
 
-        <Card>
-          <CardHeader className="space-y-0">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1.5">
-                <CardTitle>Welcome back</CardTitle>
-                <CardDescription>Sign in to your account to continue</CardDescription>
-              </div>
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors shrink-0"
-                data-testid="link-home"
-              >
-                <Home className="h-4 w-4" />
-                Back to home
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username</FormLabel>
-                      <FormControl>
-                        <Input placeholder="johndoe" {...field} data-testid="input-username" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            {...field}
-                            data-testid="input-password"
-                            className="pr-10"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                            data-testid="toggle-password-visibility"
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading}
-                  data-testid="button-login"
+        <motion.div {...formAnimation}>
+          <Card>
+            <CardHeader className="space-y-0">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1.5">
+                  <CardTitle>Welcome back</CardTitle>
+                  <CardDescription>Sign in to your account to continue</CardDescription>
+                </div>
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors shrink-0"
+                  data-testid="link-home"
                 >
-                  {isLoading ? "Signing in..." : "Sign In"}
-                </Button>
-              </form>
-            </Form>
-
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-              data-testid="button-google-login"
-            >
-              <Mail className="mr-2 h-4 w-4" />
-              Continue with Google
-            </Button>
-
-            <div className="mt-4 text-center text-sm">
-              Don't have an account?{" "}
-              <Link href="/register" className="text-primary hover:underline" data-testid="link-register">
-                Create account
-              </Link>
-            </div>
-
-            <div className="mt-2 text-center text-sm">
-              <Link href="/forgot-password" className="text-muted-foreground hover:text-primary hover:underline">
-                Forgot your password?
-              </Link>
-            </div>
-
-            <div className="mt-4 pt-4 border-t text-center text-xs text-muted-foreground">
-              <div className="flex justify-center gap-4">
-                <Link href="/privacy-policy">
-                  <a className="hover:text-foreground transition-colors">
-                    Privacy Policy
-                  </a>
-                </Link>
-                <span>•</span>
-                <Link href="/terms-of-service">
-                  <a className="hover:text-foreground transition-colors">
-                    Terms of Service
-                  </a>
+                  <Home className="h-4 w-4" />
+                  Back to home
                 </Link>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Username</FormLabel>
+                        <FormControl>
+                          <Input placeholder="johndoe" {...field} data-testid="input-username" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              placeholder="••••••••"
+                              {...field}
+                              data-testid="input-password"
+                              className="pr-10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              data-testid="toggle-password-visibility"
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isLoading}
+                    data-testid="button-login"
+                  >
+                    {isLoading ? "Signing in..." : "Sign In"}
+                  </Button>
+                </form>
+              </Form>
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                data-testid="button-google-login"
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Continue with Google
+              </Button>
+
+              <div className="mt-4 text-center text-sm">
+                Don't have an account?{" "}
+                <Link href="/register" className="text-primary hover:underline" data-testid="link-register">
+                  Create account
+                </Link>
+              </div>
+
+              <div className="mt-2 text-center text-sm">
+                <Link href="/forgot-password" className="text-muted-foreground hover:text-primary hover:underline">
+                  Forgot your password?
+                </Link>
+              </div>
+
+              <div className="mt-4 pt-4 border-t text-center text-xs text-muted-foreground">
+                <div className="flex justify-center gap-4">
+                  <Link href="/privacy-policy">
+                    <a className="hover:text-foreground transition-colors">
+                      Privacy Policy
+                    </a>
+                  </Link>
+                  <span>•</span>
+                  <Link href="/terms-of-service">
+                    <a className="hover:text-foreground transition-colors">
+                      Terms of Service
+                    </a>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Generic Error Dialog */}
         <GenericErrorDialog

@@ -12,9 +12,15 @@ import { useToast } from "../hooks/use-toast";
 import { Zap, Mail, Check, X } from "lucide-react";
 import { Link } from "wouter";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { motion } from "framer-motion";
 import { registrationSchema, validatePasswordComplexity } from "../../../shared/validation";
 
 type RegisterForm = z.infer<typeof registrationSchema>;
+
+const formAnimation = {
+  initial: { opacity: 0, scale: 0.96, y: 16 },
+  animate: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
+};
 
 export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
@@ -99,14 +105,15 @@ export default function Register() {
           <span className="text-2xl font-bold">AffiliateXchange</span>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Create your account</CardTitle>
-            <CardDescription>Join the marketplace and start earning</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <motion.div {...formAnimation}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Create your account</CardTitle>
+              <CardDescription>Join the marketplace and start earning</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="role"
@@ -359,8 +366,9 @@ export default function Register() {
                 </Link>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Generic Error Dialog */}
         <GenericErrorDialog
