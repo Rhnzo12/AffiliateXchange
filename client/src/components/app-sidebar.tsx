@@ -260,16 +260,16 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b px-4 py-4 group-data-[collapsible=icon]:p-2">
-        <div className="flex items-center gap-3">
+      <SidebarHeader className="border-b px-3 py-2.5 group-data-[collapsible=icon]:p-1.5">
+        <div className="flex items-center gap-2">
           <SidebarTrigger
             aria-label="Toggle navigation menu"
-            className="h-9 w-9 shrink-0 rounded-md border border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            className="h-7 w-7 shrink-0 rounded-md border border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           />
           <Link href="/" onClick={handleNavClick}>
-            <div className="flex items-center gap-2 cursor-pointer">
-              <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover shrink-0" />
-              <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">AffiliateXchange</span>
+            <div className="flex items-center gap-1.5 cursor-pointer">
+              <img src="/logo.png" alt="AffiliateXchange Logo" className="h-6 w-6 rounded-md object-cover shrink-0" />
+              <span className="font-bold text-sm group-data-[collapsible=icon]:hidden">AffiliateXchange</span>
             </div>
           </Link>
         </div>
@@ -381,31 +381,31 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 group-data-[collapsible=icon]:hidden">
+      <SidebarFooter className="p-3 group-data-[collapsible=icon]:hidden">
         {/* Tour button for company users */}
         {user?.role === 'company' && (
-          <div className="mb-3">
+          <div className="mb-2">
             <CompanyTourButtonSafe />
           </div>
         )}
 
         {/* Tour button for creator users */}
         {user?.role === 'creator' && (
-          <div className="mb-3">
+          <div className="mb-2">
             <CreatorTourButtonSafe />
           </div>
         )}
 
-        <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-            <p className="text-xs font-semibold tracking-wide text-primary">AFFILIATEXCHANGE</p>
+        <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 p-3 space-y-2">
+          <div className="flex items-center gap-1.5">
+            <div className="h-1 w-1 rounded-full bg-primary" />
+            <p className="text-[10px] font-semibold tracking-wide text-primary">AFFILIATEXCHANGE</p>
           </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground leading-relaxed">
+          <div className="space-y-0.5">
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
               Professional affiliate marketing platform
             </p>
-            <p className="text-xs text-muted-foreground/80">
+            <p className="text-[10px] text-muted-foreground/80">
               © {currentYear} AffiliateXchange. All rights reserved.
             </p>
           </div>

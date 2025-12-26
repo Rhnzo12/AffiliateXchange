@@ -148,23 +148,23 @@ function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, chil
 
           {!hideHeader && (
             <div className="sticky top-0 z-50 bg-background border-b">
-              <div className="max-w-screen-2xl mx-auto px-4 sm:px-6">
-                <div className="flex items-center justify-between gap-4 py-3 sm:py-4">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="max-w-screen-2xl mx-auto px-3 sm:px-4">
+                <div className="flex items-center justify-between gap-3 py-1.5 sm:py-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
                     <SidebarTrigger data-testid="button-sidebar-toggle" className="md:hidden" />
                   </div>
 
                   {/* Right Side Navigation Icons */}
-                  <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     {/* Messages Icon - Hidden for admin users */}
                     {user?.role !== 'admin' && (
                       <Link href={user?.role === 'company' ? '/company/messages' : '/messages'}>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="relative h-8 w-8 sm:h-9 sm:w-9 hover:bg-primary/10"
+                          className="relative h-7 w-7 sm:h-8 sm:w-8 hover:bg-primary/10"
                         >
-                          <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           {unreadCount > 0 && (
                             <Badge
                               variant="destructive"
@@ -183,14 +183,14 @@ function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, chil
                     {/* Profile Dropdown */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="flex items-center gap-1.5 sm:gap-2 md:gap-3 hover:opacity-80 transition-opacity focus:outline-none">
-                          <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-primary/20 flex-shrink-0">
+                        <button className="flex items-center gap-1 sm:gap-1.5 md:gap-2 hover:opacity-80 transition-opacity focus:outline-none">
+                          <Avatar className="h-7 w-7 sm:h-8 sm:w-8 border-2 border-primary/20 flex-shrink-0">
                             <AvatarImage
                               src={proxiedSrc(user?.role === 'company' ? companyProfile?.logoUrl : user?.profileImageUrl) || ''}
                               alt={user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
                               referrerPolicy="no-referrer"
                             />
-                            <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs sm:text-sm">
+                            <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-[10px] sm:text-xs">
                               {user?.role === 'company'
                                 ? (companyProfile?.tradeName?.[0] || 'C')
                                 : (user?.firstName || user?.email || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -198,12 +198,12 @@ function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, chil
                             </AvatarFallback>
                           </Avatar>
                           <div className="text-left max-w-[100px] sm:max-w-[120px] md:max-w-[160px] min-w-0 hidden sm:block">
-                            <p className="text-xs sm:text-sm font-medium leading-none text-foreground truncate">
+                            <p className="text-[11px] sm:text-xs font-medium leading-none text-foreground truncate">
                               {user?.role === 'company' ? (companyProfile?.tradeName || 'Company') : (user?.firstName || user?.email || 'User')}
                             </p>
-                            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{user?.role === 'company' ? 'Brand' : 'Creator'}</p>
+                            <p className="text-[9px] sm:text-[10px] text-muted-foreground truncate">{user?.role === 'company' ? 'Brand' : 'Creator'}</p>
                           </div>
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56">
@@ -266,7 +266,7 @@ function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, chil
 
               {headerContent && (
                 <div className="border-t bg-background">
-                  <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+                  <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 py-1.5 sm:py-2">
                     {headerContent}
                   </div>
                 </div>
