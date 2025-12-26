@@ -542,7 +542,14 @@ export default function OfferDetail() {
               {/* Product Image */}
               <div className="flex-shrink-0">
                 <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
-                  {offer.company?.logoUrl ? (
+                  {offer.featuredImageUrl ? (
+                    <img
+                      src={proxiedSrc(offer.featuredImageUrl)}
+                      alt={offer.title}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : offer.company?.logoUrl ? (
                     <img
                       src={proxiedSrc(offer.company.logoUrl)}
                       alt={offer.company?.tradeName || offer.title}
@@ -551,11 +558,7 @@ export default function OfferDetail() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-                      <Avatar className="h-16 w-16">
-                        <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary to-purple-600 text-white">
-                          {offer.company?.tradeName?.[0] || offer.title[0]}
-                        </AvatarFallback>
-                      </Avatar>
+                      <ShoppingCart className="h-8 w-8 text-primary/40" />
                     </div>
                   )}
                 </div>
@@ -564,25 +567,19 @@ export default function OfferDetail() {
               {/* Offer Details */}
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    {offer.company?.tradeName || offer.company?.legalName || offer.title}
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+                    {offer.title}
                   </h1>
-                  {offer.company?.websiteVerified && (
-                    <Badge className="bg-green-500 hover:bg-green-600 text-white gap-1 text-xs">
-                      <Verified className="h-3 w-3" />
-                      Verified
-                    </Badge>
-                  )}
+                  <Badge
+                    variant={offer.status === 'approved' ? 'default' : 'secondary'}
+                    className="text-xs"
+                  >
+                    {offer.status}
+                  </Badge>
                 </div>
 
-                {/* Industry and Niche Tags */}
+                {/* Niche Tags */}
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {offer.company?.industry && (
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md flex items-center gap-1">
-                      <TrendingUp className="h-3 w-3" />
-                      {offer.company.industry.replace(/_/g, ' ')}
-                    </span>
-                  )}
                   {mainNiches.map((niche) => (
                     <span key={niche} className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
                       #{niche}
@@ -598,9 +595,8 @@ export default function OfferDetail() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
                   >
-                    <Globe className="h-3.5 w-3.5" />
-                    {offer.company.websiteUrl.replace(/^https?:\/\//, '')}
-                    <ExternalLink className="h-3 w-3" />
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open Link
                   </a>
                 )}
               </div>
@@ -608,36 +604,37 @@ export default function OfferDetail() {
           </CardContent>
         </Card>
 
-        {/* Commission Card - Full Width with prominent display */}
-        <Card className="rounded-xl shadow-sm border border-gray-200 mb-6">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Commission Rate</div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl sm:text-4xl font-bold text-green-600">
-                    {formatCommission(offer)}
-                  </span>
-                  <span className="text-sm text-gray-500 capitalize">
-                    {getCommissionTypeLabel(offer)}
-                  </span>
-                </div>
+        {/* Price and Commission Cards */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          {/* Price Card */}
+          <Card className="rounded-xl shadow-sm border border-gray-200">
+            <CardContent className="p-5">
+              <div className="text-xs text-gray-500 mb-1">Price</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  ${offer.averageOrderValue || offer.commissionAmount || "0"}
+                </span>
+                <span className="text-sm text-gray-400">CA</span>
               </div>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-1.5">
-                  <Users className="h-4 w-4" />
-                  <span>{offer.activeCreators || 0} active</span>
-                </div>
-                {responseTimeData?.responseTime !== null && responseTimeData?.responseTime !== undefined && (
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4" />
-                    <span>{formatResponseTime(responseTimeData.responseTime)}</span>
-                  </div>
-                )}
+              <div className="text-xs text-gray-500 mt-1">Per Item</div>
+            </CardContent>
+          </Card>
+
+          {/* Commission Rate Card */}
+          <Card className="rounded-xl shadow-sm border border-gray-200">
+            <CardContent className="p-5">
+              <div className="text-xs text-gray-500 mb-1">Commission Rate</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl sm:text-3xl font-bold text-green-600">
+                  {formatCommission(offer)}
+                </span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="text-xs text-gray-500 mt-1 capitalize">
+                {getCommissionTypeLabel(offer)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Description Card */}
         <Card className="rounded-xl shadow-sm border border-gray-200 mb-6">
@@ -682,63 +679,59 @@ export default function OfferDetail() {
             {/* Performance Tab Content */}
             <TabsContent value="performance" className="p-6 mt-0">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {/* Active Creators */}
-                <div className="bg-gray-50 rounded-xl p-4 text-center">
-                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
-                    <Users className="h-5 w-5 text-gray-600" />
-                  </div>
-                  <div className="text-2xl font-bold text-gray-900">{offer.activeCreatorsCount || 0}</div>
-                  <div className="text-xs text-gray-500 mt-1">Active Creators</div>
-                </div>
-
-                {/* Total Clicks */}
+                {/* Clicks */}
                 <div className="bg-gray-50 rounded-xl p-4 text-center">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
                     <MousePointer className="h-5 w-5 text-gray-600" />
                   </div>
                   <div className="text-2xl font-bold text-gray-900">{offer.totalClicks || 0}</div>
-                  <div className="text-xs text-gray-500 mt-1">Total Clicks</div>
+                  <div className="text-xs text-gray-500 mt-1">Clicks</div>
                 </div>
 
-                {/* Min Payout */}
+                {/* Views */}
                 <div className="bg-gray-50 rounded-xl p-4 text-center">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
-                    <Wallet className="h-5 w-5 text-gray-600" />
+                    <Eye className="h-5 w-5 text-gray-600" />
                   </div>
-                  <div className="text-2xl font-bold text-gray-900">${offer.minimumPayout || 50}</div>
-                  <div className="text-xs text-gray-500 mt-1">Min Payout</div>
+                  <div className="text-2xl font-bold text-gray-900">{offer.viewCount || 0}</div>
+                  <div className="text-xs text-gray-500 mt-1">Views</div>
                 </div>
 
-                {/* Response Time */}
+                {/* Apply (Applications) */}
                 <div className="bg-gray-50 rounded-xl p-4 text-center">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
-                    <Clock className="h-5 w-5 text-gray-600" />
+                    <Users className="h-5 w-5 text-gray-600" />
                   </div>
-                  <div className="text-lg font-bold text-gray-900">{formatResponseTime(responseTimeData?.responseTime)}</div>
-                  <div className="text-xs text-gray-500 mt-1">Company Response Time</div>
+                  <div className="text-2xl font-bold text-gray-900">{offer.applicationCount || 0}</div>
+                  <div className="text-xs text-gray-500 mt-1">Apply</div>
                 </div>
 
-                {/* Cookie Duration */}
-                {offer.cookieDuration && (
-                  <div className="bg-gray-50 rounded-xl p-4 text-center">
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
-                      <Shield className="h-5 w-5 text-gray-600" />
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">{offer.cookieDuration}</div>
-                    <div className="text-xs text-gray-500 mt-1">Cookie Days</div>
+                {/* Orders */}
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
+                    <ShoppingCart className="h-5 w-5 text-gray-600" />
                   </div>
-                )}
+                  <div className="text-2xl font-bold text-gray-900">{offer.totalConversions || 0}</div>
+                  <div className="text-xs text-gray-500 mt-1">Orders</div>
+                </div>
 
-                {/* Avg Order Value */}
-                {offer.averageOrderValue && (
-                  <div className="bg-gray-50 rounded-xl p-4 text-center">
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
-                      <TrendingUp className="h-5 w-5 text-gray-600" />
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">${offer.averageOrderValue}</div>
-                    <div className="text-xs text-gray-500 mt-1">Avg Order</div>
+                {/* Approval */}
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
+                    <ThumbsUp className="h-5 w-5 text-gray-600" />
                   </div>
-                )}
+                  <div className="text-2xl font-bold text-gray-900">{offer.approvalRate || 0}%</div>
+                  <div className="text-xs text-gray-500 mt-1">Approval</div>
+                </div>
+
+                {/* Sales */}
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
+                    <BarChart3 className="h-5 w-5 text-gray-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">${offer.totalRevenue || 0}</div>
+                  <div className="text-xs text-gray-500 mt-1">Sales</div>
+                </div>
               </div>
             </TabsContent>
 
