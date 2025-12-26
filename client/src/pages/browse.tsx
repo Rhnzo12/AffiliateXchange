@@ -51,7 +51,6 @@ import { OfferCardSkeleton } from "../components/skeletons";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
 import { TUTORIAL_IDS, browsePageTutorialConfig } from "../lib/tutorialConfig";
-import { useHeaderContent } from "../components/HeaderContentContext";
 import { useCreatorPageTour } from "../components/CreatorTour";
 import { CREATOR_TOUR_IDS, browseTourSteps } from "../lib/creatorTourConfig";
 
@@ -270,7 +269,6 @@ export default function Browse() {
   const [sortBy, setSortBy] = useState("newest");
   const [saveSearchDialogOpen, setSaveSearchDialogOpen] = useState(false);
   const [savedSearchName, setSavedSearchName] = useState("");
-  const { setHeaderContent } = useHeaderContent();
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     title: string;
@@ -802,25 +800,6 @@ export default function Browse() {
     deleteSavedSearchMutation.mutate(id);
   };
 
-  useEffect(() => {
-    const searchBar = (
-      <div className="relative w-full max-w-xl">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search offers..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-muted/50"
-          data-testid="input-search-header"
-        />
-      </div>
-    );
-
-    setHeaderContent(searchBar);
-
-    return () => setHeaderContent(null);
-  }, [searchTerm, setHeaderContent]);
-
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-pulse text-lg">Loading...</div>
@@ -1064,6 +1043,17 @@ export default function Browse() {
               </ScrollArea>
             </SheetContent>
           </Sheet>
+
+          <div className="relative flex-1 min-w-0 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search offers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-muted/50"
+              data-testid="input-search-offers"
+            />
+          </div>
 
           <Button
             variant="outline"
