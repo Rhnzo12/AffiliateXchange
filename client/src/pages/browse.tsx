@@ -810,7 +810,6 @@ export default function Browse() {
     <div className="min-h-screen bg-background">
       {/* Main Content */}
       <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 pt-1 pb-4 sm:pb-6 md:pb-8 space-y-4 sm:space-y-6 md:space-y-8">
-        <p className="mb-0">test</p>
         {/* Header - Left Aligned, Black Text */}
         <div className="space-y-2">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Browse Offers</h1>
