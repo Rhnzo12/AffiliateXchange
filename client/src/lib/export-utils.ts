@@ -26,7 +26,7 @@ const COLORS = {
 // Utility to format currency
 export function formatCurrency(value: number | string | null | undefined): string {
   const num = Number(value || 0);
-  return `$${num.toFixed(2)}`;
+  return `CA$${num.toFixed(2)}`;
 }
 
 // Utility to format numbers with locale

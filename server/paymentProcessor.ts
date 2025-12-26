@@ -235,7 +235,7 @@ export class PaymentProcessorService {
         sender_batch_header: {
           sender_batch_id: `batch_${paymentId}_${Date.now()}`, // Must be unique
           email_subject: 'You have received a payout!',
-          email_message: `You have received a payout from AffiliateXchange for $${amount.toFixed(2)}`
+          email_message: `You have received a payout from AffiliateXchange for CA$${amount.toFixed(2)}`
         },
         items: [{
           recipient_type: 'EMAIL',

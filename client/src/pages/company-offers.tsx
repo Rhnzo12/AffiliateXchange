@@ -85,13 +85,13 @@ const NICHE_COLORS: Record<string, string> = {
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
   if (offer.commissionAmount) {
-    return `$${offer.commissionAmount}`;
+    return `CA$${offer.commissionAmount}`;
   } else if (offer.commissionPercentage) {
     return `${offer.commissionPercentage}%`;
   } else if (offer.commissionRate) {
-    return `$${offer.commissionRate}`;
+    return `CA$${offer.commissionRate}`;
   }
-  return "$0";
+  return "CA$0";
 };
 
 // Helper function to get commission type label

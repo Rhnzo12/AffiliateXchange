@@ -153,7 +153,7 @@ export class RetainerPaymentScheduler {
     });
 
     const feeLabel = fees.isCustomFee ? `Custom ${formatFeePercentage(fees.platformFeePercentage)}` : formatFeePercentage(DEFAULT_PLATFORM_FEE_PERCENTAGE);
-    console.log(`[Retainer Scheduler] Created payment ${payment.id} of $${fees.netAmount.toFixed(2)} (net) - Platform Fee: ${feeLabel}`);
+    console.log(`[Retainer Scheduler] Created payment ${payment.id} of CA$${fees.netAmount.toFixed(2)} (net) - Platform Fee: ${feeLabel}`);
 
     // Validate creator has payment settings
     const validation = await paymentProcessor.validateCreatorPaymentSettings(contract.assignedCreatorId);
@@ -170,7 +170,7 @@ export class RetainerPaymentScheduler {
         contract.assignedCreatorId,
         'payment_pending',
         'Payment Method Required',
-        `Your monthly retainer payment of $${fees.netAmount.toFixed(2)} for "${contract.title}" is pending. Please configure your payment method to receive funds.`,
+        `Your monthly retainer payment of CA$${fees.netAmount.toFixed(2)} for "${contract.title}" is pending. Please configure your payment method to receive funds.`,
         {
           linkUrl: '/settings/payment',
         }
@@ -200,14 +200,14 @@ export class RetainerPaymentScheduler {
           contract.assignedCreatorId,
           'payment_received',
           'Monthly Retainer Payment Received! \u1F4B0',
-          `$${fees.netAmount.toFixed(2)} has been sent to your payment method for month ${monthNumber} of "${contract.title}". Transaction ID: ${paymentResult.transactionId}`,
+          `CA$${fees.netAmount.toFixed(2)} has been sent to your payment method for month ${monthNumber} of "${contract.title}". Transaction ID: ${paymentResult.transactionId}`,
           {
             userName: creator.firstName || creator.username,
             offerTitle: contract.title,
-            amount: `$${fees.netAmount.toFixed(2)}`,
-            grossAmount: `$${fees.grossAmount.toFixed(2)}`,
-            platformFee: `$${fees.platformFeeAmount.toFixed(2)}`,
-            processingFee: `$${fees.stripeFeeAmount.toFixed(2)}`,
+            amount: `CA$${fees.netAmount.toFixed(2)}`,
+            grossAmount: `CA$${fees.grossAmount.toFixed(2)}`,
+            platformFee: `CA$${fees.platformFeeAmount.toFixed(2)}`,
+            processingFee: `CA$${fees.stripeFeeAmount.toFixed(2)}`,
             transactionId: paymentResult.transactionId,
             paymentId: payment.id,
             linkUrl: `/payments/${payment.id}`,

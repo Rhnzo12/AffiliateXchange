@@ -240,7 +240,7 @@ const summarizeSavedSearch = (filters: SavedSearchFilters): string => {
   if (filters.selectedNiches?.length) parts.push(`${filters.selectedNiches.length} niche${filters.selectedNiches.length > 1 ? "s" : ""}`);
   if (filters.selectedCategories?.length) parts.push(`${filters.selectedCategories.length} category filter${filters.selectedCategories.length > 1 ? "s" : ""}`);
   if (filters.commissionType) parts.push(`Type: ${filters.commissionType.replace(/_/g, " ")}`);
-  if (filters.minimumPayout?.[0]) parts.push(`Min payout: $${filters.minimumPayout[0]}`);
+  if (filters.minimumPayout?.[0]) parts.push(`Min payout: CA$${filters.minimumPayout[0]}`);
   if (filters.minRating && filters.minRating > 0) parts.push(`${filters.minRating}+ stars`);
   if (filters.showTrending) parts.push("Trending only");
   if (filters.showPriority) parts.push("Priority only");
@@ -980,8 +980,8 @@ export default function Browse() {
                     />
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>${commissionRange[0]}</span>
-                    <span>${commissionRange[1]}+</span>
+                    <span>CA${commissionRange[0]}</span>
+                    <span>CA${commissionRange[1]}+</span>
                   </div>
                 </div>
 
@@ -998,7 +998,7 @@ export default function Browse() {
                     />
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    ${minimumPayout[0]}+
+                    CA${minimumPayout[0]}+
                   </div>
                 </div>
 
@@ -1480,7 +1480,7 @@ export default function Browse() {
                                   </div>
                                   <div>
                                     <p className="text-sm text-muted-foreground">Monthly Payment</p>
-                                    <p className="font-semibold">${monthlyAmount.toLocaleString()}</p>
+                                    <p className="font-semibold">CA${monthlyAmount.toLocaleString()}</p>
                                   </div>
                                 </div>
 
@@ -1526,7 +1526,7 @@ export default function Browse() {
                                       >
                                         <div className="flex items-center justify-between mb-1">
                                           <span className="font-semibold">{tier.name}</span>
-                                          <Badge variant="outline">${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
+                                          <Badge variant="outline">CA${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
                                         </div>
                                         <p className="text-sm text-muted-foreground">
                                           {tier.videosPerMonth} videos / {tier.durationMonths} month{tier.durationMonths === 1 ? "" : "s"}

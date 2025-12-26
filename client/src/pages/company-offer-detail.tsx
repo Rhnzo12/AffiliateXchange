@@ -60,13 +60,13 @@ import { COMPANY_TOUR_IDS, offerDetailTourSteps } from "../lib/companyTourConfig
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
-  if (!offer) return "$0";
+  if (!offer) return "CA$0";
 
   if (offer.commissionAmount) {
     const amount = typeof offer.commissionAmount === 'number'
       ? offer.commissionAmount
       : parseFloat(offer.commissionAmount);
-    return `$${amount.toFixed(2)}`;
+    return `CA$${amount.toFixed(2)}`;
   } else if (offer.commissionPercentage) {
     const percentage = typeof offer.commissionPercentage === 'number'
       ? offer.commissionPercentage
@@ -76,9 +76,9 @@ const formatCommission = (offer: any) => {
     const rate = typeof offer.commissionRate === 'number'
       ? offer.commissionRate
       : parseFloat(offer.commissionRate);
-    return `$${rate.toFixed(2)}`;
+    return `CA$${rate.toFixed(2)}`;
   }
-  return "$0";
+  return "CA$0";
 };
 
 // Helper to get commission type label
@@ -752,9 +752,8 @@ export default function CompanyOfferDetail() {
               <div className="text-xs text-gray-500 mb-1">Price</div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  ${offer.averageOrderValue || offer.commissionAmount || "0"}
+                  CA${offer.averageOrderValue || offer.commissionAmount || "0"}
                 </span>
-                <span className="text-sm text-gray-400">CA</span>
               </div>
               <div className="text-xs text-gray-500 mt-1">Per Item</div>
             </CardContent>
@@ -859,7 +858,7 @@ export default function CompanyOfferDetail() {
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
                     <BarChart3 className="h-5 w-5 text-gray-600" />
                   </div>
-                  <div className="text-2xl font-bold text-gray-900">${offer.totalRevenue || 0}</div>
+                  <div className="text-2xl font-bold text-gray-900">CA${offer.totalRevenue || 0}</div>
                   <div className="text-xs text-gray-500 mt-1">Sales</div>
                 </div>
               </div>

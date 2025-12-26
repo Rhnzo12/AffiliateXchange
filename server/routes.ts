@@ -2347,11 +2347,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           application.creatorId,
           'payment_pending',
           'Work Completed - Payment Pending \u1F4B0',
-          `Your work for "${offer.title}" has been marked as complete! Payment of $${fees.netAmount.toFixed(2)} is pending company approval.`,
+          `Your work for "${offer.title}" has been marked as complete! Payment of CA$${fees.netAmount.toFixed(2)} is pending company approval.`,
           {
             userName: creator.firstName || creator.username,
             offerTitle: offer.title,
-            amount: `$${fees.netAmount.toFixed(2)}`,
+            amount: `CA$${fees.netAmount.toFixed(2)}`,
             paymentId: payment.id, // \u2705 ADDED
           }
         );
@@ -2364,11 +2364,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           admin.id,
           'payment_pending',
           'New Affiliate Payment Ready for Processing',
-          `A payment of $${fees.netAmount.toFixed(2)} for creator ${creator?.username || 'Unknown'} on "${offer.title}" is ready for processing.`,
+          `A payment of CA$${fees.netAmount.toFixed(2)} for creator ${creator?.username || 'Unknown'} on "${offer.title}" is ready for processing.`,
           {
             userName: admin.firstName || admin.username,
             offerTitle: offer.title,
-            amount: `$${fees.netAmount.toFixed(2)}`,
+            amount: `CA$${fees.netAmount.toFixed(2)}`,
             paymentId: payment.id,
             linkUrl: `/payments/${payment.id}`, // Link to specific payment detail page
           }
@@ -5183,11 +5183,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             admin.id,
             'payment_pending',
             'Payment Ready for Processing',
-            `A payment of $${(Number(payment.netAmount) / 100).toFixed(2)} for creator ${creator?.username || 'Unknown'} is ready for processing.`,
+            `A payment of CA$${(Number(payment.netAmount) / 100).toFixed(2)} for creator ${creator?.username || 'Unknown'} is ready for processing.`,
             {
               userName: admin.firstName || admin.username,
               offerTitle: offer?.title || 'Unknown Offer',
-              amount: `$${(Number(payment.netAmount) / 100).toFixed(2)}`,
+              amount: `CA$${(Number(payment.netAmount) / 100).toFixed(2)}`,
               paymentId: payment.id,
             }
           );
