@@ -646,6 +646,139 @@ export default function OfferDetail() {
           </CardContent>
         </Card>
 
+        {/* Creator Requirements Card */}
+        {(offer.minimumFollowers || offer.allowedPlatforms?.length || offer.geographicRestrictions?.length ||
+          offer.ageRestriction || offer.contentStyleRequirements || offer.brandSafetyRequirements ||
+          offer.customTerms || offer.creatorRequirements) && (
+          <Card className="rounded-xl shadow-sm border border-gray-200 mb-6">
+            <CardContent className="p-5">
+              <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                Creator Requirements
+              </h3>
+              <div className="space-y-4">
+                {/* Minimum Followers */}
+                {offer.minimumFollowers && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                      <Users className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Minimum Followers</p>
+                      <p className="text-sm text-gray-600">
+                        {Number(offer.minimumFollowers).toLocaleString()} followers required on at least one platform
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Allowed Platforms */}
+                {offer.allowedPlatforms?.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
+                      <Globe className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Allowed Platforms</p>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {offer.allowedPlatforms.map((platform: string) => (
+                          <Badge key={platform} variant="secondary" className="text-xs">
+                            {platform}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Geographic Restrictions */}
+                {offer.geographicRestrictions?.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
+                      <MapPin className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Geographic Restrictions</p>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {offer.geographicRestrictions.map((region: string) => (
+                          <Badge key={region} variant="outline" className="text-xs">
+                            {region}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Age Restriction */}
+                {offer.ageRestriction && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
+                      <Info className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Age Restriction</p>
+                      <p className="text-sm text-gray-600">{offer.ageRestriction}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Content Style Requirements */}
+                {offer.contentStyleRequirements && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center">
+                      <Palette className="h-4 w-4 text-pink-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Content Style</p>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap">{offer.contentStyleRequirements}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Brand Safety Requirements */}
+                {offer.brandSafetyRequirements && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
+                      <Shield className="h-4 w-4 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Brand Safety</p>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap">{offer.brandSafetyRequirements}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Terms */}
+                {offer.customTerms && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Verified className="h-4 w-4 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Custom Terms</p>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap">{offer.customTerms}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* General Creator Requirements */}
+                {offer.creatorRequirements && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center">
+                      <CheckCircle2 className="h-4 w-4 text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Additional Requirements</p>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap">{offer.creatorRequirements}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Performance and Videos Tabs */}
         <Card className="rounded-xl shadow-sm border border-gray-200 mb-6">
           <Tabs defaultValue="performance" className="w-full">
@@ -770,6 +903,153 @@ export default function OfferDetail() {
               )}
             </TabsContent>
           </Tabs>
+        </Card>
+
+        {/* Reviews Section */}
+        <Card className="rounded-xl shadow-sm border border-gray-200 mb-6">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <Star className="h-4 w-4 text-yellow-500" />
+                Reviews
+              </h3>
+              {reviews && reviews.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-4 w-4 ${
+                          star <= Math.round(averageRating)
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {averageRating.toFixed(1)}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {reviewsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-primary border-r-transparent"></div>
+              </div>
+            ) : !reviews || reviews.length === 0 ? (
+              <div className="text-center py-8">
+                <Star className="h-12 w-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">No reviews yet</p>
+                <p className="text-gray-400 text-xs mt-1">Be the first to work with this company and leave a review</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reviews.slice(0, 5).map((review: any) => (
+                  <div key={review.id} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={review.creator?.profilePhotoUrl} />
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                          {review.creator?.displayName?.[0] || review.creator?.username?.[0] || 'C'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {review.creator?.displayName || review.creator?.username || 'Creator'}
+                          </span>
+                          <span className="text-xs text-gray-400 flex-shrink-0">
+                            {new Date(review.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 mb-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-3.5 w-3.5 ${
+                                star <= review.overallRating
+                                  ? 'text-yellow-400 fill-yellow-400'
+                                  : 'text-gray-200'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        {review.reviewText && (
+                          <p className="text-sm text-gray-600 leading-relaxed">{review.reviewText}</p>
+                        )}
+
+                        {/* Rating Breakdown */}
+                        {(review.paymentSpeedRating || review.communicationRating || review.offerQualityRating || review.supportRating) && (
+                          <div className="flex flex-wrap gap-3 mt-2 text-xs">
+                            {review.paymentSpeedRating && (
+                              <div className="flex items-center gap-1 text-gray-500">
+                                <Wallet className="h-3 w-3" />
+                                <span>Payment: {review.paymentSpeedRating}/5</span>
+                              </div>
+                            )}
+                            {review.communicationRating && (
+                              <div className="flex items-center gap-1 text-gray-500">
+                                <Users className="h-3 w-3" />
+                                <span>Communication: {review.communicationRating}/5</span>
+                              </div>
+                            )}
+                            {review.offerQualityRating && (
+                              <div className="flex items-center gap-1 text-gray-500">
+                                <TrendingUp className="h-3 w-3" />
+                                <span>Quality: {review.offerQualityRating}/5</span>
+                              </div>
+                            )}
+                            {review.supportRating && (
+                              <div className="flex items-center gap-1 text-gray-500">
+                                <Shield className="h-3 w-3" />
+                                <span>Support: {review.supportRating}/5</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Company Response */}
+                        {review.companyResponse && (
+                          <div className="mt-3 bg-gray-50 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline" className="text-xs">Company Response</Badge>
+                              {review.companyRespondedAt && (
+                                <span className="text-xs text-gray-400">
+                                  {new Date(review.companyRespondedAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600">{review.companyResponse}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {reviews.length > 5 && (
+                  <div className="text-center pt-2">
+                    <Button variant="ghost" size="sm" className="text-primary">
+                      View all {reviews.length} reviews
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
         </Card>
       </div>
 
