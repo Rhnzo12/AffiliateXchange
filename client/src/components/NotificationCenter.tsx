@@ -274,12 +274,12 @@ export function NotificationCenter() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-10 sm:w-10" data-testid="button-notifications">
-          <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+        <Button variant="ghost" size="icon" className="relative h-7 w-7 sm:h-8 sm:w-8" data-testid="button-notifications">
+          <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           {unreadCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center p-0 text-[10px] sm:text-xs"
+              className="absolute -top-1 -right-1 h-3.5 w-3.5 sm:h-4 sm:w-4 flex items-center justify-center p-0 text-[8px] sm:text-[9px]"
               data-testid="badge-notification-count"
             >
               {unreadCount > 99 ? "99+" : unreadCount}
