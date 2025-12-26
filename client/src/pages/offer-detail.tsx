@@ -641,18 +641,8 @@ export default function OfferDetail() {
           <CardContent className="p-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Description</h3>
             <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
-              {companyHighlight || offer.fullDescription || offer.description || offer.shortDescription || "No description available."}
+              {offer.fullDescription || offer.description || offer.shortDescription || "No description available."}
             </p>
-            {hasMoreCompanyDescription && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="px-0 h-auto text-primary mt-2"
-                onClick={() => setShowFullCompanyDescription((prev) => !prev)}
-              >
-                {showFullCompanyDescription ? "See less" : "See more"}
-              </Button>
-            )}
           </CardContent>
         </Card>
 
