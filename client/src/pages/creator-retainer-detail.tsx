@@ -452,12 +452,12 @@ export default function CreatorRetainerDetail() {
   const hasRetainerTiers = Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0;
 
   const formatCurrency = (value: number, options?: Intl.NumberFormatOptions) =>
-    value.toLocaleString(undefined, {
+    value.toLocaleString("en-CA", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
       ...options,
       style: "currency",
-      currency: "USD",
+      currency: "CAD",
     });
 
   const formatSecondsToMinutes = (seconds?: number) => {

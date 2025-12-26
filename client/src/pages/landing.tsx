@@ -282,7 +282,7 @@ export default function Landing() {
                   <div className="text-sm text-muted-foreground">Active Creators</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-primary">$5M+</div>
+                  <div className="text-3xl font-bold text-primary">CA$5M+</div>
                   <div className="text-sm text-muted-foreground">Earned</div>
                 </div>
                 <div>

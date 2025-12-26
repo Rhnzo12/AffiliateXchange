@@ -763,7 +763,7 @@ export default function CompanyRetainers() {
                       <span>Monthly amount</span>
                       <span>Videos per month</span>
                       <span>Duration</span>
-                      <span className="text-right">$ / video</span>
+                      <span className="text-right">CA$ / video</span>
                     </div>
                     {fields.map((field, index) => {
                       const monthly = Number(form.watch(`retainerTiers.${index}.monthlyAmount`) || 0);
@@ -800,7 +800,7 @@ export default function CompanyRetainers() {
                           />
                           <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
                             <div className="rounded-md bg-primary/5 px-3 py-2 text-primary font-semibold">
-                              ${perVideo}/video
+                              CA${perVideo}/video
                             </div>
                             <Button
                               type="button"
@@ -996,7 +996,7 @@ export default function CompanyRetainers() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Monthly Payment</p>
-                      <p className="font-semibold">${parseFloat(contract.monthlyAmount).toLocaleString()}</p>
+                      <p className="font-semibold">CA${parseFloat(contract.monthlyAmount).toLocaleString()}</p>
                     </div>
                   </div>
 
@@ -1042,7 +1042,7 @@ export default function CompanyRetainers() {
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-semibold">{tier.name}</span>
-                            <Badge variant="outline">${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
+                            <Badge variant="outline">CA${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
                             {tier.videosPerMonth} videos / {tier.durationMonths} month{tier.durationMonths === 1 ? "" : "s"}

@@ -619,7 +619,7 @@ export default function CompanyRetainerDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Monthly Payment</p>
                 <p className="font-semibold">
-                  ${parseFloat(contract.monthlyAmount).toLocaleString()}
+                  CA${parseFloat(contract.monthlyAmount).toLocaleString()}
                 </p>
               </div>
             </div>

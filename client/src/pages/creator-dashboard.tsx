@@ -29,13 +29,13 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
   if (offer.commissionAmount) {
-    return `$${offer.commissionAmount}`;
+    return `CA$${offer.commissionAmount}`;
   } else if (offer.commissionPercentage) {
     return `${offer.commissionPercentage}%`;
   } else if (offer.commissionRate) {
-    return `$${offer.commissionRate}`;
+    return `CA$${offer.commissionRate}`;
   }
-  return "$0";
+  return "CA$0";
 };
 
 export default function CreatorDashboard() {
@@ -232,7 +232,7 @@ export default function CreatorDashboard() {
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip
                       formatter={(value: number, name) =>
-                        name === 'earnings' ? `$${value.toFixed(2)}` : value
+                        name === 'earnings' ? `CA$${value.toFixed(2)}` : value
                       }
                       labelFormatter={(label) => `Date: ${label}`}
                     />

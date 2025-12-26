@@ -221,7 +221,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
             </p>
           </div>
           <Badge variant="outline" className="self-start border-green-200 bg-green-50 text-green-700">
-            Total earnings ${totalEarnings.toFixed(2)}
+            Total earnings CA${totalEarnings.toFixed(2)}
           </Badge>
         </div>
 
@@ -231,7 +231,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
               <span className="text-sm text-yellow-700">Pending Admin Approval</span>
               <Clock className="h-5 w-5 text-yellow-600" />
             </div>
-            <div className="text-3xl font-bold text-yellow-900">${pendingEarnings.toFixed(2)}</div>
+            <div className="text-3xl font-bold text-yellow-900">CA${pendingEarnings.toFixed(2)}</div>
             <div className="mt-1 text-xs text-yellow-700">Company approved, awaiting admin</div>
           </div>
 
@@ -240,7 +240,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
               <span className="text-sm text-blue-700">Processing Payment</span>
               <Clock className="h-5 w-5 text-blue-600" />
             </div>
-            <div className="text-3xl font-bold text-blue-900">${processingEarnings.toFixed(2)}</div>
+            <div className="text-3xl font-bold text-blue-900">CA${processingEarnings.toFixed(2)}</div>
             <div className="mt-1 text-xs text-blue-700">Payment in progress</div>
           </div>
 
@@ -249,7 +249,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
               <span className="text-sm text-gray-600">Total Paid Out</span>
               <CheckCircle className="h-5 w-5 text-green-500" />
             </div>
-            <div className="text-3xl font-bold text-gray-900">${completedEarnings.toFixed(2)}</div>
+            <div className="text-3xl font-bold text-gray-900">CA${completedEarnings.toFixed(2)}</div>
             <div className="mt-1 text-xs text-gray-500">Lifetime completed payouts</div>
           </div>
 
@@ -258,7 +258,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
               <span className="text-sm text-green-100">All Earnings</span>
               <DollarSign className="h-5 w-5 text-green-100" />
             </div>
-            <div className="text-3xl font-bold">${totalEarnings.toFixed(2)}</div>
+            <div className="text-3xl font-bold">CA${totalEarnings.toFixed(2)}</div>
             <div className="mt-1 text-xs text-green-100">Including pending & processing</div>
           </div>
 
@@ -268,7 +268,7 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
                 <span className="text-sm text-orange-700">Disputed</span>
                 <AlertTriangle className="h-5 w-5 text-orange-600" />
               </div>
-              <div className="text-3xl font-bold text-orange-900">${disputedEarnings.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-orange-900">CA${disputedEarnings.toFixed(2)}</div>
               <div className="mt-1 text-xs text-orange-700">Awaiting admin resolution</div>
             </div>
           )}
@@ -333,16 +333,16 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
                       {payment.description || "Payment"}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      ${parseFloat(payment.grossAmount).toFixed(2)}
+                      CA${parseFloat(payment.grossAmount).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-red-600">
-                      -${parseFloat(payment.platformFeeAmount).toFixed(2)}
+                      -CA${parseFloat(payment.platformFeeAmount).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-red-600">
-                      -${parseFloat(payment.stripeFeeAmount).toFixed(2)}
+                      -CA${parseFloat(payment.stripeFeeAmount).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-bold text-green-600">
-                      ${parseFloat(payment.netAmount).toFixed(2)}
+                      CA${parseFloat(payment.netAmount).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <StatusBadge status={payment.status} isDisputed={isDisputedPayment(payment)} />
@@ -553,12 +553,12 @@ function CryptoPaymentFields({
               <ul className="text-xs space-y-1">
                 {currentRate && (
                   <li>
-                    Current rate: 1 {selectedNetwork?.symbol} = ${currentRate.toFixed(2)} USD
+                    Current rate: 1 {selectedNetwork?.symbol} = CA${currentRate.toFixed(2)} CAD
                   </li>
                 )}
                 {networkFee.estimatedFeeUsd && (
                   <li>
-                    Estimated network fee: ~${networkFee.estimatedFeeUsd.toFixed(2)} USD
+                    Estimated network fee: ~CA${networkFee.estimatedFeeUsd.toFixed(2)} CAD
                   </li>
                 )}
                 {selectedNetwork?.stablecoin && (
@@ -965,7 +965,7 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
           </div>
           <p className="text-yellow-800">
             You have {pendingPayouts.length} payout{pendingPayouts.length !== 1 ? "s" : ""} pending approval
-            totaling ${totalPendingAmount.toFixed(2)}
+            totaling CA${totalPendingAmount.toFixed(2)}
           </p>
         </div>
       )}
@@ -1038,7 +1038,7 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                   </div>
                   <div className="text-left sm:text-right flex-shrink-0">
                     <div className="text-xl sm:text-2xl font-bold text-gray-900">
-                      ${parseFloat(payout.grossAmount).toFixed(2)}
+                      CA${parseFloat(payout.grossAmount).toFixed(2)}
                     </div>
                     <div className="text-xs text-gray-500">Creator payment</div>
                   </div>
@@ -1049,7 +1049,7 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                     <div>
                       <div className="mb-1 text-gray-600">Creator Payment</div>
                       <div className="font-medium text-gray-900">
-                        ${parseFloat(payout.grossAmount).toFixed(2)}
+                        CA${parseFloat(payout.grossAmount).toFixed(2)}
                       </div>
                     </div>
                     <div>
@@ -1057,7 +1057,7 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                         Platform Fee ({parseFloat(payout.grossAmount) > 0 ? ((parseFloat(payout.platformFeeAmount) / parseFloat(payout.grossAmount)) * 100).toFixed(0) : '4'}%)
                       </div>
                       <div className="font-medium text-gray-900">
-                        ${parseFloat(payout.platformFeeAmount).toFixed(2)}
+                        CA${parseFloat(payout.platformFeeAmount).toFixed(2)}
                       </div>
                     </div>
                     <div>
@@ -1065,7 +1065,7 @@ function CompanyPayoutApproval({ payouts }: { payouts: CreatorPayment[] }) {
                         Processing ({parseFloat(payout.grossAmount) > 0 ? ((parseFloat(payout.stripeFeeAmount) / parseFloat(payout.grossAmount)) * 100).toFixed(0) : '3'}%)
                       </div>
                       <div className="font-medium text-gray-900">
-                        ${parseFloat(payout.stripeFeeAmount).toFixed(2)}
+                        CA${parseFloat(payout.stripeFeeAmount).toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -1187,7 +1187,7 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
             <span className="text-sm text-gray-600">Total Paid Out</span>
             <Send className="h-5 w-5 text-blue-500" />
           </div>
-          <div className="text-3xl font-bold text-gray-900">${totalPaid.toFixed(2)}</div>
+          <div className="text-3xl font-bold text-gray-900">CA${totalPaid.toFixed(2)}</div>
           <div className="mt-1 text-xs text-gray-500">All-time</div>
         </div>
 
@@ -1196,7 +1196,7 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
             <span className="text-sm text-yellow-100">Pending</span>
             <Clock className="h-5 w-5 text-yellow-100" />
           </div>
-          <div className="text-3xl font-bold">${pendingAmount.toFixed(2)}</div>
+          <div className="text-3xl font-bold">CA${pendingAmount.toFixed(2)}</div>
           <div className="mt-1 text-xs text-yellow-100">Requires action</div>
         </div>
 
@@ -1305,10 +1305,10 @@ function CompanyOverview({ payouts }: { payouts: CreatorPayment[] }) {
                       {payout.description || "Payment"}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      ${parseFloat(payout.grossAmount).toFixed(2)}
+                      CA${parseFloat(payout.grossAmount).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
-                      ${(parseFloat(payout.platformFeeAmount) + parseFloat(payout.stripeFeeAmount)).toFixed(2)}
+                      CA${(parseFloat(payout.platformFeeAmount) + parseFloat(payout.stripeFeeAmount)).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <StatusBadge status={payout.status} isDisputed={isDisputedPayment(payout as CreatorPayment)} />
@@ -1585,7 +1585,7 @@ function AdminPaymentDashboard({
             <span className="text-sm text-purple-100">Platform Revenue</span>
             <TrendingUp className="h-5 w-5 text-purple-100" />
           </div>
-          <div className="text-3xl font-bold">${totalPlatformRevenue.toFixed(2)}</div>
+          <div className="text-3xl font-bold">CA${totalPlatformRevenue.toFixed(2)}</div>
           <div className="mt-1 text-xs text-purple-100">{totalFeeDisplay} of GMV</div>
         </div>
 
@@ -1594,7 +1594,7 @@ function AdminPaymentDashboard({
             <span className="text-sm text-gray-600">Total GMV</span>
             <DollarSign className="h-5 w-5 text-green-500" />
           </div>
-          <div className="text-3xl font-bold text-gray-900">${totalGMV.toFixed(2)}</div>
+          <div className="text-3xl font-bold text-gray-900">CA${totalGMV.toFixed(2)}</div>
           <div className="mt-1 text-xs text-gray-500">Gross merchandise value</div>
         </div>
 
@@ -1736,17 +1736,17 @@ function AdminPaymentDashboard({
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                       <Link href={`/payments/${payment.id}`} className="block">
-                        ${parseFloat(payment.grossAmount).toFixed(2)}
+                        CA${parseFloat(payment.grossAmount).toFixed(2)}
                       </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-purple-600">
                       <Link href={`/payments/${payment.id}`} className="block">
-                        ${(parseFloat(payment.platformFeeAmount) + parseFloat(payment.stripeFeeAmount)).toFixed(2)}
+                        CA${(parseFloat(payment.platformFeeAmount) + parseFloat(payment.stripeFeeAmount)).toFixed(2)}
                       </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-green-600">
                       <Link href={`/payments/${payment.id}`} className="block">
-                        ${parseFloat(payment.netAmount).toFixed(2)}
+                        CA${parseFloat(payment.netAmount).toFixed(2)}
                       </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
@@ -1818,7 +1818,7 @@ function AdminPaymentDashboard({
               Confirm Payment Processing
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3 pt-2">
-              <p>You are about to process a payment of <strong>${paymentToProcess?.netAmount}</strong> to the creator.</p>
+              <p>You are about to process a payment of <strong>CA${paymentToProcess?.netAmount}</strong> to the creator.</p>
 
               <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm">
                 <div className="flex gap-2">
@@ -1836,7 +1836,7 @@ function AdminPaymentDashboard({
 
               <p className="text-sm">Payment details:</p>
               <div className="text-sm bg-gray-50 rounded p-2 space-y-1">
-                <div><strong>Amount:</strong> ${paymentToProcess?.netAmount}</div>
+                <div><strong>Amount:</strong> CA${paymentToProcess?.netAmount}</div>
                 <div><strong>Description:</strong> {paymentToProcess?.description || 'Payment'}</div>
                 <div><strong>Status:</strong> {paymentToProcess?.status}</div>
               </div>
@@ -1874,7 +1874,7 @@ function AdminPaymentDashboard({
                 <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Amount:</span>
-                    <span className="font-semibold text-gray-900">${failedPayment?.netAmount}</span>
+                    <span className="font-semibold text-gray-900">CA${failedPayment?.netAmount}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Description:</span>
@@ -1954,7 +1954,7 @@ function AdminPaymentDashboard({
                 <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Amount:</span>
-                    <span className="font-semibold text-gray-900">${failedPayment?.netAmount}</span>
+                    <span className="font-semibold text-gray-900">CA${failedPayment?.netAmount}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Description:</span>
@@ -2031,7 +2031,7 @@ function AdminPaymentDashboard({
                 <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Amount:</span>
-                    <span className="font-semibold text-gray-900">${failedPayment?.netAmount}</span>
+                    <span className="font-semibold text-gray-900">CA${failedPayment?.netAmount}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Description:</span>

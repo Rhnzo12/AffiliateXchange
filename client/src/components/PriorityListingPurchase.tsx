@@ -126,7 +126,7 @@ export function PriorityListingPurchase({
           <div className="rounded-lg border-2 border-yellow-500/20 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 p-6">
             <div className="text-center mb-4">
               <div className="text-4xl font-bold text-yellow-700 dark:text-yellow-400">
-                ${settings?.fee || 199}
+                CA${settings?.fee || 199}
               </div>
               <div className="text-sm text-muted-foreground mt-1">
                 for {settings?.durationDays || 30} days
@@ -181,8 +181,8 @@ export function PriorityListingPurchase({
               <>
                 <Crown className="h-4 w-4 mr-2" />
                 {isRenewal
-                  ? `Renew for $${settings?.fee || 199}`
-                  : `Purchase for $${settings?.fee || 199}`}
+                  ? `Renew for CA$${settings?.fee || 199}`
+                  : `Purchase for CA$${settings?.fee || 199}`}
               </>
             )}
           </Button>

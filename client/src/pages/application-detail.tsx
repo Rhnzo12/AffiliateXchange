@@ -74,16 +74,16 @@ const STATUS_CONFIG: Record<string, any> = {
 
 // Helper function to format commission display
 const formatCommission = (offer: any) => {
-  if (!offer) return "$0";
+  if (!offer) return "CA$0";
 
   if (offer.commissionAmount) {
-    return `$${offer.commissionAmount}`;
+    return `CA$${offer.commissionAmount}`;
   } else if (offer.commissionPercentage) {
     return `${offer.commissionPercentage}%`;
   } else if (offer.commissionRate) {
-    return `$${offer.commissionRate}`;
+    return `CA$${offer.commissionRate}`;
   }
-  return "$0";
+  return "CA$0";
 };
 
 interface ReviewFormData {

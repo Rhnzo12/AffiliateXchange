@@ -267,7 +267,7 @@ function CreatorAnalytics() {
       item.date,
       item.clicks.toString(),
       item.conversions.toString(),
-      `$${item.earnings.toFixed(2)}`,
+      `CA$${item.earnings.toFixed(2)}`,
     ]);
 
     downloadCSV(data, `analytics-${dateRange}`, headers);
@@ -407,21 +407,21 @@ function CreatorAnalytics() {
           <div className="space-y-1 text-sm">
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Total:</span>
-              <span className="font-mono font-semibold">${payload[0]?.payload?.earnings?.toFixed(2) || '0.00'}</span>
+              <span className="font-mono font-semibold">CA${payload[0]?.payload?.earnings?.toFixed(2) || '0.00'}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-primary" />
                 <span className="text-muted-foreground">Affiliate:</span>
               </div>
-              <span className="font-mono">${payload[0]?.value?.toFixed(2) || '0.00'}</span>
+              <span className="font-mono">CA${payload[0]?.value?.toFixed(2) || '0.00'}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-purple-500" />
                 <span className="text-muted-foreground">Retainer:</span>
               </div>
-              <span className="font-mono">${payload[1]?.value?.toFixed(2) || '0.00'}</span>
+              <span className="font-mono">CA${payload[1]?.value?.toFixed(2) || '0.00'}</span>
             </div>
           </div>
         </div>
@@ -513,10 +513,10 @@ function CreatorAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono text-green-600 dark:text-green-400">
-              ${primaryTotal.toFixed(2)}
+              CA${primaryTotal.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Affiliate ${affiliateBreakdown.toFixed(2)} • Retainer ${retainerBreakdown.toFixed(2)}
+              Affiliate CA${affiliateBreakdown.toFixed(2)} • Retainer CA${retainerBreakdown.toFixed(2)}
             </p>
           </CardContent>
         </Card>
@@ -589,11 +589,11 @@ function CreatorAnalytics() {
                       tickLine={false}
                       axisLine={false}
                     />
-                    <YAxis 
+                    <YAxis
                       tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(value) => `$${value}`}
+                      tickFormatter={(value) => `CA$${value}`}
                     />
                     <Tooltip content={<MonthlyEarningsTooltip />} />
                     <Bar 
@@ -915,7 +915,7 @@ function CreatorAnalytics() {
                       <div>
                         <div className="text-xs text-muted-foreground mb-1">Earned</div>
                         <div className="font-semibold font-mono text-lg text-green-600 dark:text-green-400">
-                          ${Number(offer.earnings || 0).toFixed(2)}
+                          CA${Number(offer.earnings || 0).toFixed(2)}
                         </div>
                       </div>
                     </div>
@@ -1058,7 +1058,7 @@ function CompanyAnalytics() {
       item.date,
       item.clicks.toString(),
       item.conversions.toString(),
-      `$${item.earnings.toFixed(2)}`,
+      `CA$${item.earnings.toFixed(2)}`,
     ]);
 
     downloadCSV(data, `analytics-${dateRange}`, headers);
@@ -1282,10 +1282,10 @@ function CompanyAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">
-              ${primaryTotal.toFixed(2)}
+              CA${primaryTotal.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Affiliate ${affiliateBreakdown.toFixed(2)} • Retainer ${retainerBreakdown.toFixed(2)}
+              Affiliate CA${affiliateBreakdown.toFixed(2)} • Retainer CA${retainerBreakdown.toFixed(2)}
             </p>
           </CardContent>
         </Card>
@@ -1513,7 +1513,7 @@ function CompanyAnalytics() {
                         </div>
                         <div>
                           <div className="text-xs text-muted-foreground">Spent</div>
-                          <div className="font-semibold font-mono">${Number(offer.earnings || 0).toFixed(2)}</div>
+                          <div className="font-semibold font-mono">CA${Number(offer.earnings || 0).toFixed(2)}</div>
                         </div>
                       </div>
                     </div>

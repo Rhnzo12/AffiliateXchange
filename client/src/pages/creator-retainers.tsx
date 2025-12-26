@@ -501,7 +501,7 @@ export default function CreatorRetainers() {
   };
 
   const formatCurrencyValue = (value: number) =>
-    value.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+    value.toLocaleString("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
 
   const renderFilterControls = (options?: { showClear?: boolean; hideSearch?: boolean }) => (
     <div className="space-y-6">
@@ -624,10 +624,10 @@ export default function CreatorRetainers() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All budgets</SelectItem>
-            <SelectItem value="500">$500+</SelectItem>
-            <SelectItem value="1000">$1,000+</SelectItem>
-            <SelectItem value="2500">$2,500+</SelectItem>
-            <SelectItem value="5000">$5,000+</SelectItem>
+            <SelectItem value="500">CA$500+</SelectItem>
+            <SelectItem value="1000">CA$1,000+</SelectItem>
+            <SelectItem value="2500">CA$2,500+</SelectItem>
+            <SelectItem value="5000">CA$5,000+</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -717,7 +717,7 @@ export default function CreatorRetainers() {
                 <span>Monthly net</span>
                 <DollarSign className="h-3.5 w-3.5 text-primary" />
               </div>
-              <p className="text-2xl font-semibold">${totalActiveNet.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+              <p className="text-2xl font-semibold">CA${totalActiveNet.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
               <p className="text-xs text-muted-foreground">After platform fees across all active retainers</p>
             </div>
             <div className="rounded-lg border bg-muted/30 p-4">
@@ -763,7 +763,7 @@ export default function CreatorRetainers() {
                             </div>
                           </div>
                           <Badge variant="outline" className="bg-primary/10 text-primary">
-                            Net ${netAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo
+                            Net CA${netAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo
                           </Badge>
                         </div>
 
@@ -826,7 +826,7 @@ export default function CreatorRetainers() {
                         <Badge variant="secondary" className="bg-muted text-foreground">Completed</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Earned ${Number(contract.monthlyAmount || 0).toLocaleString()} per month over {contract.durationMonths}{" "}
+                        Earned CA${Number(contract.monthlyAmount || 0).toLocaleString()} per month over {contract.durationMonths}{" "}
                         month{contract.durationMonths === 1 ? "" : "s"}
                       </p>
                       <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
@@ -947,7 +947,7 @@ export default function CreatorRetainers() {
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Monthly Payment</p>
-                            <p className="font-semibold">${monthlyAmount.toLocaleString()}</p>
+                            <p className="font-semibold">CA${monthlyAmount.toLocaleString()}</p>
                           </div>
                         </div>
 
@@ -993,7 +993,7 @@ export default function CreatorRetainers() {
                               >
                                 <div className="flex items-center justify-between mb-1">
                                   <span className="font-semibold">{tier.name}</span>
-                                  <Badge variant="outline">${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
+                                  <Badge variant="outline">CA${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
                                   {tier.videosPerMonth} videos / {tier.durationMonths} month{tier.durationMonths === 1 ? "" : "s"}
@@ -1103,10 +1103,10 @@ export default function CreatorRetainers() {
                                         )}
                                       </div>
                                       <p className="text-sm text-muted-foreground">
-                                        ${Number(tier.monthlyAmount || 0).toLocaleString()} / mo • {tier.videosPerMonth} videos • {tier.durationMonths} months
+                                        CA${Number(tier.monthlyAmount || 0).toLocaleString()} / mo • {tier.videosPerMonth} videos • {tier.durationMonths} months
                                       </p>
                                       <p className="text-xs text-muted-foreground">
-                                        ${tierPerVideo.toFixed(2)} per video • Net ${tierNet.toLocaleString()} after ${totalFeeDisplay} fee
+                                        CA${tierPerVideo.toFixed(2)} per video • Net CA${tierNet.toLocaleString()} after {totalFeeDisplay} fee
                                       </p>
                                     </div>
                                   </label>
@@ -1268,10 +1268,10 @@ export default function CreatorRetainers() {
                 <div className="space-y-1 text-sm">
                   <p className="font-semibold flex items-center gap-2">
                     Selected tier {activeTier?.name || "Standard"}
-                    <Badge variant="secondary">${Number(activeTier?.monthlyAmount || 0).toLocaleString()} / mo</Badge>
+                    <Badge variant="secondary">CA${Number(activeTier?.monthlyAmount || 0).toLocaleString()} / mo</Badge>
                   </p>
                   <p className="text-muted-foreground text-xs">
-                    ${selectedTierPerVideo.toFixed(2)} per video • Net ${selectedTierNet.toLocaleString()} after fees
+                    CA${selectedTierPerVideo.toFixed(2)} per video • Net CA${selectedTierNet.toLocaleString()} after fees
                   </p>
                 </div>
                 <div className="flex gap-2">
