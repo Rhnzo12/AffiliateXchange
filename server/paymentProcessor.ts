@@ -499,7 +499,7 @@ export class PaymentProcessorService {
 
   /**
    * Process cryptocurrency payout
-   * Sends crypto to creator's wallet address via BitPay
+   * Sends crypto to creator's wallet address via NOWPayments
    */
   private async processCryptoPayout(
     walletAddress: string,
