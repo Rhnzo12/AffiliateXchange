@@ -473,6 +473,9 @@ export default function OfferDetail() {
     return niches.filter(Boolean);
   }, [offer]);
 
+  // Get videos from offer
+  const videos = offer?.videos || [];
+
   // Loading state
   if (isLoading || offerLoading) {
     return (
