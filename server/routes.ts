@@ -1421,7 +1421,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter out hidden reviews for non-admin users
       const visibleReviews = reviews.filter(review => !review.isHidden);
 
-      res.json(visibleReviews);
+      // Fetch creator profiles for each review
+      const reviewsWithCreators = await Promise.all(
+        visibleReviews.map(async (review) => {
+          const creatorProfile = await storage.getCreatorProfile(review.creatorId);
+          return {
+            ...review,
+            creator: creatorProfile ? {
+              displayName: creatorProfile.displayName,
+              username: creatorProfile.username,
+              profilePhotoUrl: creatorProfile.profilePhotoUrl,
+            } : null,
+          };
+        })
+      );
+
+      res.json(reviewsWithCreators);
     } catch (error: any) {
       console.error('[Reviews] Error fetching offer reviews:', error);
       res.status(500).send(error.message);
