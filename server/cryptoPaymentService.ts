@@ -1,35 +1,36 @@
 /**
  * Crypto Payment Service
- * Integrates with CoinPayments API for processing cryptocurrency payouts
+ * Integrates with BitPay API for processing cryptocurrency payouts
  * Supports multiple networks: Ethereum, Bitcoin, Polygon, BSC, Tron
  *
- * CoinPayments API Docs: https://www.coinpayments.net/apidoc
+ * BitPay API Docs: https://bitpay.com/api/
  */
 
 import crypto from 'crypto';
 
-// CoinPayments API response types
-interface CoinPaymentsResponse {
-  error: string;
-  result: any;
-}
-
-interface CoinPaymentsWithdrawalResult {
+// BitPay API response types
+interface BitPayPayoutResponse {
   id: string;
-  status: number;
-  amount: string;
+  recipientId: string;
+  status: string;
+  amount: number;
+  currency: string;
+  effectiveDate: string;
+  requestDate: string;
+  notificationEmail: string;
+  notificationURL: string;
+  transactions: Array<{
+    txid: string;
+    amount: number;
+    date: string;
+  }>;
 }
 
-interface CoinPaymentsRatesResult {
+interface BitPayRatesResponse {
   [currency: string]: {
-    rate_btc: string;
-    last_update: string;
-    tx_fee: string;
-    status: string;
+    code: string;
     name: string;
-    confirms: string;
-    can_convert: number;
-    capabilities: string[];
+    rate: number;
   };
 }
 
@@ -42,36 +43,36 @@ interface ExchangeRateCache {
 let exchangeRateCache: ExchangeRateCache | null = null;
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
-// Network configuration with CoinPayments currency codes
+// Network configuration with BitPay currency codes
 export const SUPPORTED_NETWORKS = {
   ethereum: {
     name: 'Ethereum',
     symbol: 'ETH',
-    coinPaymentsCurrency: 'ETH',
+    bitPayCurrency: 'ETH',
     addressRegex: /^0x[a-fA-F0-9]{40}$/,
-    stablecoin: 'USDC.ERC20',
+    stablecoin: 'USDC',
     stablecoinSymbol: 'USDC',
   },
   bsc: {
     name: 'Binance Smart Chain',
     symbol: 'BNB',
-    coinPaymentsCurrency: 'BNB.BSC',
+    bitPayCurrency: 'BNB',
     addressRegex: /^0x[a-fA-F0-9]{40}$/,
-    stablecoin: 'BUSD.BEP20',
+    stablecoin: 'BUSD',
     stablecoinSymbol: 'BUSD',
   },
   polygon: {
     name: 'Polygon',
     symbol: 'MATIC',
-    coinPaymentsCurrency: 'MATIC.POLY',
+    bitPayCurrency: 'MATIC',
     addressRegex: /^0x[a-fA-F0-9]{40}$/,
-    stablecoin: 'USDC.POLY',
+    stablecoin: 'USDC',
     stablecoinSymbol: 'USDC',
   },
   bitcoin: {
     name: 'Bitcoin',
     symbol: 'BTC',
-    coinPaymentsCurrency: 'BTC',
+    bitPayCurrency: 'BTC',
     // Legacy, SegWit, and Native SegWit address formats
     addressRegex: /^(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-HJ-NP-Z0-9]{39,59})$/,
     stablecoin: null,
@@ -80,9 +81,9 @@ export const SUPPORTED_NETWORKS = {
   tron: {
     name: 'Tron',
     symbol: 'TRX',
-    coinPaymentsCurrency: 'TRX',
+    bitPayCurrency: 'TRX',
     addressRegex: /^T[a-zA-HJ-NP-Z0-9]{33}$/,
-    stablecoin: 'USDT.TRC20',
+    stablecoin: 'USDT',
     stablecoinSymbol: 'USDT',
   },
 } as const;
@@ -118,69 +119,63 @@ function isSandboxMode(): boolean {
 }
 
 /**
- * Get CoinPayments API configuration
+ * Get BitPay API configuration
  */
-function getCoinPaymentsConfig() {
-  const publicKey = process.env.COINPAYMENTS_PUBLIC_KEY;
-  const privateKey = process.env.COINPAYMENTS_PRIVATE_KEY;
-  const merchantId = process.env.COINPAYMENTS_MERCHANT_ID;
+function getBitPayConfig() {
+  const apiToken = process.env.BITPAY_API_TOKEN;
+  const isTestnet = process.env.BITPAY_TESTNET === 'true';
 
-  if ((!publicKey || !privateKey) && !isSandboxMode()) {
-    throw new Error('CoinPayments API keys not configured. Set COINPAYMENTS_PUBLIC_KEY and COINPAYMENTS_PRIVATE_KEY in your .env file or enable CRYPTO_SANDBOX_MODE=true');
+  if (!apiToken && !isSandboxMode()) {
+    throw new Error('BitPay API token not configured. Set BITPAY_API_TOKEN in your .env file or enable CRYPTO_SANDBOX_MODE=true');
   }
 
   return {
-    publicKey: publicKey || 'sandbox-public-key',
-    privateKey: privateKey || 'sandbox-private-key',
-    merchantId: merchantId || '',
-    apiUrl: 'https://www.coinpayments.net/api.php',
+    apiToken: apiToken || 'sandbox-token',
+    baseUrl: isTestnet
+      ? 'https://test.bitpay.com'
+      : 'https://bitpay.com',
+    isTestnet,
   };
 }
 
 /**
- * Make an authenticated request to CoinPayments API
+ * Make an authenticated request to BitPay API
  */
-async function coinPaymentsRequest(command: string, params: Record<string, string> = {}): Promise<CoinPaymentsResponse> {
-  const config = getCoinPaymentsConfig();
+async function bitPayRequest(
+  endpoint: string,
+  method: 'GET' | 'POST' = 'GET',
+  body?: Record<string, any>
+): Promise<any> {
+  const config = getBitPayConfig();
 
-  // Build the request body
-  const body: Record<string, string> = {
-    version: '1',
-    key: config.publicKey,
-    cmd: command,
-    format: 'json',
-    ...params,
+  const url = `${config.baseUrl}/api/v2${endpoint}`;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Accept-Version': '2.0.0',
+    'Authorization': `Bearer ${config.apiToken}`,
   };
 
-  // Create URL-encoded body
-  const encodedBody = new URLSearchParams(body).toString();
+  const options: RequestInit = {
+    method,
+    headers,
+  };
 
-  // Create HMAC signature
-  const hmac = crypto.createHmac('sha512', config.privateKey);
-  hmac.update(encodedBody);
-  const signature = hmac.digest('hex');
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
 
-  // Make the request
-  const response = await fetch(config.apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'HMAC': signature,
-    },
-    body: encodedBody,
-  });
+  const response = await fetch(url, options);
 
   if (!response.ok) {
-    throw new Error(`CoinPayments API error: ${response.status} ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.error || errorData.message ||
+      `BitPay API error: ${response.status} ${response.statusText}`
+    );
   }
 
-  const result = await response.json();
-
-  if (result.error !== 'ok') {
-    throw new Error(result.error || 'Unknown CoinPayments API error');
-  }
-
-  return result;
+  return response.json();
 }
 
 /**
@@ -210,7 +205,7 @@ export function validateWalletAddress(address: string, network: SupportedNetwork
 }
 
 /**
- * Fetch current exchange rates from CoinPayments
+ * Fetch current exchange rates
  */
 export async function getExchangeRates(): Promise<ExchangeRateResult> {
   // Check cache first
@@ -229,31 +224,28 @@ export async function getExchangeRates(): Promise<ExchangeRateResult> {
       USDC: 1.00,
       USDT: 1.00,
       BUSD: 1.00,
-      LTCT: 0.01, // Test currency
+      LTC: 75.00,
+      DOGE: 0.08,
     };
     exchangeRateCache = { rates: mockRates, timestamp: Date.now() };
     return { success: true, rates: mockRates };
   }
 
   try {
-    // Use CoinPayments rates API
-    const response = await coinPaymentsRequest('rates', { short: '1', accepted: '1' });
-    const ratesData = response.result as CoinPaymentsRatesResult;
+    // Use BitPay rates API (public, no auth required)
+    const response = await fetch('https://bitpay.com/api/rates');
 
+    if (!response.ok) {
+      throw new Error(`BitPay rates API error: ${response.status}`);
+    }
+
+    const ratesData = await response.json();
     const rates: Record<string, number> = {};
 
-    // CoinPayments returns rates in BTC, we need to convert to USD
-    // First get BTC/USD rate
-    const btcData = ratesData['BTC'];
-    const btcUsdRate = btcData ? 1 / parseFloat(btcData.rate_btc) : 43500; // Fallback
-
-    for (const [currency, data] of Object.entries(ratesData)) {
-      if (data.rate_btc && data.status === 'online') {
-        const btcRate = parseFloat(data.rate_btc);
-        if (btcRate > 0) {
-          // Convert BTC rate to USD rate
-          rates[currency] = btcUsdRate * btcRate;
-        }
+    // BitPay returns array of {code, name, rate} where rate is USD per crypto
+    for (const item of ratesData) {
+      if (item.code && item.rate) {
+        rates[item.code] = item.rate;
       }
     }
 
@@ -265,11 +257,13 @@ export async function getExchangeRates(): Promise<ExchangeRateResult> {
     exchangeRateCache = { rates, timestamp: Date.now() };
     return { success: true, rates };
   } catch (error: any) {
-    console.error('[Crypto] Failed to fetch exchange rates:', error.message);
+    console.error('[Crypto] Failed to fetch exchange rates from BitPay:', error.message);
 
-    // Fallback to public API if CoinPayments fails
+    // Fallback to CoinGecko API
     try {
-      const fallbackResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,matic-network,binancecoin,tron&vs_currencies=usd');
+      const fallbackResponse = await fetch(
+        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,matic-network,binancecoin,tron,litecoin,dogecoin&vs_currencies=usd'
+      );
       if (fallbackResponse.ok) {
         const data = await fallbackResponse.json();
         const rates: Record<string, number> = {
@@ -278,6 +272,8 @@ export async function getExchangeRates(): Promise<ExchangeRateResult> {
           MATIC: data['matic-network']?.usd || 0.85,
           BNB: data.binancecoin?.usd || 310,
           TRX: data.tron?.usd || 0.11,
+          LTC: data.litecoin?.usd || 75,
+          DOGE: data.dogecoin?.usd || 0.08,
           USDC: 1.00,
           USDT: 1.00,
           BUSD: 1.00,
@@ -306,15 +302,14 @@ export async function convertUsdToCrypto(
     return { success: false, error: ratesResult.error || 'Failed to get exchange rates' };
   }
 
-  // Handle CoinPayments currency codes (e.g., USDC.ERC20 -> USDC)
-  const baseCurrency = cryptoCurrency.split('.')[0].toUpperCase();
+  const baseCurrency = cryptoCurrency.toUpperCase();
   const rate = ratesResult.rates[baseCurrency];
 
   if (!rate) {
     return { success: false, error: `Exchange rate not available for ${cryptoCurrency}` };
   }
 
-  // Calculate crypto amount
+  // Calculate crypto amount (rate is USD per 1 crypto)
   const cryptoAmount = usdAmount / rate;
 
   // Format based on currency precision
@@ -341,7 +336,7 @@ class CryptoPaymentService {
    * This method handles the full crypto payout flow:
    * 1. Validates the wallet address
    * 2. Converts USD to crypto amount
-   * 3. Initiates the withdrawal via CoinPayments API
+   * 3. Initiates the payout via BitPay API
    * 4. Returns transaction details
    */
   async processCryptoPayout(
@@ -368,16 +363,16 @@ class CryptoPaymentService {
       const networkConfig = SUPPORTED_NETWORKS[network];
 
       // Determine which crypto to use (stablecoin if available and preferred)
-      let coinPaymentsCurrency = networkConfig.coinPaymentsCurrency;
+      let cryptoCurrency = networkConfig.bitPayCurrency;
       let displayCurrency = networkConfig.symbol;
 
       if (preferStablecoin && networkConfig.stablecoin) {
-        coinPaymentsCurrency = networkConfig.stablecoin;
+        cryptoCurrency = networkConfig.stablecoin;
         displayCurrency = networkConfig.stablecoinSymbol || networkConfig.symbol;
       }
 
       // Convert USD to crypto
-      const conversionResult = await convertUsdToCrypto(usdAmount, coinPaymentsCurrency);
+      const conversionResult = await convertUsdToCrypto(usdAmount, cryptoCurrency);
       if (!conversionResult.success) {
         return { success: false, error: conversionResult.error };
       }
@@ -396,13 +391,13 @@ class CryptoPaymentService {
         );
       }
 
-      // Process real withdrawal via CoinPayments
-      return await this.sendCryptoViaCoinPayments(
+      // Process real payout via BitPay
+      return await this.sendCryptoViaBitPay(
         walletAddress,
         network,
         usdAmount,
         conversionResult.cryptoAmount!,
-        coinPaymentsCurrency,
+        cryptoCurrency,
         displayCurrency,
         paymentId,
         memo
@@ -425,15 +420,15 @@ class CryptoPaymentService {
     paymentId: string
   ): CryptoPaymentResult {
     const mockTxHash = this.generateMockTxHash(network);
-    const mockWithdrawalId = `CPWI${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    const mockPayoutId = `BP${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     console.log(`[Crypto Payout] SANDBOX MODE - Simulated transaction`);
-    console.log(`[Crypto Payout] Withdrawal ID: ${mockWithdrawalId}`);
+    console.log(`[Crypto Payout] Payout ID: ${mockPayoutId}`);
     console.log(`[Crypto Payout] TX Hash: ${mockTxHash}`);
 
     return {
       success: true,
-      transactionId: mockWithdrawalId,
+      transactionId: mockPayoutId,
       txHash: mockTxHash,
       network: network,
       amount: usdAmount,
@@ -442,8 +437,8 @@ class CryptoPaymentService {
       walletAddress: walletAddress,
       providerResponse: {
         method: 'crypto',
-        provider: 'coinpayments',
-        withdrawalId: mockWithdrawalId,
+        provider: 'bitpay',
+        payoutId: mockPayoutId,
         network: network,
         walletAddress: walletAddress,
         usdAmount: usdAmount,
@@ -451,7 +446,7 @@ class CryptoPaymentService {
         cryptoCurrency: cryptoCurrency,
         txHash: mockTxHash,
         timestamp: new Date().toISOString(),
-        status: 'completed',
+        status: 'complete',
         note: 'SANDBOX MODE - Simulated transaction',
       },
     };
@@ -468,7 +463,6 @@ class CryptoPaymentService {
     }
 
     if (network === 'tron') {
-      // Tron tx hashes are 64 hex characters without 0x prefix
       return Array.from({ length: 64 }, randomHex).join('');
     }
 
@@ -477,41 +471,70 @@ class CryptoPaymentService {
   }
 
   /**
-   * Send crypto via CoinPayments API
+   * Send crypto via BitPay Payouts API
    */
-  private async sendCryptoViaCoinPayments(
+  private async sendCryptoViaBitPay(
     walletAddress: string,
     network: SupportedNetwork,
     usdAmount: number,
     cryptoAmount: string,
-    coinPaymentsCurrency: string,
+    cryptoCurrency: string,
     displayCurrency: string,
     paymentId: string,
     memo?: string
   ): Promise<CryptoPaymentResult> {
     try {
-      console.log(`[Crypto Payout] Initiating CoinPayments withdrawal...`);
-      console.log(`[Crypto Payout] Currency: ${coinPaymentsCurrency}, Amount: ${cryptoAmount}`);
+      console.log(`[Crypto Payout] Initiating BitPay payout...`);
+      console.log(`[Crypto Payout] Currency: ${cryptoCurrency}, Amount: ${cryptoAmount}`);
 
-      // Use CoinPayments create_withdrawal API
-      const withdrawalParams: Record<string, string> = {
-        amount: cryptoAmount,
-        currency: coinPaymentsCurrency,
-        address: walletAddress,
-        auto_confirm: '1', // Auto-confirm the withdrawal
-        note: memo || `AffiliateXchange payout - ${paymentId}`,
+      // BitPay Payouts API
+      // First, create or get recipient
+      const recipientData = {
+        email: `payout-${paymentId}@affiliatexchange.com`,
+        label: `Payout ${paymentId}`,
+        notificationURL: process.env.BITPAY_WEBHOOK_URL || '',
       };
 
-      const response = await coinPaymentsRequest('create_withdrawal', withdrawalParams);
-      const result = response.result as CoinPaymentsWithdrawalResult;
+      // Create payout request
+      const payoutData = {
+        amount: parseFloat(cryptoAmount),
+        currency: cryptoCurrency,
+        ledgerCurrency: 'USD',
+        reference: paymentId,
+        notificationEmail: recipientData.email,
+        notificationURL: recipientData.notificationURL,
+        email: recipientData.email,
+        recipientId: '', // Will be set after creating recipient
+        label: memo || `AffiliateXchange payout - ${paymentId}`,
+        effectiveDate: new Date().toISOString(),
+        token: getBitPayConfig().apiToken,
+      };
 
-      console.log(`[Crypto Payout] CoinPayments withdrawal created: ${result.id}`);
-      console.log(`[Crypto Payout] Status: ${result.status}`);
+      // For BitPay, we need to use their payout batch system
+      const payoutBatchData = {
+        instructions: [{
+          amount: usdAmount,
+          method: 1, // Crypto wallet
+          currency: cryptoCurrency,
+          address: walletAddress,
+          label: memo || `Payout ${paymentId}`,
+        }],
+        notificationEmail: recipientData.email,
+        notificationURL: recipientData.notificationURL,
+        reference: paymentId,
+        token: getBitPayConfig().apiToken,
+      };
+
+      const response = await bitPayRequest('/payouts', 'POST', payoutBatchData);
+
+      console.log(`[Crypto Payout] BitPay payout created:`, response.id || response);
+
+      const payoutId = response.id || response.data?.id || `BP-${Date.now()}`;
 
       return {
         success: true,
-        transactionId: result.id,
-        txHash: result.id, // TX hash will be available after confirmation
+        transactionId: payoutId,
+        txHash: payoutId, // TX hash will be available after processing
         network: network,
         amount: usdAmount,
         cryptoAmount: cryptoAmount,
@@ -519,31 +542,27 @@ class CryptoPaymentService {
         walletAddress: walletAddress,
         providerResponse: {
           method: 'crypto',
-          provider: 'coinpayments',
-          withdrawalId: result.id,
-          status: result.status,
-          statusText: this.getWithdrawalStatusText(result.status),
+          provider: 'bitpay',
+          payoutId: payoutId,
+          status: response.status || 'new',
           network: network,
           walletAddress: walletAddress,
           usdAmount: usdAmount,
           cryptoAmount: cryptoAmount,
           cryptoCurrency: displayCurrency,
-          coinPaymentsCurrency: coinPaymentsCurrency,
           timestamp: new Date().toISOString(),
         },
       };
     } catch (error: any) {
-      console.error('[Crypto Payout] CoinPayments API error:', error.message);
+      console.error('[Crypto Payout] BitPay API error:', error.message);
 
       // Provide helpful error messages
       let errorMessage = error.message;
-      if (error.message.includes('API keys')) {
-        errorMessage = 'CoinPayments API keys not configured. Please check your COINPAYMENTS_PUBLIC_KEY and COINPAYMENTS_PRIVATE_KEY.';
+      if (error.message.includes('API token') || error.message.includes('401')) {
+        errorMessage = 'BitPay API token not configured or invalid. Please check your BITPAY_API_TOKEN.';
       } else if (error.message.includes('Insufficient') || error.message.includes('balance')) {
-        errorMessage = 'Insufficient balance in CoinPayments wallet. Please add funds to process this withdrawal.';
-      } else if (error.message.includes('Invalid currency')) {
-        errorMessage = `Currency ${error.message} is not supported or not enabled in your CoinPayments account.`;
-      } else if (error.message.includes('Invalid address')) {
+        errorMessage = 'Insufficient balance in BitPay account. Please add funds to process this payout.';
+      } else if (error.message.includes('Invalid') && error.message.includes('address')) {
         errorMessage = 'Invalid wallet address for the selected cryptocurrency.';
       }
 
@@ -552,25 +571,11 @@ class CryptoPaymentService {
   }
 
   /**
-   * Get human-readable status text for CoinPayments withdrawal status codes
+   * Check the status of a crypto payout
    */
-  private getWithdrawalStatusText(status: number): string {
-    const statusMap: Record<number, string> = {
-      0: 'Waiting for email confirmation',
-      1: 'Pending',
-      2: 'Complete',
-      [-1]: 'Cancelled/Timed out',
-    };
-    return statusMap[status] || `Unknown (${status})`;
-  }
-
-  /**
-   * Check the status of a crypto withdrawal
-   */
-  async checkTransactionStatus(withdrawalId: string): Promise<{
+  async checkTransactionStatus(payoutId: string): Promise<{
     success: boolean;
     status?: string;
-    statusCode?: number;
     txHash?: string;
     error?: string;
   }> {
@@ -578,20 +583,17 @@ class CryptoPaymentService {
       return {
         success: true,
         status: 'complete',
-        statusCode: 2,
         txHash: this.generateMockTxHash('ethereum'),
       };
     }
 
     try {
-      const response = await coinPaymentsRequest('get_withdrawal_info', { id: withdrawalId });
-      const result = response.result;
+      const response = await bitPayRequest(`/payouts/${payoutId}`);
 
       return {
         success: true,
-        status: this.getWithdrawalStatusText(result.status),
-        statusCode: result.status,
-        txHash: result.send_txid || undefined,
+        status: response.status || 'unknown',
+        txHash: response.transactions?.[0]?.txid,
       };
     } catch (error: any) {
       return { success: false, error: error.message };
@@ -627,7 +629,7 @@ class CryptoPaymentService {
     estimatedFeeCrypto?: string;
     error?: string;
   }> {
-    // CoinPayments handles fees internally, but we can provide estimates
+    // BitPay handles fees internally, but we can provide estimates
     const approximateFees: Record<SupportedNetwork, number> = {
       ethereum: 5.00,
       bsc: 0.30,
@@ -646,40 +648,38 @@ class CryptoPaymentService {
   }
 
   /**
-   * Get CoinPayments wallet balances (for admin use)
+   * Get BitPay account balance (for admin use)
    */
-  async getWalletBalances(): Promise<{
+  async getAccountBalance(): Promise<{
     success: boolean;
-    balances?: Record<string, { balance: string; balanceUsd: number }>;
+    balances?: Record<string, { balance: number; balanceUsd: number }>;
     error?: string;
   }> {
     if (isSandboxMode()) {
       return {
         success: true,
         balances: {
-          BTC: { balance: '0.5', balanceUsd: 21750 },
-          ETH: { balance: '5.0', balanceUsd: 11750 },
-          USDC: { balance: '10000', balanceUsd: 10000 },
+          BTC: { balance: 0.5, balanceUsd: 21750 },
+          ETH: { balance: 5.0, balanceUsd: 11750 },
+          USD: { balance: 10000, balanceUsd: 10000 },
         },
       };
     }
 
     try {
-      const response = await coinPaymentsRequest('balances', { all: '1' });
-      const balancesData = response.result;
-
+      const response = await bitPayRequest('/ledgers');
       const rates = (await getExchangeRates()).rates || {};
-      const balances: Record<string, { balance: string; balanceUsd: number }> = {};
+      const balances: Record<string, { balance: number; balanceUsd: number }> = {};
 
-      for (const [currency, data] of Object.entries(balancesData)) {
-        const balanceData = data as { balance: string; balancef: string };
-        const balance = parseFloat(balanceData.balancef || balanceData.balance || '0');
-        if (balance > 0) {
-          const rate = rates[currency] || 0;
-          balances[currency] = {
-            balance: balance.toString(),
-            balanceUsd: balance * rate,
-          };
+      if (Array.isArray(response)) {
+        for (const ledger of response) {
+          if (ledger.currency && ledger.balance !== undefined) {
+            const rate = rates[ledger.currency] || (ledger.currency === 'USD' ? 1 : 0);
+            balances[ledger.currency] = {
+              balance: ledger.balance,
+              balanceUsd: ledger.currency === 'USD' ? ledger.balance : ledger.balance * rate,
+            };
+          }
         }
       }
 

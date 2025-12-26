@@ -499,7 +499,7 @@ export class PaymentProcessorService {
 
   /**
    * Process cryptocurrency payout
-   * Sends crypto to creator's wallet address via Coinbase Commerce
+   * Sends crypto to creator's wallet address via BitPay
    */
   private async processCryptoPayout(
     walletAddress: string,
