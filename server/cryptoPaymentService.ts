@@ -1,54 +1,35 @@
 /**
  * Crypto Payment Service
- * Integrates with Coinbase Commerce API for processing cryptocurrency payouts
+ * Integrates with CoinPayments API for processing cryptocurrency payouts
  * Supports multiple networks: Ethereum, Bitcoin, Polygon, BSC, Tron
+ *
+ * CoinPayments API Docs: https://www.coinpayments.net/apidoc
  */
 
-import { storage } from "./storage";
+import crypto from 'crypto';
 
-// Coinbase Commerce API types
-interface CoinbaseChargeData {
-  id: string;
-  code: string;
-  name: string;
-  description: string;
-  hosted_url: string;
-  created_at: string;
-  expires_at: string;
-  timeline: Array<{
-    status: string;
-    time: string;
-  }>;
-  pricing: {
-    local: { amount: string; currency: string };
-    bitcoin?: { amount: string; currency: string };
-    ethereum?: { amount: string; currency: string };
-    usdc?: { amount: string; currency: string };
-  };
-  addresses: {
-    bitcoin?: string;
-    ethereum?: string;
-    usdc?: string;
-  };
-  payments: Array<{
-    network: string;
-    transaction_id: string;
-    status: string;
-    value: { amount: string; currency: string };
-    block: { height: number; hash: string };
-  }>;
+// CoinPayments API response types
+interface CoinPaymentsResponse {
+  error: string;
+  result: any;
 }
 
-interface CoinbaseSendMoneyResponse {
+interface CoinPaymentsWithdrawalResult {
   id: string;
-  status: string;
-  transaction: {
-    id: string;
+  status: number;
+  amount: string;
+}
+
+interface CoinPaymentsRatesResult {
+  [currency: string]: {
+    rate_btc: string;
+    last_update: string;
+    tx_fee: string;
     status: string;
-    network: {
-      hash?: string;
-      status: string;
-    };
+    name: string;
+    confirms: string;
+    can_convert: number;
+    capabilities: string[];
   };
 }
 
@@ -61,43 +42,48 @@ interface ExchangeRateCache {
 let exchangeRateCache: ExchangeRateCache | null = null;
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
-// Network configuration
+// Network configuration with CoinPayments currency codes
 export const SUPPORTED_NETWORKS = {
   ethereum: {
     name: 'Ethereum',
     symbol: 'ETH',
-    coinbaseAsset: 'ETH',
+    coinPaymentsCurrency: 'ETH',
     addressRegex: /^0x[a-fA-F0-9]{40}$/,
-    stablecoin: 'USDC',
+    stablecoin: 'USDC.ERC20',
+    stablecoinSymbol: 'USDC',
   },
   bsc: {
     name: 'Binance Smart Chain',
     symbol: 'BNB',
-    coinbaseAsset: 'BNB',
+    coinPaymentsCurrency: 'BNB.BSC',
     addressRegex: /^0x[a-fA-F0-9]{40}$/,
-    stablecoin: 'BUSD',
+    stablecoin: 'BUSD.BEP20',
+    stablecoinSymbol: 'BUSD',
   },
   polygon: {
     name: 'Polygon',
     symbol: 'MATIC',
-    coinbaseAsset: 'MATIC',
+    coinPaymentsCurrency: 'MATIC.POLY',
     addressRegex: /^0x[a-fA-F0-9]{40}$/,
-    stablecoin: 'USDC',
+    stablecoin: 'USDC.POLY',
+    stablecoinSymbol: 'USDC',
   },
   bitcoin: {
     name: 'Bitcoin',
     symbol: 'BTC',
-    coinbaseAsset: 'BTC',
+    coinPaymentsCurrency: 'BTC',
     // Legacy, SegWit, and Native SegWit address formats
     addressRegex: /^(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-HJ-NP-Z0-9]{39,59})$/,
     stablecoin: null,
+    stablecoinSymbol: null,
   },
   tron: {
     name: 'Tron',
     symbol: 'TRX',
-    coinbaseAsset: 'TRX',
+    coinPaymentsCurrency: 'TRX',
     addressRegex: /^T[a-zA-HJ-NP-Z0-9]{33}$/,
-    stablecoin: 'USDT',
+    stablecoin: 'USDT.TRC20',
+    stablecoinSymbol: 'USDT',
   },
 } as const;
 
@@ -132,21 +118,69 @@ function isSandboxMode(): boolean {
 }
 
 /**
- * Get Coinbase Commerce API configuration
+ * Get CoinPayments API configuration
  */
-function getCoinbaseConfig() {
-  const apiKey = process.env.COINBASE_COMMERCE_API_KEY;
-  const webhookSecret = process.env.COINBASE_COMMERCE_WEBHOOK_SECRET;
+function getCoinPaymentsConfig() {
+  const publicKey = process.env.COINPAYMENTS_PUBLIC_KEY;
+  const privateKey = process.env.COINPAYMENTS_PRIVATE_KEY;
+  const merchantId = process.env.COINPAYMENTS_MERCHANT_ID;
 
-  if (!apiKey && !isSandboxMode()) {
-    throw new Error('Coinbase Commerce API key not configured. Set COINBASE_COMMERCE_API_KEY in your .env file or enable CRYPTO_SANDBOX_MODE=true');
+  if ((!publicKey || !privateKey) && !isSandboxMode()) {
+    throw new Error('CoinPayments API keys not configured. Set COINPAYMENTS_PUBLIC_KEY and COINPAYMENTS_PRIVATE_KEY in your .env file or enable CRYPTO_SANDBOX_MODE=true');
   }
 
   return {
-    apiKey: apiKey || 'sandbox-key',
-    webhookSecret: webhookSecret || '',
-    baseUrl: 'https://api.commerce.coinbase.com',
+    publicKey: publicKey || 'sandbox-public-key',
+    privateKey: privateKey || 'sandbox-private-key',
+    merchantId: merchantId || '',
+    apiUrl: 'https://www.coinpayments.net/api.php',
   };
+}
+
+/**
+ * Make an authenticated request to CoinPayments API
+ */
+async function coinPaymentsRequest(command: string, params: Record<string, string> = {}): Promise<CoinPaymentsResponse> {
+  const config = getCoinPaymentsConfig();
+
+  // Build the request body
+  const body: Record<string, string> = {
+    version: '1',
+    key: config.publicKey,
+    cmd: command,
+    format: 'json',
+    ...params,
+  };
+
+  // Create URL-encoded body
+  const encodedBody = new URLSearchParams(body).toString();
+
+  // Create HMAC signature
+  const hmac = crypto.createHmac('sha512', config.privateKey);
+  hmac.update(encodedBody);
+  const signature = hmac.digest('hex');
+
+  // Make the request
+  const response = await fetch(config.apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'HMAC': signature,
+    },
+    body: encodedBody,
+  });
+
+  if (!response.ok) {
+    throw new Error(`CoinPayments API error: ${response.status} ${response.statusText}`);
+  }
+
+  const result = await response.json();
+
+  if (result.error !== 'ok') {
+    throw new Error(result.error || 'Unknown CoinPayments API error');
+  }
+
+  return result;
 }
 
 /**
@@ -176,7 +210,7 @@ export function validateWalletAddress(address: string, network: SupportedNetwork
 }
 
 /**
- * Fetch current exchange rates from Coinbase
+ * Fetch current exchange rates from CoinPayments
  */
 export async function getExchangeRates(): Promise<ExchangeRateResult> {
   // Check cache first
@@ -186,7 +220,7 @@ export async function getExchangeRates(): Promise<ExchangeRateResult> {
 
   if (isSandboxMode()) {
     // Return mock exchange rates in sandbox mode
-    const mockRates = {
+    const mockRates: Record<string, number> = {
       BTC: 43500.00,
       ETH: 2350.00,
       MATIC: 0.85,
@@ -194,32 +228,67 @@ export async function getExchangeRates(): Promise<ExchangeRateResult> {
       TRX: 0.11,
       USDC: 1.00,
       USDT: 1.00,
+      BUSD: 1.00,
+      LTCT: 0.01, // Test currency
     };
     exchangeRateCache = { rates: mockRates, timestamp: Date.now() };
     return { success: true, rates: mockRates };
   }
 
   try {
-    const response = await fetch('https://api.coinbase.com/v2/exchange-rates?currency=USD');
+    // Use CoinPayments rates API
+    const response = await coinPaymentsRequest('rates', { short: '1', accepted: '1' });
+    const ratesData = response.result as CoinPaymentsRatesResult;
 
-    if (!response.ok) {
-      throw new Error(`Coinbase API error: ${response.status}`);
-    }
-
-    const data = await response.json();
     const rates: Record<string, number> = {};
 
-    // Convert rates (Coinbase returns USD per crypto, we want crypto per USD)
-    for (const [currency, rate] of Object.entries(data.data.rates)) {
-      if (typeof rate === 'string') {
-        rates[currency] = 1 / parseFloat(rate);
+    // CoinPayments returns rates in BTC, we need to convert to USD
+    // First get BTC/USD rate
+    const btcData = ratesData['BTC'];
+    const btcUsdRate = btcData ? 1 / parseFloat(btcData.rate_btc) : 43500; // Fallback
+
+    for (const [currency, data] of Object.entries(ratesData)) {
+      if (data.rate_btc && data.status === 'online') {
+        const btcRate = parseFloat(data.rate_btc);
+        if (btcRate > 0) {
+          // Convert BTC rate to USD rate
+          rates[currency] = btcUsdRate * btcRate;
+        }
       }
     }
+
+    // Ensure stablecoins are ~$1
+    rates['USDC'] = 1.00;
+    rates['USDT'] = 1.00;
+    rates['BUSD'] = 1.00;
 
     exchangeRateCache = { rates, timestamp: Date.now() };
     return { success: true, rates };
   } catch (error: any) {
     console.error('[Crypto] Failed to fetch exchange rates:', error.message);
+
+    // Fallback to public API if CoinPayments fails
+    try {
+      const fallbackResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,matic-network,binancecoin,tron&vs_currencies=usd');
+      if (fallbackResponse.ok) {
+        const data = await fallbackResponse.json();
+        const rates: Record<string, number> = {
+          BTC: data.bitcoin?.usd || 43500,
+          ETH: data.ethereum?.usd || 2350,
+          MATIC: data['matic-network']?.usd || 0.85,
+          BNB: data.binancecoin?.usd || 310,
+          TRX: data.tron?.usd || 0.11,
+          USDC: 1.00,
+          USDT: 1.00,
+          BUSD: 1.00,
+        };
+        exchangeRateCache = { rates, timestamp: Date.now() };
+        return { success: true, rates };
+      }
+    } catch {
+      // Ignore fallback errors
+    }
+
     return { success: false, error: error.message };
   }
 }
@@ -237,22 +306,24 @@ export async function convertUsdToCrypto(
     return { success: false, error: ratesResult.error || 'Failed to get exchange rates' };
   }
 
-  const rate = ratesResult.rates[cryptoCurrency.toUpperCase()];
+  // Handle CoinPayments currency codes (e.g., USDC.ERC20 -> USDC)
+  const baseCurrency = cryptoCurrency.split('.')[0].toUpperCase();
+  const rate = ratesResult.rates[baseCurrency];
 
   if (!rate) {
     return { success: false, error: `Exchange rate not available for ${cryptoCurrency}` };
   }
 
-  // Calculate crypto amount (1 USD = rate units of crypto)
+  // Calculate crypto amount
   const cryptoAmount = usdAmount / rate;
 
   // Format based on currency precision
-  let precision = 8; // Default for most cryptos
-  if (['USDC', 'USDT', 'BUSD'].includes(cryptoCurrency.toUpperCase())) {
-    precision = 2; // Stablecoins use 2 decimals
-  } else if (cryptoCurrency.toUpperCase() === 'BTC') {
-    precision = 8; // Bitcoin uses satoshi precision
-  } else if (['ETH', 'BNB', 'MATIC'].includes(cryptoCurrency.toUpperCase())) {
+  let precision = 8;
+  if (['USDC', 'USDT', 'BUSD'].includes(baseCurrency)) {
+    precision = 2;
+  } else if (baseCurrency === 'BTC') {
+    precision = 8;
+  } else if (['ETH', 'BNB', 'MATIC'].includes(baseCurrency)) {
     precision = 6;
   }
 
@@ -270,7 +341,7 @@ class CryptoPaymentService {
    * This method handles the full crypto payout flow:
    * 1. Validates the wallet address
    * 2. Converts USD to crypto amount
-   * 3. Initiates the blockchain transaction via Coinbase Commerce
+   * 3. Initiates the withdrawal via CoinPayments API
    * 4. Returns transaction details
    */
   async processCryptoPayout(
@@ -297,18 +368,21 @@ class CryptoPaymentService {
       const networkConfig = SUPPORTED_NETWORKS[network];
 
       // Determine which crypto to use (stablecoin if available and preferred)
-      let cryptoCurrency = networkConfig.symbol;
+      let coinPaymentsCurrency = networkConfig.coinPaymentsCurrency;
+      let displayCurrency = networkConfig.symbol;
+
       if (preferStablecoin && networkConfig.stablecoin) {
-        cryptoCurrency = networkConfig.stablecoin;
+        coinPaymentsCurrency = networkConfig.stablecoin;
+        displayCurrency = networkConfig.stablecoinSymbol || networkConfig.symbol;
       }
 
       // Convert USD to crypto
-      const conversionResult = await convertUsdToCrypto(usdAmount, cryptoCurrency);
+      const conversionResult = await convertUsdToCrypto(usdAmount, coinPaymentsCurrency);
       if (!conversionResult.success) {
         return { success: false, error: conversionResult.error };
       }
 
-      console.log(`[Crypto Payout] Converting $${usdAmount} to ${conversionResult.cryptoAmount} ${cryptoCurrency}`);
+      console.log(`[Crypto Payout] Converting $${usdAmount} to ${conversionResult.cryptoAmount} ${displayCurrency}`);
 
       // In sandbox mode, simulate the transaction
       if (isSandboxMode()) {
@@ -317,18 +391,19 @@ class CryptoPaymentService {
           network,
           usdAmount,
           conversionResult.cryptoAmount!,
-          cryptoCurrency,
+          displayCurrency,
           paymentId
         );
       }
 
-      // Process real transaction via Coinbase Commerce
-      return await this.sendCryptoViaCoinbase(
+      // Process real withdrawal via CoinPayments
+      return await this.sendCryptoViaCoinPayments(
         walletAddress,
         network,
         usdAmount,
         conversionResult.cryptoAmount!,
-        cryptoCurrency,
+        coinPaymentsCurrency,
+        displayCurrency,
         paymentId,
         memo
       );
@@ -350,13 +425,15 @@ class CryptoPaymentService {
     paymentId: string
   ): CryptoPaymentResult {
     const mockTxHash = this.generateMockTxHash(network);
+    const mockWithdrawalId = `CPWI${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     console.log(`[Crypto Payout] SANDBOX MODE - Simulated transaction`);
+    console.log(`[Crypto Payout] Withdrawal ID: ${mockWithdrawalId}`);
     console.log(`[Crypto Payout] TX Hash: ${mockTxHash}`);
 
     return {
       success: true,
-      transactionId: `crypto-${paymentId}-${Date.now()}`,
+      transactionId: mockWithdrawalId,
       txHash: mockTxHash,
       network: network,
       amount: usdAmount,
@@ -365,6 +442,8 @@ class CryptoPaymentService {
       walletAddress: walletAddress,
       providerResponse: {
         method: 'crypto',
+        provider: 'coinpayments',
+        withdrawalId: mockWithdrawalId,
         network: network,
         walletAddress: walletAddress,
         usdAmount: usdAmount,
@@ -385,7 +464,11 @@ class CryptoPaymentService {
     const randomHex = () => Math.floor(Math.random() * 16).toString(16);
 
     if (network === 'bitcoin') {
-      // Bitcoin tx hashes are 64 hex characters
+      return Array.from({ length: 64 }, randomHex).join('');
+    }
+
+    if (network === 'tron') {
+      // Tron tx hashes are 64 hex characters without 0x prefix
       return Array.from({ length: 64 }, randomHex).join('');
     }
 
@@ -394,110 +477,74 @@ class CryptoPaymentService {
   }
 
   /**
-   * Send crypto via Coinbase Commerce API
+   * Send crypto via CoinPayments API
    */
-  private async sendCryptoViaCoinbase(
+  private async sendCryptoViaCoinPayments(
     walletAddress: string,
     network: SupportedNetwork,
     usdAmount: number,
     cryptoAmount: string,
-    cryptoCurrency: string,
+    coinPaymentsCurrency: string,
+    displayCurrency: string,
     paymentId: string,
     memo?: string
   ): Promise<CryptoPaymentResult> {
     try {
-      const config = getCoinbaseConfig();
+      console.log(`[Crypto Payout] Initiating CoinPayments withdrawal...`);
+      console.log(`[Crypto Payout] Currency: ${coinPaymentsCurrency}, Amount: ${cryptoAmount}`);
 
-      // Create a charge/send request via Coinbase Commerce
-      // Note: Coinbase Commerce is primarily for receiving payments
-      // For sending/payouts, you would typically use Coinbase Exchange API or Coinbase Wallet API
-      // This implementation uses a simplified approach suitable for the platform
-
-      const networkConfig = SUPPORTED_NETWORKS[network];
-
-      // For production, you would integrate with Coinbase Exchange API for actual payouts
-      // Here we create a tracking record and initiate the transfer
-
-      const chargeData = {
-        name: `Payout - ${paymentId}`,
-        description: memo || `Creator payout of ${cryptoAmount} ${cryptoCurrency}`,
-        pricing_type: 'fixed_price',
-        local_price: {
-          amount: usdAmount.toFixed(2),
-          currency: 'USD',
-        },
-        metadata: {
-          payment_id: paymentId,
-          recipient_address: walletAddress,
-          network: network,
-          type: 'payout',
-        },
+      // Use CoinPayments create_withdrawal API
+      const withdrawalParams: Record<string, string> = {
+        amount: cryptoAmount,
+        currency: coinPaymentsCurrency,
+        address: walletAddress,
+        auto_confirm: '1', // Auto-confirm the withdrawal
+        note: memo || `AffiliateXchange payout - ${paymentId}`,
       };
 
-      const response = await fetch(`${config.baseUrl}/charges`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CC-Api-Key': config.apiKey,
-          'X-CC-Version': '2018-03-22',
-        },
-        body: JSON.stringify(chargeData),
-      });
+      const response = await coinPaymentsRequest('create_withdrawal', withdrawalParams);
+      const result = response.result as CoinPaymentsWithdrawalResult;
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error?.message ||
-          `Coinbase API error: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const result = await response.json();
-      const charge = result.data as CoinbaseChargeData;
-
-      console.log(`[Crypto Payout] Coinbase charge created: ${charge.id}`);
-      console.log(`[Crypto Payout] Code: ${charge.code}`);
-
-      // For actual payouts, you would use Coinbase Exchange API's "Send Money" endpoint
-      // This charge creation is for tracking purposes
+      console.log(`[Crypto Payout] CoinPayments withdrawal created: ${result.id}`);
+      console.log(`[Crypto Payout] Status: ${result.status}`);
 
       return {
         success: true,
-        transactionId: charge.id,
-        txHash: charge.code, // Use charge code as reference until blockchain tx is confirmed
+        transactionId: result.id,
+        txHash: result.id, // TX hash will be available after confirmation
         network: network,
         amount: usdAmount,
         cryptoAmount: cryptoAmount,
-        cryptoCurrency: cryptoCurrency,
+        cryptoCurrency: displayCurrency,
         walletAddress: walletAddress,
         providerResponse: {
           method: 'crypto',
-          provider: 'coinbase_commerce',
-          chargeId: charge.id,
-          chargeCode: charge.code,
-          hostedUrl: charge.hosted_url,
+          provider: 'coinpayments',
+          withdrawalId: result.id,
+          status: result.status,
+          statusText: this.getWithdrawalStatusText(result.status),
           network: network,
           walletAddress: walletAddress,
           usdAmount: usdAmount,
           cryptoAmount: cryptoAmount,
-          cryptoCurrency: cryptoCurrency,
-          createdAt: charge.created_at,
-          expiresAt: charge.expires_at,
-          status: 'pending',
+          cryptoCurrency: displayCurrency,
+          coinPaymentsCurrency: coinPaymentsCurrency,
           timestamp: new Date().toISOString(),
         },
       };
     } catch (error: any) {
-      console.error('[Crypto Payout] Coinbase API error:', error.message);
+      console.error('[Crypto Payout] CoinPayments API error:', error.message);
 
       // Provide helpful error messages
       let errorMessage = error.message;
-      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-        errorMessage = 'Invalid Coinbase Commerce API key. Please check your COINBASE_COMMERCE_API_KEY configuration.';
-      } else if (error.message.includes('403')) {
-        errorMessage = 'Coinbase Commerce API access denied. Ensure your API key has the required permissions.';
-      } else if (error.message.includes('network') || error.message.includes('ENOTFOUND')) {
-        errorMessage = 'Unable to reach Coinbase Commerce API. Please check your internet connection.';
+      if (error.message.includes('API keys')) {
+        errorMessage = 'CoinPayments API keys not configured. Please check your COINPAYMENTS_PUBLIC_KEY and COINPAYMENTS_PRIVATE_KEY.';
+      } else if (error.message.includes('Insufficient') || error.message.includes('balance')) {
+        errorMessage = 'Insufficient balance in CoinPayments wallet. Please add funds to process this withdrawal.';
+      } else if (error.message.includes('Invalid currency')) {
+        errorMessage = `Currency ${error.message} is not supported or not enabled in your CoinPayments account.`;
+      } else if (error.message.includes('Invalid address')) {
+        errorMessage = 'Invalid wallet address for the selected cryptocurrency.';
       }
 
       return { success: false, error: errorMessage };
@@ -505,52 +552,46 @@ class CryptoPaymentService {
   }
 
   /**
-   * Check the status of a crypto transaction
+   * Get human-readable status text for CoinPayments withdrawal status codes
    */
-  async checkTransactionStatus(chargeId: string): Promise<{
+  private getWithdrawalStatusText(status: number): string {
+    const statusMap: Record<number, string> = {
+      0: 'Waiting for email confirmation',
+      1: 'Pending',
+      2: 'Complete',
+      [-1]: 'Cancelled/Timed out',
+    };
+    return statusMap[status] || `Unknown (${status})`;
+  }
+
+  /**
+   * Check the status of a crypto withdrawal
+   */
+  async checkTransactionStatus(withdrawalId: string): Promise<{
     success: boolean;
     status?: string;
-    confirmations?: number;
+    statusCode?: number;
     txHash?: string;
     error?: string;
   }> {
     if (isSandboxMode()) {
       return {
         success: true,
-        status: 'completed',
-        confirmations: 12,
+        status: 'complete',
+        statusCode: 2,
         txHash: this.generateMockTxHash('ethereum'),
       };
     }
 
     try {
-      const config = getCoinbaseConfig();
-
-      const response = await fetch(`${config.baseUrl}/charges/${chargeId}`, {
-        headers: {
-          'X-CC-Api-Key': config.apiKey,
-          'X-CC-Version': '2018-03-22',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch charge status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      const charge = result.data as CoinbaseChargeData;
-
-      // Get latest status from timeline
-      const latestStatus = charge.timeline[charge.timeline.length - 1]?.status || 'NEW';
-
-      // Get payment details if available
-      const payment = charge.payments[0];
+      const response = await coinPaymentsRequest('get_withdrawal_info', { id: withdrawalId });
+      const result = response.result;
 
       return {
         success: true,
-        status: latestStatus.toLowerCase(),
-        confirmations: payment?.block?.height || 0,
-        txHash: payment?.transaction_id,
+        status: this.getWithdrawalStatusText(result.status),
+        statusCode: result.status,
+        txHash: result.send_txid || undefined,
       };
     } catch (error: any) {
       return { success: false, error: error.message };
@@ -572,7 +613,7 @@ class CryptoPaymentService {
       id: key,
       name: config.name,
       symbol: config.symbol,
-      stablecoin: config.stablecoin,
+      stablecoin: config.stablecoinSymbol,
     }));
   }
 
@@ -586,13 +627,13 @@ class CryptoPaymentService {
     estimatedFeeCrypto?: string;
     error?: string;
   }> {
-    // Approximate gas fees by network (these would ideally come from a gas price API)
+    // CoinPayments handles fees internally, but we can provide estimates
     const approximateFees: Record<SupportedNetwork, number> = {
-      ethereum: 5.00,    // Ethereum mainnet is expensive
-      bsc: 0.20,         // BSC is cheap
-      polygon: 0.05,     // Polygon is very cheap
-      bitcoin: 2.00,     // Bitcoin varies
-      tron: 0.50,        // Tron is relatively cheap
+      ethereum: 5.00,
+      bsc: 0.30,
+      polygon: 0.10,
+      bitcoin: 2.00,
+      tron: 1.00,
     };
 
     const feeUsd = approximateFees[network] || 1.00;
@@ -602,6 +643,50 @@ class CryptoPaymentService {
       estimatedFeeUsd: feeUsd,
       estimatedFeeCrypto: `~$${feeUsd.toFixed(2)} USD equivalent`,
     };
+  }
+
+  /**
+   * Get CoinPayments wallet balances (for admin use)
+   */
+  async getWalletBalances(): Promise<{
+    success: boolean;
+    balances?: Record<string, { balance: string; balanceUsd: number }>;
+    error?: string;
+  }> {
+    if (isSandboxMode()) {
+      return {
+        success: true,
+        balances: {
+          BTC: { balance: '0.5', balanceUsd: 21750 },
+          ETH: { balance: '5.0', balanceUsd: 11750 },
+          USDC: { balance: '10000', balanceUsd: 10000 },
+        },
+      };
+    }
+
+    try {
+      const response = await coinPaymentsRequest('balances', { all: '1' });
+      const balancesData = response.result;
+
+      const rates = (await getExchangeRates()).rates || {};
+      const balances: Record<string, { balance: string; balanceUsd: number }> = {};
+
+      for (const [currency, data] of Object.entries(balancesData)) {
+        const balanceData = data as { balance: string; balancef: string };
+        const balance = parseFloat(balanceData.balancef || balanceData.balance || '0');
+        if (balance > 0) {
+          const rate = rates[currency] || 0;
+          balances[currency] = {
+            balance: balance.toString(),
+            balanceUsd: balance * rate,
+          };
+        }
+      }
+
+      return { success: true, balances };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   }
 }
 
