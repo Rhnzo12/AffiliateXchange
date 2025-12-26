@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import { Alert, AlertDescription } from "../components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -40,7 +41,12 @@ import {
   Info,
   Pause,
   X,
-  Loader2
+  Loader2,
+  ExternalLink,
+  Eye,
+  ShoppingCart,
+  ThumbsUp,
+  BarChart3
 } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
 import { apiRequest, queryClient } from "../lib/queryClient";
@@ -152,8 +158,6 @@ export default function CompanyOfferDetail() {
   const [, setLocation] = useLocation();
   const offerId = params?.id;
 
-  const [activeSection, setActiveSection] = useState("overview");
-  const [isScrolling, setIsScrolling] = useState(false);
   const [showVideoDialog, setShowVideoDialog] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const [videoUrl, setVideoUrl] = useState("");
@@ -169,11 +173,6 @@ export default function CompanyOfferDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSuspendDialog, setShowSuspendDialog] = useState(false);
   const [actionReason, setActionReason] = useState("");
-
-  // Refs for sections
-  const overviewRef = useRef<HTMLDivElement>(null);
-  const videosRef = useRef<HTMLDivElement>(null);
-  const applicationsRef = useRef<HTMLDivElement>(null);
 
   // Quick tour for offer detail page
   useCompanyPageTour(COMPANY_TOUR_IDS.OFFER_DETAIL, offerDetailTourSteps);
@@ -192,83 +191,6 @@ export default function CompanyOfferDetail() {
       }, 500);
     }
   }, [isAuthenticated, isLoading]);
-
-  // Scroll spy with IntersectionObserver
-  useEffect(() => {
-    const observerOptions = {
-      root: null,
-      rootMargin: "-100px 0px -60% 0px",
-      threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
-    };
-
-    const observerCallback = (entries: IntersectionObserverEntry[]) => {
-      if (isScrolling) return;
-
-      let mostVisibleEntry = entries[0];
-      let maxRatio = 0;
-
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
-          maxRatio = entry.intersectionRatio;
-          mostVisibleEntry = entry;
-        }
-      });
-
-      if (mostVisibleEntry?.isIntersecting) {
-        const sectionId = mostVisibleEntry.target.getAttribute("data-section");
-        if (sectionId) {
-          setActiveSection(sectionId);
-        }
-      }
-    };
-
-    const observer = new IntersectionObserver(observerCallback, observerOptions);
-
-    const sections = [overviewRef, videosRef, applicationsRef];
-    sections.forEach((ref) => {
-      if (ref.current) {
-        observer.observe(ref.current);
-      }
-    });
-
-    return () => {
-      sections.forEach((ref) => {
-        if (ref.current) {
-          observer.unobserve(ref.current);
-        }
-      });
-    };
-  }, [isScrolling]);
-
-  // Smooth scroll to section
-  const scrollToSection = (sectionId: string) => {
-    setActiveSection(sectionId);
-    setIsScrolling(true);
-
-    const refs: Record<string, React.RefObject<HTMLDivElement>> = {
-      overview: overviewRef,
-      videos: videosRef,
-      applications: applicationsRef,
-    };
-
-    const ref = refs[sectionId];
-    if (ref.current) {
-      const stickyNavElement = document.querySelector('[data-sticky-nav]');
-      const navHeight = stickyNavElement ? stickyNavElement.getBoundingClientRect().height : 100;
-
-      const elementPosition = ref.current.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - navHeight - 20;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth",
-      });
-
-      setTimeout(() => {
-        setIsScrolling(false);
-      }, 1000);
-    }
-  };
 
   // Fetch offer details
   const { data: offer, isLoading: offerLoading } = useQuery<any>({
@@ -670,483 +592,369 @@ export default function CompanyOfferDetail() {
   const company = offer.company;
   const companyName = company?.tradeName || company?.legalName || "My Company";
 
+  // Calculate performance metrics
+  const approvedApplications = offerApplications.filter((app: any) => app.status === 'approved' || app.status === 'active');
+  const approvalRate = offerApplications.length > 0
+    ? ((approvedApplications.length / offerApplications.length) * 100).toFixed(1)
+    : "0";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
+    <div className="min-h-screen bg-gray-50/50">
       <TopNavBar />
 
-      {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation("/company/offers")}
-            className="h-10 w-10 rounded-full hover:bg-accent"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-
-          <div className="flex items-center gap-2">
-            {/* Show pending action status */}
-            {offer.pendingAction && (
-              <Badge variant="outline" className="gap-1 text-yellow-600 border-yellow-600">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Pending {offer.pendingAction === 'delete' ? 'Deletion' : 'Suspension'}
-              </Badge>
-            )}
-
-            {/* Cancel pending action button */}
-            {offer.pendingAction && (
+      {/* Main Content Container */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        {/* Header Card */}
+        <Card className="rounded-2xl shadow-sm border border-gray-200 mb-6">
+          <CardContent className="p-6">
+            {/* Top Row: Back button, Status badges, Edit button */}
+            <div className="flex items-center justify-between mb-6">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={() => cancelPendingActionMutation.mutate()}
-                disabled={cancelPendingActionMutation.isPending}
-                className="gap-1 text-gray-600"
+                onClick={() => setLocation("/company/offers")}
+                className="gap-2 text-gray-600 hover:text-gray-900"
               >
-                {cancelPendingActionMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <X className="h-4 w-4" />
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+
+              <div className="flex items-center gap-2">
+                {/* Pending action status */}
+                {offer.pendingAction && (
+                  <Badge variant="outline" className="gap-1 text-yellow-600 border-yellow-600">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Pending {offer.pendingAction === 'delete' ? 'Deletion' : 'Suspension'}
+                  </Badge>
                 )}
-                <span className="hidden sm:inline">Cancel Request</span>
-              </Button>
-            )}
 
-            {/* Suspend button - only show if not already suspended and no pending action */}
-            {!offer.pendingAction && offer.status !== 'paused' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSuspendDialog(true)}
-                className="gap-1 text-yellow-600 border-yellow-600 hover:bg-yellow-50"
-              >
-                <Pause className="h-4 w-4" />
-                <span className="hidden sm:inline">Suspend</span>
-              </Button>
-            )}
+                {/* Cancel pending action */}
+                {offer.pendingAction && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => cancelPendingActionMutation.mutate()}
+                    disabled={cancelPendingActionMutation.isPending}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
 
-            {/* Delete button - only show if no pending action */}
-            {!offer.pendingAction && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowDeleteDialog(true)}
-                className="gap-1 text-red-600 border-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Delete</span>
-              </Button>
-            )}
+                {/* Suspend button */}
+                {!offer.pendingAction && offer.status !== 'paused' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSuspendDialog(true)}
+                    className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+                  >
+                    <Pause className="h-4 w-4" />
+                  </Button>
+                )}
 
-            <Link href={`/company/offers/${offerId}/edit`}>
-              <Button variant="outline" className="gap-2">
-                <Edit className="h-4 w-4" />
-                <span className="hidden sm:inline">Edit Offer</span>
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
+                {/* Delete button */}
+                {!offer.pendingAction && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
 
-      {/* Hero Section with Gradient Background */}
-      <div className="relative">
-        <div className="h-[280px] sm:h-[320px] relative overflow-hidden">
-          {offer.featuredImageUrl ? (
-            <div className="absolute inset-0">
-              <img
-                src={proxiedSrc(offer.featuredImageUrl)}
-                alt={offer.title}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-gray-50" />
+                <Link href={`/company/offers/${offerId}/edit`}>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Edit className="h-4 w-4" />
+                    Edit Offer
+                  </Button>
+                </Link>
+              </div>
             </div>
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/20 to-background">
-              <div
-                className="absolute inset-0 opacity-10"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-                }}
-              />
-            </div>
-          )}
-        </div>
 
-        {/* Company Info Card - Overlapping Hero */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="relative -mt-28 sm:-mt-32">
-            <Card className="border-2 shadow-2xl rounded-2xl">
-              <CardContent className="p-6 sm:p-8">
-                {/* Company Logo Circle */}
-                <div className="flex justify-start -mt-16 sm:-mt-20 mb-6 ml-4">
-                  <div className="relative">
-                    <Avatar className="h-32 w-32 sm:h-36 sm:w-36 border-4 border-background shadow-2xl ring-2 ring-primary/20">
-                      <AvatarImage
-                        src={proxiedSrc(company?.logoUrl)}
-                        alt={companyName}
-                        referrerPolicy="no-referrer"
-                      />
-                      <AvatarFallback className="text-3xl sm:text-4xl font-bold bg-gradient-to-br from-primary to-purple-600 text-white">
-                        {companyName[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
+            {/* Offer Info Row */}
+            <div className="flex flex-col sm:flex-row gap-6">
+              {/* Product Image */}
+              <div className="flex-shrink-0">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                  {offer.featuredImageUrl ? (
+                    <img
+                      src={proxiedSrc(offer.featuredImageUrl)}
+                      alt={offer.title}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                      <ShoppingCart className="h-8 w-8 text-primary/40" />
+                    </div>
+                  )}
                 </div>
+              </div>
 
-                {/* Title & Status */}
-                <div className="text-left mb-8">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
-                      {offer.title}
-                    </h1>
-                    <Badge
-                      variant={offer.status === 'approved' ? 'default' : 'secondary'}
-                      className="px-3 py-1 text-sm"
-                    >
-                      {offer.status}
+              {/* Offer Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+                    {offer.title}
+                  </h1>
+                  <Badge
+                    variant={offer.status === 'approved' ? 'default' : 'secondary'}
+                    className="text-xs"
+                  >
+                    {offer.status}
+                  </Badge>
+                  {offer.isHighlighted && (
+                    <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                      Highlighted
                     </Badge>
-                  </div>
-
-                  {offer.company?.tradeName && (
-                    <p className="text-gray-600 text-base sm:text-lg">
-                      by {offer.company.tradeName}
-                    </p>
                   )}
                 </div>
 
-                {/* Commission Card */}
-                <div className="bg-white rounded-2xl p-6 sm:p-8 mb-8 border-2 border-gray-200 shadow-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-baseline gap-3 mb-2">
-                        <div className="text-5xl sm:text-6xl font-bold text-green-600">
-                          {formatCommission(offer)}
-                        </div>
-                      </div>
-                      <div className="text-lg sm:text-xl text-gray-700 font-medium capitalize mb-4">
-                        {getCommissionTypeLabel(offer)}
-                      </div>
-
-                      {(offer.cookieDuration || offer.averageOrderValue) && (
-                        <div className="flex items-center gap-4 flex-wrap text-sm text-gray-600">
-                          {offer.cookieDuration && (
-                            <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
-                              <Clock className="h-4 w-4 text-gray-600" />
-                              <span className="font-medium">{offer.cookieDuration}-day cookie</span>
-                            </div>
-                          )}
-                          {offer.averageOrderValue && (
-                            <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
-                              <TrendingUp className="h-4 w-4 text-gray-600" />
-                              <span className="font-medium">Avg: ${offer.averageOrderValue}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                {/* Niche Tags */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {offer.primaryNiche && (
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
+                      #{offer.primaryNiche}
+                    </span>
+                  )}
+                  {offer.secondaryNiche && (
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
+                      #{offer.secondaryNiche}
+                    </span>
+                  )}
                 </div>
 
-                {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-4 sm:gap-6 mb-8">
-                  <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
-                      <Users className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                      {offerApplications.length}
-                    </div>
-                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Applications</div>
-                  </div>
-
-                  <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
-                      <MousePointer className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                      {offer.viewCount || 0}
-                    </div>
-                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Views</div>
-                  </div>
-
-                  <div className="text-center bg-white rounded-xl p-4 border border-gray-200">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white mb-3">
-                      <Wallet className="h-6 w-6 text-gray-700" strokeWidth={1.5} />
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                      {videos.length}
-                    </div>
-                    <div className="text-xs sm:text-sm text-gray-600 font-medium">Videos</div>
-                  </div>
-                </div>
-
-                {/* Hashtag Badges */}
-                {(offer.primaryNiche || offer.secondaryNiche) && (
-                  <div className="flex flex-wrap gap-3 pt-8 border-t">
-                    {offer.primaryNiche && (
-                      <Badge variant="secondary" className="text-xs sm:text-sm px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors">
-                        <Hash className="h-4 w-4 mr-1.5" />
-                        {offer.primaryNiche}
-                      </Badge>
-                    )}
-                    {offer.secondaryNiche && (
-                      <Badge variant="secondary" className="text-xs sm:text-sm px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors">
-                        <Hash className="h-4 w-4 mr-1.5" />
-                        {offer.secondaryNiche}
-                      </Badge>
-                    )}
-                  </div>
+                {/* Website Link */}
+                {company?.websiteUrl && (
+                  <a
+                    href={company.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open Link
+                  </a>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* Sticky Tab Navigation */}
-      <div
-        data-sticky-nav
-        className="sticky top-[57px] sm:top-[65px] z-40 bg-background/95 backdrop-blur-sm border-b shadow-sm mt-6 sm:mt-8"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex overflow-x-auto hide-scrollbar gap-8">
-            <button
-              onClick={() => scrollToSection("overview")}
-              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
-                activeSection === "overview"
-                  ? "text-primary"
-                  : "text-gray-500 hover:text-gray-900"
-              }`}
-            >
-              Overview
-              {activeSection === "overview" && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
-              )}
-            </button>
-            <button
-              onClick={() => scrollToSection("videos")}
-              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
-                activeSection === "videos"
-                  ? "text-primary"
-                  : "text-gray-500 hover:text-gray-900"
-              }`}
-            >
-              Videos
-              {activeSection === "videos" && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
-              )}
-            </button>
-            <button
-              onClick={() => scrollToSection("applications")}
-              className={`relative px-4 py-4 font-semibold text-sm sm:text-base transition-all whitespace-nowrap ${
-                activeSection === "applications"
-                  ? "text-primary"
-                  : "text-gray-500 hover:text-gray-900"
-              }`}
-            >
-              Applications
-              {activeSection === "applications" && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Content Sections */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-12 sm:space-y-16">
-        {/* Overview Section */}
-        <div ref={overviewRef} data-section="overview" className="scroll-mt-32">
-          <Card className="rounded-2xl shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl sm:text-2xl lg:text-3xl flex items-center gap-3">
-                <Info className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-                About This Offer
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="prose prose-sm sm:prose max-w-none">
-                <p className="text-muted-foreground text-base sm:text-lg whitespace-pre-wrap leading-relaxed">
-                  {offer.fullDescription || offer.description || offer.shortDescription || "No description available."}
-                </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              {/* Commission Details Grid */}
-              <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 pt-6 border-t">
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl">
-                  <div className="text-xs sm:text-sm text-gray-600 mb-2">Commission Rate</div>
-                  <div className="text-3xl sm:text-4xl font-bold text-green-600 mb-2">
-                    {formatCommission(offer)}
-                  </div>
-                  <Badge variant="secondary" className="mt-2 text-xs capitalize bg-white/60">
-                    {getCommissionTypeLabel(offer)}
-                  </Badge>
-                </div>
+        {/* Price and Commission Cards */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          {/* Price Card */}
+          <Card className="rounded-xl shadow-sm border border-gray-200">
+            <CardContent className="p-5">
+              <div className="text-xs text-gray-500 mb-1">Price</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  ${offer.averageOrderValue || offer.commissionAmount || "0"}
+                </span>
+                <span className="text-sm text-gray-400">CA</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">Per Item</div>
+            </CardContent>
+          </Card>
 
-                {offer.paymentSchedule && (
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl">
-                    <div className="text-xs sm:text-sm text-gray-600 mb-2">Payment Schedule</div>
-                    <div className="text-xl sm:text-2xl font-bold text-blue-600 capitalize">
-                      {offer.paymentSchedule.replace(/_/g, ' ')}
-                    </div>
-                  </div>
-                )}
+          {/* Commission Rate Card */}
+          <Card className="rounded-xl shadow-sm border border-gray-200">
+            <CardContent className="p-5">
+              <div className="text-xs text-gray-500 mb-1">Commission Rate</div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl sm:text-3xl font-bold text-green-600">
+                  {formatCommission(offer)}
+                </span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1 capitalize">
+                {getCommissionTypeLabel(offer)}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Videos Section */}
-        <div ref={videosRef} data-section="videos" className="scroll-mt-32">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <Video className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-              <h2 className="text-xl sm:text-2xl font-bold">
-                Promotional Videos {videos.length > 0 && `(${videos.length})`}
-              </h2>
-            </div>
-            <Button
-              onClick={() => setShowVideoDialog(true)}
-              disabled={!canAddMoreVideos || createVideoMutation.isPending}
-              className="gap-2"
-            >
-              <Upload className="h-4 w-4" />
-              Add Video
-            </Button>
-          </div>
+        {/* Description Card */}
+        <Card className="rounded-xl shadow-sm border border-gray-200 mb-6">
+          <CardContent className="p-5">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Description</h3>
+            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+              {offer.fullDescription || offer.description || offer.shortDescription || "No description available."}
+            </p>
+          </CardContent>
+        </Card>
 
-          {!hasMinimumVideos && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                You need at least 6 videos to publish this offer. Currently: {videoCount}/6
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {videosLoading ? (
-            <Card className="rounded-2xl">
-              <CardContent className="p-12 sm:p-16 text-center">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
-                <p className="text-muted-foreground">Loading videos...</p>
-              </CardContent>
-            </Card>
-          ) : !videos || videos.length === 0 ? (
-            <Card className="rounded-2xl">
-              <CardContent className="p-12 sm:p-16 text-center">
-                <Video className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">No videos uploaded yet</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Add promotional videos to help creators understand your offer
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              {videos.map((video: any) => (
-                <Card
-                  key={video.id}
-                  className="hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden group rounded-xl relative"
-                  onClick={() => setSelectedVideo(video)}
+        {/* Performance and Videos Tabs */}
+        <Card className="rounded-xl shadow-sm border border-gray-200">
+          <Tabs defaultValue="performance" className="w-full">
+            <div className="border-b border-gray-200">
+              <TabsList className="h-auto p-0 bg-transparent w-full justify-start rounded-none">
+                <TabsTrigger
+                  value="performance"
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-6 py-3 text-sm font-medium"
                 >
-                  <div className="aspect-video relative bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 overflow-hidden">
-                    {video.thumbnailUrl ? (
-                      <img
-                        src={proxiedSrc(video.thumbnailUrl)}
-                        alt={video.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Video className="h-12 w-12 text-white/50" />
-                      </div>
-                    )}
-
-                    {/* Play Button Overlay */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                      <div className="bg-white/90 backdrop-blur rounded-full p-3 transform scale-0 group-hover:scale-100 transition-transform duration-300">
-                        <Play className="h-6 w-6 sm:h-8 sm:w-8 text-primary fill-primary" />
-                      </div>
-                    </div>
-
-                    {/* Delete Button */}
-                    <button
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteVideoMutation.mutate(video.id);
-                      }}
-                      aria-label="Delete video"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <CardContent className="p-4">
-                    <h4 className="font-semibold text-sm line-clamp-2 mb-1">
-                      {video.title || "Untitled Video"}
-                    </h4>
-                    {video.creatorCredit && (
-                      <p className="text-xs text-muted-foreground">by {video.creatorCredit}</p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                  Performance
+                </TabsTrigger>
+                <TabsTrigger
+                  value="videos"
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none px-6 py-3 text-sm font-medium"
+                >
+                  Videos
+                </TabsTrigger>
+              </TabsList>
             </div>
-          )}
-        </div>
 
-        {/* Applications Section */}
-        <div ref={applicationsRef} data-section="applications" className="scroll-mt-32">
-          <div className="flex items-center gap-2 mb-6">
-            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-500" />
-            <h2 className="text-xl sm:text-2xl font-bold">Applications</h2>
-          </div>
+            {/* Performance Tab Content */}
+            <TabsContent value="performance" className="p-6 mt-0">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {/* Clicks */}
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
+                    <MousePointer className="h-5 w-5 text-gray-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{offer.totalClicks || 0}</div>
+                  <div className="text-xs text-gray-500 mt-1">Clicks</div>
+                </div>
 
-          <Card className="rounded-2xl">
-            <CardContent className="p-6 sm:p-8">
-              {offerApplications.length === 0 ? (
+                {/* Views */}
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
+                    <Eye className="h-5 w-5 text-gray-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{offer.viewCount || 0}</div>
+                  <div className="text-xs text-gray-500 mt-1">Views</div>
+                </div>
+
+                {/* Apply (Applications) */}
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
+                    <Users className="h-5 w-5 text-gray-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{offerApplications.length}</div>
+                  <div className="text-xs text-gray-500 mt-1">Apply</div>
+                </div>
+
+                {/* Orders */}
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
+                    <ShoppingCart className="h-5 w-5 text-gray-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{offer.totalConversions || 0}</div>
+                  <div className="text-xs text-gray-500 mt-1">Orders</div>
+                </div>
+
+                {/* Approval Rate */}
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
+                    <ThumbsUp className="h-5 w-5 text-gray-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{approvalRate}%</div>
+                  <div className="text-xs text-gray-500 mt-1">Approval</div>
+                </div>
+
+                {/* Sales */}
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200 mb-2">
+                    <BarChart3 className="h-5 w-5 text-gray-600" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">${offer.totalRevenue || 0}</div>
+                  <div className="text-xs text-gray-500 mt-1">Sales</div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Videos Tab Content */}
+            <TabsContent value="videos" className="p-6 mt-0">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm text-gray-500">
+                  {videos.length} video{videos.length !== 1 ? 's' : ''} uploaded
+                </div>
+                <Button
+                  onClick={() => setShowVideoDialog(true)}
+                  disabled={!canAddMoreVideos || createVideoMutation.isPending}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Add Video
+                </Button>
+              </div>
+
+              {!hasMinimumVideos && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    You need at least 6 videos to publish this offer. Currently: {videoCount}/6
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {videosLoading ? (
                 <div className="text-center py-12">
-                  <CheckCircle2 className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground/20 mx-auto mb-4" />
-                  <p className="text-muted-foreground text-base sm:text-lg font-medium">No applications yet</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Creators will apply to your offer once it's published
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+                  <p className="text-muted-foreground">Loading videos...</p>
+                </div>
+              ) : !videos || videos.length === 0 ? (
+                <div className="text-center py-12">
+                  <Video className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">No videos uploaded yet</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Add promotional videos to help creators understand your offer
                   </p>
                 </div>
               ) : (
-                <div className="space-y-8">
-                  {offerApplications.map((app: any) => (
-                    <div key={app.id} className="border-b pb-8 last:border-0 last:pb-0">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="font-semibold text-lg">
-                            {app.creatorName || 'Creator'}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            Applied {new Date(app.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })}
-                          </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {videos.map((video: any) => (
+                    <div
+                      key={video.id}
+                      className="group relative cursor-pointer"
+                      onClick={() => setSelectedVideo(video)}
+                    >
+                      <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                        {video.thumbnailUrl ? (
+                          <img
+                            src={proxiedSrc(video.thumbnailUrl)}
+                            alt={video.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400">
+                            <Video className="h-8 w-8 text-white/50" />
+                          </div>
+                        )}
+
+                        {/* Play overlay */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                          <div className="bg-white/90 backdrop-blur rounded-full p-2 transform scale-0 group-hover:scale-100 transition-transform">
+                            <Play className="h-4 w-4 text-primary fill-primary" />
+                          </div>
                         </div>
-                        <Badge variant={app.status === 'approved' ? 'default' : 'secondary'}>
-                          {app.status}
-                        </Badge>
+
+                        {/* Delete button */}
+                        <button
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteVideoMutation.mutate(video.id);
+                          }}
+                          aria-label="Delete video"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
                       </div>
-                      {app.message && (
-                        <p className="text-sm text-muted-foreground mb-4">{app.message}</p>
-                      )}
+                      <p className="text-xs font-medium text-gray-700 mt-2 truncate">
+                        {video.title || "Untitled"}
+                      </p>
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </TabsContent>
+          </Tabs>
+        </Card>
       </div>
 
       {/* Video Upload Dialog */}
