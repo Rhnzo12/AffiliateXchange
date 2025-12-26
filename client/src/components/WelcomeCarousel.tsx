@@ -87,21 +87,6 @@ const perks: PerkSlide[] = [
 
 export function WelcomeCarousel() {
   const [api, setApi] = React.useState<CarouselApi>();
-  const [current, setCurrent] = React.useState(0);
-  const [count, setCount] = React.useState(0);
-
-  React.useEffect(() => {
-    if (!api) {
-      return;
-    }
-
-    setCount(api.scrollSnapList().length);
-    setCurrent(api.selectedScrollSnap());
-
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
-    });
-  }, [api]);
 
   // Auto-play functionality
   React.useEffect(() => {
@@ -213,22 +198,6 @@ export function WelcomeCarousel() {
             );
           })}
         </CarouselContent>
-
-        {/* Navigation dots */}
-        <div className="flex items-center justify-center gap-1.5 mt-3">
-          {Array.from({ length: count }).map((_, index) => (
-            <button
-              key={index}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                index === current
-                  ? "w-6 bg-primary"
-                  : "w-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500"
-              }`}
-              onClick={() => api?.scrollTo(index)}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
-        </div>
       </Carousel>
     </div>
   );
