@@ -3543,6 +3543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/stripe-connect/onboarding-link", requireAuth, async (req, res) => {
     try {
       const userId = (req.user as any).id;
+      const userRole = (req.user as any).role;
       const { accountId, returnUrl, refreshUrl } = req.body;
 
       if (!accountId) {
@@ -3559,10 +3560,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { stripeConnectService } = await import('./stripeConnectService');
 
+      // Determine the correct fallback URL based on user role
+      const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+      const paymentSettingsPath = userRole === 'creator'
+        ? '/creator/payment-settings'
+        : userRole === 'company'
+          ? '/company/payment-settings'
+          : '/payment-settings';
+
       const result = await stripeConnectService.createAccountLink(
         accountId,
-        returnUrl || `${process.env.BASE_URL || 'http://localhost:5000'}/settings/payment?stripe_onboarding=success`,
-        refreshUrl || `${process.env.BASE_URL || 'http://localhost:5000'}/settings/payment?stripe_onboarding=refresh`
+        returnUrl || `${baseUrl}${paymentSettingsPath}?stripe_onboarding=success`,
+        refreshUrl || `${baseUrl}${paymentSettingsPath}?stripe_onboarding=refresh`
       );
 
       if (!result.success) {

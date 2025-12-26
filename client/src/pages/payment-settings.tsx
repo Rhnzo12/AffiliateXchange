@@ -2579,8 +2579,8 @@ export default function PaymentSettings() {
       });
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
-      // Redirect to payment management (overview) tab
-      setActiveTab("overview");
+      // Redirect to Payment Methods tab
+      setActiveTab("settings");
     } else if (onboardingStatus === 'refresh') {
       setErrorDialog({
         open: true,
@@ -2698,8 +2698,8 @@ export default function PaymentSettings() {
       setPaypalEmail("");
       setCryptoWalletAddress("");
       setCryptoNetwork("");
-      // Redirect to payment management (overview) tab
-      setActiveTab("overview");
+      // Redirect to Payment Methods tab
+      setActiveTab("settings");
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
