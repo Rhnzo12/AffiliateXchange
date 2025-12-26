@@ -570,12 +570,22 @@ export default function OfferDetail() {
                   <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                     {offer.title}
                   </h1>
-                  <Badge
-                    variant={offer.status === 'approved' ? 'default' : 'secondary'}
-                    className="text-xs"
-                  >
-                    {offer.status}
-                  </Badge>
+                  {offer.status === 'approved' ? (
+                    <Badge
+                      variant="default"
+                      className="text-xs bg-blue-500 hover:bg-blue-600"
+                    >
+                      <Verified className="h-3 w-3 mr-1" />
+                      Verified
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="secondary"
+                      className="text-xs"
+                    >
+                      {offer.status}
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Niche Tags */}
