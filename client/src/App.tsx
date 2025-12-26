@@ -134,7 +134,7 @@ function getCompanyStatusInfo(companyProfile: any) {
 
 function AuthenticatedLayout({ user, unreadCount, companyProfile, onLogout, children, hideHeader = false }: { user: any; unreadCount: number; companyProfile?: any; onLogout: () => void; children: ReactNode; hideHeader?: boolean }) {
   const style = {
-    "--sidebar-width": "18rem",
+    "--sidebar-width": "14rem",
     "--sidebar-width-icon": "3rem",
   };
 
