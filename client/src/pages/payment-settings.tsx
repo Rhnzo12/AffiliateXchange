@@ -371,6 +371,213 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
   );
 }
 
+// Crypto payment fields with wallet validation and exchange rate display
+function CryptoPaymentFields({
+  cryptoWalletAddress,
+  setCryptoWalletAddress,
+  cryptoNetwork,
+  setCryptoNetwork,
+}: {
+  cryptoWalletAddress: string;
+  setCryptoWalletAddress: (value: string) => void;
+  cryptoNetwork: string;
+  setCryptoNetwork: (value: string) => void;
+}) {
+  const [walletValidation, setWalletValidation] = useState<{
+    valid: boolean;
+    error?: string;
+    checking: boolean;
+  }>({ valid: false, checking: false });
+
+  const [networkFee, setNetworkFee] = useState<{
+    estimatedFeeUsd?: number;
+    loading: boolean;
+  }>({ loading: false });
+
+  // Fetch exchange rates
+  const { data: exchangeRates } = useQuery<{
+    success: boolean;
+    rates: Record<string, number>;
+    timestamp: string;
+  }>({
+    queryKey: ["/api/crypto/exchange-rates"],
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+    staleTime: 60 * 1000, // Consider stale after 1 minute
+  });
+
+  // Validate wallet address when it changes
+  useEffect(() => {
+    if (!cryptoWalletAddress || !cryptoNetwork) {
+      setWalletValidation({ valid: false, checking: false });
+      return;
+    }
+
+    const validateAddress = async () => {
+      setWalletValidation({ valid: false, checking: true });
+      try {
+        const response = await fetch("/api/crypto/validate-address", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address: cryptoWalletAddress,
+            network: cryptoNetwork,
+          }),
+        });
+        const result = await response.json();
+        setWalletValidation({
+          valid: result.valid,
+          error: result.error,
+          checking: false,
+        });
+      } catch {
+        setWalletValidation({
+          valid: false,
+          error: "Failed to validate address",
+          checking: false,
+        });
+      }
+    };
+
+    // Debounce validation
+    const timer = setTimeout(validateAddress, 500);
+    return () => clearTimeout(timer);
+  }, [cryptoWalletAddress, cryptoNetwork]);
+
+  // Fetch network fee when network changes
+  useEffect(() => {
+    if (!cryptoNetwork) {
+      setNetworkFee({ loading: false });
+      return;
+    }
+
+    const fetchFee = async () => {
+      setNetworkFee({ loading: true });
+      try {
+        const response = await fetch(`/api/crypto/estimate-fee/${cryptoNetwork}`);
+        const result = await response.json();
+        if (result.success) {
+          setNetworkFee({
+            estimatedFeeUsd: result.estimatedFeeUsd,
+            loading: false,
+          });
+        } else {
+          setNetworkFee({ loading: false });
+        }
+      } catch {
+        setNetworkFee({ loading: false });
+      }
+    };
+
+    fetchFee();
+  }, [cryptoNetwork]);
+
+  const networkInfo: Record<string, { name: string; symbol: string; stablecoin: string | null }> = {
+    ethereum: { name: "Ethereum", symbol: "ETH", stablecoin: "USDC" },
+    bsc: { name: "Binance Smart Chain", symbol: "BNB", stablecoin: "BUSD" },
+    polygon: { name: "Polygon", symbol: "MATIC", stablecoin: "USDC" },
+    bitcoin: { name: "Bitcoin", symbol: "BTC", stablecoin: null },
+    tron: { name: "Tron", symbol: "TRX", stablecoin: "USDT" },
+  };
+
+  const selectedNetwork = cryptoNetwork ? networkInfo[cryptoNetwork] : null;
+  const currentRate = selectedNetwork && exchangeRates?.rates
+    ? exchangeRates.rates[selectedNetwork.symbol]
+    : null;
+
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="network">Network</Label>
+        <Select value={cryptoNetwork} onValueChange={setCryptoNetwork}>
+          <SelectTrigger id="network">
+            <SelectValue placeholder="Select network" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ethereum">Ethereum (ERC-20) - USDC</SelectItem>
+            <SelectItem value="bsc">Binance Smart Chain (BEP-20) - BUSD</SelectItem>
+            <SelectItem value="polygon">Polygon (MATIC) - USDC</SelectItem>
+            <SelectItem value="bitcoin">Bitcoin (BTC)</SelectItem>
+            <SelectItem value="tron">Tron (TRC-20) - USDT</SelectItem>
+          </SelectContent>
+        </Select>
+        {selectedNetwork && (
+          <div className="text-xs text-gray-500">
+            Payouts sent as {selectedNetwork.stablecoin || selectedNetwork.symbol}
+            {selectedNetwork.stablecoin && " (stablecoin) to reduce volatility"}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="wallet">Wallet Address</Label>
+        <div className="relative">
+          <Input
+            id="wallet"
+            placeholder={cryptoNetwork === "bitcoin" ? "bc1... or 1... or 3..." : "0x..."}
+            value={cryptoWalletAddress}
+            onChange={(e) => setCryptoWalletAddress(e.target.value)}
+            className={
+              cryptoWalletAddress && !walletValidation.checking
+                ? walletValidation.valid
+                  ? "border-green-500 pr-10"
+                  : "border-red-500 pr-10"
+                : ""
+            }
+          />
+          {cryptoWalletAddress && !walletValidation.checking && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {walletValidation.valid ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              ) : (
+                <XCircle className="h-4 w-4 text-red-500" />
+              )}
+            </div>
+          )}
+          {walletValidation.checking && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Clock className="h-4 w-4 text-gray-400 animate-pulse" />
+            </div>
+          )}
+        </div>
+        {walletValidation.error && cryptoWalletAddress && (
+          <p className="text-xs text-red-500">{walletValidation.error}</p>
+        )}
+      </div>
+
+      {cryptoNetwork && (
+        <div className="rounded-lg bg-purple-50 border border-purple-200 p-3">
+          <div className="flex gap-2">
+            <Info className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-purple-900 space-y-2">
+              <p className="font-semibold">Cryptocurrency Payout Info:</p>
+              <ul className="text-xs space-y-1">
+                {currentRate && (
+                  <li>
+                    Current rate: 1 {selectedNetwork?.symbol} = ${currentRate.toFixed(2)} USD
+                  </li>
+                )}
+                {networkFee.estimatedFeeUsd && (
+                  <li>
+                    Estimated network fee: ~${networkFee.estimatedFeeUsd.toFixed(2)} USD
+                  </li>
+                )}
+                {selectedNetwork?.stablecoin && (
+                  <li>
+                    Payouts are sent as <strong>{selectedNetwork.stablecoin}</strong> to minimize price volatility
+                  </li>
+                )}
+                <li>
+                  Ensure your wallet supports {selectedNetwork?.stablecoin || selectedNetwork?.symbol} on {selectedNetwork?.name}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function PaymentMethodSettings({
   paymentMethods,
   payoutMethod,
@@ -611,32 +818,12 @@ function PaymentMethodSettings({
           )}
 
           {payoutMethod === "crypto" && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="wallet">Wallet Address</Label>
-                <Input
-                  id="wallet"
-                  placeholder="0x..."
-                  value={cryptoWalletAddress}
-                  onChange={(e) => setCryptoWalletAddress(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="network">Network</Label>
-                <Select value={cryptoNetwork} onValueChange={setCryptoNetwork}>
-                  <SelectTrigger id="network">
-                    <SelectValue placeholder="Select network" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ethereum">Ethereum (ERC-20)</SelectItem>
-                    <SelectItem value="bsc">Binance Smart Chain (BEP-20)</SelectItem>
-                    <SelectItem value="polygon">Polygon (MATIC)</SelectItem>
-                    <SelectItem value="bitcoin">Bitcoin</SelectItem>
-                    <SelectItem value="tron">Tron (TRC-20)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
+            <CryptoPaymentFields
+              cryptoWalletAddress={cryptoWalletAddress}
+              setCryptoWalletAddress={setCryptoWalletAddress}
+              cryptoNetwork={cryptoNetwork}
+              setCryptoNetwork={setCryptoNetwork}
+            />
           )}
 
           <Button

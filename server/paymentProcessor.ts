@@ -499,7 +499,7 @@ export class PaymentProcessorService {
 
   /**
    * Process cryptocurrency payout
-   * Sends crypto to creator's wallet address
+   * Sends crypto to creator's wallet address via BitPay
    */
   private async processCryptoPayout(
     walletAddress: string,
@@ -510,47 +510,65 @@ export class PaymentProcessorService {
     try {
       console.log(`[Crypto Payout] Sending $${amount} USD equivalent to ${walletAddress} on ${network}`);
 
-      // In production, you would:
-      // 1. Convert USD amount to crypto amount based on current exchange rate
-      // 2. Use a crypto payment provider like Coinbase Commerce, BitPay, or direct blockchain interaction
-      // 3. Send transaction to blockchain
-      // 4. Wait for confirmation
-      //
-      // Example with Coinbase Commerce:
-      // const { Client } = require('coinbase-commerce-node');
-      // Client.init(process.env.COINBASE_COMMERCE_API_KEY);
-      // const Charge = require('coinbase-commerce-node').resources.Charge;
-      // const charge = await Charge.create({
-      //   name: 'Creator Payout',
-      //   description: `Payment ${paymentId}`,
-      //   local_price: {
-      //     amount: amount.toString(),
-      //     currency: 'USD'
-      //   },
-      //   pricing_type: 'fixed_price'
-      // });
+      // Import the crypto payment service
+      const { cryptoPaymentService, validateWalletAddress } = await import('./cryptoPaymentService');
+      const { SupportedNetwork } = await import('./cryptoPaymentService');
 
-      const mockTxHash = `0x${Array.from({length: 64}, () =>
-        Math.floor(Math.random() * 16).toString(16)).join('')}`;
+      // Validate the network
+      const supportedNetworks = ['ethereum', 'bsc', 'polygon', 'bitcoin', 'tron'];
+      if (!supportedNetworks.includes(network)) {
+        return {
+          success: false,
+          error: `Unsupported crypto network: ${network}. Supported networks: ${supportedNetworks.join(', ')}`
+        };
+      }
 
-      console.log(`[Crypto Payout] SUCCESS - TX Hash: ${mockTxHash}`);
+      // Validate wallet address
+      const validationResult = validateWalletAddress(walletAddress, network as any);
+      if (!validationResult.valid) {
+        return {
+          success: false,
+          error: validationResult.error || 'Invalid wallet address'
+        };
+      }
+
+      // Process the crypto payout
+      const result = await cryptoPaymentService.processCryptoPayout(
+        walletAddress,
+        network as any,
+        amount,
+        paymentId,
+        {
+          preferStablecoin: true, // Use stablecoins when available to reduce volatility
+          memo: `AffiliateXchange payout - ${paymentId}`,
+        }
+      );
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error || 'Crypto payout failed'
+        };
+      }
+
+      console.log(`[Crypto Payout] SUCCESS - TX: ${result.txHash}`);
+      console.log(`[Crypto Payout] Amount: ${result.cryptoAmount} ${result.cryptoCurrency}`);
 
       return {
         success: true,
-        transactionId: mockTxHash,
-        providerResponse: {
-          method: 'crypto',
-          network: network,
-          walletAddress: walletAddress,
-          amount: amount,
-          txHash: mockTxHash,
-          timestamp: new Date().toISOString(),
-          note: 'SIMULATED - In production, this would send real crypto transaction'
-        }
+        transactionId: result.transactionId!,
+        providerResponse: result.providerResponse
       };
     } catch (error: any) {
       console.error('[Crypto Payout] Error:', error);
-      return { success: false, error: error.message };
+
+      // Provide helpful error messages
+      let errorMessage = error.message;
+      if (error.message.includes('not configured') || error.message.includes('API key')) {
+        errorMessage = 'Crypto payment provider is not configured. Please contact support to enable crypto payouts.';
+      }
+
+      return { success: false, error: errorMessage };
     }
   }
 

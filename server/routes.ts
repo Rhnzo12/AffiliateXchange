@@ -3642,6 +3642,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Crypto payment routes
+  app.get("/api/crypto/exchange-rates", async (req, res) => {
+    try {
+      const { getExchangeRates } = await import('./cryptoPaymentService');
+      const result = await getExchangeRates();
+
+      if (!result.success) {
+        return res.status(500).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        rates: result.rates,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      console.error('[Crypto] Exchange rates error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.get("/api/crypto/networks", async (req, res) => {
+    try {
+      const { cryptoPaymentService } = await import('./cryptoPaymentService');
+      const networks = cryptoPaymentService.getSupportedNetworks();
+
+      res.json({
+        success: true,
+        networks,
+      });
+    } catch (error: any) {
+      console.error('[Crypto] Networks error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/crypto/validate-address", async (req, res) => {
+    try {
+      const { address, network } = req.body;
+
+      if (!address || !network) {
+        return res.status(400).json({
+          valid: false,
+          error: 'Address and network are required',
+        });
+      }
+
+      const { validateWalletAddress } = await import('./cryptoPaymentService');
+      const result = validateWalletAddress(address, network);
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('[Crypto] Validate address error:', error);
+      res.status(500).json({
+        valid: false,
+        error: error.message,
+      });
+    }
+  });
+
+  app.get("/api/crypto/estimate-fee/:network", async (req, res) => {
+    try {
+      const { network } = req.params;
+
+      const { cryptoPaymentService } = await import('./cryptoPaymentService');
+      const result = await cryptoPaymentService.estimateTransactionFee(network as any);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        network,
+        estimatedFeeUsd: result.estimatedFeeUsd,
+        estimatedFeeCrypto: result.estimatedFeeCrypto,
+      });
+    } catch (error: any) {
+      console.error('[Crypto] Estimate fee error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.post("/api/crypto/convert", async (req, res) => {
+    try {
+      const { usdAmount, cryptoCurrency } = req.body;
+
+      if (!usdAmount || !cryptoCurrency) {
+        return res.status(400).json({
+          success: false,
+          error: 'usdAmount and cryptoCurrency are required',
+        });
+      }
+
+      const { convertUsdToCrypto } = await import('./cryptoPaymentService');
+      const result = await convertUsdToCrypto(parseFloat(usdAmount), cryptoCurrency);
+
+      res.json(result);
+    } catch (error: any) {
+      console.error('[Crypto] Convert error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
+
   // Payment routes for creators
   app.get("/api/payments/creator", requireAuth, requireRole('creator'), async (req, res) => {
     try {
