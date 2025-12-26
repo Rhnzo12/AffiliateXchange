@@ -728,7 +728,7 @@ export default function AdminAnalytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold font-mono text-green-600">
-                    ${(analytics?.financial?.totalRevenue || 0).toFixed(2)}
+                    CA${(analytics?.financial?.totalRevenue || 0).toFixed(2)}
                   </div>
                   <div className="flex items-center text-xs text-muted-foreground mt-1">
                     {(analytics?.financial?.revenueGrowth || 0) >= 0 ? (
@@ -758,7 +758,7 @@ export default function AdminAnalytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold font-mono">
-                    ${(analytics?.financial?.listingFees || 0).toFixed(2)}
+                    CA${(analytics?.financial?.listingFees || 0).toFixed(2)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">One-time offer fees</p>
                 </CardContent>
@@ -771,7 +771,7 @@ export default function AdminAnalytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold font-mono text-blue-600">
-                    ${((analytics?.financial?.affiliatePlatformFees || 0) + (analytics?.financial?.affiliateProcessingFees || 0)).toFixed(2)}
+                    CA${((analytics?.financial?.affiliatePlatformFees || 0) + (analytics?.financial?.affiliateProcessingFees || 0)).toFixed(2)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {analytics?.financial?.affiliateTransactionCount || 0} transactions
@@ -786,7 +786,7 @@ export default function AdminAnalytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold font-mono text-purple-600">
-                    ${((analytics?.financial?.retainerPlatformFees || 0) + (analytics?.financial?.retainerProcessingFees || 0)).toFixed(2)}
+                    CA${((analytics?.financial?.retainerPlatformFees || 0) + (analytics?.financial?.retainerProcessingFees || 0)).toFixed(2)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {analytics?.financial?.retainerTransactionCount || 0} transactions
@@ -804,14 +804,14 @@ export default function AdminAnalytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold font-mono">
-                    ${(analytics?.financial?.totalPayouts || 0).toFixed(2)}
+                    CA${(analytics?.financial?.totalPayouts || 0).toFixed(2)}
                   </div>
                   <div className="flex gap-2 mt-2 text-xs">
                     <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                      Affiliate: ${(analytics?.financial?.affiliatePayouts || 0).toFixed(2)}
+                      Affiliate: CA${(analytics?.financial?.affiliatePayouts || 0).toFixed(2)}
                     </span>
                     <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
-                      Retainer: ${(analytics?.financial?.retainerPayouts || 0).toFixed(2)}
+                      Retainer: CA${(analytics?.financial?.retainerPayouts || 0).toFixed(2)}
                     </span>
                   </div>
                 </CardContent>
@@ -824,14 +824,14 @@ export default function AdminAnalytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold font-mono text-yellow-600">
-                    ${(analytics?.financial?.pendingPayouts || 0).toFixed(2)}
+                    CA${(analytics?.financial?.pendingPayouts || 0).toFixed(2)}
                   </div>
                   <div className="flex gap-2 mt-2 text-xs">
                     <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                      Affiliate: ${(analytics?.financial?.affiliatePendingPayouts || 0).toFixed(2)}
+                      Affiliate: CA${(analytics?.financial?.affiliatePendingPayouts || 0).toFixed(2)}
                     </span>
                     <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
-                      Retainer: ${(analytics?.financial?.retainerPendingPayouts || 0).toFixed(2)}
+                      Retainer: CA${(analytics?.financial?.retainerPendingPayouts || 0).toFixed(2)}
                     </span>
                   </div>
                 </CardContent>
@@ -843,14 +843,14 @@ export default function AdminAnalytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold font-mono text-green-600">
-                    ${(analytics?.financial?.completedPayouts || 0).toFixed(2)}
+                    CA${(analytics?.financial?.completedPayouts || 0).toFixed(2)}
                   </div>
                   <div className="flex gap-2 mt-2 text-xs">
                     <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                      Affiliate: ${(analytics?.financial?.affiliateCompletedPayouts || 0).toFixed(2)}
+                      Affiliate: CA${(analytics?.financial?.affiliateCompletedPayouts || 0).toFixed(2)}
                     </span>
                     <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
-                      Retainer: ${(analytics?.financial?.retainerCompletedPayouts || 0).toFixed(2)}
+                      Retainer: CA${(analytics?.financial?.retainerCompletedPayouts || 0).toFixed(2)}
                     </span>
                   </div>
                 </CardContent>
@@ -862,7 +862,7 @@ export default function AdminAnalytics() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold font-mono text-red-600">
-                    ${(analytics?.financial?.disputedPayments || 0).toFixed(2)}
+                    CA${(analytics?.financial?.disputedPayments || 0).toFixed(2)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Requiring resolution</p>
                 </CardContent>
@@ -888,7 +888,7 @@ export default function AdminAnalytics() {
                             border: "1px solid hsl(var(--border))",
                             borderRadius: "6px",
                           }}
-                          formatter={(value: any) => [`$${Number(value).toFixed(2)}`, ""]}
+                          formatter={(value: any) => [`CA$${Number(value).toFixed(2)}`, ""]}
                         />
                         <Area
                           type="monotone"
@@ -1271,7 +1271,7 @@ export default function AdminAnalytics() {
                           </div>
                           <div className="text-right">
                             <div className="font-semibold font-mono text-green-600">
-                              ${creator.earnings.toFixed(2)}
+                              CA${creator.earnings.toFixed(2)}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {creator.clicks} clicks | {creator.conversions} conv.
@@ -1308,7 +1308,7 @@ export default function AdminAnalytics() {
                           </div>
                           <div className="text-right">
                             <div className="font-semibold font-mono">
-                              ${company.spend.toFixed(2)}
+                              CA${company.spend.toFixed(2)}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {company.creators} creators
