@@ -845,6 +845,17 @@ export default function Browse() {
 
         {/* Filters Row */}
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap sm:flex-nowrap">
+          <div className="relative flex-1 min-w-0 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search offers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-muted/50"
+              data-testid="input-search-offers"
+            />
+          </div>
+
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-full sm:w-52" data-testid="select-sort">
               <SelectValue placeholder="Sort by" />
@@ -1043,17 +1054,6 @@ export default function Browse() {
               </ScrollArea>
             </SheetContent>
           </Sheet>
-
-          <div className="relative flex-1 min-w-0 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search offers..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-muted/50"
-              data-testid="input-search-offers"
-            />
-          </div>
 
           <Button
             variant="outline"
