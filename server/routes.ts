@@ -3772,6 +3772,211 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wire/ACH Bank Account Verification routes
+  app.post("/api/wire-ach/create-bank-account", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const {
+        routingNumber,
+        accountNumber,
+        accountHolderName,
+        accountHolderType,
+        accountType,
+        country,
+        currency,
+        paymentSettingId
+      } = req.body;
+
+      if (!routingNumber || !accountNumber || !accountHolderName) {
+        return res.status(400).json({
+          success: false,
+          error: 'Routing number, account number, and account holder name are required',
+        });
+      }
+
+      const { wireAchPaymentService } = await import('./wireAchPaymentService');
+
+      // Create bank account with verification
+      const result = await wireAchPaymentService.createBankAccountWithVerification(
+        userId,
+        {
+          routingNumber,
+          accountNumber,
+          accountHolderName,
+          accountHolderType: accountHolderType || 'individual',
+          accountType: accountType || 'checking',
+          country: country || 'US',
+          currency: currency || 'usd',
+        }
+      );
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          error: result.error,
+        });
+      }
+
+      // Update payment setting with bank account ID and verification status
+      if (paymentSettingId) {
+        await storage.updatePaymentSetting(paymentSettingId, {
+          stripeBankAccountId: result.bankAccountId,
+          bankVerificationStatus: 'pending',
+          bankVerificationMethod: 'micro_deposits',
+          bankMicroDepositsStatus: 'sent',
+          bankAccountHolderName: accountHolderName,
+          bankAccountHolderType: accountHolderType || 'individual',
+          bankAccountType: accountType || 'checking',
+          bankCountry: country || 'US',
+          bankCurrency: currency || 'usd',
+        });
+      }
+
+      res.json({
+        success: true,
+        bankAccountId: result.bankAccountId,
+        verificationStatus: result.verificationStatus,
+        message: 'Bank account created. Two small deposits will be sent to your account within 1-2 business days. Please verify the amounts to complete setup.',
+      });
+    } catch (error: any) {
+      console.error('[Wire/ACH] Create bank account error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
+
+  app.post("/api/wire-ach/verify-micro-deposits", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { bankAccountId, amount1, amount2, paymentSettingId } = req.body;
+
+      if (!bankAccountId || amount1 === undefined || amount2 === undefined) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bank account ID and both deposit amounts are required',
+        });
+      }
+
+      // Validate amounts are numbers
+      const amt1 = parseInt(amount1, 10);
+      const amt2 = parseInt(amount2, 10);
+
+      if (isNaN(amt1) || isNaN(amt2) || amt1 < 1 || amt2 < 1 || amt1 > 99 || amt2 > 99) {
+        return res.status(400).json({
+          success: false,
+          error: 'Deposit amounts must be between 1 and 99 cents',
+        });
+      }
+
+      const { wireAchPaymentService } = await import('./wireAchPaymentService');
+
+      const result = await wireAchPaymentService.verifyBankAccountWithMicroDeposits(
+        userId,
+        bankAccountId,
+        amt1,
+        amt2
+      );
+
+      if (!result.success || !result.verified) {
+        // Update payment setting with failed status if we have the ID
+        if (paymentSettingId) {
+          await storage.updatePaymentSetting(paymentSettingId, {
+            bankMicroDepositsStatus: 'failed',
+          });
+        }
+
+        return res.status(400).json({
+          success: false,
+          verified: false,
+          error: result.error || 'Verification failed. Please check the amounts and try again.',
+        });
+      }
+
+      // Update payment setting with verified status
+      if (paymentSettingId) {
+        await storage.updatePaymentSetting(paymentSettingId, {
+          bankVerificationStatus: 'verified',
+          bankMicroDepositsStatus: 'verified',
+        });
+      }
+
+      res.json({
+        success: true,
+        verified: true,
+        message: 'Bank account verified successfully! You can now receive Wire/ACH payments.',
+      });
+    } catch (error: any) {
+      console.error('[Wire/ACH] Verify micro-deposits error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
+
+  app.get("/api/wire-ach/verification-status/:paymentSettingId", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { paymentSettingId } = req.params;
+
+      // Get payment setting
+      const allSettings = await storage.getPaymentSettings(userId);
+      const setting = allSettings.find(s => s.id === paymentSettingId);
+
+      if (!setting) {
+        return res.status(404).json({
+          success: false,
+          error: 'Payment setting not found',
+        });
+      }
+
+      if (setting.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Unauthorized',
+        });
+      }
+
+      // If we have a Stripe bank account ID, get live status from Stripe
+      if (setting.stripeBankAccountId) {
+        const { wireAchPaymentService } = await import('./wireAchPaymentService');
+        const statusResult = await wireAchPaymentService.getBankAccountVerificationStatus(
+          userId,
+          setting.stripeBankAccountId
+        );
+
+        if (statusResult.success) {
+          return res.json({
+            success: true,
+            verificationStatus: statusResult.status,
+            bankAccountId: setting.stripeBankAccountId,
+            last4: statusResult.last4,
+            bankName: statusResult.bankName,
+            isVerified: statusResult.status === 'verified',
+            isPending: statusResult.status === 'new' || statusResult.status === 'validated',
+          });
+        }
+      }
+
+      // Return stored status
+      res.json({
+        success: true,
+        verificationStatus: setting.bankVerificationStatus || 'not_started',
+        bankAccountId: setting.stripeBankAccountId,
+        isVerified: setting.bankVerificationStatus === 'verified',
+        isPending: setting.bankVerificationStatus === 'pending',
+      });
+    } catch (error: any) {
+      console.error('[Wire/ACH] Verification status error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  });
+
   // Crypto payment routes
   app.get("/api/crypto/exchange-rates", async (req, res) => {
     try {

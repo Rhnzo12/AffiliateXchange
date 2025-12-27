@@ -600,6 +600,9 @@ export const paymentSettings = pgTable("payment_settings", {
   bankName: varchar("bank_name"), // Name of the bank
   bankCountry: varchar("bank_country"), // Country code (US, CA, etc.)
   bankCurrency: varchar("bank_currency"), // Currency code (USD, CAD, etc.)
+  bankVerificationStatus: varchar("bank_verification_status"), // 'pending', 'verified', 'failed'
+  bankVerificationMethod: varchar("bank_verification_method"), // 'micro_deposits', 'instant'
+  bankMicroDepositsStatus: varchar("bank_micro_deposits_status"), // 'pending', 'sent', 'verified', 'failed'
   paypalEmail: varchar("paypal_email"),
   cryptoWalletAddress: varchar("crypto_wallet_address"),
   cryptoNetwork: varchar("crypto_network"),

@@ -826,6 +826,8 @@ function PaymentMethodSettings({
   onDeletePaymentMethod,
   onSetPrimary,
   onUpgradeETransfer,
+  onVerifyWireAccount,
+  onVerifyMicroDeposits,
   isSubmitting,
   title = "Payment Methods",
   emptyDescription = "Add a payment method to receive payouts",
@@ -850,6 +852,8 @@ function PaymentMethodSettings({
   onDeletePaymentMethod?: (method: PaymentMethod) => void;
   onSetPrimary?: (method: PaymentMethod) => void;
   onUpgradeETransfer?: (method: PaymentMethod) => void;
+  onVerifyWireAccount?: (method: PaymentMethod) => void;
+  onVerifyMicroDeposits?: (method: PaymentMethod) => void;
   isSubmitting: boolean;
   title?: string;
   emptyDescription?: string;
@@ -897,23 +901,41 @@ function PaymentMethodSettings({
           <div className="mt-6 space-y-4">
             {paymentMethods.map((method) => {
               const needsStripeSetup = method.payoutMethod === 'etransfer' && !method.stripeAccountId;
+              const needsWireVerification = method.payoutMethod === 'wire' && method.bankVerificationStatus !== 'verified';
+              const isWirePending = method.payoutMethod === 'wire' && method.bankVerificationStatus === 'pending';
+              const needsSetup = needsStripeSetup || needsWireVerification;
 
               return (
                 <div
                   key={method.id}
                   className={`flex flex-col rounded-lg border-2 p-4 ${
-                    needsStripeSetup ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'
+                    needsSetup ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'
                   }`}
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4 min-w-0">
-                      <CreditCard className={`h-5 w-5 flex-shrink-0 ${needsStripeSetup ? 'text-yellow-600' : 'text-gray-400'}`} />
+                      <CreditCard className={`h-5 w-5 flex-shrink-0 ${needsSetup ? 'text-yellow-600' : 'text-gray-400'}`} />
                       <div className="min-w-0">
                         <div className="font-medium capitalize text-gray-900 flex flex-wrap items-center gap-2">
                           {method.payoutMethod.replace("_", " ")}
                           {needsStripeSetup && (
                             <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
                               Setup Required
+                            </Badge>
+                          )}
+                          {needsWireVerification && !isWirePending && (
+                            <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                              Verification Required
+                            </Badge>
+                          )}
+                          {isWirePending && (
+                            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                              Pending Verification
+                            </Badge>
+                          )}
+                          {method.payoutMethod === 'wire' && method.bankVerificationStatus === 'verified' && (
+                            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                              Verified
                             </Badge>
                           )}
                         </div>
@@ -924,7 +946,7 @@ function PaymentMethodSettings({
                       {method.isDefault ? (
                         <Badge>Default</Badge>
                       ) : (
-                        onSetPrimary && !needsStripeSetup && (
+                        onSetPrimary && !needsSetup && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -959,6 +981,36 @@ function PaymentMethodSettings({
                         className="bg-yellow-600 hover:bg-yellow-700 text-white w-full sm:w-auto"
                       >
                         Complete Setup
+                      </Button>
+                    </div>
+                  )}
+                  {needsWireVerification && !isWirePending && (
+                    <div className="mt-3 pt-3 border-t border-yellow-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-2 text-sm text-yellow-800">
+                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                        <span>Bank account verification required to receive payments</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => onVerifyWireAccount && onVerifyWireAccount(method)}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white w-full sm:w-auto"
+                      >
+                        Start Verification
+                      </Button>
+                    </div>
+                  )}
+                  {isWirePending && (
+                    <div className="mt-3 pt-3 border-t border-blue-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-2 text-sm text-blue-800">
+                        <Clock className="h-4 w-4 flex-shrink-0" />
+                        <span>Two small deposits have been sent to your account. Enter the amounts to verify.</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => onVerifyMicroDeposits && onVerifyMicroDeposits(method)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
+                      >
+                        Verify Amounts
                       </Button>
                     </div>
                   )}
