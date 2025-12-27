@@ -87,6 +87,17 @@ type PaymentMethod = {
   cryptoNetwork?: string;
   stripeAccountId?: string;
   isDefault?: boolean;
+  // Wire/ACH bank verification fields
+  bankAccountHolderName?: string;
+  bankAccountType?: string;
+  bankAccountHolderType?: string;
+  bankName?: string;
+  bankCountry?: string;
+  bankCurrency?: string;
+  stripeBankAccountId?: string;
+  bankVerificationStatus?: string;
+  bankVerificationMethod?: string;
+  bankMicroDepositsStatus?: string;
 };
 
 type AdminFundingMethod = {
@@ -2809,6 +2820,11 @@ export default function PaymentSettings() {
     title: "",
     description: "",
   });
+  // Wire/ACH verification states
+  const [microDepositsModalOpen, setMicroDepositsModalOpen] = useState(false);
+  const [verifyingPaymentMethod, setVerifyingPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [microDepositAmount1, setMicroDepositAmount1] = useState("");
+  const [microDepositAmount2, setMicroDepositAmount2] = useState("");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -3124,6 +3140,115 @@ export default function PaymentSettings() {
     upgradeETransferMutation.mutate(method);
   };
 
+  // Wire/ACH verification mutations
+  const createWireBankAccountMutation = useMutation({
+    mutationFn: async (paymentMethod: PaymentMethod) => {
+      const res = await apiRequest("POST", "/api/wire-ach/create-bank-account", {
+        paymentSettingId: paymentMethod.id,
+        routingNumber: paymentMethod.bankRoutingNumber,
+        accountNumber: paymentMethod.bankAccountNumber,
+        accountHolderName: paymentMethod.bankAccountHolderName || user?.firstName + " " + user?.lastName,
+        accountHolderType: paymentMethod.bankAccountHolderType || "individual",
+        accountType: paymentMethod.bankAccountType || "checking",
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ["/api/payment-settings"] });
+        if (data.verificationMethod === "micro_deposits") {
+          toast({
+            title: "Verification Started",
+            description: "Two small deposits will be sent to your account within 1-2 business days. You'll need to verify these amounts.",
+          });
+        } else if (data.verified) {
+          toast({
+            title: "Bank Account Verified",
+            description: "Your bank account has been instantly verified and is ready to receive payouts.",
+          });
+        }
+      } else {
+        setErrorDialog({
+          open: true,
+          title: "Verification Failed",
+          description: data.error || "Failed to start bank account verification",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      setErrorDialog({
+        open: true,
+        title: "Error",
+        description: error.message || "Failed to create bank account",
+      });
+    },
+  });
+
+  const verifyMicroDepositsMutation = useMutation({
+    mutationFn: async ({ paymentSettingId, amount1, amount2 }: { paymentSettingId: number; amount1: number; amount2: number }) => {
+      const res = await apiRequest("POST", "/api/wire-ach/verify-micro-deposits", {
+        paymentSettingId,
+        amount1,
+        amount2,
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setMicroDepositsModalOpen(false);
+      setMicroDepositAmount1("");
+      setMicroDepositAmount2("");
+      setVerifyingPaymentMethod(null);
+      if (data.success && data.verified) {
+        queryClient.invalidateQueries({ queryKey: ["/api/payment-settings"] });
+        toast({
+          title: "Bank Account Verified",
+          description: "Your bank account has been verified and is now ready to receive payouts.",
+        });
+      } else {
+        setErrorDialog({
+          open: true,
+          title: "Verification Failed",
+          description: data.error || "The amounts you entered do not match. Please check and try again.",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      setErrorDialog({
+        open: true,
+        title: "Error",
+        description: error.message || "Failed to verify micro-deposits",
+      });
+    },
+  });
+
+  const handleVerifyWireAccount = (method: PaymentMethod) => {
+    createWireBankAccountMutation.mutate(method);
+  };
+
+  const handleVerifyMicroDeposits = (method: PaymentMethod) => {
+    setVerifyingPaymentMethod(method);
+    setMicroDepositsModalOpen(true);
+  };
+
+  const submitMicroDeposits = () => {
+    if (!verifyingPaymentMethod) return;
+    const amount1 = parseFloat(microDepositAmount1);
+    const amount2 = parseFloat(microDepositAmount2);
+    if (isNaN(amount1) || isNaN(amount2) || amount1 <= 0 || amount2 <= 0) {
+      setErrorDialog({
+        open: true,
+        title: "Invalid Amounts",
+        description: "Please enter valid deposit amounts (in cents, e.g., 32 for $0.32)",
+      });
+      return;
+    }
+    verifyMicroDepositsMutation.mutate({
+      paymentSettingId: verifyingPaymentMethod.id,
+      amount1,
+      amount2,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -3195,6 +3320,8 @@ export default function PaymentSettings() {
               onDeletePaymentMethod={handleDeleteClick}
               onSetPrimary={handleSetPrimary}
               onUpgradeETransfer={handleUpgradeETransfer}
+              onVerifyWireAccount={handleVerifyWireAccount}
+              onVerifyMicroDeposits={handleVerifyMicroDeposits}
               isSubmitting={addPaymentMethodMutation.isPending}
             />
           )}
@@ -3263,6 +3390,8 @@ export default function PaymentSettings() {
                 onAddPaymentMethod={() => addPaymentMethodMutation.mutate()}
                 onDeletePaymentMethod={handleDeleteClick}
                 onSetPrimary={handleSetPrimary}
+                onVerifyWireAccount={handleVerifyWireAccount}
+                onVerifyMicroDeposits={handleVerifyMicroDeposits}
                 isSubmitting={addPaymentMethodMutation.isPending}
                 emptyDescription="Add a payment method to fund creator payouts"
                 showFeeBreakdown={false}
@@ -3326,6 +3455,57 @@ export default function PaymentSettings() {
               className="bg-red-600 hover:bg-red-700"
             >
               {deletePaymentMethodMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Micro-deposits verification modal */}
+      <AlertDialog open={microDepositsModalOpen} onOpenChange={setMicroDepositsModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Verify Bank Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter the two small deposit amounts that were sent to your bank account.
+              The amounts are in cents (e.g., enter 32 for $0.32).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="deposit1">First Deposit Amount (cents)</Label>
+              <Input
+                id="deposit1"
+                type="number"
+                placeholder="e.g., 32"
+                value={microDepositAmount1}
+                onChange={(e) => setMicroDepositAmount1(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deposit2">Second Deposit Amount (cents)</Label>
+              <Input
+                id="deposit2"
+                type="number"
+                placeholder="e.g., 45"
+                value={microDepositAmount2}
+                onChange={(e) => setMicroDepositAmount2(e.target.value)}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setMicroDepositsModalOpen(false);
+              setMicroDepositAmount1("");
+              setMicroDepositAmount2("");
+              setVerifyingPaymentMethod(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={submitMicroDeposits}
+              disabled={verifyMicroDepositsMutation.isPending}
+            >
+              {verifyMicroDepositsMutation.isPending ? "Verifying..." : "Verify"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
