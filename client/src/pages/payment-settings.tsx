@@ -913,7 +913,10 @@ function PaymentMethodSettings({
             {paymentMethods.map((method) => {
               const needsStripeSetup = method.payoutMethod === 'etransfer' && !method.stripeAccountId;
               const needsWireVerification = method.payoutMethod === 'wire' && method.bankVerificationStatus !== 'verified';
-              const isWirePending = method.payoutMethod === 'wire' && method.bankVerificationStatus === 'pending';
+              // Only show "Verify Amounts" if stripeBankAccountId exists and status is pending
+              const isWirePending = method.payoutMethod === 'wire' &&
+                method.bankVerificationStatus === 'pending' &&
+                !!method.stripeBankAccountId;
               const needsSetup = needsStripeSetup || needsWireVerification;
 
               return (
@@ -3185,9 +3188,10 @@ export default function PaymentSettings() {
   });
 
   const verifyMicroDepositsMutation = useMutation({
-    mutationFn: async ({ paymentSettingId, amount1, amount2 }: { paymentSettingId: number; amount1: number; amount2: number }) => {
+    mutationFn: async ({ paymentSettingId, bankAccountId, amount1, amount2 }: { paymentSettingId: number; bankAccountId: string; amount1: number; amount2: number }) => {
       const res = await apiRequest("POST", "/api/wire-ach/verify-micro-deposits", {
         paymentSettingId,
+        bankAccountId,
         amount1,
         amount2,
       });
@@ -3232,6 +3236,17 @@ export default function PaymentSettings() {
 
   const submitMicroDeposits = () => {
     if (!verifyingPaymentMethod) return;
+
+    // Check if stripeBankAccountId exists
+    if (!verifyingPaymentMethod.stripeBankAccountId) {
+      setErrorDialog({
+        open: true,
+        title: "Bank Account Not Set Up",
+        description: "Please click 'Verify Account' first to set up your bank account with Stripe before verifying micro-deposits.",
+      });
+      return;
+    }
+
     const amount1 = parseFloat(microDepositAmount1);
     const amount2 = parseFloat(microDepositAmount2);
     if (isNaN(amount1) || isNaN(amount2) || amount1 <= 0 || amount2 <= 0) {
@@ -3244,6 +3259,7 @@ export default function PaymentSettings() {
     }
     verifyMicroDepositsMutation.mutate({
       paymentSettingId: verifyingPaymentMethod.id,
+      bankAccountId: verifyingPaymentMethod.stripeBankAccountId,
       amount1,
       amount2,
     });
