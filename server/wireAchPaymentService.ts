@@ -557,6 +557,216 @@ export class WireAchPaymentService {
   }
 
   /**
+   * Create a bank account and initiate micro-deposit verification
+   * Stripe will send two small deposits to verify account ownership
+   */
+  async createBankAccountWithVerification(
+    customerId: string,
+    bankInfo: BankAccountInfo
+  ): Promise<{
+    success: boolean;
+    bankAccountId?: string;
+    verificationStatus?: string;
+    error?: string;
+  }> {
+    try {
+      console.log(`[Wire/ACH] Creating bank account with verification for customer ${customerId}`);
+
+      // Validate bank account first
+      const validation = this.validateBankAccount(bankInfo);
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: `Bank account validation failed: ${validation.errors.join(', ')}`
+        };
+      }
+
+      // Sandbox mode: simulate verification initiation
+      if (isSandboxMode()) {
+        const mockBankAccountId = `ba_sandbox_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        console.log(`[Wire/ACH] 🏖️ SANDBOX MODE: Created mock bank account ${mockBankAccountId} with pending verification`);
+        return {
+          success: true,
+          bankAccountId: mockBankAccountId,
+          verificationStatus: 'pending'
+        };
+      }
+
+      const stripe = getStripeClient();
+
+      // First, ensure customer exists or create one
+      let customer;
+      try {
+        customer = await stripe.customers.retrieve(customerId);
+      } catch {
+        // Customer doesn't exist, create one
+        customer = await stripe.customers.create({
+          metadata: { userId: customerId }
+        });
+      }
+
+      // Create bank account source for the customer
+      const bankAccount = await stripe.customers.createSource(
+        (customer as Stripe.Customer).id,
+        {
+          source: {
+            object: 'bank_account',
+            country: bankInfo.country || 'US',
+            currency: bankInfo.currency || 'usd',
+            account_holder_name: bankInfo.accountHolderName,
+            account_holder_type: bankInfo.accountHolderType,
+            routing_number: bankInfo.routingNumber,
+            account_number: bankInfo.accountNumber,
+          } as any,
+        }
+      );
+
+      console.log(`[Wire/ACH] Created bank account ${bankAccount.id} - verification status: ${(bankAccount as Stripe.BankAccount).status}`);
+
+      return {
+        success: true,
+        bankAccountId: bankAccount.id,
+        verificationStatus: (bankAccount as Stripe.BankAccount).status // 'new', 'validated', 'verified', 'verification_failed', 'errored'
+      };
+    } catch (error: any) {
+      console.error('[Wire/ACH] Error creating bank account with verification:', error.message);
+      return {
+        success: false,
+        error: this.formatStripeError(error)
+      };
+    }
+  }
+
+  /**
+   * Verify bank account using micro-deposit amounts
+   * User must provide the two small deposit amounts sent by Stripe
+   */
+  async verifyBankAccountWithMicroDeposits(
+    customerId: string,
+    bankAccountId: string,
+    amount1: number,
+    amount2: number
+  ): Promise<{
+    success: boolean;
+    verified?: boolean;
+    error?: string;
+  }> {
+    try {
+      console.log(`[Wire/ACH] Verifying bank account ${bankAccountId} with micro-deposits`);
+
+      // Sandbox mode: simulate successful verification
+      if (isSandboxMode()) {
+        // In sandbox mode, use test amounts 32 and 45 cents
+        const testAmount1 = 32;
+        const testAmount2 = 45;
+
+        if (amount1 === testAmount1 && amount2 === testAmount2) {
+          console.log(`[Wire/ACH] 🏖️ SANDBOX MODE: Bank account verified successfully`);
+          return { success: true, verified: true };
+        } else {
+          console.log(`[Wire/ACH] 🏖️ SANDBOX MODE: Incorrect amounts. Expected ${testAmount1} and ${testAmount2} cents`);
+          return {
+            success: false,
+            verified: false,
+            error: `Incorrect amounts. In sandbox mode, use 32 and 45 cents.`
+          };
+        }
+      }
+
+      const stripe = getStripeClient();
+
+      // Verify the bank account with the micro-deposit amounts
+      const bankAccount = await stripe.customers.verifySource(
+        customerId,
+        bankAccountId,
+        {
+          amounts: [amount1, amount2], // Amounts in cents
+        }
+      );
+
+      const verified = (bankAccount as Stripe.BankAccount).status === 'verified';
+      console.log(`[Wire/ACH] Bank account verification result: ${(bankAccount as Stripe.BankAccount).status}`);
+
+      return {
+        success: true,
+        verified
+      };
+    } catch (error: any) {
+      console.error('[Wire/ACH] Error verifying bank account:', error.message);
+
+      let errorMessage = this.formatStripeError(error);
+      if (error.code === 'bank_account_verification_failed') {
+        errorMessage = 'Verification failed. Please check the deposit amounts and try again. You have limited attempts.';
+      }
+
+      return {
+        success: false,
+        verified: false,
+        error: errorMessage
+      };
+    }
+  }
+
+  /**
+   * Get bank account verification status
+   */
+  async getBankAccountVerificationStatus(
+    customerId: string,
+    bankAccountId: string
+  ): Promise<{
+    success: boolean;
+    status?: string;
+    last4?: string;
+    bankName?: string;
+    error?: string;
+  }> {
+    try {
+      // Sandbox mode
+      if (isSandboxMode()) {
+        return {
+          success: true,
+          status: 'verified',
+          last4: '6789',
+          bankName: 'Test Bank'
+        };
+      }
+
+      const stripe = getStripeClient();
+      const bankAccount = await stripe.customers.retrieveSource(
+        customerId,
+        bankAccountId
+      ) as Stripe.BankAccount;
+
+      return {
+        success: true,
+        status: bankAccount.status,
+        last4: bankAccount.last4,
+        bankName: bankAccount.bank_name || undefined
+      };
+    } catch (error: any) {
+      console.error('[Wire/ACH] Error getting bank account status:', error.message);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Check if bank account is verified and ready for payouts
+   */
+  isBankAccountVerified(status: string | undefined): boolean {
+    return status === 'verified';
+  }
+
+  /**
+   * Check if bank account verification is pending (micro-deposits sent)
+   */
+  isBankAccountPendingVerification(status: string | undefined): boolean {
+    return status === 'new' || status === 'validated';
+  }
+
+  /**
    * Format Stripe errors into user-friendly messages
    */
   private formatStripeError(error: any): string {
@@ -578,6 +788,10 @@ export class WireAchPaymentService {
 
     if (error.code === 'bank_account_unusable') {
       return 'This bank account cannot be used for payouts. Please add a different bank account.';
+    }
+
+    if (error.code === 'bank_account_verification_failed') {
+      return 'Bank account verification failed. The deposit amounts were incorrect.';
     }
 
     if (error.message?.includes('routing_number')) {

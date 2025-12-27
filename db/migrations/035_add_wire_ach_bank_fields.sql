@@ -9,7 +9,10 @@ ADD COLUMN IF NOT EXISTS bank_account_holder_type VARCHAR(20),
 ADD COLUMN IF NOT EXISTS bank_name VARCHAR(255),
 ADD COLUMN IF NOT EXISTS bank_country VARCHAR(10),
 ADD COLUMN IF NOT EXISTS bank_currency VARCHAR(10),
-ADD COLUMN IF NOT EXISTS stripe_bank_account_id VARCHAR(255);
+ADD COLUMN IF NOT EXISTS stripe_bank_account_id VARCHAR(255),
+ADD COLUMN IF NOT EXISTS bank_verification_status VARCHAR(20),
+ADD COLUMN IF NOT EXISTS bank_verification_method VARCHAR(20),
+ADD COLUMN IF NOT EXISTS bank_micro_deposits_status VARCHAR(20);
 
 -- Add comments for documentation
 COMMENT ON COLUMN payment_settings.bank_account_holder_name IS 'Name on the bank account for wire/ACH transfers';
@@ -19,3 +22,6 @@ COMMENT ON COLUMN payment_settings.bank_name IS 'Name of the bank institution';
 COMMENT ON COLUMN payment_settings.bank_country IS 'Country code of the bank (US, CA, etc.)';
 COMMENT ON COLUMN payment_settings.bank_currency IS 'Currency code for the account (USD, CAD, etc.)';
 COMMENT ON COLUMN payment_settings.stripe_bank_account_id IS 'Stripe bank account ID for wire/ACH payouts';
+COMMENT ON COLUMN payment_settings.bank_verification_status IS 'Verification status: pending, verified, failed';
+COMMENT ON COLUMN payment_settings.bank_verification_method IS 'Verification method: micro_deposits or instant';
+COMMENT ON COLUMN payment_settings.bank_micro_deposits_status IS 'Micro-deposit status: pending, sent, verified, failed';
