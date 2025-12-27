@@ -3,6 +3,7 @@
 import { storage } from "./storage";
 import paypalSdk from '@paypal/payouts-sdk';
 import Stripe from 'stripe';
+import { wireAchPaymentService } from './wireAchPaymentService';
 
 let stripeClient: Stripe | null = null;
 
@@ -447,49 +448,58 @@ export class PaymentProcessorService {
 
   /**
    * Process bank wire/ACH transfer
-   * Uses Stripe Payouts or similar service to send money to bank account
+   * Uses Stripe Payouts API to send money to bank account
    */
   private async processBankTransfer(
     routingNumber: string,
     accountNumber: string,
     amount: number,
     paymentId: string,
-    description: string
+    description: string,
+    accountHolderName?: string,
+    options?: {
+      accountHolderType?: 'individual' | 'company';
+      country?: string;
+      currency?: string;
+      bankName?: string;
+    }
   ): Promise<PaymentResult> {
     try {
       console.log(`[Bank Transfer] Sending $${amount} to account ending in ${accountNumber.slice(-4)}`);
 
-      // In production, use Stripe Payouts API:
-      // const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-      // const payout = await stripe.payouts.create({
-      //   amount: Math.round(amount * 100), // Stripe uses cents
-      //   currency: 'usd',
-      //   destination: bankAccountId, // You'd need to create/connect bank account first
-      //   metadata: {
-      //     payment_id: paymentId,
-      //     description: description
-      //   }
-      // });
-      // return {
-      //   success: true,
-      //   transactionId: payout.id,
-      //   providerResponse: payout
-      // };
+      // Use the Wire/ACH payment service for actual bank transfers
+      const result = await wireAchPaymentService.processWireTransfer(
+        routingNumber,
+        accountNumber,
+        amount,
+        paymentId,
+        description,
+        accountHolderName || 'Creator',
+        {
+          accountHolderType: options?.accountHolderType || 'individual',
+          country: options?.country || 'US',
+          currency: options?.currency || 'usd',
+          metadata: {
+            payment_id: paymentId,
+            bank_name: options?.bankName || 'Unknown',
+          }
+        }
+      );
 
-      const mockTransactionId = `WIRE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      console.log(`[Bank Transfer] SUCCESS - Transaction ID: ${mockTransactionId}`);
+      if (!result.success) {
+        console.error(`[Bank Transfer] Failed: ${result.error}`);
+        return {
+          success: false,
+          error: result.error || 'Wire transfer failed'
+        };
+      }
+
+      console.log(`[Bank Transfer] SUCCESS - Transaction ID: ${result.transactionId}`);
 
       return {
         success: true,
-        transactionId: mockTransactionId,
-        providerResponse: {
-          method: 'wire',
-          routingNumber: routingNumber,
-          accountNumber: `****${accountNumber.slice(-4)}`,
-          amount: amount,
-          timestamp: new Date().toISOString(),
-          note: 'SIMULATED - In production, this would use Stripe Payouts or bank API'
-        }
+        transactionId: result.transactionId!,
+        providerResponse: result.providerResponse
       };
     } catch (error: any) {
       console.error('[Bank Transfer] Error:', error);

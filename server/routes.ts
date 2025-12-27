@@ -3666,6 +3666,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wire/ACH Payment routes
+  app.post("/api/wire-ach/validate-bank-account", requireAuth, async (req, res) => {
+    try {
+      const { routingNumber, accountNumber, accountHolderName, accountHolderType, country } = req.body;
+
+      if (!routingNumber || !accountNumber || !accountHolderName) {
+        return res.status(400).json({
+          valid: false,
+          error: 'Routing number, account number, and account holder name are required',
+        });
+      }
+
+      const { wireAchPaymentService } = await import('./wireAchPaymentService');
+
+      const result = wireAchPaymentService.validateBankAccount({
+        routingNumber,
+        accountNumber,
+        accountHolderName,
+        accountHolderType: accountHolderType || 'individual',
+        country: country || 'US',
+      });
+
+      res.json({
+        valid: result.valid,
+        errors: result.errors,
+      });
+    } catch (error: any) {
+      console.error('[Wire/ACH] Validate bank account error:', error);
+      res.status(500).json({
+        valid: false,
+        error: error.message,
+      });
+    }
+  });
+
+  app.get("/api/wire-ach/supported-countries", async (req, res) => {
+    try {
+      // Return list of supported countries for Wire/ACH
+      res.json({
+        success: true,
+        countries: [
+          { code: 'US', name: 'United States', currency: 'USD', routingFormat: '9 digits (ABA routing number)' },
+          { code: 'CA', name: 'Canada', currency: 'CAD', routingFormat: '8-9 digits (Transit + Institution number)' },
+        ],
+      });
+    } catch (error: any) {
+      console.error('[Wire/ACH] Supported countries error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.get("/api/wire-ach/payout-status/:payoutId", requireAuth, async (req, res) => {
+    try {
+      const { payoutId } = req.params;
+
+      if (!payoutId) {
+        return res.status(400).send("Payout ID is required");
+      }
+
+      const { wireAchPaymentService } = await import('./wireAchPaymentService');
+      const result = await wireAchPaymentService.getPayoutStatus(payoutId);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        status: result.status,
+        arrivalDate: result.arrivalDate,
+        failureMessage: result.failureMessage,
+      });
+    } catch (error: any) {
+      console.error('[Wire/ACH] Payout status error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
+  app.get("/api/wire-ach/transfer-info", async (req, res) => {
+    try {
+      // Return Wire/ACH transfer information for display
+      res.json({
+        success: true,
+        info: {
+          processingTime: '1-2 business days (ACH) / 3-5 business days (Wire)',
+          fees: {
+            ach: 'No additional fees for ACH transfers',
+            wire: 'Wire transfer fees may apply depending on your bank',
+          },
+          minimumAmount: 1.00,
+          maximumAmount: 100000.00,
+          supportedCurrencies: ['USD', 'CAD'],
+          notes: [
+            'Ensure your bank account details are accurate to avoid delays',
+            'ACH transfers are processed on business days only',
+            'Wire transfers may incur additional fees from your bank',
+            'First-time payouts may take longer for verification',
+          ],
+        },
+      });
+    } catch (error: any) {
+      console.error('[Wire/ACH] Transfer info error:', error);
+      res.status(500).send(error.message);
+    }
+  });
+
   // Crypto payment routes
   app.get("/api/crypto/exchange-rates", async (req, res) => {
     try {
