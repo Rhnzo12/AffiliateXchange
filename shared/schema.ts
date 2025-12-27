@@ -594,10 +594,17 @@ export const paymentSettings = pgTable("payment_settings", {
   payoutEmail: varchar("payout_email"),
   bankRoutingNumber: varchar("bank_routing_number"),
   bankAccountNumber: varchar("bank_account_number"),
+  bankAccountHolderName: varchar("bank_account_holder_name"), // Name on the bank account
+  bankAccountType: varchar("bank_account_type"), // 'checking' or 'savings'
+  bankAccountHolderType: varchar("bank_account_holder_type"), // 'individual' or 'company'
+  bankName: varchar("bank_name"), // Name of the bank
+  bankCountry: varchar("bank_country"), // Country code (US, CA, etc.)
+  bankCurrency: varchar("bank_currency"), // Currency code (USD, CAD, etc.)
   paypalEmail: varchar("paypal_email"),
   cryptoWalletAddress: varchar("crypto_wallet_address"),
   cryptoNetwork: varchar("crypto_network"),
   stripeAccountId: varchar("stripe_account_id"), // Stripe Connect account ID for e-transfers
+  stripeBankAccountId: varchar("stripe_bank_account_id"), // Stripe bank account ID for wire/ACH
   taxInformation: jsonb("tax_information"),
   isDefault: boolean("is_default").default(false),
   createdAt: timestamp("created_at").defaultNow(),

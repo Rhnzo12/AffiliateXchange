@@ -578,6 +578,234 @@ function CryptoPaymentFields({
   );
 }
 
+// Wire/ACH payment fields with bank account validation
+function WireAchPaymentFields({
+  bankRoutingNumber,
+  setBankRoutingNumber,
+  bankAccountNumber,
+  setBankAccountNumber,
+}: {
+  bankRoutingNumber: string;
+  setBankRoutingNumber: (value: string) => void;
+  bankAccountNumber: string;
+  setBankAccountNumber: (value: string) => void;
+}) {
+  const [bankCountry, setBankCountry] = useState("US");
+  const [accountHolderName, setAccountHolderName] = useState("");
+  const [accountHolderType, setAccountHolderType] = useState("individual");
+  const [accountType, setAccountType] = useState("checking");
+  const [validation, setValidation] = useState<{
+    valid: boolean;
+    errors: string[];
+    checking: boolean;
+  }>({ valid: false, errors: [], checking: false });
+
+  // Fetch transfer info
+  const { data: transferInfo } = useQuery<{
+    success: boolean;
+    info: {
+      processingTime: string;
+      fees: { ach: string; wire: string };
+      minimumAmount: number;
+      maximumAmount: number;
+      supportedCurrencies: string[];
+      notes: string[];
+    };
+  }>({
+    queryKey: ["/api/wire-ach/transfer-info"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Validate bank account when details change
+  useEffect(() => {
+    if (!bankRoutingNumber || !bankAccountNumber || !accountHolderName) {
+      setValidation({ valid: false, errors: [], checking: false });
+      return;
+    }
+
+    const validateAccount = async () => {
+      setValidation({ valid: false, errors: [], checking: true });
+      try {
+        const response = await fetch("/api/wire-ach/validate-bank-account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            routingNumber: bankRoutingNumber,
+            accountNumber: bankAccountNumber,
+            accountHolderName,
+            accountHolderType,
+            country: bankCountry,
+          }),
+        });
+        const result = await response.json();
+        setValidation({
+          valid: result.valid,
+          errors: result.errors || [],
+          checking: false,
+        });
+      } catch {
+        setValidation({
+          valid: false,
+          errors: ["Failed to validate bank account"],
+          checking: false,
+        });
+      }
+    };
+
+    // Debounce validation
+    const timer = setTimeout(validateAccount, 500);
+    return () => clearTimeout(timer);
+  }, [bankRoutingNumber, bankAccountNumber, accountHolderName, accountHolderType, bankCountry]);
+
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="bank-country">Country</Label>
+        <Select value={bankCountry} onValueChange={setBankCountry}>
+          <SelectTrigger id="bank-country">
+            <SelectValue placeholder="Select country" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="US">United States (USD)</SelectItem>
+            <SelectItem value="CA">Canada (CAD)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="account-holder-name">Account Holder Name</Label>
+        <Input
+          id="account-holder-name"
+          placeholder="John Doe"
+          value={accountHolderName}
+          onChange={(e) => setAccountHolderName(e.target.value)}
+        />
+        <p className="text-xs text-gray-500">Enter the name exactly as it appears on your bank account</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="account-holder-type">Account Holder Type</Label>
+          <Select value={accountHolderType} onValueChange={setAccountHolderType}>
+            <SelectTrigger id="account-holder-type">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="individual">Individual</SelectItem>
+              <SelectItem value="company">Company</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="account-type">Account Type</Label>
+          <Select value={accountType} onValueChange={setAccountType}>
+            <SelectTrigger id="account-type">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="checking">Checking</SelectItem>
+              <SelectItem value="savings">Savings</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="routing">
+          {bankCountry === "CA" ? "Transit & Institution Number" : "Routing Number (ABA)"}
+        </Label>
+        <div className="relative">
+          <Input
+            id="routing"
+            placeholder={bankCountry === "CA" ? "12345-678" : "123456789"}
+            value={bankRoutingNumber}
+            onChange={(e) => setBankRoutingNumber(e.target.value)}
+            className={
+              bankRoutingNumber && !validation.checking
+                ? validation.valid || validation.errors.length === 0
+                  ? ""
+                  : "border-red-500"
+                : ""
+            }
+          />
+        </div>
+        <p className="text-xs text-gray-500">
+          {bankCountry === "CA"
+            ? "5-digit transit number + 3-digit institution number"
+            : "9-digit ABA routing number from your check or bank statement"}
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="account">Account Number</Label>
+        <div className="relative">
+          <Input
+            id="account"
+            placeholder="123456789012"
+            value={bankAccountNumber}
+            onChange={(e) => setBankAccountNumber(e.target.value)}
+            className={
+              bankAccountNumber && !validation.checking
+                ? validation.valid || validation.errors.length === 0
+                  ? ""
+                  : "border-red-500"
+                : ""
+            }
+          />
+          {bankAccountNumber && accountHolderName && bankRoutingNumber && !validation.checking && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {validation.valid ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              ) : validation.errors.length > 0 ? (
+                <XCircle className="h-4 w-4 text-red-500" />
+              ) : null}
+            </div>
+          )}
+          {validation.checking && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Clock className="h-4 w-4 text-gray-400 animate-pulse" />
+            </div>
+          )}
+        </div>
+        {validation.errors.length > 0 && (
+          <div className="text-xs text-red-500 space-y-1">
+            {validation.errors.map((error, index) => (
+              <p key={index}>{error}</p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+        <div className="flex gap-2">
+          <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-900 space-y-2">
+            <p className="font-semibold">Wire/ACH Transfer Info:</p>
+            <ul className="text-xs space-y-1">
+              <li>
+                <strong>Processing time:</strong> {transferInfo?.info?.processingTime || "1-2 business days (ACH) / 3-5 business days (Wire)"}
+              </li>
+              <li>
+                <strong>Minimum amount:</strong> CA${transferInfo?.info?.minimumAmount?.toFixed(2) || "1.00"}
+              </li>
+              <li>
+                <strong>ACH transfers:</strong> No additional fees
+              </li>
+              <li>
+                Ensure your bank account details are accurate to avoid payment delays
+              </li>
+              <li>
+                First-time payouts may take longer for verification
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function PaymentMethodSettings({
   paymentMethods,
   payoutMethod,
@@ -782,26 +1010,12 @@ function PaymentMethodSettings({
           )}
 
           {payoutMethod === "wire" && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="routing">Bank Routing Number</Label>
-                <Input
-                  id="routing"
-                  placeholder="123456789"
-                  value={bankRoutingNumber}
-                  onChange={(e) => setBankRoutingNumber(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="account">Bank Account Number</Label>
-                <Input
-                  id="account"
-                  placeholder="123456789012"
-                  value={bankAccountNumber}
-                  onChange={(e) => setBankAccountNumber(e.target.value)}
-                />
-              </div>
-            </>
+            <WireAchPaymentFields
+              bankRoutingNumber={bankRoutingNumber}
+              setBankRoutingNumber={setBankRoutingNumber}
+              bankAccountNumber={bankAccountNumber}
+              setBankAccountNumber={setBankAccountNumber}
+            />
           )}
 
           {payoutMethod === "paypal" && (
