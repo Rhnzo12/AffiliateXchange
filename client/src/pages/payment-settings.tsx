@@ -840,6 +840,7 @@ function PaymentMethodSettings({
   onVerifyWireAccount,
   onVerifyMicroDeposits,
   isSubmitting,
+  formResetKey = 0,
   title = "Payment Methods",
   emptyDescription = "Add a payment method to receive payouts",
   showFeeBreakdown = true,
@@ -866,6 +867,7 @@ function PaymentMethodSettings({
   onVerifyWireAccount?: (method: PaymentMethod) => void;
   onVerifyMicroDeposits?: (method: PaymentMethod) => void;
   isSubmitting: boolean;
+  formResetKey?: number;
   title?: string;
   emptyDescription?: string;
   showFeeBreakdown?: boolean;
@@ -1077,6 +1079,7 @@ function PaymentMethodSettings({
 
           {payoutMethod === "wire" && (
             <WireAchPaymentFields
+              key={`wire-ach-${formResetKey}`}
               bankRoutingNumber={bankRoutingNumber}
               setBankRoutingNumber={setBankRoutingNumber}
               bankAccountNumber={bankAccountNumber}
@@ -1099,6 +1102,7 @@ function PaymentMethodSettings({
 
           {payoutMethod === "crypto" && (
             <CryptoPaymentFields
+              key={`crypto-${formResetKey}`}
               cryptoWalletAddress={cryptoWalletAddress}
               setCryptoWalletAddress={setCryptoWalletAddress}
               cryptoNetwork={cryptoNetwork}
@@ -2816,6 +2820,7 @@ export default function PaymentSettings() {
   const [paypalEmail, setPaypalEmail] = useState("");
   const [cryptoWalletAddress, setCryptoWalletAddress] = useState("");
   const [cryptoNetwork, setCryptoNetwork] = useState("");
+  const [formResetKey, setFormResetKey] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [paymentMethodToDelete, setPaymentMethodToDelete] = useState<PaymentMethod | null>(null);
   const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; description: string }>({
@@ -2977,12 +2982,16 @@ export default function PaymentSettings() {
         title: "Success",
         description: "Payment method added successfully",
       });
+      // Reset all form fields
+      setPayoutMethod("etransfer");
       setPayoutEmail("");
       setBankRoutingNumber("");
       setBankAccountNumber("");
       setPaypalEmail("");
       setCryptoWalletAddress("");
       setCryptoNetwork("");
+      // Increment form reset key to force remount of child components with internal state
+      setFormResetKey(prev => prev + 1);
       // Redirect to Payment Methods tab
       setActiveTab("settings");
     },
@@ -3339,6 +3348,7 @@ export default function PaymentSettings() {
               onVerifyWireAccount={handleVerifyWireAccount}
               onVerifyMicroDeposits={handleVerifyMicroDeposits}
               isSubmitting={addPaymentMethodMutation.isPending}
+              formResetKey={formResetKey}
             />
           )}
         </>
@@ -3409,6 +3419,7 @@ export default function PaymentSettings() {
                 onVerifyWireAccount={handleVerifyWireAccount}
                 onVerifyMicroDeposits={handleVerifyMicroDeposits}
                 isSubmitting={addPaymentMethodMutation.isPending}
+                formResetKey={formResetKey}
                 emptyDescription="Add a payment method to fund creator payouts"
                 showFeeBreakdown={false}
               />
