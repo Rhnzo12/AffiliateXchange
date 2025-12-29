@@ -1491,11 +1491,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(offer);
     } catch (error: any) {
-      if (error.name === 'ZodError') {
+      if (error instanceof z.ZodError || error.name === 'ZodError') {
         return res.status(400).json({ error: 'Validation failed', details: error.errors });
       }
-      console.error('[offers] Error creating offer:', error);
-      res.status(500).send(error.message);
+      console.error('[POST /api/offers] Error creating offer:', error);
+      res.status(500).json({ error: error.message || "Failed to create offer" });
     }
   });
 
@@ -1507,12 +1507,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify ownership
       const offer = await storage.getOffer(offerId);
       if (!offer) {
-        return res.status(404).send("Offer not found");
+        return res.status(404).json({ error: "Offer not found" });
       }
 
       const companyProfile = await storage.getCompanyProfile(userId);
       if (!companyProfile || offer.companyId !== companyProfile.id) {
-        return res.status(403).send("Unauthorized: You don't own this offer");
+        return res.status(403).json({ error: "Unauthorized: You don't own this offer" });
       }
 
       const validated = insertOfferSchema.partial().parse(req.body);
@@ -1523,7 +1523,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedOffer = await storage.updateOffer(offerId, validated);
       res.json(updatedOffer);
     } catch (error: any) {
-      res.status(500).send(error.message);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Validation failed', details: error.errors });
+      }
+      console.error('[PUT /api/offers/:id] Error:', error);
+      res.status(500).json({ error: error.message || "Failed to update offer" });
     }
   });
 
