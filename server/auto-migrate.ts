@@ -158,6 +158,46 @@ export async function runAutoMigrations() {
       console.log('\u2713 Retainer contract columns added/updated');
     }
 
+    // --- User consent and compliance columns ---
+    console.log('🔄 Checking user consent columns...');
+    const userColumnsResult = await client.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'users'
+        AND column_name IN (
+          'tos_accepted_at',
+          'privacy_accepted_at',
+          'cookie_consent_at'
+        );
+    `);
+
+    const existingUserColumns = userColumnsResult.rows.map((row) => row.column_name);
+    const requiredUserColumns = [
+      'tos_accepted_at',
+      'privacy_accepted_at',
+      'cookie_consent_at',
+    ];
+
+    const missingUserColumns = requiredUserColumns.filter(
+      (column) => !existingUserColumns.includes(column),
+    );
+
+    if (missingUserColumns.length === 0) {
+      console.log('\u2713 All user consent columns exist');
+    } else {
+      console.log(`\u26A0\uFE0F  Missing user columns: ${missingUserColumns.join(', ')}`);
+      console.log('🔧 Adding missing user consent columns...');
+
+      await client.query(`
+        ALTER TABLE users
+          ADD COLUMN IF NOT EXISTS tos_accepted_at TIMESTAMP,
+          ADD COLUMN IF NOT EXISTS privacy_accepted_at TIMESTAMP,
+          ADD COLUMN IF NOT EXISTS cookie_consent_at TIMESTAMP;
+      `);
+
+      console.log('\u2713 User consent columns added');
+    }
+
     console.log('\u2705 Database migrations completed successfully!');
   } catch (error) {
     console.error('\u274C Migration failed:', error);
