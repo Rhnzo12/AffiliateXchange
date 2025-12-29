@@ -503,8 +503,20 @@ export default function CompanyOfferCreate() {
         });
 
         if (!offerResponse.ok) {
-          const errorData = await offerResponse.json();
-          throw new Error(errorData.error || errorData.message || "Failed to update offer");
+          let errorMessage = "Failed to update offer";
+          try {
+            const errorData = await offerResponse.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+            if (errorData.details && Array.isArray(errorData.details)) {
+              const fieldErrors = errorData.details.map((d: any) => d.message).join(', ');
+              if (fieldErrors) errorMessage = `${errorMessage}: ${fieldErrors}`;
+            }
+          } catch {
+            // Response wasn't JSON, try to get text
+            const textError = await offerResponse.text().catch(() => null);
+            if (textError) errorMessage = textError;
+          }
+          throw new Error(errorMessage);
         }
 
         const offerData = await offerResponse.json();
@@ -521,8 +533,20 @@ export default function CompanyOfferCreate() {
         });
 
         if (!offerResponse.ok) {
-          const errorData = await offerResponse.json();
-          throw new Error(errorData.error || errorData.message || "Failed to create offer");
+          let errorMessage = "Failed to create offer";
+          try {
+            const errorData = await offerResponse.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+            if (errorData.details && Array.isArray(errorData.details)) {
+              const fieldErrors = errorData.details.map((d: any) => d.message).join(', ');
+              if (fieldErrors) errorMessage = `${errorMessage}: ${fieldErrors}`;
+            }
+          } catch {
+            // Response wasn't JSON, try to get text
+            const textError = await offerResponse.text().catch(() => null);
+            if (textError) errorMessage = textError;
+          }
+          throw new Error(errorMessage);
         }
 
         const offerData = await offerResponse.json();
