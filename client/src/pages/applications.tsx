@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
-import { Copy, ExternalLink, MessageSquare, TrendingUp, FileText, Clock, CheckCircle2, Star, StarOff, Filter, Search, X } from "lucide-react";
-import { Link } from "wouter";
+import { Progress } from "../components/ui/progress";
+import { Copy, ExternalLink, MessageSquare, TrendingUp, FileText, Clock, CheckCircle2, Star, StarOff, Filter, Search, X, DollarSign, Calendar, CheckCircle, AlertTriangle, Eye, MessageCircle, Upload } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
@@ -86,6 +87,7 @@ export default function Applications() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   // Quick Guide Tour
   useCreatorPageTour(CREATOR_TOUR_IDS.APPLICATIONS, applicationsTourSteps);
@@ -129,6 +131,29 @@ export default function Applications() {
     enabled: isAuthenticated,
   });
 
+  // Retainer-related queries
+  const { data: retainerContracts } = useQuery<any[]>({
+    queryKey: ["/api/retainer-contracts"],
+    enabled: isAuthenticated,
+  });
+
+  const { data: myRetainerApplications } = useQuery<any[]>({
+    queryKey: ["/api/creator/retainer-applications"],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch platform fee settings
+  const { data: feeSettings } = useQuery<{
+    totalFeePercentage: number;
+    totalFeeDisplay: string;
+  }>({
+    queryKey: ["/api/platform/fees"],
+    enabled: isAuthenticated,
+  });
+
+  const totalFeePercentage = feeSettings?.totalFeePercentage ?? 0.07;
+  const totalFeeDisplay = feeSettings?.totalFeeDisplay ?? "7%";
+
   const totalApplications = applications?.length ?? 0;
 
   const uniqueStatuses = useMemo(
@@ -151,6 +176,71 @@ export default function Applications() {
     queryKey: ["/api/user/reviews"],
     enabled: isAuthenticated,
   });
+
+  // Retainer computed values
+  const contractMap = useMemo(() => {
+    const map = new Map();
+    retainerContracts?.forEach((contract: any) => {
+      map.set(contract.id, contract);
+    });
+    return map;
+  }, [retainerContracts]);
+
+  const approvedRetainerApplications = useMemo(
+    () => myRetainerApplications?.filter((app: any) => app.status === "approved") || [],
+    [myRetainerApplications]
+  );
+
+  const completedRetainerApplications = useMemo(
+    () => myRetainerApplications?.filter((app: any) => app.status === "completed") || [],
+    [myRetainerApplications]
+  );
+
+  const activeRetainerContracts = useMemo(
+    () =>
+      approvedRetainerApplications
+        .map((application: any) => ({
+          application,
+          contract: contractMap.get(application.contractId),
+        }))
+        .filter((item) => item.contract),
+    [approvedRetainerApplications, contractMap]
+  );
+
+  const completedRetainerContracts = useMemo(
+    () =>
+      completedRetainerApplications
+        .map((application: any) => ({
+          application,
+          contract: contractMap.get(application.contractId),
+        }))
+        .filter((item) => item.contract),
+    [completedRetainerApplications, contractMap]
+  );
+
+  const totalActiveNet = useMemo(
+    () =>
+      activeRetainerContracts.reduce(
+        (sum, { contract }) => sum + Number(contract?.monthlyAmount || 0) * (1 - totalFeePercentage),
+        0
+      ),
+    [activeRetainerContracts, totalFeePercentage]
+  );
+
+  const totalActiveVideos = useMemo(
+    () => activeRetainerContracts.reduce((sum, { contract }) => sum + Number(contract?.videosPerMonth || 0), 0),
+    [activeRetainerContracts]
+  );
+
+  const totalDeliveredVideos = useMemo(
+    () => activeRetainerContracts.reduce((sum, { contract }) => sum + Number(contract?.submittedVideos || 0), 0),
+    [activeRetainerContracts]
+  );
+
+  const remainingCycleVideos = Math.max(0, totalActiveVideos - totalDeliveredVideos);
+  const portfolioCompletion = totalActiveVideos
+    ? Math.min(100, Math.round((totalDeliveredVideos / totalActiveVideos) * 100))
+    : 0;
 
   const submitReviewMutation = useMutation({
     mutationFn: async (reviewData: ReviewFormData) => {
@@ -363,6 +453,165 @@ export default function Applications() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Active Monthly Retainers Dashboard */}
+      {(activeRetainerContracts.length > 0 || completedRetainerContracts.length > 0) && (
+        <Card className="border-card-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Active Monthly Retainers</CardTitle>
+            <p className="text-sm text-muted-foreground">Your active and completed retainer contracts at a glance</p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Active retainers</span>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary">
+                    {portfolioCompletion}% on track
+                  </Badge>
+                </div>
+                <p className="text-2xl font-semibold">{activeRetainerContracts.length}</p>
+                <p className="text-xs text-muted-foreground">{remainingCycleVideos} video{remainingCycleVideos === 1 ? "" : "s"} to deliver this cycle</p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Monthly net</span>
+                  <DollarSign className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <p className="text-2xl font-semibold">CA${totalActiveNet.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                <p className="text-xs text-muted-foreground">After platform fees across all active retainers</p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Throughput</span>
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <p className="text-2xl font-semibold">{totalDeliveredVideos}/{totalActiveVideos || 0}</p>
+                <p className="text-xs text-muted-foreground">Videos submitted versus this month's quota</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <p className="text-sm font-semibold">Active contracts</p>
+              </div>
+              {activeRetainerContracts.length === 0 ? (
+                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                  Once you're approved, your retainers will appear here with progress trackers and quick actions.
+                </div>
+              ) : (
+                <div className="grid gap-3 lg:grid-cols-2">
+                  {activeRetainerContracts.map(({ contract }) => {
+                    const delivered = Number(contract?.submittedVideos || 0);
+                    const totalVideos = Number(contract?.videosPerMonth || 1);
+                    const progressValue = Math.min(100, Math.round((delivered / totalVideos) * 100));
+                    const netAmount = Number(contract?.monthlyAmount || 0) * (1 - totalFeePercentage);
+                    const remainingVideos = Math.max(0, totalVideos - delivered);
+
+                    return (
+                      <Card key={`active-${contract.id}`} className="border-card-border">
+                        <CardContent className="p-4 space-y-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1">
+                              <p className="text-sm font-semibold">{contract.title}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {contract.videosPerMonth} videos/mo • {contract.durationMonths} month term
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Calendar className="h-3.5 w-3.5" />
+                                <span>Next payout in {Math.max(1, (contract.durationMonths || 1) * 4)} weeks</span>
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="bg-primary/10 text-primary">
+                              Net CA${netAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>Progress</span>
+                              <span>
+                                {delivered}/{totalVideos} videos
+                              </span>
+                            </div>
+                            <Progress value={progressValue} />
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1 text-emerald-600">
+                                <CheckCircle className="h-3.5 w-3.5" /> Delivered {delivered}
+                              </span>
+                              <span className="flex items-center gap-1 text-amber-600">
+                                <AlertTriangle className="h-3.5 w-3.5" /> {remainingVideos} remaining
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="secondary" size="sm" onClick={() => setLocation(`/retainers/${contract.id}`)}>
+                              <Upload className="h-3.5 w-3.5 mr-1" />
+                              Upload video
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setLocation(`/messages`)}>
+                              <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                              Message company
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setLocation(`/retainers/${contract.id}`)}>
+                              <Eye className="h-3.5 w-3.5 mr-1" />
+                              View brief
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-muted" />
+                <p className="text-sm font-semibold">Completed contracts</p>
+              </div>
+              {completedRetainerContracts.length === 0 ? (
+                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                  Track historical performance and earnings once you finish a retainer.
+                </div>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {completedRetainerContracts.map(({ contract }) => (
+                    <Card key={`completed-${contract.id}`} className="border-card-border">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold">{contract.title}</p>
+                          <Badge variant="secondary" className="bg-muted text-foreground">Completed</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Earned CA${Number(contract.monthlyAmount || 0).toLocaleString()} per month over {contract.durationMonths}{" "}
+                          month{contract.durationMonths === 1 ? "" : "s"}
+                        </p>
+                        <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>Consistently delivered {contract.videosPerMonth} videos per month</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Star className="h-3.5 w-3.5 text-amber-500" />
+                            <span>Use this as a proof point in future pitches</span>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" className="px-0 justify-start">
+                          Leave a review
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
