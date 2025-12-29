@@ -462,7 +462,7 @@ export default function CompanyOfferCreate() {
       setCurrentUploadVideoIndex(null);
       setVideoUploadProgress(0);
 
-      const offerPayload = {
+      const offerPayload: Record<string, any> = {
         title: data.title,
         productName: data.productName,
         shortDescription: data.shortDescription,
@@ -476,7 +476,6 @@ export default function CompanyOfferCreate() {
         commissionAmount: data.commissionType !== "per_sale" && data.commissionAmount
           ? data.commissionAmount
           : null,
-        status: isEditMode ? data.status : 'draft', // Keep existing status when editing
         featuredImageUrl: data.featuredImageUrl || null,
         // Creator Requirements
         minimumFollowers: data.minimumFollowers ? parseInt(data.minimumFollowers) : null,
@@ -486,6 +485,12 @@ export default function CompanyOfferCreate() {
         contentStyleRequirements: data.contentStyleRequirements || null,
         brandSafetyRequirements: data.brandSafetyRequirements || null,
       };
+
+      // Only include status for new offers (set to draft)
+      // Existing offers keep their status - use workflow endpoints to change status
+      if (!isEditMode) {
+        offerPayload.status = 'draft';
+      }
 
       console.log(isEditMode ? "Updating offer with payload:" : "Creating offer with payload:", offerPayload);
 
@@ -1572,20 +1577,34 @@ export default function CompanyOfferCreate() {
 
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                >
-                  <SelectTrigger id="status" data-testid="select-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="live">Live</SelectItem>
-                  </SelectContent>
-                </Select>
+                {isEditMode ? (
+                  // In edit mode, show status as read-only (change via workflow endpoints)
+                  <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-muted">
+                    <span className="text-sm capitalize">
+                      {formData.status?.replace(/_/g, ' ') || 'Unknown'}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      (Use offer actions to change status)
+                    </span>
+                  </div>
+                ) : (
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                  >
+                    <SelectTrigger id="status" data-testid="select-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 <p className="text-xs text-muted-foreground">
-                  Draft offers are not visible to creators
+                  {isEditMode
+                    ? "Status can be changed from the offer detail page using Submit for Review or other actions"
+                    : "New offers start as drafts and must be submitted for review"
+                  }
                 </p>
               </div>
 
