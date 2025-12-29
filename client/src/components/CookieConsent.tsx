@@ -12,6 +12,7 @@ import {
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
+import { useAuth } from "../hooks/useAuth";
 
 interface CookiePreferences {
   essential: boolean;
@@ -30,6 +31,7 @@ export function CookieConsent() {
     analytics: false,
     marketing: false,
   });
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     // Check if user has already made a choice
@@ -50,12 +52,25 @@ export function CookieConsent() {
     }
   }, []);
 
-  const savePreferences = (prefs: CookiePreferences) => {
+  const savePreferences = async (prefs: CookiePreferences) => {
     localStorage.setItem(COOKIE_CONSENT_KEY, "true");
     localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(prefs));
     setPreferences(prefs);
     setShowBanner(false);
     setShowSettings(false);
+
+    // Save to backend if user is authenticated (for GDPR compliance)
+    if (isAuthenticated) {
+      try {
+        await fetch("/api/user/cookie-consent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
+      } catch (error) {
+        console.error("Failed to save cookie consent to server:", error);
+      }
+    }
 
     // Apply preferences (in a real app, this would configure analytics/marketing tools)
     if (prefs.analytics) {

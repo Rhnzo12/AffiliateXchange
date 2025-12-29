@@ -123,6 +123,11 @@ export const users = pgTable("users", {
   twoFactorSecret: varchar("two_factor_secret", { length: 64 }),
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   twoFactorBackupCodes: text("two_factor_backup_codes"), // JSON array of hashed backup codes
+  // Terms and Privacy acceptance
+  tosAcceptedAt: timestamp("tos_accepted_at"),
+  privacyAcceptedAt: timestamp("privacy_accepted_at"),
+  // Cookie consent
+  cookieConsentAt: timestamp("cookie_consent_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
