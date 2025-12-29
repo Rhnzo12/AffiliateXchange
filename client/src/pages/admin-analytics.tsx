@@ -951,7 +951,7 @@ export default function AdminAnalytics() {
                             <Cell key={entry.source} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value: any) => [`$${Number(value).toFixed(2)}`, ""]} />
+                        <Tooltip formatter={(value: any) => [`CA$${Number(value).toFixed(2)}`, ""]} />
                       </RechartsPie>
                     </ResponsiveContainer>
                   </div>

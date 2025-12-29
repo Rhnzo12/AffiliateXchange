@@ -59,8 +59,8 @@ export function generateInvoiceNumber(prefix: string = 'INV'): string {
 /**
  * Format currency amount
  */
-function formatCurrency(amount: number, currency: string = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+function formatCurrency(amount: number, currency: string = 'CAD'): string {
+  return new Intl.NumberFormat('en-CA', {
     style: 'currency',
     currency: currency,
   }).format(amount);
@@ -375,7 +375,7 @@ export async function generatePaymentInvoice(paymentId: string): Promise<Invoice
       platformFee: parseFloat(payment.platformFeeAmount),
       stripeFee: parseFloat(payment.stripeFeeAmount),
       netAmount: parseFloat(payment.netAmount),
-      currency: 'USD',
+      currency: 'CAD',
       status: payment.status as 'pending' | 'paid' | 'failed',
       paidAt: payment.completedAt ? new Date(payment.completedAt) : undefined,
       offerTitle: offer?.title,
@@ -429,7 +429,7 @@ export async function generateCompanyChargeInvoice(
       platformFee: 0,
       stripeFee: chargeAmount * 0.03, // 3% Stripe fee
       netAmount: chargeAmount,
-      currency: 'USD',
+      currency: 'CAD',
       status: 'pending',
     };
 
