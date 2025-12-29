@@ -566,7 +566,7 @@ export default function CompanyOfferCreate() {
         }
       }
 
-      const companyId = companyProfile?.id;
+      const companyId = companyStats?.companyProfile?.id || companyProfile?.id;
       if (!companyId) {
         throw new Error("Company profile not loaded or ID not found");
       }
