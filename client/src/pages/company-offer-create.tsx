@@ -763,6 +763,10 @@ export default function CompanyOfferCreate() {
       // Invalidate offers cache so the list updates immediately
       queryClient.invalidateQueries({ queryKey: ["/api/company/offers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/company/stats"] });
+      // Also invalidate the specific offer query so the detail page shows updated values
+      if (isEditMode && offerId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/offers/${offerId}`] });
+      }
       toast({
         title: isEditMode ? "Offer Updated" : "Offer Submitted for Review",
         description: isEditMode
