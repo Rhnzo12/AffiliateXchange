@@ -2759,14 +2759,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const offer = await storage.getOffer(application.offerId);
         const companyProfile = offer ? await storage.getCompanyProfile(offer.companyId) : null;
 
-        // Calculate totals
+        // Calculate totals (including unique clicks)
         const totals = appAnalytics && appAnalytics.length > 0
           ? appAnalytics.reduce((acc: any, curr: any) => ({
               clicks: acc.clicks + (Number(curr.clicks) || 0),
+              uniqueClicks: acc.uniqueClicks + (Number(curr.uniqueClicks) || 0),
               conversions: acc.conversions + (Number(curr.conversions) || 0),
               earnings: acc.earnings + (Number(curr.earnings) || 0),
-            }), { clicks: 0, conversions: 0, earnings: 0 })
-          : { clicks: 0, conversions: 0, earnings: 0 };
+            }), { clicks: 0, uniqueClicks: 0, conversions: 0, earnings: 0 })
+          : { clicks: 0, uniqueClicks: 0, conversions: 0, earnings: 0 };
 
         // Get time series data
         const chartData = await storage.getAnalyticsTimeSeriesByApplication(applicationId, dateRange);
@@ -2774,7 +2775,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const stats = {
           totalEarnings: totals.earnings,
           totalClicks: totals.clicks,
-          uniqueClicks: totals.clicks, // TODO: Track unique clicks separately
+          uniqueClicks: totals.uniqueClicks,
           conversions: totals.conversions,
           conversionRate: totals.clicks > 0
             ? ((totals.conversions / totals.clicks) * 100).toFixed(1)

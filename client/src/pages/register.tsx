@@ -62,6 +62,7 @@ export default function Register() {
           firstName: data.firstName,
           lastName: data.lastName,
           role: data.role,
+          acceptTerms: data.acceptTerms,
         }),
         credentials: "include",
       });

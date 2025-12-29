@@ -226,7 +226,23 @@ export class RetainerPaymentScheduler {
       console.error(`[Retainer Scheduler] Failed to process payment ${payment.id}: ${paymentResult.error}`);
 
       // Notify admin about failed payment
-      // TODO: Send admin notification
+      const adminUsers = await storage.getUsersByRole('admin');
+      for (const admin of adminUsers) {
+        await this.notificationService.sendNotification(
+          admin.id,
+          'payment_failed_insufficient_funds',
+          'Retainer Payment Failed',
+          `Monthly retainer payment of CA$${fees.netAmount.toFixed(2)} for contract "${contract.title}" (Payment ID: ${payment.id}) has failed. Error: ${paymentResult.error}`,
+          {
+            paymentId: payment.id,
+            contractId: contract.id,
+            contractTitle: contract.title,
+            amount: `CA$${fees.netAmount.toFixed(2)}`,
+            error: paymentResult.error,
+            linkUrl: `/admin/payment-disputes`,
+          }
+        );
+      }
 
       return false;
     }

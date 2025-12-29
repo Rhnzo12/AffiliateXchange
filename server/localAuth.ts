@@ -241,7 +241,7 @@ export async function setupAuth(app: Express) {
 
     try {
 
-      const { username, email, password, firstName, lastName, role } = req.body;
+      const { username, email, password, firstName, lastName, role, acceptTerms } = req.body;
 
       // Validate inputs
 
@@ -249,6 +249,11 @@ export async function setupAuth(app: Express) {
 
         return res.status(400).json({ error: "Username, email, and password are required" });
 
+      }
+
+      // Validate Terms of Service and Privacy Policy acceptance
+      if (acceptTerms !== true) {
+        return res.status(400).json({ error: "You must accept the Terms of Service and Privacy Policy" });
       }
 
       // Username validation
@@ -333,6 +338,7 @@ export async function setupAuth(app: Express) {
       const emailVerificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
       // Create user with all required fields
+      const now = new Date();
 
       const user = await storage.createUser({
 
@@ -357,6 +363,10 @@ export async function setupAuth(app: Express) {
         emailVerificationToken,
 
         emailVerificationTokenExpiry,
+
+        tosAcceptedAt: now,      // Terms of Service accepted
+
+        privacyAcceptedAt: now,  // Privacy Policy accepted
 
       });
 
@@ -1528,6 +1538,22 @@ export async function setupAuth(app: Express) {
 
     }
 
+  });
+
+  // Save cookie consent timestamp
+  app.post("/api/user/cookie-consent", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+
+      await storage.updateUser(userId, {
+        cookieConsentAt: new Date(),
+      });
+
+      res.json({ success: true, message: "Cookie consent recorded" });
+    } catch (error: any) {
+      console.error("Cookie consent error:", error);
+      res.status(500).json({ error: error.message || "Failed to save cookie consent" });
+    }
   });
 
 // Request account deletion - Generate and send OTP
