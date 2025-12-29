@@ -222,7 +222,7 @@ export default function PaymentDetail() {
                     {isCompanyViewer ? "Amount Creator Receives" : "Amount You Received"}
                   </p>
                   <p className="text-4xl font-bold text-green-900">
-                    ${netAmount.toFixed(2)}
+                    CA${netAmount.toFixed(2)}
                   </p>
                 </div>
                 {isCompanyViewer ? (
@@ -238,19 +238,19 @@ export default function PaymentDetail() {
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-sm text-gray-600 mb-1">Gross Amount</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  ${grossAmount.toFixed(2)}
+                  CA${grossAmount.toFixed(2)}
                 </p>
               </div>
               <div className="bg-red-50 rounded-lg p-4">
                 <p className="text-sm text-red-600 mb-1">Platform Fee ({platformFeePercentage}%)</p>
                 <p className="text-2xl font-bold text-red-700">
-                  -${platformFee.toFixed(2)}
+                  -CA${platformFee.toFixed(2)}
                 </p>
               </div>
               <div className="bg-red-50 rounded-lg p-4">
                 <p className="text-sm text-red-600 mb-1">Processing ({processingFeePercentage}%)</p>
                 <p className="text-2xl font-bold text-red-700">
-                  -${processingFee.toFixed(2)}
+                  -CA${processingFee.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -263,19 +263,19 @@ export default function PaymentDetail() {
               <div className="text-sm text-blue-800 space-y-1">
                 <div className="flex justify-between">
                   <span>Gross earnings:</span>
-                  <span className="font-medium">${grossAmount.toFixed(2)}</span>
+                  <span className="font-medium">CA${grossAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Platform fee ({platformFeePercentage}%):</span>
-                  <span className="font-medium">-${platformFee.toFixed(2)}</span>
+                  <span className="font-medium">-CA${platformFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Processing fee ({processingFeePercentage}%):</span>
-                  <span className="font-medium">-${processingFee.toFixed(2)}</span>
+                  <span className="font-medium">-CA${processingFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-blue-300">
                   <span className="font-bold">{isCompanyViewer ? "Creator receives:" : "You receive:"}</span>
-                  <span className="font-bold">${netAmount.toFixed(2)}</span>
+                  <span className="font-bold">CA${netAmount.toFixed(2)}</span>
                 </div>
               </div>
             </div>

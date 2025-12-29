@@ -217,7 +217,7 @@ export function newMessageEmail(data: EmailTemplateData): { subject: string; htm
 }
 
 export function paymentReceivedEmail(data: EmailTemplateData): { subject: string; html: string } {
-  const subject = `Payment received: ${data.amount}`;
+  const subject = `Payment received: CA${data.amount}`;
 
   const html = `
     <!DOCTYPE html>
@@ -237,7 +237,7 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
           ${data.amount ? `
             <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 20px; margin: 20px 0; border-radius: 4px;">
               <p style="margin: 0 0 10px 0; font-size: 14px; color: #065F46;">Amount You Received</p>
-              <p style="margin: 0; font-size: 32px; font-weight: bold; color: #047857;">${data.amount}</p>
+              <p style="margin: 0; font-size: 32px; font-weight: bold; color: #047857;">CA${data.amount}</p>
             </div>
           ` : ''}
 
@@ -247,19 +247,19 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
               <table style="width: 100%; border-collapse: collapse;">
                 <tr style="border-bottom: 1px solid #D1D5DB;">
                   <td style="padding: 12px 0; color: #6B7280;">Gross Amount</td>
-                  <td style="padding: 12px 0; font-weight: 600; color: #111827; text-align: right;">${data.grossAmount}</td>
+                  <td style="padding: 12px 0; font-weight: 600; color: #111827; text-align: right;">CA${data.grossAmount}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #D1D5DB;">
                   <td style="padding: 12px 0; color: #DC2626;">Platform Fee (${data.platformFeePercentage || '4%'})</td>
-                  <td style="padding: 12px 0; font-weight: 600; color: #DC2626; text-align: right;">-${data.platformFee}</td>
+                  <td style="padding: 12px 0; font-weight: 600; color: #DC2626; text-align: right;">-CA${data.platformFee}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #D1D5DB;">
                   <td style="padding: 12px 0; color: #DC2626;">Processing Fee (${data.processingFeePercentage || '3%'})</td>
-                  <td style="padding: 12px 0; font-weight: 600; color: #DC2626; text-align: right;">-${data.processingFee}</td>
+                  <td style="padding: 12px 0; font-weight: 600; color: #DC2626; text-align: right;">-CA${data.processingFee}</td>
                 </tr>
                 <tr style="background-color: #ECFDF5;">
                   <td style="padding: 12px 0; color: #065F46; font-weight: bold;">Net Amount (You Receive)</td>
-                  <td style="padding: 12px 0; font-weight: bold; color: #047857; text-align: right; font-size: 18px;">${data.amount}</td>
+                  <td style="padding: 12px 0; font-weight: bold; color: #047857; text-align: right; font-size: 18px;">CA${data.amount}</td>
                 </tr>
               </table>
             </div>
@@ -297,7 +297,7 @@ export function paymentReceivedEmail(data: EmailTemplateData): { subject: string
 }
 
 export function paymentApprovedEmail(data: EmailTemplateData): { subject: string; html: string } {
-  const subject = `Payment sent successfully: ${data.amount}`;
+  const subject = `Payment sent successfully: CA${data.amount}`;
 
   const html = `
     <!DOCTYPE html>
@@ -317,7 +317,7 @@ export function paymentApprovedEmail(data: EmailTemplateData): { subject: string
           ${data.amount ? `
             <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 20px; margin: 20px 0; border-radius: 4px;">
               <p style="margin: 0 0 10px 0; font-size: 14px; color: #065F46;">Payment Amount Sent</p>
-              <p style="margin: 0; font-size: 32px; font-weight: bold; color: #047857;">${data.amount}</p>
+              <p style="margin: 0; font-size: 32px; font-weight: bold; color: #047857;">CA${data.amount}</p>
             </div>
           ` : ''}
 
@@ -327,19 +327,19 @@ export function paymentApprovedEmail(data: EmailTemplateData): { subject: string
               <table style="width: 100%; border-collapse: collapse;">
                 <tr style="border-bottom: 1px solid #D1D5DB;">
                   <td style="padding: 12px 0; color: #6B7280;">Gross Amount</td>
-                  <td style="padding: 12px 0; font-weight: 600; color: #111827; text-align: right;">${data.grossAmount}</td>
+                  <td style="padding: 12px 0; font-weight: 600; color: #111827; text-align: right;">CA${data.grossAmount}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #D1D5DB;">
                   <td style="padding: 12px 0; color: #7C3AED;">Platform Fee (${data.platformFeePercentage || '4%'})</td>
-                  <td style="padding: 12px 0; font-weight: 600; color: #7C3AED; text-align: right;">${data.platformFee}</td>
+                  <td style="padding: 12px 0; font-weight: 600; color: #7C3AED; text-align: right;">CA${data.platformFee}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #D1D5DB;">
                   <td style="padding: 12px 0; color: #7C3AED;">Processing Fee (${data.processingFeePercentage || '3%'})</td>
-                  <td style="padding: 12px 0; font-weight: 600; color: #7C3AED; text-align: right;">${data.processingFee}</td>
+                  <td style="padding: 12px 0; font-weight: 600; color: #7C3AED; text-align: right;">CA${data.processingFee}</td>
                 </tr>
                 <tr style="background-color: #ECFDF5;">
                   <td style="padding: 12px 0; color: #065F46; font-weight: bold;">Creator Receives</td>
-                  <td style="padding: 12px 0; font-weight: bold; color: #047857; text-align: right; font-size: 18px;">${data.amount}</td>
+                  <td style="padding: 12px 0; font-weight: bold; color: #047857; text-align: right; font-size: 18px;">CA${data.amount}</td>
                 </tr>
               </table>
             </div>
@@ -405,7 +405,7 @@ export function paymentFailedInsufficientFundsEmail(data: EmailTemplateData): { 
               <table style="width: 100%; border-collapse: collapse;">
                 <tr>
                   <td style="padding: 8px 0; color: #6B7280;">Amount:</td>
-                  <td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">${data.amount}</td>
+                  <td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">CA${data.amount}</td>
                 </tr>
               </table>
             </div>
@@ -917,7 +917,7 @@ export function workCompletionApprovalEmail(data: EmailTemplateData): { subject:
         <div class="content">
           <p>Hi ${data.userName},</p>
           <p>Congratulations! Your work for <strong>"${data.offerTitle}"</strong> has been approved.</p>
-          ${data.amount ? `<p>Your payment of <strong>${data.amount}</strong> has been initiated and will be processed shortly.</p>` : ''}
+          ${data.amount ? `<p>Your payment of <strong>CA${data.amount}</strong> has been initiated and will be processed shortly.</p>` : ''}
           <a href="${data.linkUrl || toAbsoluteUrl('/applications')}" class="button">View Details</a>
         </div>
         <div class="footer">
@@ -987,7 +987,7 @@ export function paymentPendingEmail(data: EmailTemplateData): { subject: string;
               <table style="width: 100%; border-collapse: collapse;">
                 <tr>
                   <td style="padding: 8px 0; color: #6B7280;">Amount:</td>
-                  <td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">${data.amount}</td>
+                  <td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">CA${data.amount}</td>
                 </tr>
                 ${data.offerTitle ? `
                   <tr>
