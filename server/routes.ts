@@ -1504,6 +1504,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const offerId = req.params.id;
 
+      // Debug: Log received payload
+      console.log('[PUT /api/offers/:id] Received payload:', JSON.stringify(req.body, null, 2));
+
       // Verify ownership
       const offer = await storage.getOffer(offerId);
       if (!offer) {
@@ -1517,10 +1520,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validated = insertOfferSchema.partial().parse(req.body);
 
+      // Debug: Log validated data
+      console.log('[PUT /api/offers/:id] Validated data:', JSON.stringify(validated, null, 2));
+
       // Don't normalize featured image URLs - keep the full Cloudinary URL for proper display
       // No ACL normalization needed for Cloudinary URLs
 
       const updatedOffer = await storage.updateOffer(offerId, validated);
+
+      // Debug: Log updated offer
+      console.log('[PUT /api/offers/:id] Updated offer:', JSON.stringify(updatedOffer, null, 2));
+
       res.json(updatedOffer);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
