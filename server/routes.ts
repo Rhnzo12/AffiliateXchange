@@ -1540,12 +1540,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify ownership
       const offer = await storage.getOffer(offerId);
       if (!offer) {
-        return res.status(404).send("Offer not found");
+        return res.status(404).json({ error: "Offer not found" });
       }
 
       const companyProfile = await storage.getCompanyProfile(userId);
       if (!companyProfile || offer.companyId !== companyProfile.id) {
-        return res.status(403).send("Unauthorized: You don't own this offer");
+        return res.status(403).json({ error: "Unauthorized: You don't own this offer" });
       }
 
       // Check for active applications
@@ -1611,7 +1611,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Offer deleted successfully" });
     } catch (error: any) {
       console.error('[DELETE /api/offers/:id] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to delete offer" });
     }
   });
 
@@ -1660,7 +1660,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, offer: updatedOffer });
     } catch (error: any) {
       console.error('[POST /api/offers/:id/request-delete] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to request offer deletion" });
     }
   });
 
@@ -1717,7 +1717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, offer: updatedOffer });
     } catch (error: any) {
       console.error('[POST /api/offers/:id/request-suspend] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to request offer suspension" });
     }
   });
 
@@ -1752,7 +1752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, offer: updatedOffer });
     } catch (error: any) {
       console.error('[POST /api/offers/:id/cancel-pending-action] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to cancel pending action" });
     }
   });
 
@@ -1765,12 +1765,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify ownership
       const offer = await storage.getOffer(offerId);
       if (!offer) {
-        return res.status(404).send("Offer not found");
+        return res.status(404).json({ error: "Offer not found" });
       }
 
       const companyProfile = await storage.getCompanyProfile(userId);
       if (!companyProfile || offer.companyId !== companyProfile.id) {
-        return res.status(403).send("Unauthorized: You don't own this offer");
+        return res.status(403).json({ error: "Unauthorized: You don't own this offer" });
       }
 
       // Check if offer is in draft status
@@ -1828,7 +1828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[POST /api/offers/:id/submit-for-review] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to submit offer for review" });
     }
   });
 
@@ -1841,12 +1841,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify ownership
       const offer = await storage.getOffer(offerId);
       if (!offer) {
-        return res.status(404).send("Offer not found");
+        return res.status(404).json({ error: "Offer not found" });
       }
 
       const companyProfile = await storage.getCompanyProfile(userId);
       if (!companyProfile || offer.companyId !== companyProfile.id) {
-        return res.status(403).send("Unauthorized: You don't own this offer");
+        return res.status(403).json({ error: "Unauthorized: You don't own this offer" });
       }
 
       // Check if offer is approved
@@ -1913,7 +1913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[POST /api/offers/:id/purchase-priority] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to purchase priority listing" });
     }
   });
 
@@ -1926,12 +1926,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify ownership
       const offer = await storage.getOffer(offerId);
       if (!offer) {
-        return res.status(404).send("Offer not found");
+        return res.status(404).json({ error: "Offer not found" });
       }
 
       const companyProfile = await storage.getCompanyProfile(userId);
       if (!companyProfile || offer.companyId !== companyProfile.id) {
-        return res.status(403).send("Unauthorized: You don't own this offer");
+        return res.status(403).json({ error: "Unauthorized: You don't own this offer" });
       }
 
       // Check if offer is approved
@@ -1990,7 +1990,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[POST /api/offers/:id/renew-priority] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to renew priority listing" });
     }
   });
 
@@ -2011,7 +2011,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(applicationsWithOffers);
     } catch (error: any) {
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to get applications" });
     }
   });
 
@@ -2025,12 +2025,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const application = await storage.getApplication(applicationId);
       
       if (!application) {
-        return res.status(404).send("Application not found");
+        return res.status(404).json({ error: "Application not found" });
       }
 
       // Verify the user owns this application
       if (application.creatorId !== userId) {
-        return res.status(403).send("Unauthorized");
+        return res.status(403).json({ error: "Unauthorized" });
       }
 
       // Fetch offer and company details
@@ -2043,7 +2043,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[GET /api/applications/:id] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to get application" });
     }
   });
 
@@ -2057,12 +2057,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const application = await storage.getApplication(applicationId);
 
       if (!application) {
-        return res.status(404).send("Application not found");
+        return res.status(404).json({ error: "Application not found" });
       }
 
       // Verify the user owns this application
       if (application.creatorId !== userId) {
-        return res.status(403).send("Unauthorized");
+        return res.status(403).json({ error: "Unauthorized" });
       }
 
       // Check if application is approved and has a tracking link
@@ -2097,7 +2097,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[GET /api/applications/:id/qrcode] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to generate QR code" });
     }
   });
 
@@ -2168,7 +2168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ ...application, autoApprovalScheduledAt: autoApprovalTime });
     } catch (error: any) {
       console.error('[POST /api/applications] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to create application" });
     }
   });
 
@@ -2176,7 +2176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const application = await storage.getApplication(req.params.id);
       if (!application) {
-        return res.status(404).send("Application not found");
+        return res.status(404).json({ error: "Application not found" });
       }
 
       // Generate tracking link and code (short 8-character alphanumeric code)
@@ -2217,7 +2217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(approved);
     } catch (error: any) {
       console.error('[Approve Application] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to approve application" });
     }
   });
 
@@ -2225,24 +2225,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const application = await storage.getApplication(req.params.id);
       if (!application) {
-        return res.status(404).send("Application not found");
+        return res.status(404).json({ error: "Application not found" });
       }
 
       // Verify the application belongs to one of the company's offers
       const offer = await storage.getOffer(application.offerId);
       if (!offer) {
-        return res.status(404).send("Offer not found");
+        return res.status(404).json({ error: "Offer not found" });
       }
 
       const userId = (req.user as any).id;
       const companyProfile = await storage.getCompanyProfile(userId);
       if (!companyProfile) {
-        return res.status(404).send("Company profile not found");
+        return res.status(404).json({ error: "Company profile not found" });
       }
 
       // Verify ownership
       if (offer.companyId !== companyProfile.id) {
-        return res.status(403).send("Unauthorized");
+        return res.status(403).json({ error: "Unauthorized" });
       }
 
       const rejected = await storage.updateApplication(application.id, {
@@ -2272,7 +2272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(rejected);
     } catch (error: any) {
       console.error('[Reject Application] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to reject application" });
     }
   });
 
@@ -2280,29 +2280,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const application = await storage.getApplication(req.params.id);
       if (!application) {
-        return res.status(404).send("Application not found");
+        return res.status(404).json({ error: "Application not found" });
       }
 
       // Verify the application belongs to one of the company's offers
       const offer = await storage.getOffer(application.offerId);
       if (!offer) {
-        return res.status(404).send("Offer not found");
+        return res.status(404).json({ error: "Offer not found" });
       }
 
       const userId = (req.user as any).id;
       const companyProfile = await storage.getCompanyProfile(userId);
       if (!companyProfile) {
-        return res.status(404).send("Company profile not found");
+        return res.status(404).json({ error: "Company profile not found" });
       }
 
       // Compare offer.companyId against companyProfile.id (not userId)
       if (offer.companyId !== companyProfile.id) {
-        return res.status(403).send("Unauthorized");
+        return res.status(403).json({ error: "Unauthorized" });
       }
 
       // Verify application is approved before marking complete
       if (application.status !== 'approved' && application.status !== 'active') {
-        return res.status(400).send("Only approved applications can be marked as complete");
+        return res.status(400).json({ error: "Only approved applications can be marked as complete" });
       }
 
       const completed = await storage.completeApplication(application.id);
@@ -2414,7 +2414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[Complete Application] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to complete application" });
     }
   });
 
@@ -2436,7 +2436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(applications);
     } catch (error: any) {
       console.error('[/api/company/applications] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to get company applications" });
     }
   });
 
@@ -2452,24 +2452,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const companyProfile = await storage.getCompanyProfile(userId);
       if (!companyProfile) {
-        return res.status(404).send('Company profile not found');
+        return res.status(404).json({ error: 'Company profile not found' });
       }
 
       const application = await storage.getApplication(req.params.id);
       if (!application) {
-        return res.status(404).send('Application not found');
+        return res.status(404).json({ error: 'Application not found' });
       }
 
       const offer = await storage.getOffer(application.offerId);
       if (!offer || offer.companyId !== companyProfile.id) {
-        return res.status(403).send('Forbidden');
+        return res.status(403).json({ error: 'Forbidden' });
       }
 
       const updated = await storage.updateApplication(application.id, { status: status as any });
       res.json(updated);
     } catch (error: any) {
       console.error('[Update Application Status] Error:', error);
-      res.status(500).send(error.message);
+      res.status(500).json({ error: error.message || "Failed to update application status" });
     }
   });
 
