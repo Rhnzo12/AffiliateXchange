@@ -63,6 +63,11 @@ function isOAuthConfigured(platform: string, baseUrl: string): boolean {
   return !!(config?.clientId && config?.clientSecret);
 }
 
+// Check if simulated OAuth flow is allowed (for development/testing)
+function isSimulatedOAuthAllowed(): boolean {
+  return process.env.ALLOW_SIMULATED_OAUTH === "true";
+}
+
 // Generate simulated platform data (used when OAuth credentials not configured)
 function generateSimulatedPlatformData(platform: string, username: string) {
   const hash = username.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -293,9 +298,23 @@ export function setupSocialOAuth(app: Express) {
   // Debug: Log OAuth configuration status on startup
   console.log("[Social OAuth] Setting up social media OAuth routes");
   console.log("[Social OAuth] Base URL:", baseUrl);
+  console.log("[Social OAuth] Simulated OAuth allowed:", isSimulatedOAuthAllowed());
   console.log("[Social OAuth] YouTube OAuth configured:", !!process.env.YOUTUBE_CLIENT_ID && !!process.env.YOUTUBE_CLIENT_SECRET);
   console.log("[Social OAuth] TikTok OAuth configured:", !!process.env.TIKTOK_CLIENT_KEY && !!process.env.TIKTOK_CLIENT_SECRET);
   console.log("[Social OAuth] Instagram OAuth configured:", !!process.env.INSTAGRAM_CLIENT_ID && !!process.env.INSTAGRAM_CLIENT_SECRET);
+
+  // Warn if OAuth is not configured and simulated mode is disabled
+  if (!isSimulatedOAuthAllowed()) {
+    if (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET) {
+      console.warn("[Social OAuth] WARNING: YouTube OAuth not configured. Users will see an error when trying to connect YouTube.");
+    }
+    if (!process.env.TIKTOK_CLIENT_KEY || !process.env.TIKTOK_CLIENT_SECRET) {
+      console.warn("[Social OAuth] WARNING: TikTok OAuth not configured. Users will see an error when trying to connect TikTok.");
+    }
+    if (!process.env.INSTAGRAM_CLIENT_ID || !process.env.INSTAGRAM_CLIENT_SECRET) {
+      console.warn("[Social OAuth] WARNING: Instagram OAuth not configured. Users will see an error when trying to connect Instagram.");
+    }
+  }
 
   if (process.env.YOUTUBE_CLIENT_ID) {
     console.log("[Social OAuth] YouTube Client ID starts with:", process.env.YOUTUBE_CLIENT_ID.substring(0, 20) + "...");
@@ -312,7 +331,17 @@ export function setupSocialOAuth(app: Express) {
 
     // Check if OAuth credentials are properly configured for this platform
     if (!isOAuthConfigured(platform, baseUrl)) {
-      console.log(`[Social OAuth] No OAuth credentials for ${platform}, using simulated flow`);
+      // Only allow simulated flow if explicitly enabled
+      if (!isSimulatedOAuthAllowed()) {
+        console.error(`[Social OAuth] OAuth credentials not configured for ${platform}. Set environment variables to enable OAuth.`);
+        const platformEnvVars = {
+          youtube: "YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET",
+          tiktok: "TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET",
+          instagram: "INSTAGRAM_CLIENT_ID and INSTAGRAM_CLIENT_SECRET",
+        };
+        return res.redirect(`/oauth-callback?error=${encodeURIComponent(`OAuth not configured for ${platform}. Please configure ${platformEnvVars[platform]} environment variables.`)}&platform=${platform}`);
+      }
+      console.log(`[Social OAuth] No OAuth credentials for ${platform}, using simulated flow (ALLOW_SIMULATED_OAUTH=true)`);
       // Store user ID in session for callback
       (req.session as any).oauthUserId = (req.user as any).id;
       (req.session as any).oauthPlatform = platform;
@@ -410,8 +439,22 @@ export function setupSocialOAuth(app: Express) {
       };
 
       // Check if this is a simulated flow (no real OAuth credentials)
-      if (simulated === "true" || !config?.clientId || !config?.clientSecret) {
-        console.log(`[Social OAuth] Using simulated data for ${platform}`);
+      const useSimulatedFlow = (simulated === "true" || !config?.clientId || !config?.clientSecret) && isSimulatedOAuthAllowed();
+
+      if (simulated === "true" && !isSimulatedOAuthAllowed()) {
+        console.error(`[Social OAuth] Simulated OAuth not allowed for ${platform}. Set ALLOW_SIMULATED_OAUTH=true to enable.`);
+        return res.redirect(`/oauth-callback?error=${encodeURIComponent("Simulated OAuth is not enabled. Please configure OAuth credentials.")}&platform=${platform}`);
+      }
+
+      if (!config?.clientId || !config?.clientSecret) {
+        if (!isSimulatedOAuthAllowed()) {
+          console.error(`[Social OAuth] OAuth credentials missing for ${platform} in callback.`);
+          return res.redirect(`/oauth-callback?error=${encodeURIComponent("OAuth credentials not configured.")}&platform=${platform}`);
+        }
+      }
+
+      if (useSimulatedFlow) {
+        console.log(`[Social OAuth] Using simulated data for ${platform} (ALLOW_SIMULATED_OAUTH=true)`);
         // Generate simulated data
         const username = `demo_${platform}_user`;
         const simulatedData = generateSimulatedPlatformData(platform, username);
@@ -521,12 +564,24 @@ export function setupSocialOAuth(app: Express) {
     }
 
     const isConfigured = isOAuthConfigured(platform, baseUrl);
+    const simulatedAllowed = isSimulatedOAuthAllowed();
+
+    // Determine the mode and availability
+    let mode: "oauth" | "simulated" | "unavailable";
+    if (isConfigured) {
+      mode = "oauth";
+    } else if (simulatedAllowed) {
+      mode = "simulated";
+    } else {
+      mode = "unavailable";
+    }
 
     res.json({
       platform,
       oauthConfigured: isConfigured,
-      // If not configured, simulated mode will be used
-      mode: isConfigured ? "oauth" : "simulated",
+      simulatedAllowed,
+      mode,
+      available: mode !== "unavailable",
     });
   });
 
