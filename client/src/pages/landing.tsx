@@ -271,41 +271,77 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Right Mockup - Pipeline/Offers Preview */}
+            {/* Right Mockup - Affiliate Marketplace Preview */}
             <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-                <span className="font-medium text-gray-700">Active Offers</span>
-                <Button size="sm" className="bg-primary hover:bg-primary/90 text-white text-xs h-7">
-                  + New
-                </Button>
+                <span className="font-medium text-gray-700">Affiliate Marketplace</span>
+                <div className="flex gap-2">
+                  <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">All Categories</span>
+                </div>
               </div>
-              <div className="p-4">
-                <div className="grid grid-cols-4 gap-3 text-xs">
-                  <div>
-                    <div className="font-medium text-gray-700 mb-3">New Leads</div>
-                    <div className="bg-gray-50 rounded-lg p-3 border border-dashed border-gray-300 text-gray-400 text-center mb-2">
-                      + Add offer
+              <div className="p-4 space-y-3">
+                {/* Product 1 - Electronics */}
+                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex gap-3">
+                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-gray-800 to-gray-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xs font-bold">Sony</span>
                     </div>
-                    <OfferCard name="TechGear Pro" date="Jan 8, 2026" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-700 mb-3">Applied</div>
-                    <div className="bg-gray-50 rounded-lg p-3 border border-dashed border-gray-300 text-gray-400 text-center mb-2">
-                      + Add offer
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-semibold text-gray-900 text-sm">Sony WH-1000XM5 Headphones</div>
+                          <div className="text-xs text-gray-500">Electronics • Audio</div>
+                        </div>
+                        <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap">8% Commission</span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                        <span>CA$449.99</span>
+                        <span className="text-primary font-medium">Earn CA$36/sale</span>
+                      </div>
                     </div>
-                    <OfferCard name="StyleBox" date="Jan 7, 2026" />
                   </div>
-                  <div>
-                    <div className="font-medium text-gray-700 mb-3">Approved</div>
-                    <div className="bg-gray-50 rounded-lg p-3 border border-dashed border-gray-300 text-gray-400 text-center mb-2">
-                      + Add offer
+                </div>
+
+                {/* Product 2 - Fitness */}
+                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex gap-3">
+                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xs font-bold">Fitbit</span>
                     </div>
-                    <OfferCard name="FitLife" date="Jan 6, 2026" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-semibold text-gray-900 text-sm">Fitbit Charge 6 Tracker</div>
+                          <div className="text-xs text-gray-500">Fitness • Wearables</div>
+                        </div>
+                        <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap">12% Commission</span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                        <span>CA$199.95</span>
+                        <span className="text-primary font-medium">Earn CA$24/sale</span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-medium text-gray-700 mb-3">Earning</div>
-                    <div className="bg-gray-50 rounded-lg p-3 border border-dashed border-gray-300 text-gray-400 text-center">
-                      + Add offer
+                </div>
+
+                {/* Product 3 - Beauty */}
+                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex gap-3">
+                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xs font-bold">Dyson</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-semibold text-gray-900 text-sm">Dyson Airwrap Styler</div>
+                          <div className="text-xs text-gray-500">Beauty • Hair Care</div>
+                        </div>
+                        <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap">6% Commission</span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                        <span>CA$699.99</span>
+                        <span className="text-primary font-medium">Earn CA$42/sale</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -554,18 +590,3 @@ function HowItWorksStep({ step, index }: { step: { number: number; title: string
   );
 }
 
-function OfferCard({ name, date }: { name: string; date: string }) {
-  return (
-    <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-      <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
-          {name.charAt(0)}
-        </div>
-        <div>
-          <div className="font-medium text-gray-800 text-xs">{name}</div>
-          <div className="text-xs text-gray-400">{date}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
