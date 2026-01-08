@@ -45,6 +45,7 @@ import { ListSkeleton } from "../components/skeletons";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { useCompanyPageTour } from "../components/CompanyTour";
 import { COMPANY_TOUR_IDS, retainersTourSteps } from "../lib/companyTourConfig";
+import { PlatformBadge, PlatformIcon } from "../lib/platform-icons";
 
 const retainerTierSchema = z.object({
   name: z.string().min(1, "Tier name is required"),
@@ -961,9 +962,7 @@ export default function CompanyRetainers() {
                           </Badge>
                         </div>
                       </div>
-                      <Badge variant="outline" className="shrink-0">
-                        {contract.requiredPlatform}
-                      </Badge>
+                      <PlatformBadge platform={contract.requiredPlatform} size="sm" className="shrink-0" />
                     </div>
                   <p className="text-muted-foreground line-clamp-2 leading-relaxed">
                     {contract.description}
@@ -1022,7 +1021,7 @@ export default function CompanyRetainers() {
 
                   <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
                     <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                      <Users className="h-5 w-5 text-primary" />
+                      <PlatformIcon platform={contract.requiredPlatform} size="lg" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Platform</p>

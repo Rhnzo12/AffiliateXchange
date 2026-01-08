@@ -62,6 +62,7 @@ import {
 import { uploadToCloudinary } from "../lib/cloudinary-upload";
 import { useCreatorPageTour } from "../components/CreatorTour";
 import { CREATOR_TOUR_IDS, retainerDetailTourSteps } from "../lib/creatorTourConfig";
+import { PlatformBadge } from "../lib/platform-icons";
 
 const uploadDeliverableSchema = z.object({
   platformUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
@@ -537,6 +538,10 @@ export default function CreatorRetainerDetail() {
             by {contract.company?.tradeName || contract.company?.legalName || "Company"}
           </p>
         </div>
+        {/* Platform Badge */}
+        {contract.requiredPlatform && (
+          <PlatformBadge platform={contract.requiredPlatform} size="md" />
+        )}
         {isApproved && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
