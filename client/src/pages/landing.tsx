@@ -29,6 +29,42 @@ function useScrollAnimation(threshold = 0.1) {
   return { ref, isVisible };
 }
 
+// Animation wrapper component for sections
+function AnimatedSection({
+  children,
+  className = "",
+  animation = "fade-up",
+  delay = 0
+}: {
+  children: React.ReactNode;
+  className?: string;
+  animation?: "fade-up" | "fade-in" | "fade-left" | "fade-right" | "zoom-in" | "bounce-in";
+  delay?: number;
+}) {
+  const { ref, isVisible } = useScrollAnimation(0.1);
+
+  const animationClasses = {
+    "fade-up": "translate-y-10 opacity-0",
+    "fade-in": "opacity-0",
+    "fade-left": "-translate-x-10 opacity-0",
+    "fade-right": "translate-x-10 opacity-0",
+    "zoom-in": "scale-95 opacity-0",
+    "bounce-in": "scale-90 opacity-0",
+  };
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${className} ${
+        isVisible ? "translate-y-0 translate-x-0 scale-100 opacity-100" : animationClasses[animation]
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function Landing() {
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
@@ -169,52 +205,60 @@ export default function Landing() {
       <section className="pt-16 pb-8 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* Main Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-            The easiest all-in-one{" "}
-            <span className="relative inline-block">
-              <span className="relative z-10">affiliate marketing</span>
-              <span
-                className="absolute bottom-1 left-0 w-full h-3 bg-primary/40 -z-0"
-                style={{ transform: "skewX(-3deg)" }}
-              />
-            </span>{" "}
-            platform
-          </h1>
+          <AnimatedSection animation="fade-up">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+              The easiest all-in-one{" "}
+              <span className="relative inline-block">
+                <span className="relative z-10">affiliate marketing</span>
+                <span
+                  className="absolute bottom-1 left-0 w-full h-3 bg-primary/40 -z-0"
+                  style={{ transform: "skewX(-3deg)" }}
+                />
+              </span>{" "}
+              platform
+            </h1>
+          </AnimatedSection>
 
           {/* Subheadline */}
-          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-            Get your free account now!
-          </p>
+          <AnimatedSection animation="fade-up" delay={100}>
+            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+              Get your free account now!
+            </p>
+          </AnimatedSection>
 
           {/* Email Signup Form */}
-          <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-6">
-            <Input
-              type="email"
-              placeholder="Enter your email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 h-12 text-base border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
-            />
-            <Button
-              onClick={handleGetStarted}
-              data-testid="button-get-started"
-              className="h-12 px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-base rounded-lg"
-            >
-              Get Started
-            </Button>
-          </div>
+          <AnimatedSection animation="zoom-in" delay={200}>
+            <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-6">
+              <Input
+                type="email"
+                placeholder="Enter your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 h-12 text-base border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+              />
+              <Button
+                onClick={handleGetStarted}
+                data-testid="button-get-started"
+                className="h-12 px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-base rounded-lg"
+              >
+                Get Started
+              </Button>
+            </div>
+          </AnimatedSection>
 
           {/* Trust Badges */}
-          <div className="flex flex-wrap justify-center items-center gap-6 text-gray-500 text-sm">
-            <div className="flex items-center gap-2">
-              <ThumbsUp className="h-4 w-4" />
-              <span>Free forever</span>
+          <AnimatedSection animation="fade-up" delay={300}>
+            <div className="flex flex-wrap justify-center items-center gap-6 text-gray-500 text-sm">
+              <div className="flex items-center gap-2">
+                <ThumbsUp className="h-4 w-4" />
+                <span>Free forever</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>No credit card required</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              <span>No credit card required</span>
-            </div>
-          </div>
+          </AnimatedSection>
         </div>
       </section>
 
@@ -223,7 +267,8 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-8 items-start">
             {/* Left Mockup - Dashboard Preview */}
-            <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+            <AnimatedSection animation="fade-right" delay={100}>
+              <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center gap-2">
                 <div className="flex gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-red-400"></div>
@@ -280,9 +325,10 @@ export default function Landing() {
                   </div>
                 </div>
               </div>
-            </div>
+            </AnimatedSection>
 
             {/* Right Mockup - Affiliate Marketplace Preview */}
+            <AnimatedSection animation="fade-left" delay={200}>
             <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
                 <span className="font-medium text-gray-700">Affiliate Marketplace</span>
@@ -358,6 +404,7 @@ export default function Landing() {
                 </div>
               </div>
             </div>
+            </AnimatedSection>
           </div>
         </div>
       </section>
@@ -365,12 +412,14 @@ export default function Landing() {
       {/* Trending Products Carousel Section */}
       <section className="py-16 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
-          <div className="text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-              Trending Products to Promote
-            </h2>
-            <p className="text-gray-600">Top-selling items with high commission rates</p>
-          </div>
+          <AnimatedSection animation="fade-up">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                Trending Products to Promote
+              </h2>
+              <p className="text-gray-600">Top-selling items with high commission rates</p>
+            </div>
+          </AnimatedSection>
         </div>
 
         {/* Infinite Scrolling Carousel */}
@@ -420,7 +469,7 @@ export default function Landing() {
       {/* Features Section */}
       <section id="features" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <AnimatedSection animation="fade-up" className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               Why Choose{" "}
               <span className="relative inline-block">
@@ -435,7 +484,7 @@ export default function Landing() {
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Everything you need to monetize your audience and grow your income
             </p>
-          </div>
+          </AnimatedSection>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
@@ -448,12 +497,12 @@ export default function Landing() {
       {/* How It Works Section */}
       <section id="how-it-works" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <AnimatedSection animation="fade-up" className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               How It Works
             </h2>
             <p className="text-xl text-gray-600">Get started in three simple steps</p>
-          </div>
+          </AnimatedSection>
 
           <div className="grid md:grid-cols-3 gap-12">
             {steps.map((step, index) => (
@@ -466,44 +515,46 @@ export default function Landing() {
       {/* Testimonials Section */}
       <section id="testimonials" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <AnimatedSection animation="fade-up" className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               Trusted by Creators
             </h2>
             <p className="text-xl text-gray-600">See what our community has to say</p>
-          </div>
+          </AnimatedSection>
 
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((creator, i) => (
-              <Card key={i} className="bg-white border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                  <p className="text-gray-600">
-                    "{creator.testimonial}"
-                  </p>
-                  <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                    {creator.image ? (
-                      <img
-                        src={creator.image}
-                        alt={creator.name}
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
-                        {creator.name.charAt(0)}
-                      </div>
-                    )}
-                    <div>
-                      <div className="font-semibold text-gray-900">{creator.name}</div>
-                      <div className="text-sm text-gray-500">{creator.role}</div>
+              <AnimatedSection key={i} animation="zoom-in" delay={i * 100}>
+                <Card className="bg-white border-gray-200 shadow-sm hover:shadow-md transition-shadow h-full">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      ))}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    <p className="text-gray-600">
+                      "{creator.testimonial}"
+                    </p>
+                    <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                      {creator.image ? (
+                        <img
+                          src={creator.image}
+                          alt={creator.name}
+                          className="h-10 w-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
+                          {creator.name.charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-semibold text-gray-900">{creator.name}</div>
+                        <div className="text-sm text-gray-500">{creator.role}</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
             ))}
           </div>
         </div>
@@ -512,82 +563,90 @@ export default function Landing() {
       {/* CTA Section */}
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            Ready to Start{" "}
-            <span className="relative inline-block">
-              <span className="relative z-10">Earning</span>
-              <span
-                className="absolute bottom-1 left-0 w-full h-3 bg-primary/40 -z-0"
-                style={{ transform: "skewX(-3deg)" }}
-              />
-            </span>
-            ?
-          </h2>
-          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-            Join thousands of creators already making money with AffiliateXchange
-          </p>
+          <AnimatedSection animation="fade-up">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Ready to Start{" "}
+              <span className="relative inline-block">
+                <span className="relative z-10">Earning</span>
+                <span
+                  className="absolute bottom-1 left-0 w-full h-3 bg-primary/40 -z-0"
+                  style={{ transform: "skewX(-3deg)" }}
+                />
+              </span>
+              ?
+            </h2>
+            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+              Join thousands of creators already making money with AffiliateXchange
+            </p>
+          </AnimatedSection>
 
           {/* Email Signup Form */}
-          <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-8">
-            <Input
-              type="email"
-              placeholder="Enter your email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 h-12 text-base border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
-            />
-            <Button
-              onClick={handleGetStarted}
-              data-testid="button-join-now"
-              className="h-12 px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-base rounded-lg"
-            >
-              Get Started Free
-            </Button>
-          </div>
+          <AnimatedSection animation="zoom-in" delay={100}>
+            <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-8">
+              <Input
+                type="email"
+                placeholder="Enter your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 h-12 text-base border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+              />
+              <Button
+                onClick={handleGetStarted}
+                data-testid="button-join-now"
+                className="h-12 px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-base rounded-lg"
+              >
+                Get Started Free
+              </Button>
+            </div>
+          </AnimatedSection>
 
-          <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              <span>No credit card required</span>
+          <AnimatedSection animation="fade-up" delay={200}>
+            <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span>No credit card required</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span>Instant approvals</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span>Free to join</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              <span>Instant approvals</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              <span>Free to join</span>
-            </div>
-          </div>
+          </AnimatedSection>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="border-t border-gray-200 py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover" />
-              <span className="font-bold text-gray-900">AffiliateXchange</span>
+          <AnimatedSection animation="fade-up">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-2">
+                <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover" />
+                <span className="font-bold text-gray-900">AffiliateXchange</span>
+              </div>
+              <div className="flex gap-6 text-sm">
+                <Link
+                  href="/privacy-policy"
+                  className="text-gray-500 hover:text-gray-900 transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  href="/terms-of-service"
+                  className="text-gray-500 hover:text-gray-900 transition-colors"
+                >
+                  Terms of Service
+                </Link>
+              </div>
+              <p className="text-sm text-gray-500">
+                © 2025 AffiliateXchange. All rights reserved.
+              </p>
             </div>
-            <div className="flex gap-6 text-sm">
-              <Link
-                href="/privacy-policy"
-                className="text-gray-500 hover:text-gray-900 transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="/terms-of-service"
-                className="text-gray-500 hover:text-gray-900 transition-colors"
-              >
-                Terms of Service
-              </Link>
-            </div>
-            <p className="text-sm text-gray-500">
-              © 2025 AffiliateXchange. All rights reserved.
-            </p>
-          </div>
+          </AnimatedSection>
         </div>
       </footer>
     </div>
