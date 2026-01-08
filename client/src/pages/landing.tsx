@@ -378,54 +378,64 @@ export default function Landing() {
           <div className="flex animate-scroll gap-6">
             {/* First set of products */}
             {[
-              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", gradient: "from-gray-100 to-gray-300", textColor: "text-gray-800" },
-              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", gradient: "from-blue-900 to-blue-700", textColor: "text-white" },
-              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", gradient: "from-red-600 to-red-800", textColor: "text-white" },
-              { name: "Lululemon Align Leggings", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", gradient: "from-purple-600 to-pink-500", textColor: "text-white" },
-              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", gradient: "from-green-600 to-green-800", textColor: "text-white" },
-              { name: "Olaplex Hair Perfector", brand: "Olaplex", price: "CA$38.00", commission: "15%", earn: "CA$6", gradient: "from-amber-400 to-yellow-500", textColor: "text-gray-900" },
-              { name: "Samsung Galaxy Buds", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", gradient: "from-indigo-600 to-violet-600", textColor: "text-white" },
-              { name: "Theragun Mini", brand: "Therabody", price: "CA$299.00", commission: "10%", earn: "CA$30", gradient: "from-gray-800 to-black", textColor: "text-white" },
+              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400&h=400&fit=crop" },
+              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=400&fit=crop" },
+              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://images.unsplash.com/photo-1648655462864-0301dcbba8f1?w=400&h=400&fit=crop" },
+              { name: "Lululemon Align Leggings", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400&h=400&fit=crop" },
+              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop" },
+              { name: "Olaplex Hair Perfector", brand: "Olaplex", price: "CA$38.00", commission: "15%", earn: "CA$6", image: "https://images.unsplash.com/photo-1522338242042-2d1c7bff6fe5?w=400&h=400&fit=crop" },
+              { name: "Samsung Galaxy Buds", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&h=400&fit=crop" },
+              { name: "Theragun Mini", brand: "Therabody", price: "CA$299.00", commission: "10%", earn: "CA$30", image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=400&fit=crop" },
             ].map((product, i) => (
-              <div key={`first-${i}`} className="flex-shrink-0 w-64">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
-                  <div className={`h-40 bg-gradient-to-br ${product.gradient} flex items-center justify-center`}>
-                    <span className={`text-lg font-bold ${product.textColor}`}>{product.brand}</span>
+              <div key={`first-${i}`} className="flex-shrink-0 w-72">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden h-full">
+                  <div className="h-56 bg-gray-100 relative overflow-hidden">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                    <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
                   </div>
-                  <div className="p-4">
-                    <div className="font-semibold text-gray-900 text-sm mb-1 truncate">{product.name}</div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-gray-600 text-sm">{product.price}</span>
-                      <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">{product.commission}</span>
+                  <div className="p-5">
+                    <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
+                    <div className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-900 font-bold">{product.price}</span>
+                      <span className="text-primary font-semibold text-sm">Earn {product.earn}/sale</span>
                     </div>
-                    <div className="text-primary font-medium text-sm">Earn {product.earn}/sale</div>
                   </div>
                 </div>
               </div>
             ))}
             {/* Duplicate set for seamless loop */}
             {[
-              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", gradient: "from-gray-100 to-gray-300", textColor: "text-gray-800" },
-              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", gradient: "from-blue-900 to-blue-700", textColor: "text-white" },
-              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", gradient: "from-red-600 to-red-800", textColor: "text-white" },
-              { name: "Lululemon Align Leggings", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", gradient: "from-purple-600 to-pink-500", textColor: "text-white" },
-              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", gradient: "from-green-600 to-green-800", textColor: "text-white" },
-              { name: "Olaplex Hair Perfector", brand: "Olaplex", price: "CA$38.00", commission: "15%", earn: "CA$6", gradient: "from-amber-400 to-yellow-500", textColor: "text-gray-900" },
-              { name: "Samsung Galaxy Buds", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", gradient: "from-indigo-600 to-violet-600", textColor: "text-white" },
-              { name: "Theragun Mini", brand: "Therabody", price: "CA$299.00", commission: "10%", earn: "CA$30", gradient: "from-gray-800 to-black", textColor: "text-white" },
+              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400&h=400&fit=crop" },
+              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=400&fit=crop" },
+              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://images.unsplash.com/photo-1648655462864-0301dcbba8f1?w=400&h=400&fit=crop" },
+              { name: "Lululemon Align Leggings", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400&h=400&fit=crop" },
+              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop" },
+              { name: "Olaplex Hair Perfector", brand: "Olaplex", price: "CA$38.00", commission: "15%", earn: "CA$6", image: "https://images.unsplash.com/photo-1522338242042-2d1c7bff6fe5?w=400&h=400&fit=crop" },
+              { name: "Samsung Galaxy Buds", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&h=400&fit=crop" },
+              { name: "Theragun Mini", brand: "Therabody", price: "CA$299.00", commission: "10%", earn: "CA$30", image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=400&fit=crop" },
             ].map((product, i) => (
-              <div key={`second-${i}`} className="flex-shrink-0 w-64">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
-                  <div className={`h-40 bg-gradient-to-br ${product.gradient} flex items-center justify-center`}>
-                    <span className={`text-lg font-bold ${product.textColor}`}>{product.brand}</span>
+              <div key={`second-${i}`} className="flex-shrink-0 w-72">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden h-full">
+                  <div className="h-56 bg-gray-100 relative overflow-hidden">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                    <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
                   </div>
-                  <div className="p-4">
-                    <div className="font-semibold text-gray-900 text-sm mb-1 truncate">{product.name}</div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-gray-600 text-sm">{product.price}</span>
-                      <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">{product.commission}</span>
+                  <div className="p-5">
+                    <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
+                    <div className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-900 font-bold">{product.price}</span>
+                      <span className="text-primary font-semibold text-sm">Earn {product.earn}/sale</span>
                     </div>
-                    <div className="text-primary font-medium text-sm">Earn {product.earn}/sale</div>
                   </div>
                 </div>
               </div>
