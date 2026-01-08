@@ -362,6 +362,78 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Trending Products Carousel Section */}
+      <section className="py-16 bg-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+          <div className="text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+              Trending Products to Promote
+            </h2>
+            <p className="text-gray-600">Top-selling items with high commission rates</p>
+          </div>
+        </div>
+
+        {/* Infinite Scrolling Carousel */}
+        <div className="relative">
+          <div className="flex animate-scroll gap-6">
+            {/* First set of products */}
+            {[
+              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", gradient: "from-gray-100 to-gray-300", textColor: "text-gray-800" },
+              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", gradient: "from-blue-900 to-blue-700", textColor: "text-white" },
+              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", gradient: "from-red-600 to-red-800", textColor: "text-white" },
+              { name: "Lululemon Align Leggings", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", gradient: "from-purple-600 to-pink-500", textColor: "text-white" },
+              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", gradient: "from-green-600 to-green-800", textColor: "text-white" },
+              { name: "Olaplex Hair Perfector", brand: "Olaplex", price: "CA$38.00", commission: "15%", earn: "CA$6", gradient: "from-amber-400 to-yellow-500", textColor: "text-gray-900" },
+              { name: "Samsung Galaxy Buds", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", gradient: "from-indigo-600 to-violet-600", textColor: "text-white" },
+              { name: "Theragun Mini", brand: "Therabody", price: "CA$299.00", commission: "10%", earn: "CA$30", gradient: "from-gray-800 to-black", textColor: "text-white" },
+            ].map((product, i) => (
+              <div key={`first-${i}`} className="flex-shrink-0 w-64">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
+                  <div className={`h-40 bg-gradient-to-br ${product.gradient} flex items-center justify-center`}>
+                    <span className={`text-lg font-bold ${product.textColor}`}>{product.brand}</span>
+                  </div>
+                  <div className="p-4">
+                    <div className="font-semibold text-gray-900 text-sm mb-1 truncate">{product.name}</div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-600 text-sm">{product.price}</span>
+                      <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">{product.commission}</span>
+                    </div>
+                    <div className="text-primary font-medium text-sm">Earn {product.earn}/sale</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* Duplicate set for seamless loop */}
+            {[
+              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", gradient: "from-gray-100 to-gray-300", textColor: "text-gray-800" },
+              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", gradient: "from-blue-900 to-blue-700", textColor: "text-white" },
+              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", gradient: "from-red-600 to-red-800", textColor: "text-white" },
+              { name: "Lululemon Align Leggings", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", gradient: "from-purple-600 to-pink-500", textColor: "text-white" },
+              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", gradient: "from-green-600 to-green-800", textColor: "text-white" },
+              { name: "Olaplex Hair Perfector", brand: "Olaplex", price: "CA$38.00", commission: "15%", earn: "CA$6", gradient: "from-amber-400 to-yellow-500", textColor: "text-gray-900" },
+              { name: "Samsung Galaxy Buds", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", gradient: "from-indigo-600 to-violet-600", textColor: "text-white" },
+              { name: "Theragun Mini", brand: "Therabody", price: "CA$299.00", commission: "10%", earn: "CA$30", gradient: "from-gray-800 to-black", textColor: "text-white" },
+            ].map((product, i) => (
+              <div key={`second-${i}`} className="flex-shrink-0 w-64">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
+                  <div className={`h-40 bg-gradient-to-br ${product.gradient} flex items-center justify-center`}>
+                    <span className={`text-lg font-bold ${product.textColor}`}>{product.brand}</span>
+                  </div>
+                  <div className="p-4">
+                    <div className="font-semibold text-gray-900 text-sm mb-1 truncate">{product.name}</div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-600 text-sm">{product.price}</span>
+                      <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">{product.commission}</span>
+                    </div>
+                    <div className="text-primary font-medium text-sm">Earn {product.earn}/sale</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section id="features" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
