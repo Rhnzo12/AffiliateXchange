@@ -256,15 +256,26 @@ export default function Landing() {
                       <div className="text-xs text-gray-500">Brands</div>
                     </div>
                   </div>
-                  <div className="h-32 bg-gradient-to-t from-primary/5 to-primary/20 rounded-lg flex items-end p-4">
-                    <div className="flex items-end gap-2 w-full">
-                      {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
-                        <div
-                          key={i}
-                          className="flex-1 bg-primary rounded-t"
-                          style={{ height: `${h}%` }}
-                        />
-                      ))}
+                  {/* Product Review - Amazon Style */}
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+                      <span className="text-xs font-semibold text-gray-900">5.0 out of 5</span>
+                    </div>
+                    <div className="text-xs font-medium text-gray-900 mb-1">Best headphones I've ever owned!</div>
+                    <p className="text-xs text-gray-600 leading-relaxed mb-2">
+                      "The noise cancellation is incredible. Perfect for work and travel. Battery life exceeds expectations..."
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center">
+                        <span className="text-orange-600 font-medium text-xs">M</span>
+                      </div>
+                      <span>Michael T.</span>
+                      <span className="text-green-600 font-medium">Verified Purchase</span>
                     </div>
                   </div>
                 </div>
