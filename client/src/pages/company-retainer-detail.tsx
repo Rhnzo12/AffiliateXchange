@@ -57,6 +57,7 @@ import { useCompanyPageTour } from "../components/CompanyTour";
 import { COMPANY_TOUR_IDS, retainerDetailTourSteps } from "../lib/companyTourConfig";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { PlatformBadge, PlatformIcon } from "../lib/platform-icons";
 
 const editRetainerSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
@@ -551,9 +552,14 @@ export default function CompanyRetainerDetail() {
         Back to Retainers
       </Button>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{contract.title}</h1>
-          <p className="text-muted-foreground">Retainer Contract Details</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">{contract.title}</h1>
+            <p className="text-muted-foreground">Retainer Contract Details</p>
+          </div>
+          {contract.requiredPlatform && (
+            <PlatformBadge platform={contract.requiredPlatform} size="md" />
+          )}
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {getContractStatusBadge(contract.status)}
@@ -646,7 +652,7 @@ export default function CompanyRetainerDetail() {
 
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <Briefcase className="h-5 w-5 text-primary" />
+                <PlatformIcon platform={contract.requiredPlatform} size="lg" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Platform</p>
