@@ -3,9 +3,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../components/ui/form";
 import { Input } from "../components/ui/input";
+import { Checkbox } from "../components/ui/checkbox";
 import { useToast } from "../hooks/use-toast";
 import { Eye, EyeOff, Shield, ArrowLeft, Key, Home } from "lucide-react";
 import { Link, useSearch } from "wouter";
@@ -15,28 +16,19 @@ import { loginSchema } from "../../../shared/validation";
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-const headerAnimation = {
-  initial: { opacity: 0, y: 12 },
+const cardAnimation = {
+  initial: { opacity: 0, y: 20 },
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
   },
 };
-
-const createCardAnimation = (delay = 0) => ({
-  initial: { opacity: 0, scale: 0.96, y: 16 },
-  animate: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { duration: 0.9, delay, ease: [0.16, 1, 0.3, 1] },
-  },
-});
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [stayConnected, setStayConnected] = useState(false);
   const { toast } = useToast();
   const [errorDialog, setErrorDialog] = useState({
     open: false,
@@ -202,68 +194,56 @@ export default function Login() {
   // Render 2FA verification form
   if (requires2FA) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-6">
-          <motion.div {...headerAnimation} className="flex items-center justify-center gap-2">
-            <img src="/logo.png" alt="AffiliateXchange Logo" className="h-10 w-10 rounded-md object-cover" />
-            <span className="text-2xl font-bold">AffiliateXchange</span>
-          </motion.div>
+      <div className="min-h-screen bg-muted/30">
+        {/* Header */}
+        <header className="p-6">
+          <Link href="/" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover" />
+            <span className="text-xl font-semibold text-primary">AffiliateXchange</span>
+          </Link>
+        </header>
 
-          <motion.div {...createCardAnimation(0.25)}>
-            <Card>
-              <CardHeader className="space-y-0">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleBack}
-                        className="h-8 w-8"
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                      </Button>
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          <Shield className="h-5 w-5" />
-                          Two-Factor Authentication
-                        </CardTitle>
-                        <CardDescription>
-                          {useBackupCode
-                            ? "Enter one of your backup codes"
-                            : "Enter the 6-digit code from your authenticator app"}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </div>
-                  <Link
-                    href="/"
-                    className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors shrink-0"
-                    data-testid="link-home"
+        {/* Main Content */}
+        <div className="flex items-center justify-center px-4 py-8">
+          <motion.div {...cardAnimation} className="w-full max-w-md">
+            <Card className="shadow-lg border-0">
+              <CardContent className="pt-8 pb-8 px-8">
+                {/* Back button and title */}
+                <div className="flex items-center gap-3 mb-6">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBack}
+                    className="h-8 w-8 shrink-0"
                   >
-                    <Home className="h-4 w-4" />
-                    Back to home
-                  </Link>
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <div>
+                    <h1 className="text-xl font-bold flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" />
+                      Two-Factor Authentication
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                      {useBackupCode
+                        ? "Enter one of your backup codes"
+                        : "Enter the 6-digit code from your authenticator app"}
+                    </p>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleVerify2FA} className="space-y-4">
+
+                <form onSubmit={handleVerify2FA} className="space-y-6">
                   <div className="space-y-2">
                     <Input
                       value={twoFactorCode}
                       onChange={(e) => {
                         if (useBackupCode) {
-                          // Allow alphanumeric and dashes for backup codes
                           setTwoFactorCode(e.target.value.toUpperCase().slice(0, 9));
                         } else {
-                          // Only digits for TOTP
                           setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6));
                         }
                       }}
                       placeholder={useBackupCode ? "XXXX-XXXX" : "000000"}
-                      className={`text-center text-2xl tracking-widest font-mono ${
-                        useBackupCode ? "" : ""
-                      }`}
+                      className="text-center text-2xl tracking-widest font-mono h-14"
                       maxLength={useBackupCode ? 9 : 6}
                       autoComplete="one-time-code"
                       autoFocus
@@ -272,7 +252,7 @@ export default function Login() {
 
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full h-12 text-base font-medium"
                     disabled={
                       isVerifying2FA ||
                       (useBackupCode
@@ -291,7 +271,7 @@ export default function Login() {
                         setUseBackupCode(!useBackupCode);
                         setTwoFactorCode("");
                       }}
-                      className="text-sm"
+                      className="text-sm text-muted-foreground hover:text-primary"
                     >
                       {useBackupCode ? (
                         <>
@@ -310,59 +290,66 @@ export default function Login() {
               </CardContent>
             </Card>
           </motion.div>
-
-          {/* Generic Error Dialog */}
-          <GenericErrorDialog
-            open={errorDialog.open}
-            onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
-            title={errorDialog.title}
-            description={errorDialog.description}
-            errorDetails={errorDialog.errorDetails}
-            variant="error"
-          />
         </div>
+
+        {/* Generic Error Dialog */}
+        <GenericErrorDialog
+          open={errorDialog.open}
+          onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+          title={errorDialog.title}
+          description={errorDialog.description}
+          errorDetails={errorDialog.errorDetails}
+          variant="error"
+        />
       </div>
     );
   }
 
   // Regular login form
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
-        <motion.div {...headerAnimation} className="flex items-center justify-center gap-2">
-          <img src="/logo.png" alt="AffiliateXchange Logo" className="h-10 w-10 rounded-md object-cover" />
-          <span className="text-2xl font-bold">AffiliateXchange</span>
-        </motion.div>
+    <div className="min-h-screen bg-muted/30">
+      {/* Header */}
+      <header className="p-6">
+        <Link href="/" className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover" />
+          <span className="text-xl font-semibold text-primary">AffiliateXchange</span>
+        </Link>
+      </header>
 
-        <motion.div {...createCardAnimation(0.25)}>
-          <Card>
-            <CardHeader>
-              <div className="flex justify-end mb-2">
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
-                  data-testid="link-home"
-                >
-                  <Home className="h-4 w-4" />
-                  Back to home
-                </Link>
+      {/* Main Content */}
+      <div className="flex items-center justify-center px-4 py-8">
+        <motion.div {...cardAnimation} className="w-full max-w-md">
+          <Card className="shadow-lg border-0">
+            <CardContent className="pt-10 pb-8 px-8">
+              {/* Logo and Title */}
+              <div className="text-center mb-8">
+                <div className="flex justify-center mb-4">
+                  <img
+                    src="/logo.png"
+                    alt="AffiliateXchange Logo"
+                    className="h-16 w-16 rounded-xl object-cover shadow-md"
+                  />
+                </div>
+                <h1 className="text-2xl font-bold text-foreground">Login</h1>
               </div>
-              <div className="text-center space-y-1.5">
-                <CardTitle>Welcome back</CardTitle>
-                <CardDescription>Sign in to your account to continue</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
+
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                   <FormField
                     control={form.control}
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Username</FormLabel>
+                        <FormLabel className="text-sm font-medium text-muted-foreground">
+                          Username
+                        </FormLabel>
                         <FormControl>
-                          <Input placeholder="johndoe" {...field} data-testid="input-username" />
+                          <Input
+                            placeholder=""
+                            {...field}
+                            data-testid="input-username"
+                            className="h-12 border-gray-200 focus:border-primary"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -374,15 +361,17 @@ export default function Login() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel className="text-sm font-medium text-muted-foreground">
+                          Password
+                        </FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Input
                               type={showPassword ? "text" : "password"}
-                              placeholder="••••••••"
+                              placeholder=""
                               {...field}
                               data-testid="input-password"
-                              className="pr-10"
+                              className="h-12 pr-10 border-gray-200 focus:border-primary"
                             />
                             <button
                               type="button"
@@ -391,9 +380,9 @@ export default function Login() {
                               data-testid="toggle-password-visibility"
                             >
                               {showPassword ? (
-                                <EyeOff className="h-4 w-4" />
+                                <EyeOff className="h-5 w-5" />
                               ) : (
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-5 w-5" />
                               )}
                             </button>
                           </div>
@@ -403,35 +392,60 @@ export default function Login() {
                     )}
                   />
 
+                  {/* Stay connected and Forgot password row */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="stay-connected"
+                        checked={stayConnected}
+                        onCheckedChange={(checked) => setStayConnected(checked as boolean)}
+                      />
+                      <label
+                        htmlFor="stay-connected"
+                        className="text-sm text-muted-foreground cursor-pointer"
+                      >
+                        Stay connected
+                      </label>
+                    </div>
+                    <Link
+                      href="/forgot-password"
+                      className="text-sm text-primary hover:underline font-medium"
+                    >
+                      Forgot your password?
+                    </Link>
+                  </div>
+
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full h-12 text-base font-medium mt-2"
                     disabled={isLoading}
                     data-testid="button-login"
                   >
-                    {isLoading ? "Signing in..." : "Sign In"}
+                    {isLoading ? "Logging in..." : "Log in"}
                   </Button>
                 </form>
               </Form>
 
-              <div className="relative my-4">
+              {/* Divider */}
+              <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                  <span className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                  <span className="bg-white px-3 text-muted-foreground">Or continue with</span>
                 </div>
               </div>
 
+              {/* Google Login */}
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                className="w-full h-12 text-base font-medium border-gray-200 hover:bg-gray-50"
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
                 data-testid="button-google-login"
               >
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -452,50 +466,31 @@ export default function Login() {
                 Continue with Google
               </Button>
 
-              <div className="mt-4 text-center text-sm">
+              {/* Sign up link */}
+              <p className="text-center text-sm text-muted-foreground mt-6">
                 Don't have an account?{" "}
-                <Link href="/register" className="text-primary hover:underline" data-testid="link-register">
-                  Create account
+                <Link
+                  href="/register"
+                  className="text-primary hover:underline font-medium"
+                  data-testid="link-register"
+                >
+                  Create one for free!
                 </Link>
-              </div>
-
-              <div className="mt-2 text-center text-sm">
-                <Link href="/forgot-password" className="text-muted-foreground hover:text-primary hover:underline">
-                  Forgot your password?
-                </Link>
-              </div>
-
-              <div className="mt-4 pt-4 border-t text-center text-xs text-muted-foreground">
-                <div className="flex justify-center gap-4">
-                  <Link
-                    href="/privacy-policy"
-                    className="hover:text-foreground transition-colors"
-                  >
-                    Privacy Policy
-                  </Link>
-                  <span>•</span>
-                  <Link
-                    href="/terms-of-service"
-                    className="hover:text-foreground transition-colors"
-                  >
-                    Terms of Service
-                  </Link>
-                </div>
-              </div>
+              </p>
             </CardContent>
           </Card>
         </motion.div>
-
-        {/* Generic Error Dialog */}
-        <GenericErrorDialog
-          open={errorDialog.open}
-          onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
-          title={errorDialog.title}
-          description={errorDialog.description}
-          errorDetails={errorDialog.errorDetails}
-          variant="error"
-        />
       </div>
+
+      {/* Generic Error Dialog */}
+      <GenericErrorDialog
+        open={errorDialog.open}
+        onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}
+        title={errorDialog.title}
+        description={errorDialog.description}
+        errorDetails={errorDialog.errorDetails}
+        variant="error"
+      />
     </div>
   );
 }
