@@ -42,6 +42,7 @@ import {
   Info,
   CheckCircle2,
   Send,
+  Star,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -875,7 +876,7 @@ export default function CreatorRetainerDetail() {
                   <div className="text-center">
                     <div className="text-xs text-gray-500 mb-1">Rating</div>
                     <div className="flex items-center justify-center gap-1">
-                      <Sparkles className="h-3 w-3 text-yellow-400" />
+                      <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
                       <span className="text-sm font-medium">New</span>
                     </div>
                   </div>
@@ -973,30 +974,28 @@ export default function CreatorRetainerDetail() {
                   </div>
                 </div>
 
-                {/* Example Videos Section - placeholder for now */}
+                {/* Example Videos Section */}
                 <div>
                   <h4 className="text-sm font-semibold text-gray-900 mb-3">Example videos</h4>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-3">
                     {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div
-                        key={i}
-                        className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200"
-                      >
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
-                          <Video className="h-4 w-4 text-gray-400" />
+                      <div key={i} className="space-y-1">
+                        <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                            <Video className="h-4 w-4 text-gray-400" />
+                          </div>
+                          <div className="absolute top-1 left-1 text-[10px] text-gray-500 bg-white/80 px-1 rounded">
+                            {contract?.requiredPlatform || 'YouTube'} Shorts
+                          </div>
+                          <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded">
+                            45s
+                          </div>
                         </div>
-                        <div className="absolute top-1 left-1 text-[10px] text-gray-500">
-                          {contract?.requiredPlatform || 'YouTube'} Shorts
-                        </div>
-                        <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded">
-                          45s
-                        </div>
+                        <p className="text-xs font-medium text-gray-900 truncate">Example video {i}</p>
+                        <p className="text-[10px] text-gray-500 line-clamp-2">Demonstrates tone and pacing the company loves.</p>
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Example video {contractVideosPerMonth > 1 ? `${contractVideosPerMonth}` : '1'}
-                  </p>
                 </div>
               </div>
 
