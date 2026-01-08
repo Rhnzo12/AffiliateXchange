@@ -503,4 +503,20 @@
     animation: scroll-infinite 30s linear infinite;
     width: fit-content;
   }
+
+  /* Reverse infinite scroll carousel animation */
+  @keyframes scroll-infinite-reverse {
+    0% {
+      transform: translateX(-50%);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  .animate-scroll-infinite-reverse {
+    display: flex;
+    animation: scroll-infinite-reverse 30s linear infinite;
+    width: fit-content;
+  }
 }
