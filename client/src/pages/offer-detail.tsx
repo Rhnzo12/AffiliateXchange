@@ -669,8 +669,8 @@ export default function OfferDetail() {
                 {/* Minimum Followers */}
                 {offer.minimumFollowers && (
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                      <Users className="h-4 w-4 text-blue-600" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Users className="h-4 w-4 text-gray-900" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Minimum Followers</p>
@@ -684,8 +684,8 @@ export default function OfferDetail() {
                 {/* Allowed Platforms */}
                 {offer.allowedPlatforms?.length > 0 && (
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center">
-                      <Globe className="h-4 w-4 text-purple-600" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Globe className="h-4 w-4 text-gray-900" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Allowed Platforms</p>
@@ -703,8 +703,8 @@ export default function OfferDetail() {
                 {/* Geographic Restrictions */}
                 {offer.geographicRestrictions?.length > 0 && (
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
-                      <MapPin className="h-4 w-4 text-green-600" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <MapPin className="h-4 w-4 text-gray-900" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Geographic Restrictions</p>
@@ -722,8 +722,8 @@ export default function OfferDetail() {
                 {/* Age Restriction */}
                 {offer.ageRestriction && (
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center">
-                      <Info className="h-4 w-4 text-orange-600" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Info className="h-4 w-4 text-gray-900" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Age Restriction</p>
@@ -735,8 +735,8 @@ export default function OfferDetail() {
                 {/* Content Style Requirements */}
                 {offer.contentStyleRequirements && (
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center">
-                      <Palette className="h-4 w-4 text-pink-600" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Palette className="h-4 w-4 text-gray-900" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Content Style</p>
@@ -748,8 +748,8 @@ export default function OfferDetail() {
                 {/* Brand Safety Requirements */}
                 {offer.brandSafetyRequirements && (
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
-                      <Shield className="h-4 w-4 text-red-600" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Shield className="h-4 w-4 text-gray-900" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Brand Safety</p>
@@ -762,7 +762,7 @@ export default function OfferDetail() {
                 {offer.customTerms && (
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                      <Verified className="h-4 w-4 text-gray-600" />
+                      <Verified className="h-4 w-4 text-gray-900" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Custom Terms</p>
@@ -774,8 +774,8 @@ export default function OfferDetail() {
                 {/* General Creator Requirements */}
                 {offer.creatorRequirements && (
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center">
-                      <CheckCircle2 className="h-4 w-4 text-indigo-600" />
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                      <CheckCircle2 className="h-4 w-4 text-gray-900" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Additional Requirements</p>
