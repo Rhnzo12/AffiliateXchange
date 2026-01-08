@@ -1321,35 +1321,38 @@ export default function OfferDetail() {
                           {videos && videos.length > 0 && (
                             <div>
                               <h4 className="text-sm font-semibold text-gray-900 mb-3">Example videos</h4>
-                              <div className="grid grid-cols-3 gap-2">
-                                {videos.slice(0, 6).map((video: any) => (
-                                  <div
-                                    key={video.id}
-                                    className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200"
-                                  >
-                                    {video.thumbnailUrl ? (
-                                      <img
-                                        src={proxiedSrc(video.thumbnailUrl)}
-                                        alt={video.title}
-                                        className="w-full h-full object-cover"
-                                        referrerPolicy="no-referrer"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
-                                        <Video className="h-4 w-4 text-gray-400" />
+                              <div className="grid grid-cols-3 gap-3">
+                                {videos.slice(0, 6).map((video: any, index: number) => (
+                                  <div key={video.id} className="space-y-1">
+                                    <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                                      {video.thumbnailUrl ? (
+                                        <img
+                                          src={proxiedSrc(video.thumbnailUrl)}
+                                          alt={video.title}
+                                          className="w-full h-full object-cover"
+                                          referrerPolicy="no-referrer"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                                          <Video className="h-4 w-4 text-gray-400" />
+                                        </div>
+                                      )}
+                                      <div className="absolute top-1 left-1 text-[10px] text-gray-500 bg-white/80 px-1 rounded">
+                                        {offer.allowedPlatforms?.[0] || 'YouTube'} Shorts
                                       </div>
-                                    )}
-                                    <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded">
-                                      {video.duration ? formatDuration(video.duration) : '0:45'}
+                                      <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded">
+                                        {video.duration ? formatDuration(video.duration) : '45s'}
+                                      </div>
                                     </div>
+                                    <p className="text-xs font-medium text-gray-900 truncate">
+                                      {video.title || `Example video ${index + 1}`}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500 line-clamp-2">
+                                      {video.description || 'Demonstrates tone and pacing the company loves.'}
+                                    </p>
                                   </div>
                                 ))}
                               </div>
-                              {videos.length > 0 && (
-                                <p className="text-xs text-gray-500 mt-2">
-                                  {videos.length} example video{videos.length !== 1 ? 's' : ''} available
-                                </p>
-                              )}
                             </div>
                           )}
                         </div>
