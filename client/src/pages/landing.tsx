@@ -378,22 +378,22 @@ export default function Landing() {
           <div className="flex animate-scroll gap-6">
             {/* First set of products */}
             {[
-              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MQD83?wid=400&hei=400&fmt=jpeg&qlt=95&.v=1660803972361" },
-              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://m.media-amazon.com/images/I/61Ww4abGclL._AC_SL1000_.jpg" },
-              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://m.media-amazon.com/images/I/71U-Q+bTRsL._AC_SL1500_.jpg" },
-              { name: "Lululemon Yoga Mat", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.lululemon.com/is/image/lululemon/LU9AQPS_027553_1?wid=400&hei=400&fmt=jpg&qlt=85" },
-              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://m.media-amazon.com/images/I/71qltzlRfpL._AC_SL1500_.jpg" },
-              { name: "Dyson Hair Dryer", brand: "Dyson", price: "CA$499.99", commission: "6%", earn: "CA$30", image: "https://m.media-amazon.com/images/I/61bPsoNUYDL._AC_SL1500_.jpg" },
-              { name: "Samsung Galaxy Buds 2", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", image: "https://m.media-amazon.com/images/I/51Kk-LG2xKL._AC_SL1200_.jpg" },
-              { name: "JBL Flip 6 Speaker", brand: "JBL", price: "CA$169.99", commission: "8%", earn: "CA$14", image: "https://m.media-amazon.com/images/I/71sS3oxpGEL._AC_SL1500_.jpg" },
+              { name: "Wireless Earbuds Pro", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "E-Reader Tablet", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Smart Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://images.pexels.com/photos/6996084/pexels-photo-6996084.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Premium Yoga Mat", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.pexels.com/photos/4056723/pexels-photo-4056723.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Insulated Tumbler", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://images.pexels.com/photos/4065906/pexels-photo-4065906.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Professional Hair Dryer", brand: "Dyson", price: "CA$499.99", commission: "6%", earn: "CA$30", image: "https://images.pexels.com/photos/3993449/pexels-photo-3993449.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Wireless Headphones", brand: "Sony", price: "CA$449.99", commission: "5%", earn: "CA$22", image: "https://images.pexels.com/photos/3394650/pexels-photo-3394650.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Portable Speaker", brand: "JBL", price: "CA$169.99", commission: "8%", earn: "CA$14", image: "https://images.pexels.com/photos/1706694/pexels-photo-1706694.jpeg?auto=compress&cs=tinysrgb&w=400" },
             ].map((product, i) => (
               <div key={`first-${i}`} className="flex-shrink-0 w-72">
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
-                  <div className="h-56 bg-white relative flex items-center justify-center p-4">
+                  <div className="h-56 bg-gray-50 relative overflow-hidden">
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="max-w-full max-h-full object-contain"
+                      className="w-full h-full object-cover"
                     />
                     <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
                   </div>
@@ -410,22 +410,22 @@ export default function Landing() {
             ))}
             {/* Duplicate set for seamless loop */}
             {[
-              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MQD83?wid=400&hei=400&fmt=jpeg&qlt=95&.v=1660803972361" },
-              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://m.media-amazon.com/images/I/61Ww4abGclL._AC_SL1000_.jpg" },
-              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://m.media-amazon.com/images/I/71U-Q+bTRsL._AC_SL1500_.jpg" },
-              { name: "Lululemon Yoga Mat", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.lululemon.com/is/image/lululemon/LU9AQPS_027553_1?wid=400&hei=400&fmt=jpg&qlt=85" },
-              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://m.media-amazon.com/images/I/71qltzlRfpL._AC_SL1500_.jpg" },
-              { name: "Dyson Hair Dryer", brand: "Dyson", price: "CA$499.99", commission: "6%", earn: "CA$30", image: "https://m.media-amazon.com/images/I/61bPsoNUYDL._AC_SL1500_.jpg" },
-              { name: "Samsung Galaxy Buds 2", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", image: "https://m.media-amazon.com/images/I/51Kk-LG2xKL._AC_SL1200_.jpg" },
-              { name: "JBL Flip 6 Speaker", brand: "JBL", price: "CA$169.99", commission: "8%", earn: "CA$14", image: "https://m.media-amazon.com/images/I/71sS3oxpGEL._AC_SL1500_.jpg" },
+              { name: "Wireless Earbuds Pro", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "E-Reader Tablet", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Smart Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://images.pexels.com/photos/6996084/pexels-photo-6996084.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Premium Yoga Mat", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.pexels.com/photos/4056723/pexels-photo-4056723.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Insulated Tumbler", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://images.pexels.com/photos/4065906/pexels-photo-4065906.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Professional Hair Dryer", brand: "Dyson", price: "CA$499.99", commission: "6%", earn: "CA$30", image: "https://images.pexels.com/photos/3993449/pexels-photo-3993449.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Wireless Headphones", brand: "Sony", price: "CA$449.99", commission: "5%", earn: "CA$22", image: "https://images.pexels.com/photos/3394650/pexels-photo-3394650.jpeg?auto=compress&cs=tinysrgb&w=400" },
+              { name: "Portable Speaker", brand: "JBL", price: "CA$169.99", commission: "8%", earn: "CA$14", image: "https://images.pexels.com/photos/1706694/pexels-photo-1706694.jpeg?auto=compress&cs=tinysrgb&w=400" },
             ].map((product, i) => (
               <div key={`second-${i}`} className="flex-shrink-0 w-72">
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
-                  <div className="h-56 bg-white relative flex items-center justify-center p-4">
+                  <div className="h-56 bg-gray-50 relative overflow-hidden">
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="max-w-full max-h-full object-contain"
+                      className="w-full h-full object-cover"
                     />
                     <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
                   </div>
