@@ -790,7 +790,7 @@ export default function OfferDetail() {
 
         {/* Performance and Videos Tabs */}
         <Card className="rounded-xl shadow-sm border border-gray-200 mb-6">
-          <Tabs defaultValue="performance" className="w-full">
+          <Tabs defaultValue="videos" className="w-full">
             <div className="border-b border-gray-200">
               <TabsList className="h-auto p-0 bg-transparent w-full justify-start rounded-none">
                 <TabsTrigger
