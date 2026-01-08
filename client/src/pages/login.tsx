@@ -29,6 +29,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [stayConnected, setStayConnected] = useState(false);
+  const [loginError, setLoginError] = useState("");
   const { toast } = useToast();
   const [errorDialog, setErrorDialog] = useState({
     open: false,
@@ -68,6 +69,7 @@ export default function Login() {
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
+    setLoginError("");
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -112,12 +114,7 @@ export default function Login() {
         }
       }, 1000);
     } catch (error: any) {
-      setErrorDialog({
-        open: true,
-        title: "Login Failed",
-        description: "We couldn't sign you in. Please check your credentials and try again.",
-        errorDetails: error.message,
-      });
+      setLoginError("Invalid credentials.");
     } finally {
       setIsLoading(false);
     }
@@ -349,6 +346,10 @@ export default function Login() {
                             {...field}
                             data-testid="input-username"
                             className="h-12 border-gray-200 focus:border-primary"
+                            onChange={(e) => {
+                              field.onChange(e);
+                              setLoginError("");
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -372,6 +373,10 @@ export default function Login() {
                               {...field}
                               data-testid="input-password"
                               className="h-12 pr-10 border-gray-200 focus:border-primary"
+                              onChange={(e) => {
+                                field.onChange(e);
+                                setLoginError("");
+                              }}
                             />
                             <button
                               type="button"
@@ -391,6 +396,11 @@ export default function Login() {
                       </FormItem>
                     )}
                   />
+
+                  {/* Inline error message */}
+                  {loginError && (
+                    <p className="text-sm text-rose-500 font-medium">{loginError}</p>
+                  )}
 
                   {/* Stay connected and Forgot password row */}
                   <div className="flex items-center justify-between">
