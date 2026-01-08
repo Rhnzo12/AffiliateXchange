@@ -9,7 +9,7 @@ import { Input } from "../components/ui/input";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { Checkbox } from "../components/ui/checkbox";
 import { useToast } from "../hooks/use-toast";
-import { Zap, Mail, Check, X } from "lucide-react";
+import { Zap, Mail, Check, X, Home } from "lucide-react";
 import { Link } from "wouter";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { motion } from "framer-motion";
@@ -108,9 +108,21 @@ export default function Register() {
 
         <motion.div {...formAnimation}>
           <Card>
-            <CardHeader>
-              <CardTitle>Create your account</CardTitle>
-              <CardDescription>Join the marketplace and start earning</CardDescription>
+            <CardHeader className="space-y-0">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1.5">
+                  <CardTitle>Create your account</CardTitle>
+                  <CardDescription>Join the marketplace and start earning</CardDescription>
+                </div>
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors shrink-0"
+                  data-testid="link-home"
+                >
+                  <Home className="h-4 w-4" />
+                  Back to home
+                </Link>
+              </div>
             </CardHeader>
             <CardContent>
               <Form {...form}>
