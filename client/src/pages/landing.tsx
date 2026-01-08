@@ -435,46 +435,132 @@ export default function Landing() {
           </AnimatedSection>
         </div>
 
-        {/* Infinite Scrolling Carousel */}
-        <div className="relative overflow-hidden">
-          <div className="flex animate-scroll-infinite">
-            {/* Products - duplicated for seamless infinite loop */}
-            {[...Array(2)].map((_, setIndex) => (
-              <div key={setIndex} className="flex gap-6 pr-6">
-                {[
-                  { name: "Wireless Earbuds", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400&h=400&fit=crop&q=80" },
-                  { name: "Smart Watch", brand: "Samsung", price: "CA$399.99", commission: "5%", earn: "CA$20", image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&h=400&fit=crop&q=80" },
-                  { name: "Running Shoes", brand: "Nike", price: "CA$189.99", commission: "10%", earn: "CA$19", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop&q=80" },
-                  { name: "Coffee Maker", brand: "Nespresso", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?w=400&h=400&fit=crop&q=80" },
-                  { name: "Backpack", brand: "Herschel", price: "CA$89.99", commission: "12%", earn: "CA$11", image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop&q=80" },
-                  { name: "Sunglasses", brand: "Ray-Ban", price: "CA$199.99", commission: "8%", earn: "CA$16", image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&h=400&fit=crop&q=80" },
-                  { name: "Laptop Stand", brand: "Rain Design", price: "CA$69.99", commission: "15%", earn: "CA$10", image: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=400&fit=crop&q=80" },
-                  { name: "Wireless Mouse", brand: "Logitech", price: "CA$79.99", commission: "10%", earn: "CA$8", image: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=400&fit=crop&q=80" },
-                ].map((product, i) => (
-                  <div key={`${setIndex}-${i}`} className="flex-shrink-0 w-72">
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
-                      <div className="h-56 bg-gray-100 relative overflow-hidden">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                        <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
-                      </div>
-                      <div className="p-5 border-t border-gray-100">
-                        <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
-                        <div className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-900 font-bold">{product.price}</span>
-                          <span className="text-primary font-semibold text-sm">Earn {product.earn}/sale</span>
+        {/* Infinite Scrolling Carousels - 3 Rows */}
+        <div className="space-y-6">
+          {/* Row 1 - Scrolling Left */}
+          <div className="relative overflow-hidden">
+            <div className="flex animate-scroll-infinite">
+              {[...Array(2)].map((_, setIndex) => (
+                <div key={setIndex} className="flex gap-6 pr-6">
+                  {[
+                    { name: "Wireless Earbuds", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400&h=400&fit=crop&q=80" },
+                    { name: "Smart Watch", brand: "Samsung", price: "CA$399.99", commission: "5%", earn: "CA$20", image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&h=400&fit=crop&q=80" },
+                    { name: "Running Shoes", brand: "Nike", price: "CA$189.99", commission: "10%", earn: "CA$19", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop&q=80" },
+                    { name: "Coffee Maker", brand: "Nespresso", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?w=400&h=400&fit=crop&q=80" },
+                    { name: "Backpack", brand: "Herschel", price: "CA$89.99", commission: "12%", earn: "CA$11", image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop&q=80" },
+                    { name: "Sunglasses", brand: "Ray-Ban", price: "CA$199.99", commission: "8%", earn: "CA$16", image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&h=400&fit=crop&q=80" },
+                    { name: "Laptop Stand", brand: "Rain Design", price: "CA$69.99", commission: "15%", earn: "CA$10", image: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=400&fit=crop&q=80" },
+                    { name: "Wireless Mouse", brand: "Logitech", price: "CA$79.99", commission: "10%", earn: "CA$8", image: "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=400&h=400&fit=crop&q=80" },
+                  ].map((product, i) => (
+                    <div key={`row1-${setIndex}-${i}`} className="flex-shrink-0 w-72">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
+                        <div className="h-56 bg-gray-100 relative overflow-hidden">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
+                        </div>
+                        <div className="p-5 border-t border-gray-100">
+                          <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
+                          <div className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-900 font-bold">{product.price}</span>
+                            <span className="text-primary font-semibold text-sm">Earn {product.earn}/sale</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ))}
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Row 2 - Scrolling Right (Reverse) */}
+          <div className="relative overflow-hidden">
+            <div className="flex animate-scroll-infinite-reverse">
+              {[...Array(2)].map((_, setIndex) => (
+                <div key={setIndex} className="flex gap-6 pr-6">
+                  {[
+                    { name: "Bluetooth Speaker", brand: "JBL", price: "CA$149.99", commission: "9%", earn: "CA$13", image: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400&h=400&fit=crop&q=80" },
+                    { name: "Yoga Mat", brand: "Lululemon", price: "CA$88.00", commission: "12%", earn: "CA$11", image: "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400&h=400&fit=crop&q=80" },
+                    { name: "Mechanical Keyboard", brand: "Keychron", price: "CA$119.99", commission: "11%", earn: "CA$13", image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400&h=400&fit=crop&q=80" },
+                    { name: "Desk Lamp", brand: "BenQ", price: "CA$199.99", commission: "7%", earn: "CA$14", image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400&h=400&fit=crop&q=80" },
+                    { name: "Water Bottle", brand: "Hydro Flask", price: "CA$49.99", commission: "15%", earn: "CA$7", image: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop&q=80" },
+                    { name: "Webcam", brand: "Logitech", price: "CA$129.99", commission: "8%", earn: "CA$10", image: "https://images.unsplash.com/photo-1587826080692-f439cd0b70da?w=400&h=400&fit=crop&q=80" },
+                    { name: "Gaming Headset", brand: "SteelSeries", price: "CA$179.99", commission: "10%", earn: "CA$18", image: "https://images.unsplash.com/photo-1599669454699-248893623440?w=400&h=400&fit=crop&q=80" },
+                    { name: "Portable Charger", brand: "Anker", price: "CA$59.99", commission: "12%", earn: "CA$7", image: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=400&h=400&fit=crop&q=80" },
+                  ].map((product, i) => (
+                    <div key={`row2-${setIndex}-${i}`} className="flex-shrink-0 w-72">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
+                        <div className="h-56 bg-gray-100 relative overflow-hidden">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
+                        </div>
+                        <div className="p-5 border-t border-gray-100">
+                          <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
+                          <div className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-900 font-bold">{product.price}</span>
+                            <span className="text-primary font-semibold text-sm">Earn {product.earn}/sale</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Row 3 - Scrolling Left */}
+          <div className="relative overflow-hidden">
+            <div className="flex animate-scroll-infinite">
+              {[...Array(2)].map((_, setIndex) => (
+                <div key={setIndex} className="flex gap-6 pr-6">
+                  {[
+                    { name: "Air Purifier", brand: "Dyson", price: "CA$599.99", commission: "6%", earn: "CA$36", image: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400&h=400&fit=crop&q=80" },
+                    { name: "Electric Toothbrush", brand: "Oral-B", price: "CA$199.99", commission: "10%", earn: "CA$20", image: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&h=400&fit=crop&q=80" },
+                    { name: "Fitness Tracker", brand: "Fitbit", price: "CA$169.99", commission: "8%", earn: "CA$14", image: "https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=400&h=400&fit=crop&q=80" },
+                    { name: "Instant Camera", brand: "Fujifilm", price: "CA$99.99", commission: "11%", earn: "CA$11", image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&h=400&fit=crop&q=80" },
+                    { name: "Noise Cancelling Headphones", brand: "Sony", price: "CA$449.99", commission: "5%", earn: "CA$22", image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400&h=400&fit=crop&q=80" },
+                    { name: "Standing Desk", brand: "FlexiSpot", price: "CA$499.99", commission: "7%", earn: "CA$35", image: "https://images.unsplash.com/photo-1611269154421-4e27233ac5c7?w=400&h=400&fit=crop&q=80" },
+                    { name: "Kindle E-Reader", brand: "Amazon", price: "CA$139.99", commission: "4%", earn: "CA$6", image: "https://images.unsplash.com/photo-1612378266203-3c8e1c0e8d6f?w=400&h=400&fit=crop&q=80" },
+                    { name: "Smart Thermostat", brand: "Nest", price: "CA$329.99", commission: "6%", earn: "CA$20", image: "https://images.unsplash.com/photo-1567925086983-a5a12c2be8b0?w=400&h=400&fit=crop&q=80" },
+                  ].map((product, i) => (
+                    <div key={`row3-${setIndex}-${i}`} className="flex-shrink-0 w-72">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
+                        <div className="h-56 bg-gray-100 relative overflow-hidden">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
+                        </div>
+                        <div className="p-5 border-t border-gray-100">
+                          <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
+                          <div className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-900 font-bold">{product.price}</span>
+                            <span className="text-primary font-semibold text-sm">Earn {product.earn}/sale</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
