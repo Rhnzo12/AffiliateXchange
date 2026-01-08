@@ -339,7 +339,7 @@ export default function Landing() {
               </div>
               <div className="p-4 space-y-3">
                 {/* Product 1 - Electronics */}
-                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
                   <div className="flex gap-3">
                     <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                       <img
@@ -365,7 +365,7 @@ export default function Landing() {
                 </div>
 
                 {/* Product 2 - Fitness */}
-                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
                   <div className="flex gap-3">
                     <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                       <img
@@ -391,7 +391,7 @@ export default function Landing() {
                 </div>
 
                 {/* Product 3 - Beauty */}
-                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
                   <div className="flex gap-3">
                     <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                       <img
