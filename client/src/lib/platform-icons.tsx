@@ -125,7 +125,7 @@ export function PlatformBadge({
 
   if (!config) {
     return (
-      <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 ${className}`}>
+      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 ${className}`}>
         <span className="text-sm font-medium text-gray-600">{platform}</span>
       </div>
     );
@@ -133,11 +133,11 @@ export function PlatformBadge({
 
   const IconComponent = config.icon;
   const sizeClass = SIZE_CLASSES[size];
-  const paddingClass = size === "sm" ? "px-1.5 py-0.5" : size === "lg" ? "px-3 py-1.5" : "px-2 py-1";
+  const paddingClass = size === "sm" ? "px-2.5 py-1" : size === "lg" ? "px-4 py-2" : "px-3 py-1.5";
   const textClass = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
 
   return (
-    <div className={`inline-flex items-center gap-1.5 ${paddingClass} rounded-md ${config.bgColor} ${className}`}>
+    <div className={`inline-flex items-center gap-2 ${paddingClass} rounded-full ${config.bgColor} ${className}`}>
       <IconComponent className={`${sizeClass} ${config.color}`} />
       <span className={`${textClass} font-medium ${config.color}`}>{config.label}</span>
     </div>
