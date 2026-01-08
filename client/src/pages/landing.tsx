@@ -341,8 +341,12 @@ export default function Landing() {
                 {/* Product 1 - Electronics */}
                 <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex gap-3">
-                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-gray-800 to-gray-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs font-bold">Sony</span>
+                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=200&h=200&fit=crop&q=80"
+                        alt="Sony Headphones"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
@@ -363,8 +367,12 @@ export default function Landing() {
                 {/* Product 2 - Fitness */}
                 <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex gap-3">
-                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs font-bold">Fitbit</span>
+                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src="https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=200&h=200&fit=crop&q=80"
+                        alt="Fitbit Tracker"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
@@ -385,8 +393,12 @@ export default function Landing() {
                 {/* Product 3 - Beauty */}
                 <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex gap-3">
-                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs font-bold">Dyson</span>
+                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src="https://images.unsplash.com/photo-1522338140262-f46f5913618a?w=200&h=200&fit=crop&q=80"
+                        alt="Dyson Airwrap"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
