@@ -327,7 +327,8 @@ export default function Login() {
                     className="h-16 w-16 rounded-xl object-cover shadow-md"
                   />
                 </div>
-                <h1 className="text-2xl font-bold text-foreground">Login</h1>
+                <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
+                <p className="text-sm text-muted-foreground mt-1">Sign in to your account to continue</p>
               </div>
 
               <Form {...form}>
