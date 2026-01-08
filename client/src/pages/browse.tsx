@@ -48,6 +48,7 @@ import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { proxiedSrc } from "../lib/image";
 import { OfferCardSkeleton } from "../components/skeletons";
+import { PlatformBadge, PlatformIcon } from "../lib/platform-icons";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { FirstTimeTutorial } from "../components/FirstTimeTutorial";
 import { TUTORIAL_IDS, browsePageTutorialConfig } from "../lib/tutorialConfig";
@@ -1419,7 +1420,7 @@ export default function Browse() {
                       </CardContent>
                     </Card>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="grid gap-6 md:grid-cols-2">
                       {monthlyRetainerOffers.map((offer) => {
                         // Check if creator has applied to this retainer contract
                         const application = offer.isRetainerContract
@@ -1431,106 +1432,100 @@ export default function Browse() {
                         return (
                           <Card
                             key={offer.id}
-                            className="group hover:shadow-lg transition-all duration-300 ring-1 ring-purple-400/30 hover:ring-purple-500/50"
+                            className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ring-2 ring-primary/30 hover:ring-primary/50 hover:shadow-primary/20 h-full"
                             data-testid={`card-retainer-${offer.id}`}
                           >
-                            <CardHeader className="space-y-3">
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="space-y-1 flex-1 min-w-0">
-                                  <h3 className="text-lg sm:text-xl font-bold">{offer.title}</h3>
-                                  <p className="text-muted-foreground line-clamp-2 leading-relaxed">
-                                    {offer.description || offer.shortDescription}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 pt-2">
-                                    {offer.contentApprovalRequired && (
-                                      <Badge variant="secondary">Approval required</Badge>
-                                    )}
-                                    {offer.exclusivityRequired && (
-                                      <Badge className="bg-primary/10 text-primary" variant="outline">
-                                        Exclusivity
-                                      </Badge>
-                                    )}
-                                    {offer.minimumVideoLengthSeconds && (
-                                      <Badge variant="outline">
-                                        Min length: {offer.minimumVideoLengthSeconds}s
-                                      </Badge>
-                                    )}
-                                    {offer.postingSchedule && (
-                                      <Badge variant="outline">{offer.postingSchedule}</Badge>
-                                    )}
+                            <CardHeader className="pb-3">
+                              <div className="space-y-2">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="text-lg font-bold leading-tight line-clamp-1">{offer.title}</h3>
                                   </div>
+                                  <PlatformBadge platform={offer.requiredPlatform || 'Any'} size="sm" className="shrink-0" />
                                 </div>
-                                <Link href={offer.isRetainerContract ? `/retainers/${offer.id}` : `/offers/${offer.id}`}>
-                                  <Button
-                                    variant="outline"
-                                    className="group/btn hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200 font-medium shrink-0"
-                                    data-testid={`button-view-retainer-${offer.id}`}
-                                  >
-                                    <Eye className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform duration-200" />
-                                    View Details
-                                  </Button>
-                                </Link>
+                                <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                                  {offer.description || offer.shortDescription}
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {offer.exclusivityRequired && (
+                                    <Badge className="bg-primary/10 text-primary text-xs" variant="outline">
+                                      Exclusivity
+                                    </Badge>
+                                  )}
+                                  {offer.minimumVideoLengthSeconds && (
+                                    <Badge variant="outline" className="text-xs">
+                                      Min length: {offer.minimumVideoLengthSeconds}s
+                                    </Badge>
+                                  )}
+                                  {offer.postingSchedule && (
+                                    <Badge variant="outline" className="text-xs">{offer.postingSchedule}</Badge>
+                                  )}
+                                  {offer.contentApprovalRequired && (
+                                    <Badge variant="outline" className="text-xs">Platform</Badge>
+                                  )}
+                                </div>
                               </div>
                             </CardHeader>
-                            <CardContent>
-                              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
-                                  <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                                    <DollarSign className="h-5 w-5 text-primary" />
+                            <CardContent className="pt-0">
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
+                                  <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                    <DollarSign className="h-4 w-4 text-primary" />
                                   </div>
-                                  <div>
-                                    <p className="text-sm text-muted-foreground">Monthly Payment</p>
-                                    <p className="font-semibold">CA${monthlyAmount.toLocaleString()}</p>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
-                                  <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                                    <Video className="h-5 w-5 text-primary" />
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-muted-foreground">Videos/Month</p>
-                                    <p className="font-semibold">{offer.videosPerMonth || 0}</p>
+                                  <div className="min-w-0">
+                                    <p className="text-xs text-muted-foreground">Monthly Payment</p>
+                                    <p className="font-semibold text-sm truncate">CA${monthlyAmount.toLocaleString()}</p>
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
-                                  <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                                    <Calendar className="h-5 w-5 text-primary" />
+                                <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
+                                  <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                    <Video className="h-4 w-4 text-primary" />
                                   </div>
-                                  <div>
-                                    <p className="text-sm text-muted-foreground">Duration</p>
-                                    <p className="font-semibold">{offer.durationMonths || 0} months</p>
+                                  <div className="min-w-0">
+                                    <p className="text-xs text-muted-foreground">Videos/Month</p>
+                                    <p className="font-semibold text-sm">{offer.videosPerMonth || 0}</p>
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors duration-200">
-                                  <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                                    <Users className="h-5 w-5 text-primary" />
+                                <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
+                                  <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                    <Calendar className="h-4 w-4 text-primary" />
                                   </div>
-                                  <div>
-                                    <p className="text-sm text-muted-foreground">Platform</p>
-                                    <p className="font-semibold">{offer.requiredPlatform || 'Any'}</p>
+                                  <div className="min-w-0">
+                                    <p className="text-xs text-muted-foreground">Duration</p>
+                                    <p className="font-semibold text-sm">{offer.durationMonths || 0} months</p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
+                                  <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                    <PlatformIcon platform={offer.requiredPlatform || 'Any'} size="md" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs text-muted-foreground">Platform</p>
+                                    <p className="font-semibold text-sm truncate">{offer.requiredPlatform || 'Any'}</p>
                                   </div>
                                 </div>
                               </div>
 
                               {Array.isArray(offer.retainerTiers) && offer.retainerTiers.length > 0 && (
-                                <div className="mt-4 pt-4 border-t space-y-3">
-                                  <p className="text-sm font-semibold">Tiered packages</p>
-                                  <div className="grid md:grid-cols-3 gap-3">
+                                <div className="mt-3 pt-3 border-t space-y-2">
+                                  <p className="text-sm font-semibold">Tiered Packages</p>
+                                  <div className="flex flex-wrap gap-2">
                                     {offer.retainerTiers.map((tier: any, tierIndex: number) => (
                                       <div
                                         key={`${offer.id}-tier-${tierIndex}`}
-                                        className="rounded-lg border p-3 bg-muted/30"
+                                        className="flex items-center gap-2 rounded-lg border p-2 bg-muted/30"
                                       >
-                                        <div className="flex items-center justify-between mb-1">
-                                          <span className="font-semibold">{tier.name}</span>
-                                          <Badge variant="outline">CA${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground">
+                                        <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">
+                                          {tier.name}
+                                        </Badge>
+                                        <span className="font-medium text-sm">{tier.name}</span>
+                                        <Badge variant="outline" className="text-xs">CA${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
+                                        <span className="text-xs text-muted-foreground">
                                           {tier.videosPerMonth} videos / {tier.durationMonths} month{tier.durationMonths === 1 ? "" : "s"}
-                                        </p>
+                                        </span>
                                       </div>
                                     ))}
                                   </div>
@@ -1538,7 +1533,7 @@ export default function Browse() {
                               )}
 
                               {!hasApplied && (
-                                <div className="mt-4 pt-4 border-t">
+                                <div className="mt-3 pt-3 border-t">
                                   <Link href={offer.isRetainerContract ? `/retainers/${offer.id}` : `/offers/${offer.id}`}>
                                     <Button
                                       className="w-full sm:w-auto"
@@ -1553,7 +1548,7 @@ export default function Browse() {
                               )}
 
                               {hasApplied && application && (
-                                <div className="mt-4 pt-4 border-t">
+                                <div className="mt-3 pt-3 border-t">
                                   <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                                     <div className="flex items-center gap-2">
                                       <Badge variant={getApplicationStatusBadge(application.status).variant} className="text-xs">
