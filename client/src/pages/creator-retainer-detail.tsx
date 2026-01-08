@@ -43,6 +43,10 @@ import {
   CheckCircle2,
   Send,
   Star,
+  ChevronRight,
+  ChevronDown,
+  Clock,
+  Check,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -107,6 +111,8 @@ export default function CreatorRetainerDetail() {
   const resubmitVideoInputRef = useRef<HTMLInputElement>(null);
   const [applyOpen, setApplyOpen] = useState(false);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
+  const [deliverablesExpanded, setDeliverablesExpanded] = useState(true);
+  const [compensationExpanded, setCompensationExpanded] = useState(false);
 
   // Quick tour for retainer detail page
   useCreatorPageTour(CREATOR_TOUR_IDS.RETAINER_DETAIL, retainerDetailTourSteps);
@@ -1150,129 +1156,239 @@ export default function CreatorRetainerDetail() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid gap-4 xl:grid-cols-[1.8fr_1.1fr]">
-        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-500 text-white rounded-2xl p-6 shadow-lg space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-1">
-              <p className="uppercase text-xs tracking-[0.2em] text-white/70">Monthly Retainer</p>
-              <div className="text-4xl font-bold">
-                {formatCurrency(bestValueTier?.monthlyAmount ?? contractMonthlyAmount)}
-              </div>
-              <p className="text-sm text-white/80">
-                {bestValueTier?.videosPerMonth ?? contractVideosPerMonth} videos / month ·
-                {" "}
-                {formatCurrency(
-                  calculatePerVideoCost(
-                    bestValueTier?.monthlyAmount ?? contractMonthlyAmount,
-                    bestValueTier?.videosPerMonth ?? contractVideosPerMonth
-                  ),
-                  { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-                )} per video
+      {/* Main Preview Card - Matching Reference Design */}
+      <div className="border border-teal-200 rounded-2xl bg-white shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="p-5 border-b border-gray-100">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">{contract.title}</h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {contract.company?.tradeName || contract.company?.legalName || "Company"}
               </p>
             </div>
-
-            <div className="flex flex-col items-end gap-2 text-sm">
-              <Badge variant="outline" className="bg-white/10 text-white border-white/30">
-                <Calendar className="h-3.5 w-3.5 mr-1" /> {contract.durationMonths} month contract
-              </Badge>
-              {hasRetainerTiers && bestValueTier && (
-                <Badge className="bg-emerald-500 text-white border-none">
-                  <Sparkles className="h-3.5 w-3.5 mr-1" /> Best value: {bestValueTier.name}
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-3 gap-3">
-            <div className="bg-white/10 rounded-xl p-3 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <DollarSign className="h-4 w-4" /> Platform fee
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3.5 w-3.5" />
-                    </TooltipTrigger>
-                    <TooltipContent>AffiliateXchange charges a {totalFeeDisplay} platform fee.</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <p className="text-lg font-semibold">{formatCurrency(platformFee, { maximumFractionDigits: 0 })}</p>
-              <p className="text-xs text-white/70">You take home {formatCurrency(creatorTakeHome, { maximumFractionDigits: 0 })}</p>
-            </div>
-
-            <div className="bg-white/10 rounded-xl p-3 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <Video className="h-4 w-4" /> Deliverables
-              </div>
-              <p className="text-lg font-semibold">
-                {contractVideosPerMonth} / month
-              </p>
-              <p className="text-xs text-white/70">Minimum length {formatSecondsToMinutes(contract.minimumVideoLengthSeconds) || "per brief"}</p>
-            </div>
-
-            <div className="bg-white/10 rounded-xl p-3 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <ShieldCheck className="h-4 w-4" /> Terms
-              </div>
-              <p className="text-lg font-semibold flex items-center gap-2">
-                {contract.contentApprovalRequired ? "Approval required" : "Self-approve"}
-              </p>
-              <p className="text-xs text-white/70">
-                {contract.exclusivityRequired ? "Exclusivity applies" : "Open to multiple brands"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {getValidationBadge("Content approval", !!contract.contentApprovalRequired)}
-            {getValidationBadge("Exclusivity", !!contract.exclusivityRequired)}
-            {getValidationBadge("Posting schedule", !!contract.postingSchedule)}
-            {getValidationBadge("Min video length", !!contract.minimumVideoLengthSeconds)}
+            {contract.requiredPlatform && (
+              <PlatformBadge platform={contract.requiredPlatform} size="sm" />
+            )}
           </div>
         </div>
 
-        <div className="space-y-4">
-          <Card className="border-card-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Timeline & Fees</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock3 className="h-4 w-4" /> Contract length
-                </div>
-                <span className="font-semibold">{contract.durationMonths} months</span>
+        {/* Stats Row */}
+        <div className="px-5 py-4 border-b border-gray-100">
+          <div className="flex flex-wrap items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-emerald-600" />
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <DollarSign className="h-4 w-4" /> Monthly retainer
-                </div>
-                <span className="font-semibold">
-                  {formatCurrency(contractMonthlyAmount, { maximumFractionDigits: 0 })}
-                </span>
+              <div>
+                <p className="font-semibold text-gray-900">{formatCurrency(contractMonthlyAmount)} / month</p>
+                <p className="text-xs text-gray-500">{contract.videosPerMonth} video(s) · before fees</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Video className="h-4 w-4" /> Value per video
-                </div>
-                <span className="font-semibold">
-                  {formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+            </div>
+            <div className="h-8 border-l border-gray-200" />
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Clock className="h-4 w-4 text-blue-600" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="font-semibold text-gray-900">{contract.durationMonths}-month</p>
+                <p className="text-xs text-gray-500">commitment</p>
+              </div>
+            </div>
+            <div className="h-8 border-l border-gray-200" />
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                <Video className="h-4 w-4 text-purple-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">{contractVideosPerMonth} videos /</p>
+                <p className="text-xs text-gray-500">{contract.postingSchedule || 'Monthly'}</p>
+              </div>
+            </div>
+          </div>
+          {contract.postingSchedule && (
+            <button className="mt-3 flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700">
+              <Clock className="h-3.5 w-3.5" />
+              {contract.postingSchedule}
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
 
-          <Card className="border-card-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Posting Schedule</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>{contract.postingSchedule || "No custom posting schedule provided."}</p>
-              {contract.minimumVideoLengthSeconds && (
-                <p className="text-xs text-foreground/80">Minimum length: {formatSecondsToMinutes(contract.minimumVideoLengthSeconds)}</p>
+        {/* What you'll create & deliver - Expandable */}
+        <div className="border-b border-gray-100">
+          <button
+            className="w-full px-5 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+            onClick={() => setDeliverablesExpanded(!deliverablesExpanded)}
+          >
+            <span className="font-medium text-gray-900">What you'll create & deliver</span>
+            {deliverablesExpanded ? (
+              <ChevronDown className="h-5 w-5 text-gray-400" />
+            ) : (
+              <ChevronRight className="h-5 w-5 text-gray-400" />
+            )}
+          </button>
+          {deliverablesExpanded && (
+            <div className="px-5 pb-4 space-y-2">
+              <div className="flex items-start gap-2 text-sm">
+                <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-gray-600">
+                  {formatSecondsToMinutes(contract.minimumVideoLengthSeconds) || '45s'} minimum length
+                </span>
+              </div>
+              <div className="flex items-start gap-2 text-sm">
+                <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-gray-600">
+                  {contractVideosPerMonth} video(s) per month on {contract.requiredPlatform}
+                </span>
+              </div>
+              {contract.contentGuidelines && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                  <span className="text-gray-600">{contract.contentGuidelines}</span>
+                </div>
               )}
-            </CardContent>
-          </Card>
+              {contract.brandSafetyRequirements && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                  <span className="text-gray-600">Brand safety: {contract.brandSafetyRequirements}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Your Commitment & Creator Fit Checklist - Two Columns */}
+        <div className="grid md:grid-cols-2 border-b border-gray-100">
+          <div className="p-5 border-r border-gray-100">
+            <h4 className="font-medium text-gray-900 mb-3">Your Commitment</h4>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2 text-sm">
+                <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-gray-600">
+                  {contract.exclusivityRequired ? 'Exclusive' : 'Non-exclusive'} partnership
+                </span>
+              </div>
+              <div className="flex items-start gap-2 text-sm">
+                <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-gray-600">
+                  {contract.durationMonths} months (cancel after term)
+                </span>
+              </div>
+              <div className="flex items-start gap-2 text-sm">
+                <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-gray-600">
+                  Brand usage rights: {contract.contentApprovalRequired ? 'Approval required' : 'Auto-approved'}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="p-5">
+            <h4 className="font-medium text-gray-900 mb-3">Creator Fit Checklist</h4>
+            <div className="space-y-2">
+              {contract.niches && contract.niches.length > 0 && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                  <span className="text-gray-600">
+                    {contract.niches.join(', ')} niche
+                  </span>
+                </div>
+              )}
+              <div className="flex items-start gap-2 text-sm">
+                <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-gray-600">On-camera presence</span>
+              </div>
+              {contract.minimumFollowers && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                  <span className="text-gray-600">
+                    Min {contract.minimumFollowers.toLocaleString()} followers
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Compensation Breakdown - Expandable */}
+        <div className="border-b border-gray-100">
+          <button
+            className="w-full px-5 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+            onClick={() => setCompensationExpanded(!compensationExpanded)}
+          >
+            <span className="font-medium text-gray-900">Compensation Breakdown</span>
+            <span className="text-sm text-teal-600">
+              {compensationExpanded ? 'Hide Breakdown' : 'Show Breakdown'}
+              {compensationExpanded ? (
+                <ChevronDown className="h-4 w-4 inline ml-1" />
+              ) : (
+                <ChevronRight className="h-4 w-4 inline ml-1" />
+              )}
+            </span>
+          </button>
+          {compensationExpanded && (
+            <div className="px-5 pb-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(contractMonthlyAmount)} / month</p>
+                  <p className="text-sm text-gray-500">= {formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per video</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-teal-500" />
+                    <span className="text-gray-600">{formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per video</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-gray-300" />
+                    <span className="text-gray-600">{formatCurrency(contractMonthlyAmount * contract.durationMonths)} total</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* What happens after you apply */}
+        <div className="p-5 border-b border-gray-100">
+          <h4 className="font-medium text-gray-900 mb-3">What happens after you apply?</h4>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="h-6 w-6 rounded-full bg-teal-100 flex items-center justify-center text-xs font-semibold text-teal-700 shrink-0">1</div>
+              <span className="text-sm text-gray-600">Brand reviews your channel</span>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="h-6 w-6 rounded-full bg-teal-100 flex items-center justify-center text-xs font-semibold text-teal-700 shrink-0">2</div>
+              <span className="text-sm text-gray-600">Brief video interview</span>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="h-6 w-6 rounded-full bg-teal-100 flex items-center justify-center text-xs font-semibold text-teal-700 shrink-0">3</div>
+              <span className="text-sm text-gray-600">Contract sent to sign</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 bg-gray-50 flex items-center justify-between">
+          <div>
+            <p className="text-lg font-bold text-gray-900">
+              {formatCurrency(contractMonthlyAmount)}/month <span className="text-gray-500 font-normal">·</span> {contract.durationMonths} months
+            </p>
+            <p className="text-xs text-gray-500">Preview - subject to change</p>
+          </div>
+          {!currentApplication && (
+            <Button
+              onClick={() => setApplyOpen(true)}
+              className="bg-teal-600 hover:bg-teal-700 text-white px-6"
+            >
+              Apply Now
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          )}
+          {currentApplication && (
+            <Badge variant={isApproved ? "outline" : isPending ? "default" : "destructive"} className="text-sm px-3 py-1">
+              {currentApplication.status}
+            </Badge>
+          )}
         </div>
       </div>
 
