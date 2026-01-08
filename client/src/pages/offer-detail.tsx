@@ -11,6 +11,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Textarea } from "../components/ui/textarea";
+import { Input } from "../components/ui/input";
 import { Checkbox } from "../components/ui/checkbox";
 import { Label } from "../components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
@@ -65,7 +66,10 @@ import {
   Eye,
   ShoppingCart,
   ThumbsUp,
-  BarChart3
+  BarChart3,
+  Calendar,
+  FileText,
+  Link2
 } from "lucide-react";
 import { proxiedSrc } from "../lib/image";
 import { VideoPlayer } from "../components/VideoPlayer";
@@ -158,6 +162,8 @@ export default function OfferDetail() {
   const [showVideoPlatformDialog, setShowVideoPlatformDialog] = useState(false);
   const [applicationMessage, setApplicationMessage] = useState("");
   const [preferredCommission, setPreferredCommission] = useState("");
+  const [portfolioLinks, setPortfolioLinks] = useState("");
+  const [proposedStartDate, setProposedStartDate] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const [errorDialog, setErrorDialog] = useState({ open: false, title: "Error", description: "An error occurred", errorDetails: "" });
@@ -416,6 +422,8 @@ export default function OfferDetail() {
       });
       setApplicationMessage("");
       setPreferredCommission("");
+      setPortfolioLinks("");
+      setProposedStartDate("");
       setTermsAccepted(false);
     },
     onError: (error: Error) => {
@@ -1115,10 +1123,10 @@ export default function OfferDetail() {
                   {buttonConfig.text}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
                 {hasApplied && existingApplication ? (
                   // Show "Already Applied" message
-                  <>
+                  <div className="p-6">
                     <DialogHeader>
                       <DialogTitle>Application Already Submitted</DialogTitle>
                       <DialogDescription>
@@ -1158,7 +1166,7 @@ export default function OfferDetail() {
                                 ? 'text-red-900'
                                 : 'text-blue-900'
                             }`}>
-                              {applicationStatus === 'approved' 
+                              {applicationStatus === 'approved'
                                 ? 'Application Approved'
                                 : applicationStatus === 'active'
                                 ? 'Active Campaign'
@@ -1212,61 +1220,227 @@ export default function OfferDetail() {
                         Close
                       </Button>
                     </DialogFooter>
-                  </>
+                  </div>
                 ) : (
-                  // Show application form
-                  <>
-                    <DialogHeader>
-                      <DialogTitle>Apply to {offer.title}</DialogTitle>
-                      <DialogDescription>
-                        Tell {offer.company?.tradeName || 'the company'} why you're interested in promoting their offer
-                      </DialogDescription>
-                    </DialogHeader>
+                  // Show application form - New comprehensive UI
+                  <div className="flex flex-col h-full">
+                    {/* Header */}
+                    <div className="p-6 border-b">
+                      <DialogHeader>
+                        <DialogTitle className="text-lg font-semibold">Review details & apply</DialogTitle>
+                        <DialogDescription>
+                          Transparent pricing, clear commitments, and quick approvals for {offer.title}
+                        </DialogDescription>
+                      </DialogHeader>
+                    </div>
 
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="message">Why are you interested? *</Label>
-                        <Textarea
-                          id="message"
-                          placeholder="Share details about your audience, content style, and why you'd be a great fit for this offer..."
-                          value={applicationMessage}
-                          onChange={(e) => setApplicationMessage(e.target.value.slice(0, 500))}
-                          className="min-h-32 resize-none"
-                        />
-                        <p className="text-xs text-muted-foreground text-right">
-                          {applicationMessage.length}/500 characters
-                        </p>
-                      </div>
+                    {/* Main Content - Two Column Layout */}
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                        {/* Left Column - Offer Details */}
+                        <div className="p-6 border-r border-gray-200">
+                          {/* Stats Row */}
+                          <div className="grid grid-cols-4 gap-3 mb-6">
+                            <div className="text-center">
+                              <div className="text-xs text-gray-500 mb-1">Rating</div>
+                              <div className="flex items-center justify-center gap-1">
+                                <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+                                <span className="text-sm font-medium">
+                                  {offer.company?.averageRating ? offer.company.averageRating.toFixed(1) : 'New'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-center border-l border-gray-200">
+                              <div className="text-xs text-gray-500 mb-1">Active creators</div>
+                              <div className="text-sm font-medium">{offer.applicationCount || 0}</div>
+                            </div>
+                            <div className="text-center border-l border-gray-200">
+                              <div className="text-xs text-gray-500 mb-1">Contract length</div>
+                              <div className="text-sm font-medium">{offer.contractLength || 'Ongoing'}</div>
+                            </div>
+                            <div className="text-center border-l border-gray-200">
+                              <div className="text-xs text-gray-500 mb-1">Approvals</div>
+                              <div className="text-sm font-medium">{offer.approvalType || 'Manual'}</div>
+                            </div>
+                          </div>
 
-                      {offer.commissionType === 'hybrid' && (
-                        <div className="space-y-2">
-                          <Label htmlFor="commission">Preferred Commission Model</Label>
-                          <Select value={preferredCommission} onValueChange={setPreferredCommission}>
-                            <SelectTrigger id="commission">
-                              <SelectValue placeholder="Select your preferred model" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="default">Standard Commission</SelectItem>
-                              <SelectItem value="per_sale">Per Sale</SelectItem>
-                              <SelectItem value="retainer">Monthly Retainer</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          {/* Commission Display */}
+                          <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="text-xs text-gray-500 mb-1">Commission Rate</div>
+                                <div className="text-2xl font-bold text-green-600">{formatCommission(offer)}</div>
+                                <div className="text-xs text-gray-500 capitalize">{getCommissionTypeLabel(offer)}</div>
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                Transparent pricing
+                              </Badge>
+                            </div>
+                          </div>
+
+                          {/* Requirements Section */}
+                          <div className="mb-6">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-3">Requirements</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                              {offer.minimumFollowers && (
+                                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                                  <div className="text-xs font-medium text-gray-900 mb-1">Minimum followers</div>
+                                  <div className="text-sm text-gray-600">
+                                    {Number(offer.minimumFollowers).toLocaleString()} followers
+                                  </div>
+                                </div>
+                              )}
+                              {offer.contentStyleRequirements && (
+                                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                                  <div className="text-xs font-medium text-gray-900 mb-1">Content style</div>
+                                  <div className="text-sm text-gray-600 line-clamp-2">
+                                    {offer.contentStyleRequirements}
+                                  </div>
+                                </div>
+                              )}
+                              {offer.allowedPlatforms?.length > 0 && (
+                                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                                  <div className="text-xs font-medium text-gray-900 mb-1">Platforms</div>
+                                  <div className="text-sm text-gray-600">
+                                    {offer.allowedPlatforms.join(', ')}
+                                  </div>
+                                </div>
+                              )}
+                              {offer.geographicRestrictions?.length > 0 && (
+                                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                                  <div className="text-xs font-medium text-gray-900 mb-1">Regions</div>
+                                  <div className="text-sm text-gray-600">
+                                    {offer.geographicRestrictions.join(', ')}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Example Videos Section */}
+                          {videos && videos.length > 0 && (
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-900 mb-3">Example videos</h4>
+                              <div className="grid grid-cols-3 gap-2">
+                                {videos.slice(0, 6).map((video: any) => (
+                                  <div
+                                    key={video.id}
+                                    className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200"
+                                  >
+                                    {video.thumbnailUrl ? (
+                                      <img
+                                        src={proxiedSrc(video.thumbnailUrl)}
+                                        alt={video.title}
+                                        className="w-full h-full object-cover"
+                                        referrerPolicy="no-referrer"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                                        <Video className="h-4 w-4 text-gray-400" />
+                                      </div>
+                                    )}
+                                    <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded">
+                                      {video.duration ? formatDuration(video.duration) : '0:45'}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              {videos.length > 0 && (
+                                <p className="text-xs text-gray-500 mt-2">
+                                  {videos.length} example video{videos.length !== 1 ? 's' : ''} available
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
 
-                      <div className="flex items-start gap-2 pt-4">
-                        <Checkbox
-                          id="terms"
-                          checked={termsAccepted}
-                          onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
-                        />
-                        <Label htmlFor="terms" className="text-sm font-normal cursor-pointer leading-relaxed">
-                          I accept the terms and conditions and agree to promote this offer ethically and authentically to my audience
-                        </Label>
+                        {/* Right Column - Application Form */}
+                        <div className="p-6 bg-gray-50/50">
+                          <div className="space-y-4">
+                            {/* Why are you interested */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="message" className="text-sm font-medium">
+                                  Why are you interested?
+                                </Label>
+                                <span className="text-xs text-gray-400">{applicationMessage.length}/500</span>
+                              </div>
+                              <Textarea
+                                id="message"
+                                placeholder="Share your niche, experience, and why this brand is a great fit."
+                                value={applicationMessage}
+                                onChange={(e) => setApplicationMessage(e.target.value.slice(0, 500))}
+                                className="min-h-[120px] resize-none bg-white"
+                              />
+                            </div>
+
+                            {/* Portfolio Links */}
+                            <div className="space-y-2">
+                              <Label htmlFor="portfolio" className="text-sm font-medium">
+                                Portfolio Links (Optional)
+                              </Label>
+                              <Input
+                                id="portfolio"
+                                placeholder="https://tiktok.com/@yourprofile, https://instagram.com/yourprofile"
+                                value={portfolioLinks}
+                                onChange={(e) => setPortfolioLinks(e.target.value)}
+                                className="bg-white"
+                              />
+                              <p className="text-xs text-gray-500">
+                                Comma-separated URLs to your social profiles
+                              </p>
+                            </div>
+
+                            {/* Proposed Start Date */}
+                            <div className="space-y-2">
+                              <Label htmlFor="startDate" className="text-sm font-medium">
+                                Proposed Start Date (Optional)
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id="startDate"
+                                  type="date"
+                                  value={proposedStartDate}
+                                  onChange={(e) => setProposedStartDate(e.target.value)}
+                                  className="bg-white"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Terms Checkbox */}
+                            <div className="bg-white border border-gray-200 rounded-lg p-4 mt-4">
+                              <div className="flex items-start gap-3">
+                                <Checkbox
+                                  id="terms"
+                                  checked={termsAccepted}
+                                  onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                                  className="mt-0.5"
+                                />
+                                <div>
+                                  <Label htmlFor="terms" className="text-sm font-medium cursor-pointer">
+                                    I understand the deliverables
+                                  </Label>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    I agree to promote this offer ethically and authentically, following the posted schedule and approval requirements.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Info Message */}
+                            <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 flex items-start gap-2">
+                              <Info className="h-4 w-4 text-teal-600 flex-shrink-0 mt-0.5" />
+                              <p className="text-sm text-teal-700">
+                                We'll review your application right away.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <DialogFooter className="gap-2 sm:gap-0">
+                    {/* Footer */}
+                    <div className="border-t bg-white p-4 flex items-center justify-end gap-3">
                       <Button
                         variant="outline"
                         onClick={() => setShowApplyDialog(false)}
@@ -1277,6 +1451,7 @@ export default function OfferDetail() {
                       <Button
                         onClick={() => applyMutation.mutate()}
                         disabled={!applicationMessage.trim() || !termsAccepted || applyMutation.isPending}
+                        className="bg-teal-600 hover:bg-teal-700"
                       >
                         {applyMutation.isPending ? (
                           <>
@@ -1287,8 +1462,8 @@ export default function OfferDetail() {
                           "Submit Application"
                         )}
                       </Button>
-                    </DialogFooter>
-                  </>
+                    </div>
+                  </div>
                 )}
               </DialogContent>
             </Dialog>
