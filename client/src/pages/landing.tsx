@@ -374,70 +374,43 @@ export default function Landing() {
         </div>
 
         {/* Infinite Scrolling Carousel */}
-        <div className="relative">
-          <div className="flex animate-scroll gap-6">
-            {/* First set of products */}
-            {[
-              { name: "Wireless Earbuds Pro", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "E-Reader Tablet", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Smart Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://images.pexels.com/photos/6996084/pexels-photo-6996084.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Premium Yoga Mat", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.pexels.com/photos/4056723/pexels-photo-4056723.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Insulated Tumbler", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://images.pexels.com/photos/4065906/pexels-photo-4065906.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Professional Hair Dryer", brand: "Dyson", price: "CA$499.99", commission: "6%", earn: "CA$30", image: "https://images.pexels.com/photos/3993449/pexels-photo-3993449.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Wireless Headphones", brand: "Sony", price: "CA$449.99", commission: "5%", earn: "CA$22", image: "https://images.pexels.com/photos/3394650/pexels-photo-3394650.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Portable Speaker", brand: "JBL", price: "CA$169.99", commission: "8%", earn: "CA$14", image: "https://images.pexels.com/photos/1706694/pexels-photo-1706694.jpeg?auto=compress&cs=tinysrgb&w=400" },
-            ].map((product, i) => (
-              <div key={`first-${i}`} className="flex-shrink-0 w-72">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
-                  <div className="h-56 bg-gray-50 relative overflow-hidden">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
-                  </div>
-                  <div className="p-5 border-t border-gray-100">
-                    <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
-                    <div className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-900 font-bold">{product.price}</span>
-                      <span className="text-primary font-semibold text-sm">Earn {product.earn}/sale</span>
+        <div className="relative overflow-hidden">
+          <div className="flex animate-scroll-infinite">
+            {/* Products - duplicated for seamless infinite loop */}
+            {[...Array(2)].map((_, setIndex) => (
+              <div key={setIndex} className="flex gap-6 pr-6">
+                {[
+                  { name: "Wireless Earbuds", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400&h=400&fit=crop&q=80" },
+                  { name: "Smart Watch", brand: "Samsung", price: "CA$399.99", commission: "5%", earn: "CA$20", image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&h=400&fit=crop&q=80" },
+                  { name: "Running Shoes", brand: "Nike", price: "CA$189.99", commission: "10%", earn: "CA$19", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop&q=80" },
+                  { name: "Coffee Maker", brand: "Nespresso", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?w=400&h=400&fit=crop&q=80" },
+                  { name: "Backpack", brand: "Herschel", price: "CA$89.99", commission: "12%", earn: "CA$11", image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop&q=80" },
+                  { name: "Sunglasses", brand: "Ray-Ban", price: "CA$199.99", commission: "8%", earn: "CA$16", image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&h=400&fit=crop&q=80" },
+                  { name: "Laptop Stand", brand: "Rain Design", price: "CA$69.99", commission: "15%", earn: "CA$10", image: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=400&fit=crop&q=80" },
+                  { name: "Wireless Mouse", brand: "Logitech", price: "CA$79.99", commission: "10%", earn: "CA$8", image: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=400&fit=crop&q=80" },
+                ].map((product, i) => (
+                  <div key={`${setIndex}-${i}`} className="flex-shrink-0 w-72">
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
+                      <div className="h-56 bg-gray-100 relative overflow-hidden">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
+                      </div>
+                      <div className="p-5 border-t border-gray-100">
+                        <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
+                        <div className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-900 font-bold">{product.price}</span>
+                          <span className="text-primary font-semibold text-sm">Earn {product.earn}/sale</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-            {/* Duplicate set for seamless loop */}
-            {[
-              { name: "Wireless Earbuds Pro", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "E-Reader Tablet", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Smart Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://images.pexels.com/photos/6996084/pexels-photo-6996084.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Premium Yoga Mat", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.pexels.com/photos/4056723/pexels-photo-4056723.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Insulated Tumbler", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://images.pexels.com/photos/4065906/pexels-photo-4065906.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Professional Hair Dryer", brand: "Dyson", price: "CA$499.99", commission: "6%", earn: "CA$30", image: "https://images.pexels.com/photos/3993449/pexels-photo-3993449.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Wireless Headphones", brand: "Sony", price: "CA$449.99", commission: "5%", earn: "CA$22", image: "https://images.pexels.com/photos/3394650/pexels-photo-3394650.jpeg?auto=compress&cs=tinysrgb&w=400" },
-              { name: "Portable Speaker", brand: "JBL", price: "CA$169.99", commission: "8%", earn: "CA$14", image: "https://images.pexels.com/photos/1706694/pexels-photo-1706694.jpeg?auto=compress&cs=tinysrgb&w=400" },
-            ].map((product, i) => (
-              <div key={`second-${i}`} className="flex-shrink-0 w-72">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
-                  <div className="h-56 bg-gray-50 relative overflow-hidden">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
-                  </div>
-                  <div className="p-5 border-t border-gray-100">
-                    <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
-                    <div className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-900 font-bold">{product.price}</span>
-                      <span className="text-primary font-semibold text-sm">Earn {product.earn}/sale</span>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             ))}
           </div>

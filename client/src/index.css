@@ -489,7 +489,7 @@
   }
 
   /* Infinite scroll carousel animation */
-  @keyframes scroll {
+  @keyframes scroll-infinite {
     0% {
       transform: translateX(0);
     }
@@ -498,7 +498,9 @@
     }
   }
 
-  .animate-scroll {
-    animation: scroll 40s linear infinite;
+  .animate-scroll-infinite {
+    display: flex;
+    animation: scroll-infinite 30s linear infinite;
+    width: fit-content;
   }
 }
