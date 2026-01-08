@@ -9,7 +9,7 @@ import { Input } from "../components/ui/input";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { Checkbox } from "../components/ui/checkbox";
 import { useToast } from "../hooks/use-toast";
-import { Check, X, Home } from "lucide-react";
+import { Check, X, Home, Eye, EyeOff } from "lucide-react";
 import { Link } from "wouter";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { motion } from "framer-motion";
@@ -33,6 +33,8 @@ export default function Register() {
   });
 
   const [passwordValue, setPasswordValue] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const passwordRequirements = validatePasswordComplexity(passwordValue);
 
   const form = useForm<RegisterForm>({
@@ -108,20 +110,20 @@ export default function Register() {
 
         <motion.div {...formAnimation}>
           <Card>
-            <CardHeader className="space-y-0">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1.5">
-                  <CardTitle>Create your account</CardTitle>
-                  <CardDescription>Join the marketplace and start earning</CardDescription>
-                </div>
+            <CardHeader>
+              <div className="flex justify-end mb-2">
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors shrink-0"
+                  className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
                   data-testid="link-home"
                 >
                   <Home className="h-4 w-4" />
                   Back to home
                 </Link>
+              </div>
+              <div className="text-center space-y-1.5">
+                <CardTitle>Create your account</CardTitle>
+                <CardDescription>Join the marketplace and start earning</CardDescription>
               </div>
             </CardHeader>
             <CardContent>
@@ -239,16 +241,30 @@ export default function Register() {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          {...field}
-                          data-testid="input-password"
-                          onChange={(e) => {
-                            field.onChange(e);
-                            setPasswordValue(e.target.value);
-                          }}
-                        />
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            {...field}
+                            data-testid="input-password"
+                            className="pr-10"
+                            onChange={(e) => {
+                              field.onChange(e);
+                              setPasswordValue(e.target.value);
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
                       </FormControl>
                       {passwordValue && (
                         <div className="mt-2 space-y-1 text-xs">
@@ -285,7 +301,26 @@ export default function Register() {
                     <FormItem>
                       <FormLabel>Confirm Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} data-testid="input-confirm-password" />
+                        <div className="relative">
+                          <Input
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            {...field}
+                            data-testid="input-confirm-password"
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
