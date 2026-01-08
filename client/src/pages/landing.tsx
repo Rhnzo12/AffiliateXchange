@@ -533,8 +533,8 @@ export default function Landing() {
                     { name: "Instant Camera", brand: "Fujifilm", price: "CA$99.99", commission: "11%", earn: "CA$11", image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&h=400&fit=crop&q=80" },
                     { name: "Noise Cancelling Headphones", brand: "Sony", price: "CA$449.99", commission: "5%", earn: "CA$22", image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=400&h=400&fit=crop&q=80" },
                     { name: "Standing Desk", brand: "FlexiSpot", price: "CA$499.99", commission: "7%", earn: "CA$35", image: "https://images.unsplash.com/photo-1611269154421-4e27233ac5c7?w=400&h=400&fit=crop&q=80" },
-                    { name: "Kindle E-Reader", brand: "Amazon", price: "CA$139.99", commission: "4%", earn: "CA$6", image: "https://images.unsplash.com/photo-1612378266203-3c8e1c0e8d6f?w=400&h=400&fit=crop&q=80" },
-                    { name: "Smart Thermostat", brand: "Nest", price: "CA$329.99", commission: "6%", earn: "CA$20", image: "https://images.unsplash.com/photo-1567925086983-a5a12c2be8b0?w=400&h=400&fit=crop&q=80" },
+                    { name: "Kindle E-Reader", brand: "Amazon", price: "CA$139.99", commission: "4%", earn: "CA$6", image: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&h=400&fit=crop&q=80" },
+                    { name: "Smart Thermostat", brand: "Nest", price: "CA$329.99", commission: "6%", earn: "CA$20", image: "https://images.unsplash.com/photo-1558002038-1055907df827?w=400&h=400&fit=crop&q=80" },
                   ].map((product, i) => (
                     <div key={`row3-${setIndex}-${i}`} className="flex-shrink-0 w-72">
                       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
