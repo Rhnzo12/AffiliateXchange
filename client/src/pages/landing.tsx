@@ -378,26 +378,26 @@ export default function Landing() {
           <div className="flex animate-scroll gap-6">
             {/* First set of products */}
             {[
-              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400&h=400&fit=crop" },
-              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=400&fit=crop" },
-              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://images.unsplash.com/photo-1648655462864-0301dcbba8f1?w=400&h=400&fit=crop" },
-              { name: "Lululemon Align Leggings", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400&h=400&fit=crop" },
-              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop" },
-              { name: "Olaplex Hair Perfector", brand: "Olaplex", price: "CA$38.00", commission: "15%", earn: "CA$6", image: "https://images.unsplash.com/photo-1522338242042-2d1c7bff6fe5?w=400&h=400&fit=crop" },
-              { name: "Samsung Galaxy Buds", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&h=400&fit=crop" },
-              { name: "Theragun Mini", brand: "Therabody", price: "CA$299.00", commission: "10%", earn: "CA$30", image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=400&fit=crop" },
+              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MQD83?wid=400&hei=400&fmt=jpeg&qlt=95&.v=1660803972361" },
+              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://m.media-amazon.com/images/I/61Ww4abGclL._AC_SL1000_.jpg" },
+              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://m.media-amazon.com/images/I/71U-Q+bTRsL._AC_SL1500_.jpg" },
+              { name: "Lululemon Yoga Mat", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.lululemon.com/is/image/lululemon/LU9AQPS_027553_1?wid=400&hei=400&fmt=jpg&qlt=85" },
+              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://m.media-amazon.com/images/I/71qltzlRfpL._AC_SL1500_.jpg" },
+              { name: "Dyson Hair Dryer", brand: "Dyson", price: "CA$499.99", commission: "6%", earn: "CA$30", image: "https://m.media-amazon.com/images/I/61bPsoNUYDL._AC_SL1500_.jpg" },
+              { name: "Samsung Galaxy Buds 2", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", image: "https://m.media-amazon.com/images/I/51Kk-LG2xKL._AC_SL1200_.jpg" },
+              { name: "JBL Flip 6 Speaker", brand: "JBL", price: "CA$169.99", commission: "8%", earn: "CA$14", image: "https://m.media-amazon.com/images/I/71sS3oxpGEL._AC_SL1500_.jpg" },
             ].map((product, i) => (
               <div key={`first-${i}`} className="flex-shrink-0 w-72">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden h-full">
-                  <div className="h-56 bg-gray-100 relative overflow-hidden">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
+                  <div className="h-56 bg-white relative flex items-center justify-center p-4">
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      className="max-w-full max-h-full object-contain"
                     />
                     <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
                   </div>
-                  <div className="p-5">
+                  <div className="p-5 border-t border-gray-100">
                     <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
                     <div className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</div>
                     <div className="flex items-center justify-between">
@@ -410,26 +410,26 @@ export default function Landing() {
             ))}
             {/* Duplicate set for seamless loop */}
             {[
-              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400&h=400&fit=crop" },
-              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=400&fit=crop" },
-              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://images.unsplash.com/photo-1648655462864-0301dcbba8f1?w=400&h=400&fit=crop" },
-              { name: "Lululemon Align Leggings", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400&h=400&fit=crop" },
-              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop" },
-              { name: "Olaplex Hair Perfector", brand: "Olaplex", price: "CA$38.00", commission: "15%", earn: "CA$6", image: "https://images.unsplash.com/photo-1522338242042-2d1c7bff6fe5?w=400&h=400&fit=crop" },
-              { name: "Samsung Galaxy Buds", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&h=400&fit=crop" },
-              { name: "Theragun Mini", brand: "Therabody", price: "CA$299.00", commission: "10%", earn: "CA$30", image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=400&fit=crop" },
+              { name: "Apple AirPods Pro 2", brand: "Apple", price: "CA$329.99", commission: "4%", earn: "CA$13", image: "https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/MQD83?wid=400&hei=400&fmt=jpeg&qlt=95&.v=1660803972361" },
+              { name: "Kindle Paperwhite", brand: "Amazon", price: "CA$169.99", commission: "4.5%", earn: "CA$8", image: "https://m.media-amazon.com/images/I/61Ww4abGclL._AC_SL1000_.jpg" },
+              { name: "Ninja Foodi Air Fryer", brand: "Ninja", price: "CA$249.99", commission: "8%", earn: "CA$20", image: "https://m.media-amazon.com/images/I/71U-Q+bTRsL._AC_SL1500_.jpg" },
+              { name: "Lululemon Yoga Mat", brand: "Lululemon", price: "CA$128.00", commission: "10%", earn: "CA$13", image: "https://images.lululemon.com/is/image/lululemon/LU9AQPS_027553_1?wid=400&hei=400&fmt=jpg&qlt=85" },
+              { name: "Stanley Tumbler 40oz", brand: "Stanley", price: "CA$65.00", commission: "12%", earn: "CA$8", image: "https://m.media-amazon.com/images/I/71qltzlRfpL._AC_SL1500_.jpg" },
+              { name: "Dyson Hair Dryer", brand: "Dyson", price: "CA$499.99", commission: "6%", earn: "CA$30", image: "https://m.media-amazon.com/images/I/61bPsoNUYDL._AC_SL1500_.jpg" },
+              { name: "Samsung Galaxy Buds 2", brand: "Samsung", price: "CA$199.99", commission: "5%", earn: "CA$10", image: "https://m.media-amazon.com/images/I/51Kk-LG2xKL._AC_SL1200_.jpg" },
+              { name: "JBL Flip 6 Speaker", brand: "JBL", price: "CA$169.99", commission: "8%", earn: "CA$14", image: "https://m.media-amazon.com/images/I/71sS3oxpGEL._AC_SL1500_.jpg" },
             ].map((product, i) => (
               <div key={`second-${i}`} className="flex-shrink-0 w-72">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow overflow-hidden h-full">
-                  <div className="h-56 bg-gray-100 relative overflow-hidden">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden h-full">
+                  <div className="h-56 bg-white relative flex items-center justify-center p-4">
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      className="max-w-full max-h-full object-contain"
                     />
                     <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">{product.commission}</span>
                   </div>
-                  <div className="p-5">
+                  <div className="p-5 border-t border-gray-100">
                     <div className="text-xs text-gray-500 mb-1">{product.brand}</div>
                     <div className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</div>
                     <div className="flex items-center justify-between">
