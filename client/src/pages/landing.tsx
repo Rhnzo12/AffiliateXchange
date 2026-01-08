@@ -325,6 +325,7 @@ export default function Landing() {
                   </div>
                 </div>
               </div>
+              </div>
             </AnimatedSection>
 
             {/* Right Mockup - Affiliate Marketplace Preview */}
