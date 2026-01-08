@@ -854,90 +854,275 @@ export default function CreatorRetainerDetail() {
 
       {/* Apply Dialog */}
       <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Apply to {contract?.title}</DialogTitle>
-            <DialogDescription>
-              Submit your application for this monthly retainer opportunity
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...applyForm}>
-            <form onSubmit={applyForm.handleSubmit(onApplySubmit)} className="space-y-4">
-              <FormField
-                control={applyForm.control}
-                name="message"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Why are you interested?</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Share your niche, experience, and why this brand is a great fit."
-                        rows={5}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Minimum 20 characters, maximum 500
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+          {/* Header */}
+          <div className="p-6 border-b">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold">Review details & apply</DialogTitle>
+              <DialogDescription>
+                Transparent pricing, clear commitments, and quick approvals for {contract?.title}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
 
-              <FormField
-                control={applyForm.control}
-                name="portfolioLinks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Portfolio Links (Optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="https://tiktok.com/@yourprofile, https://instagram.com/yourprofile"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Comma-separated URLs to your social profiles
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          {/* Main Content - Two Column Layout */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+              {/* Left Column - Contract Details */}
+              <div className="p-6 border-r border-gray-200">
+                {/* Stats Row */}
+                <div className="grid grid-cols-4 gap-3 mb-6">
+                  <div className="text-center">
+                    <div className="text-xs text-gray-500 mb-1">Rating</div>
+                    <div className="flex items-center justify-center gap-1">
+                      <Sparkles className="h-3 w-3 text-yellow-400" />
+                      <span className="text-sm font-medium">New</span>
+                    </div>
+                  </div>
+                  <div className="text-center border-l border-gray-200">
+                    <div className="text-xs text-gray-500 mb-1">Active creators</div>
+                    <div className="text-sm font-medium">0</div>
+                  </div>
+                  <div className="text-center border-l border-gray-200">
+                    <div className="text-xs text-gray-500 mb-1">Contract length</div>
+                    <div className="text-sm font-medium">{contract?.durationMonths} months</div>
+                  </div>
+                  <div className="text-center border-l border-gray-200">
+                    <div className="text-xs text-gray-500 mb-1">Approvals</div>
+                    <div className="text-sm font-medium">
+                      {contract?.contentApprovalRequired ? 'Required' : 'Auto-post'}
+                    </div>
+                  </div>
+                </div>
 
-              <FormField
-                control={applyForm.control}
-                name="proposedStartDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Proposed Start Date (Optional)</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                {/* Tier Selection if available */}
+                {hasRetainerTiers && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Choose your tier</h4>
+                    <div className="space-y-2">
+                      {tierSummaries.map((tier: any, index: number) => (
+                        <div
+                          key={`${tier.name}-${index}`}
+                          className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                            applyForm.watch('selectedTierId') === tier.id?.toString()
+                              ? 'border-primary bg-primary/5'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => applyForm.setValue('selectedTierId', tier.id?.toString() || '')}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                applyForm.watch('selectedTierId') === tier.id?.toString()
+                                  ? 'border-primary'
+                                  : 'border-gray-300'
+                              }`}>
+                                {applyForm.watch('selectedTierId') === tier.id?.toString() && (
+                                  <div className="w-2 h-2 rounded-full bg-primary" />
+                                )}
+                              </div>
+                              <span className="font-medium">{tier.name}</span>
+                              {bestValueTier?.id === tier.id && (
+                                <Badge className="bg-emerald-500 text-white text-xs">Selected</Badge>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1 ml-6">
+                            {formatCurrency(tier.monthlyAmount)}/mo · {tier.videosPerMonth} videos · {tier.durationMonths} months
+                          </p>
+                          <p className="text-xs text-gray-500 ml-6">
+                            {formatCurrency(tier.perVideoCost, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per video · Net {formatCurrency(tier.monthlyAmount * (1 - totalFeePercentage))} after {totalFeeDisplay} fee
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2 text-right">
+                      <a href="#" className="text-primary hover:underline">Transparent pricing</a>
+                    </p>
+                  </div>
                 )}
-              />
 
-              <FormField
-                control={applyForm.control}
-                name="acceptTerms"
-                render={({ field }) => (
-                  <FormItem className="space-y-2">
-                    <div className="flex items-start gap-2 rounded-md border bg-background p-3">
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      <div className="space-y-1 text-sm">
-                        <FormLabel className="text-sm">I understand the deliverables</FormLabel>
-                        <p className="text-muted-foreground text-xs">
-                          {contract?.videosPerMonth} videos per month for {contract?.durationMonths} months, following the posted schedule and approval requirements.
-                        </p>
+                {/* Requirements Section */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Requirements</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="text-xs font-medium text-gray-900 mb-1">Video length</div>
+                      <div className="text-sm text-gray-600">
+                        {formatSecondsToMinutes(contract?.minimumVideoLengthSeconds) || 'Per brief'}
                       </div>
                     </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <div className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="text-xs font-medium text-gray-900 mb-1">Posting cadence</div>
+                      <div className="text-sm text-gray-600 line-clamp-2">
+                        {contract?.postingSchedule || `${contractVideosPerMonth} videos/month`}
+                      </div>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="text-xs font-medium text-gray-900 mb-1">Approvals</div>
+                      <div className="text-sm text-gray-600">
+                        {contract?.contentApprovalRequired ? 'Content approval required' : 'Auto-approval'}
+                      </div>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="text-xs font-medium text-gray-900 mb-1">Exclusivity</div>
+                      <div className="text-sm text-gray-600">
+                        {contract?.exclusivityRequired ? 'Exclusivity expected' : 'Non-exclusive'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-              <DialogFooter>
+                {/* Example Videos Section - placeholder for now */}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Example videos</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div
+                        key={i}
+                        className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200"
+                      >
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                          <Video className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <div className="absolute top-1 left-1 text-[10px] text-gray-500">
+                          {contract?.requiredPlatform || 'YouTube'} Shorts
+                        </div>
+                        <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded">
+                          45s
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Example video {contractVideosPerMonth > 1 ? `${contractVideosPerMonth}` : '1'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Column - Application Form */}
+              <div className="p-6 bg-gray-50/50">
+                <Form {...applyForm}>
+                  <form onSubmit={applyForm.handleSubmit(onApplySubmit)} className="space-y-4">
+                    {/* Why are you interested */}
+                    <FormField
+                      control={applyForm.control}
+                      name="message"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center justify-between">
+                            <FormLabel className="text-sm font-medium">
+                              Why are you interested?
+                            </FormLabel>
+                            <span className="text-xs text-gray-400">{field.value?.length || 0}/500</span>
+                          </div>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Share your niche, experience, and why this brand is a great fit."
+                              className="min-h-[120px] resize-none bg-white"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Portfolio Links */}
+                    <FormField
+                      control={applyForm.control}
+                      name="portfolioLinks"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium">
+                            Portfolio Links (Optional)
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="https://tiktok.com/@yourprofile, https://instagram.com/yourprofile"
+                              className="bg-white"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormDescription className="text-xs text-gray-500">
+                            Comma-separated URLs to your social profiles
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Proposed Start Date */}
+                    <FormField
+                      control={applyForm.control}
+                      name="proposedStartDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium">
+                            Proposed Start Date (Optional)
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="date" className="bg-white" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Terms Checkbox */}
+                    <FormField
+                      control={applyForm.control}
+                      name="acceptTerms"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="bg-white border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                className="mt-0.5"
+                              />
+                              <div>
+                                <FormLabel className="text-sm font-medium cursor-pointer">
+                                  I understand the deliverables
+                                </FormLabel>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {contract?.videosPerMonth} videos per month for {contract?.durationMonths} months, following the posted schedule and approval requirements.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Info Message */}
+                    <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 flex items-start gap-2">
+                      <Info className="h-4 w-4 text-teal-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-teal-700">
+                        We'll review your application right away.
+                      </p>
+                    </div>
+                  </form>
+                </Form>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="border-t bg-white p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-sm">
+                <span className="font-semibold">Selected tier {bestValueTier?.name || 'Base'}</span>
+                <Badge variant="secondary" className="ml-2">
+                  {formatCurrency(bestValueTier?.monthlyAmount ?? contractMonthlyAmount)}/mo
+                </Badge>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formatCurrency((bestValueTier?.monthlyAmount ?? contractMonthlyAmount) / (bestValueTier?.videosPerMonth ?? contractVideosPerMonth), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per video · Net {formatCurrency((bestValueTier?.monthlyAmount ?? contractMonthlyAmount) * (1 - totalFeePercentage))} after fees
+                </p>
+              </div>
+              <div className="flex gap-3">
                 <Button
                   type="button"
                   variant="outline"
@@ -948,12 +1133,16 @@ export default function CreatorRetainerDetail() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={applyMutation.isPending}>
-                  {applyMutation.isPending ? "Submitting..." : "Submit Application"}
+                <Button
+                  onClick={applyForm.handleSubmit(onApplySubmit)}
+                  disabled={applyMutation.isPending}
+                  className="bg-teal-600 hover:bg-teal-700"
+                >
+                  {applyMutation.isPending ? "Submitting..." : "Submit application"}
                 </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
