@@ -60,7 +60,7 @@ type VerificationDocument = {
 type SocialConnection = {
   id: string;
   userId: string;
-  platform: 'youtube' | 'tiktok' | 'instagram' | 'website';
+  platform: 'youtube' | 'tiktok' | 'instagram';
   platformUserId?: string;
   platformUsername?: string;
   profileUrl?: string;
@@ -171,10 +171,6 @@ export default function Settings() {
   const [disconnectingPlatform, setDisconnectingPlatform] = useState<string | null>(null);
   const [oauthPopup, setOauthPopup] = useState<Window | null>(null);
 
-  // Affiliate domain connection states
-  const [affiliateDomainUrl, setAffiliateDomainUrl] = useState("");
-  const [showDomainInput, setShowDomainInput] = useState(false);
-
   // Password change states
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -217,7 +213,7 @@ export default function Settings() {
   });
 
   // Helper to get connection for a specific platform
-  const getConnectionForPlatform = (platform: 'youtube' | 'tiktok' | 'instagram' | 'website') => {
+  const getConnectionForPlatform = (platform: 'youtube' | 'tiktok' | 'instagram') => {
     return socialConnections.find(c => c.platform === platform && c.connectionStatus === 'connected');
   };
 
@@ -1561,105 +1557,6 @@ export default function Settings() {
     }
   };
 
-  // Handler for connecting affiliate domain
-  const handleConnectAffiliateDomain = async () => {
-    if (!affiliateDomainUrl.trim()) {
-      toast({
-        title: "Domain Required",
-        description: "Please enter your affiliate domain URL",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate URL format
-    let domainUrl = affiliateDomainUrl.trim();
-    if (!domainUrl.startsWith('http://') && !domainUrl.startsWith('https://')) {
-      domainUrl = 'https://' + domainUrl;
-    }
-
-    try {
-      new URL(domainUrl);
-    } catch {
-      toast({
-        title: "Invalid URL",
-        description: "Please enter a valid domain URL",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setConnectingPlatform('website');
-
-    try {
-      const response = await fetch('/api/social-connections/website', {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ url: domainUrl }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to connect domain");
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["/api/social-connections"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-
-      setShowDomainInput(false);
-      setAffiliateDomainUrl("");
-
-      toast({
-        title: "Domain Connected",
-        description: "Your affiliate domain has been added successfully",
-      });
-    } catch (error: any) {
-      console.error("Error connecting domain:", error);
-      toast({
-        title: "Connection Failed",
-        description: error.message || "Failed to connect affiliate domain",
-        variant: "destructive",
-      });
-    } finally {
-      setConnectingPlatform(null);
-    }
-  };
-
-  // Handler for disconnecting affiliate domain
-  const handleDisconnectAffiliateDomain = async () => {
-    setDisconnectingPlatform('website');
-
-    try {
-      const response = await fetch('/api/social-connections/website', {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to disconnect domain");
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["/api/social-connections"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-
-      toast({
-        title: "Domain Disconnected",
-        description: "Your affiliate domain has been removed",
-      });
-    } catch (error: any) {
-      console.error("Error disconnecting domain:", error);
-      toast({
-        title: "Disconnection Failed",
-        description: error.message || "Failed to disconnect affiliate domain",
-        variant: "destructive",
-      });
-    } finally {
-      setDisconnectingPlatform(null);
-    }
-  };
-
   // Handler for save profile button - checks video platform requirement first
   const handleSaveProfile = () => {
     // Only check for creators
@@ -2468,79 +2365,6 @@ export default function Settings() {
                         disconnectingPlatform === 'instagram'
                       }
                     />
-                  </div>
-
-                  {/* Affiliate Domain */}
-                  <div className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
-                          <Globe className="h-6 w-6 text-teal-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium">Affiliate Domain</p>
-                          <p className="text-sm text-muted-foreground">
-                            {getConnectionForPlatform('website')
-                              ? getConnectionForPlatform('website')?.profileUrl
-                              : 'Add your affiliate website'}
-                          </p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={!!getConnectionForPlatform('website') || showDomainInput}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setShowDomainInput(true);
-                          } else {
-                            if (getConnectionForPlatform('website')) {
-                              handleDisconnectAffiliateDomain();
-                            } else {
-                              setShowDomainInput(false);
-                              setAffiliateDomainUrl("");
-                            }
-                          }
-                        }}
-                        disabled={
-                          updateProfileMutation.isPending ||
-                          connectingPlatform === 'website' ||
-                          disconnectingPlatform === 'website'
-                        }
-                      />
-                    </div>
-
-                    {/* Domain Input Form */}
-                    {showDomainInput && !getConnectionForPlatform('website') && (
-                      <div className="mt-4 pt-4 border-t">
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="https://affiliatexchange.ca"
-                            value={affiliateDomainUrl}
-                            onChange={(e) => setAffiliateDomainUrl(e.target.value)}
-                            className="flex-1"
-                          />
-                          <Button
-                            onClick={handleConnectAffiliateDomain}
-                            disabled={connectingPlatform === 'website' || !affiliateDomainUrl.trim()}
-                            size="sm"
-                          >
-                            {connectingPlatform === 'website' ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Adding...
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Domain
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Enter your affiliate website URL to display on your profile
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
 
