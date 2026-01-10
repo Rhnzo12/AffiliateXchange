@@ -1109,7 +1109,7 @@ export class DatabaseStorage implements IStorage {
 
   async getSocialConnectionByPlatform(
     userId: string,
-    platform: 'youtube' | 'tiktok' | 'instagram' | 'website'
+    platform: 'youtube' | 'tiktok' | 'instagram'
   ): Promise<SocialAccountConnection | undefined> {
     try {
       const result = await db
@@ -1149,7 +1149,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateSocialConnection(
     userId: string,
-    platform: 'youtube' | 'tiktok' | 'instagram' | 'website',
+    platform: 'youtube' | 'tiktok' | 'instagram',
     updates: Partial<InsertSocialAccountConnection>
   ): Promise<SocialAccountConnection | undefined> {
     const result = await db
@@ -1170,13 +1170,13 @@ export class DatabaseStorage implements IStorage {
   ): Promise<SocialAccountConnection> {
     const existing = await this.getSocialConnectionByPlatform(
       connection.userId,
-      connection.platform as 'youtube' | 'tiktok' | 'instagram' | 'website'
+      connection.platform as 'youtube' | 'tiktok' | 'instagram'
     );
 
     if (existing) {
       const updated = await this.updateSocialConnection(
         connection.userId,
-        connection.platform as 'youtube' | 'tiktok' | 'instagram' | 'website',
+        connection.platform as 'youtube' | 'tiktok' | 'instagram',
         connection
       );
       return updated!;
@@ -1187,7 +1187,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSocialConnection(
     userId: string,
-    platform: 'youtube' | 'tiktok' | 'instagram' | 'website'
+    platform: 'youtube' | 'tiktok' | 'instagram'
   ): Promise<boolean> {
     const result = await db
       .delete(socialAccountConnections)
