@@ -575,6 +575,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Connect an affiliate website/domain
+  app.post("/api/social-connections/website", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { url } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Validate URL format
+      let domainUrl = url.trim();
+      try {
+        new URL(domainUrl);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+
+      // Extract domain name for display
+      const urlObj = new URL(domainUrl);
+      const domainName = urlObj.hostname;
+
+      const connection = await storage.upsertSocialConnection({
+        userId,
+        platform: 'website',
+        platformUsername: domainName,
+        profileUrl: domainUrl,
+        connectionStatus: 'connected',
+        lastSyncedAt: new Date(),
+        metadata: { domain: domainName, fullUrl: domainUrl },
+      });
+
+      res.json({
+        success: true,
+        connection,
+        message: "Successfully connected affiliate domain",
+      });
+    } catch (error: any) {
+      console.error("[Social Connections] Error connecting website:", error);
+      res.status(500).json({ error: "Failed to connect affiliate domain" });
+    }
+  });
+
   // Sync data from a connected platform
   app.post("/api/social-connections/:platform/sync", requireAuth, async (req, res) => {
     try {
@@ -633,9 +676,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/social-connections/:platform", requireAuth, async (req, res) => {
     try {
       const userId = (req.user as any).id;
-      const platform = req.params.platform as 'youtube' | 'tiktok' | 'instagram';
+      const platform = req.params.platform as 'youtube' | 'tiktok' | 'instagram' | 'website';
 
-      if (!['youtube', 'tiktok', 'instagram'].includes(platform)) {
+      if (!['youtube', 'tiktok', 'instagram', 'website'].includes(platform)) {
         return res.status(400).json({ error: "Invalid platform" });
       }
 
@@ -645,24 +688,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Connection not found" });
       }
 
-      // Clear the URL from creator profile
-      const updates: any = {};
-      if (platform === 'youtube') {
-        updates.youtubeUrl = null;
-        updates.youtubeFollowers = null;
-      } else if (platform === 'tiktok') {
-        updates.tiktokUrl = null;
-        updates.tiktokFollowers = null;
-      } else if (platform === 'instagram') {
-        updates.instagramUrl = null;
-        updates.instagramFollowers = null;
+      // Clear the URL from creator profile (only for social platforms)
+      if (platform !== 'website') {
+        const updates: any = {};
+        if (platform === 'youtube') {
+          updates.youtubeUrl = null;
+          updates.youtubeFollowers = null;
+        } else if (platform === 'tiktok') {
+          updates.tiktokUrl = null;
+          updates.tiktokFollowers = null;
+        } else if (platform === 'instagram') {
+          updates.instagramUrl = null;
+          updates.instagramFollowers = null;
+        }
+        await storage.updateCreatorProfile(userId, updates);
       }
-
-      await storage.updateCreatorProfile(userId, updates);
 
       res.json({
         success: true,
-        message: `Successfully disconnected ${platform} account`,
+        message: `Successfully disconnected ${platform === 'website' ? 'affiliate domain' : platform + ' account'}`,
       });
     } catch (error: any) {
       console.error("[Social Connections] Error disconnecting account:", error);

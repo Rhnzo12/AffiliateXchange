@@ -151,7 +151,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 export const socialConnectionStatusEnum = pgEnum('social_connection_status', ['connected', 'disconnected', 'expired', 'error']);
 
 // Social Account Platform Enum
-export const socialPlatformEnum = pgEnum('social_platform', ['youtube', 'tiktok', 'instagram']);
+export const socialPlatformEnum = pgEnum('social_platform', ['youtube', 'tiktok', 'instagram', 'website']);
 
 // Social Account Connections (OAuth-connected accounts)
 export const socialAccountConnections = pgTable("social_account_connections", {
