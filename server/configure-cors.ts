@@ -43,12 +43,12 @@ async function configureCORS() {
     const corsConfiguration = [
       {
         origin: [
+          "https://affiliatexchange.ca",
+          "https://www.affiliatexchange.ca",
           "https://affiliatexchange.onrender.com",
           "https://affiliatexchangemarket.onrender.com",
           "http://localhost:3000",
           "http://localhost:5000"
-          // Add specific Vercel deployment URLs here as needed
-          // Example: "https://your-app-abc123.vercel.app"
         ],
         method: ["GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"],
         responseHeader: [
