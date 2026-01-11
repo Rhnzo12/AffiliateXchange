@@ -264,8 +264,8 @@ export default function CreatorDashboard() {
                   <Card className="border bg-card hover:shadow-md transition-shadow">
                     <CardContent className="p-3 sm:p-4">
                       <div className="flex items-start gap-3">
-                        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-                          <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 dark:text-orange-400" />
+                        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                          <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-sm sm:text-base leading-tight">Respond to New Offers</h3>
@@ -287,8 +287,8 @@ export default function CreatorDashboard() {
                   <Card className="border bg-card hover:shadow-md transition-shadow">
                     <CardContent className="p-3 sm:p-4">
                       <div className="flex items-start gap-3">
-                        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
+                        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-sm sm:text-base leading-tight">Check Offer Performance</h3>
@@ -310,8 +310,8 @@ export default function CreatorDashboard() {
                   <Card className="border bg-card hover:shadow-md transition-shadow">
                     <CardContent className="p-3 sm:p-4">
                       <div className="flex items-start gap-3">
-                        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                          <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
+                        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                          <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-sm sm:text-base leading-tight">Join High-Payout Programs</h3>
@@ -417,7 +417,7 @@ export default function CreatorDashboard() {
                               {offer.shortDescription || `Earn ${getCommissionPercent(offer)} per sale`}
                             </p>
                             <div className="flex items-center gap-2 mt-1.5">
-                              <Badge variant="secondary" className="text-[9px] sm:text-[10px] px-1.5 py-0 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                              <Badge variant="secondary" className="text-[9px] sm:text-[10px] px-1.5 py-0">
                                 {getCommissionPercent(offer)} per sale
                               </Badge>
                             </div>
@@ -508,8 +508,8 @@ export default function CreatorDashboard() {
                 {/* Tip 1 */}
                 <Link href="/help/affiliate-tips" className="block group">
                   <div className="flex items-start gap-3 p-2.5 sm:p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                      <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                      <Lightbulb className="h-4 w-4 text-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-xs sm:text-sm group-hover:text-primary transition-colors">10 Affiliate Marketing Tips for Success</h4>
@@ -522,8 +522,8 @@ export default function CreatorDashboard() {
                 {/* Tip 2 */}
                 <Link href="/help/getting-started" className="block group">
                   <div className="flex items-start gap-3 p-2.5 sm:p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                      <BookOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="h-4 w-4 text-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-xs sm:text-sm group-hover:text-primary transition-colors">Getting Started with Affiliate Links</h4>
