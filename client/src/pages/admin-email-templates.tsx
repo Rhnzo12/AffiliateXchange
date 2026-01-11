@@ -53,9 +53,16 @@ import {
   Sparkles,
   DollarSign,
   RefreshCw,
+  MoreHorizontal,
 } from "lucide-react";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 import {
   VisualEmailBuilder,
   VisualEmailData,
@@ -873,13 +880,14 @@ export default function AdminEmailTemplates() {
   const availableTypes = templateTypes.filter(t => !createdSlugs.includes(t.slug));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <TopNavBar />
 
-      <div className="flex items-center justify-between">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-3xl font-bold">Email Templates</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-xl sm:text-3xl font-bold">Email Templates</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
             Create and customize email notifications using the visual editor
           </p>
         </div>
@@ -887,66 +895,69 @@ export default function AdminEmailTemplates() {
           {templates.length === 0 && (
             <Button
               variant="outline"
+              size="sm"
+              className="text-xs sm:text-sm h-8 sm:h-10"
               onClick={() => initializeDefaultsMutation.mutate()}
               disabled={initializeDefaultsMutation.isPending}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${initializeDefaultsMutation.isPending ? 'animate-spin' : ''}`} />
-              Load Default Templates
+              <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${initializeDefaultsMutation.isPending ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Load Default Templates</span>
+              <span className="sm:hidden">Load Defaults</span>
             </Button>
           )}
-          <Button onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button onClick={handleCreate} size="sm" className="text-xs sm:text-sm h-8 sm:h-10">
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Create Template
           </Button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Templates</CardTitle>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <Card className="p-2 sm:p-0">
+          <CardHeader className="p-2 sm:p-6 pb-1 sm:pb-3">
+            <CardTitle className="text-[10px] sm:text-sm font-medium">Total Templates</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{templates.length}</div>
+          <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-xl sm:text-3xl font-bold">{templates.length}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
+        <Card className="p-2 sm:p-0">
+          <CardHeader className="p-2 sm:p-6 pb-1 sm:pb-3">
+            <CardTitle className="text-[10px] sm:text-sm font-medium">Active</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">{activeCount}</div>
+          <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-xl sm:text-3xl font-bold text-green-600">{activeCount}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Available Types</CardTitle>
+        <Card className="p-2 sm:p-0">
+          <CardHeader className="p-2 sm:p-6 pb-1 sm:pb-3">
+            <CardTitle className="text-[10px] sm:text-sm font-medium">Available Types</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-blue-600">{availableTypes.length}</div>
-            <p className="text-xs text-muted-foreground">notification types without custom templates</p>
+          <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
+            <div className="text-xl sm:text-3xl font-bold text-blue-600">{availableTypes.length}</div>
+            <p className="text-[8px] sm:text-xs text-muted-foreground hidden sm:block">notification types without custom templates</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Template List */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
+        <CardHeader className="p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
               All Templates
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 placeholder="Search templates..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
+                className="w-full sm:w-64 h-9 text-sm"
               />
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40 h-9 text-sm">
                   <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -961,100 +972,173 @@ export default function AdminEmailTemplates() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTemplates.length === 0 ? (
+        <CardContent className="p-3 sm:p-6 pt-0">
+          {/* Desktop Table View */}
+          <div className="hidden sm:block">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    <div className="space-y-2">
-                      <Mail className="h-8 w-8 mx-auto opacity-50" />
-                      <p>No templates found.</p>
-                      <p className="text-sm">Click "Load Default Templates" to create templates for all notification types.</p>
-                    </div>
-                  </TableCell>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                filteredTemplates.map((template) => (
-                  <TableRow key={template.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {template.name}
-                        {template.isSystem && (
-                          <Badge variant="outline" className="text-xs">System</Badge>
-                        )}
+              </TableHeader>
+              <TableBody>
+                {filteredTemplates.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      <div className="space-y-2">
+                        <Mail className="h-8 w-8 mx-auto opacity-50" />
+                        <p>No templates found.</p>
+                        <p className="text-sm">Click "Load Default Templates" to create templates for all notification types.</p>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {CATEGORIES.find(c => c.value === template.category)?.label || template.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[250px] truncate text-muted-foreground">
-                      {template.subject}
-                    </TableCell>
-                    <TableCell>
-                      {template.isActive ? (
-                        <Badge className="bg-green-500">Active</Badge>
-                      ) : (
-                        <Badge variant="secondary">Inactive</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handlePreview(template)}>
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Preview</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(template)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Edit</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handleDuplicate(template)}>
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Duplicate</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(template)}
-                              disabled={template.isSystem}
-                            >
-                              <Trash2 className={`h-4 w-4 ${template.isSystem ? 'text-muted-foreground' : 'text-destructive'}`} />
-                            </Button>
-                          </TooltipTrigger>
+                  </TableRow>
+                ) : (
+                  filteredTemplates.map((template) => (
+                    <TableRow key={template.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {template.name}
+                          {template.isSystem && (
+                            <Badge variant="outline" className="text-xs">System</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {CATEGORIES.find(c => c.value === template.category)?.label || template.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-[250px] truncate text-muted-foreground">
+                        {template.subject}
+                      </TableCell>
+                      <TableCell>
+                        {template.isActive ? (
+                          <Badge className="bg-green-500">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Inactive</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => handlePreview(template)}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Preview</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => handleEdit(template)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => handleDuplicate(template)}>
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Duplicate</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(template)}
+                                disabled={template.isSystem}
+                              >
+                                <Trash2 className={`h-4 w-4 ${template.isSystem ? 'text-muted-foreground' : 'text-destructive'}`} />
+                              </Button>
+                            </TooltipTrigger>
                           <TooltipContent>{template.isSystem ? 'System templates cannot be deleted' : 'Delete'}</TooltipContent>
                         </Tooltip>
                       </div>
                     </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="sm:hidden space-y-2">
+            {filteredTemplates.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <div className="space-y-2">
+                  <Mail className="h-8 w-8 mx-auto opacity-50" />
+                  <p className="text-sm">No templates found.</p>
+                  <p className="text-xs">Click "Load Defaults" to create templates.</p>
+                </div>
+              </div>
+            ) : (
+              filteredTemplates.map((template) => (
+                <div
+                  key={template.id}
+                  className="border rounded-lg p-3 bg-background"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm">{template.name}</span>
+                        {template.isActive ? (
+                          <Badge className="bg-green-500 text-[10px] px-1.5 py-0.5">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">Inactive</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handlePreview(template)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(template)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicate(template)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(template)}
+                          disabled={template.isSystem}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                      {CATEGORIES.find(c => c.value === template.category)?.label || template.category}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1.5 truncate">
+                    Subject: {template.subject}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 
