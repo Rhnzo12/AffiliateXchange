@@ -148,8 +148,8 @@ export default function Landing() {
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <img src="/logo.png" alt="AffiliateXchange Logo" className="h-6 w-6 sm:h-8 sm:w-8 rounded-md object-cover" />
-              <span className="text-base sm:text-xl font-bold text-gray-900">AffiliateXchange</span>
+              <img src="/logo.png" alt="AffiliateXchange Logo" className="h-7 w-7 sm:h-8 sm:w-8 rounded-md object-cover" />
+              <span className="text-lg sm:text-xl font-bold text-gray-900">AffiliateXchange</span>
             </div>
 
             {/* Navigation - Center (hidden on mobile) */}
@@ -181,18 +181,18 @@ export default function Landing() {
             </nav>
 
             {/* Auth Buttons - Right */}
-            <div className="flex items-center gap-1 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               <Button
                 variant="ghost"
                 onClick={handleLogin}
                 data-testid="button-login"
-                className="text-gray-700 hover:text-gray-900 font-medium text-[10px] sm:text-sm px-1.5 sm:px-3 h-6 sm:h-9"
+                className="text-gray-700 hover:text-gray-900 font-medium text-[11px] sm:text-sm px-1.5 sm:px-3 h-auto py-1 sm:h-9"
               >
                 Sign in
               </Button>
               <Button
                 onClick={handleRegister}
-                className="bg-primary hover:bg-primary/90 text-white font-medium px-2 sm:px-4 text-[10px] sm:text-sm h-6 sm:h-9"
+                className="bg-primary hover:bg-primary/90 text-white font-medium px-2.5 sm:px-4 text-[11px] sm:text-sm h-auto py-1 sm:h-9"
               >
                 Get Started
               </Button>
