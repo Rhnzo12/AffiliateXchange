@@ -186,91 +186,58 @@ export default function CreatorDashboard() {
           </p>
         </div>
 
-        {/* Your Earnings Overview */}
-        <Card>
-          <CardContent className="p-3 sm:p-4 md:p-6">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h2 className="text-sm sm:text-base md:text-lg font-semibold">Your Earnings Overview</h2>
-              <Link href="/creator/payment-settings">
-                <Button size="sm" className="bg-primary hover:bg-primary/90 text-[10px] sm:text-xs h-6 sm:h-7 px-2 sm:px-2.5">
-                  <Wallet className="h-3 w-3 mr-1" />
-                  Get Paid
-                </Button>
-              </Link>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4">
-              <div>
-                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-                  CA${totalEarnings.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </div>
-                <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
-                  <span className="text-[10px] sm:text-xs text-muted-foreground">Total earnings</span>
-                  <span className="text-[10px] sm:text-xs text-muted-foreground">Last 7 days</span>
-                </div>
+        {/* ========== MOBILE LAYOUT ========== */}
+        <div className="md:hidden space-y-4">
+          {/* Mobile: Your Earnings Overview */}
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold">Your Earnings Overview</h2>
+                <Link href="/creator/payment-settings">
+                  <Button size="sm" className="bg-primary hover:bg-primary/90 text-[10px] h-6 px-2">
+                    <Wallet className="h-3 w-3 mr-1" />
+                    Get Paid
+                  </Button>
+                </Link>
               </div>
 
-              {/* Mini Chart - Hidden on mobile */}
-              <div className="hidden md:block h-16 w-32 lg:w-40">
-                {activityLoading ? (
-                  <div className="h-full w-full rounded bg-muted animate-pulse" />
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={activityChartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="earningsGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="earnings"
-                        stroke="#10b981"
-                        fill="url(#earningsGradient)"
-                        strokeWidth={2}
-                      />
-                      <Tooltip
-                        formatter={(value: number) => [`CA$${value.toFixed(2)}`, 'Earnings']}
-                        contentStyle={{ fontSize: '10px' }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
+              <div className="text-2xl font-bold text-foreground">
+                CA${totalEarnings.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[10px] text-muted-foreground">Total earnings</span>
+                <span className="text-[10px] text-muted-foreground">Last 7 days</span>
+              </div>
+
+              <div className="flex flex-col gap-2 mt-3">
+                <Link href="/analytics">
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-[10px] h-6 px-2">
+                    View full analytics
+                    <ChevronRight className="h-3 w-3 ml-auto" />
+                  </Button>
+                </Link>
+                <Link href="/browse">
+                  <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-[10px] h-6 px-2.5">
+                    View New Offers
+                    <ArrowRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Mobile: Recommended Offers - List */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold">Recommended Offers</h2>
+              <Link href="/browse" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5">
+                View all tasks
+                <ChevronRight className="h-3 w-3" />
+              </Link>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-4">
-              <Link href="/analytics" className="flex-1 sm:flex-none">
-                <Button variant="ghost" size="sm" className="w-full sm:w-auto justify-start text-[10px] sm:text-xs h-6 sm:h-7 px-2">
-                  View full analytics
-                  <ChevronRight className="h-3 w-3 ml-auto sm:ml-1" />
-                </Button>
-              </Link>
-              <Link href="/browse" className="flex-1 sm:flex-none">
-                <Button size="sm" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-[10px] sm:text-xs h-6 sm:h-7 px-2.5">
-                  View New Offers
-                  <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recommended Offers - List on Mobile, Grid on Desktop */}
-        <div>
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <h2 className="text-sm sm:text-base md:text-lg font-semibold">Recommended Offers</h2>
-            <Link href="/browse" className="text-[10px] sm:text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5">
-              View all tasks
-              <ChevronRight className="h-3 w-3" />
-            </Link>
-          </div>
-
-          {offersLoading ? (
-            <>
-              {/* Mobile Loading - List */}
-              <div className="space-y-2 md:hidden">
+            {offersLoading ? (
+              <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
                   <Card key={i} className="animate-pulse">
                     <CardContent className="p-2.5 flex items-center gap-2.5">
@@ -279,52 +246,36 @@ export default function CreatorDashboard() {
                         <div className="h-3.5 bg-muted rounded w-32 mb-1.5" />
                         <div className="h-3 bg-muted rounded w-20" />
                       </div>
-                      <div className="h-6 w-16 bg-muted rounded" />
+                      <div className="h-5 w-16 bg-muted rounded" />
                     </CardContent>
                   </Card>
                 ))}
               </div>
-              {/* Desktop Loading - Grid */}
-              <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <Card key={i} className="animate-pulse">
-                    <CardContent className="p-4">
-                      <div className="h-14 w-14 rounded-lg bg-muted mb-3" />
-                      <div className="h-4 bg-muted rounded w-full mb-2" />
-                      <div className="h-3 bg-muted rounded w-20 mb-3" />
-                      <div className="h-7 bg-muted rounded w-full" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </>
-          ) : hasNoNiches || profileNotFound ? (
-            <Card>
-              <CardContent className="p-6 sm:p-8 text-center">
-                <Settings className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground/50 mx-auto mb-2 sm:mb-3" />
-                <p className="font-medium text-xs sm:text-sm">Set Your Content Niches</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 mb-2 sm:mb-3">
-                  Add your content niches to get personalized recommendations
-                </p>
-                <Link href="/settings">
-                  <Button size="sm" className="text-[10px] sm:text-xs h-6 sm:h-7">
-                    <Settings className="h-3 w-3 mr-1" />
-                    Update Profile
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ) : !recommendedOffers || recommendedOffers.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 sm:p-8 text-center">
-                <Heart className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground/50 mx-auto mb-2 sm:mb-3" />
-                <p className="text-muted-foreground text-xs sm:text-sm">No recommended offers yet</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {/* Mobile - List Layout */}
-              <div className="space-y-2 md:hidden">
+            ) : hasNoNiches || profileNotFound ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <Settings className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                  <p className="font-medium text-xs">Set Your Content Niches</p>
+                  <p className="text-[10px] text-muted-foreground mt-1 mb-2">
+                    Add your content niches to get personalized recommendations
+                  </p>
+                  <Link href="/settings">
+                    <Button size="sm" className="text-[10px] h-6">
+                      <Settings className="h-3 w-3 mr-1" />
+                      Update Profile
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ) : !recommendedOffers || recommendedOffers.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <Heart className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                  <p className="text-muted-foreground text-xs">No recommended offers yet</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
                 {recommendedOffers.slice(0, 3).map((offer: any) => (
                   <Card key={offer.id} className="hover:shadow-sm transition-shadow">
                     <CardContent className="p-2.5">
@@ -363,66 +314,23 @@ export default function CreatorDashboard() {
                   </Card>
                 ))}
               </div>
+            )}
+          </div>
 
-              {/* Desktop - Grid Layout */}
-              <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {recommendedOffers.slice(0, 4).map((offer: any) => (
-                  <Card key={offer.id} className="hover:shadow-md hover:border-primary/30 transition-all">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="h-14 w-14 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                          {offer.featuredImageUrl ? (
-                            <img
-                              src={proxiedSrc(offer.featuredImageUrl)}
-                              alt={offer.title}
-                              className="w-full h-full object-cover rounded-lg"
-                            />
-                          ) : (
-                            <Play className="h-6 w-6 text-muted-foreground/50" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm truncate">{offer.title}</h3>
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">
-                            {offer.shortDescription || `Earn ${getCommissionPercent(offer)} per sale`}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                              {getCommissionPercent(offer)} per sale
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <Link href={`/offers/${offer.id}`} className="mt-3 block">
-                        <Button size="sm" variant="outline" className="w-full text-xs h-7">
-                          <Eye className="h-3 w-3 mr-1.5" />
-                          View Offer
-                        </Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Two Column Section: More Offers + Tips & Resources */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-          {/* More Recommended Offers */}
+          {/* Mobile: More Recommended Offers */}
           <div>
-            <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <h2 className="text-sm sm:text-base font-semibold">Recommended Offers</h2>
-              <Link href="/browse" className="text-[10px] sm:text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold">Recommended Offers</h2>
+              <Link href="/browse" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5">
                 <ChevronRight className="h-3 w-3" />
               </Link>
             </div>
             <div className="space-y-2">
-              {recommendedOffers.slice(4, 6).map((offer: any) => (
+              {recommendedOffers.slice(3, 5).map((offer: any) => (
                 <Card key={offer.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-2.5 sm:p-3">
-                    <div className="flex items-center gap-2.5 sm:gap-3">
-                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <CardContent className="p-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {offer.featuredImageUrl ? (
                           <img
                             src={proxiedSrc(offer.featuredImageUrl)}
@@ -430,24 +338,24 @@ export default function CreatorDashboard() {
                             className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (
-                          <Play className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground/50" />
+                          <Play className="h-4 w-4 text-muted-foreground/50" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-[11px] sm:text-xs truncate">{offer.title}</h3>
+                        <h3 className="font-medium text-[11px] truncate">{offer.title}</h3>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           {offer.primaryNiche && (
-                            <Badge variant="secondary" className="text-[8px] sm:text-[9px] px-1 py-0 h-3.5 sm:h-4">
+                            <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5">
                               {formatNicheLabel(offer.primaryNiche)}
                             </Badge>
                           )}
                         </div>
-                        <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">
+                        <p className="text-[9px] text-muted-foreground mt-0.5">
                           {getCommissionPercent(offer)} per sale
                         </p>
                       </div>
                       <Link href={`/offers/${offer.id}`}>
-                        <Button size="sm" className="bg-primary hover:bg-primary/90 text-[9px] sm:text-[10px] h-5 sm:h-6 px-2 flex-shrink-0">
+                        <Button size="sm" className="bg-primary hover:bg-primary/90 text-[9px] h-5 px-2 flex-shrink-0">
                           View Offer
                         </Button>
                       </Link>
@@ -458,25 +366,25 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Tips & Resources */}
+          {/* Mobile: Tips & Resources */}
           <div>
-            <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <h2 className="text-sm sm:text-base font-semibold">Tips & Resources</h2>
-              <Link href="/help" className="text-[10px] sm:text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold">Tips & Resources</h2>
+              <Link href="/help" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5">
                 <ChevronRight className="h-3 w-3" />
               </Link>
             </div>
             <div className="space-y-2">
               <Link href="/help/affiliate-tips" className="block group">
                 <Card className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-2.5 sm:p-3">
-                    <div className="flex items-center gap-2.5 sm:gap-3">
-                      <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                        <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-foreground" />
+                  <CardContent className="p-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <Lightbulb className="h-3.5 w-3.5 text-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-[11px] sm:text-xs group-hover:text-primary transition-colors">10 Affiliate Marketing Tips for Success</h4>
-                        <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Learn more about affiliate marketing</p>
+                        <h4 className="font-medium text-[11px] group-hover:text-primary transition-colors">10 Affiliate Marketing Tips for Success</h4>
+                        <p className="text-[9px] text-muted-foreground mt-0.5">Learn more about affiliate marketing</p>
                       </div>
                       <ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                     </div>
@@ -486,14 +394,14 @@ export default function CreatorDashboard() {
 
               <Link href="/help/getting-started" className="block group">
                 <Card className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-2.5 sm:p-3">
-                    <div className="flex items-center gap-2.5 sm:gap-3">
-                      <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                        <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-foreground" />
+                  <CardContent className="p-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <BookOpen className="h-3.5 w-3.5 text-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-[11px] sm:text-xs group-hover:text-primary transition-colors">Getting Started with Affiliate Links</h4>
-                        <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-0.5">Kickstart guide for beginners</p>
+                        <h4 className="font-medium text-[11px] group-hover:text-primary transition-colors">Getting Started with Affiliate Links</h4>
+                        <p className="text-[9px] text-muted-foreground mt-0.5">Kickstart guide for beginners</p>
                       </div>
                       <ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                     </div>
@@ -502,31 +410,28 @@ export default function CreatorDashboard() {
               </Link>
 
               <Link href="/creator/payment-settings">
-                <Button variant="outline" size="sm" className="w-full justify-between text-[10px] sm:text-xs h-7 sm:h-8 mt-1">
+                <Button variant="outline" size="sm" className="w-full justify-between text-[10px] h-7 mt-1">
                   <span className="flex items-center gap-1.5">
-                    <Wallet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    <Wallet className="h-3 w-3" />
                     Withdraw Funds
                   </span>
-                  <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <ArrowRight className="h-3 w-3" />
                 </Button>
               </Link>
             </div>
           </div>
-        </div>
 
-        {/* Top Converting Offers - Horizontal Scroll on Mobile, Grid on Desktop */}
-        <div>
-          <div className="flex items-center justify-between mb-2 sm:mb-3">
-            <h2 className="text-sm sm:text-base md:text-lg font-semibold">Top Converting Offers</h2>
-            <Link href="/browse" className="text-[10px] sm:text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5">
-              <ChevronRight className="h-3 w-3" />
-            </Link>
-          </div>
+          {/* Mobile: Top Converting Offers - Horizontal Scroll */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold">Top Converting Offers</h2>
+              <Link href="/browse" className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-0.5">
+                <ChevronRight className="h-3 w-3" />
+              </Link>
+            </div>
 
-          {topConvertingOffers.length > 0 ? (
-            <>
-              {/* Mobile - Horizontal Scroll */}
-              <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-3 px-3 md:hidden scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {topConvertingOffers.length > 0 ? (
+              <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-3 px-3 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {topConvertingOffers.map((offer: any) => (
                   <Card key={offer.id} className="flex-shrink-0 w-[130px] hover:shadow-sm transition-shadow">
                     <CardContent className="p-2.5">
@@ -555,119 +460,505 @@ export default function CreatorDashboard() {
                   </Card>
                 ))}
               </div>
+            ) : (
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <Target className="h-6 w-6 text-muted-foreground/50 mx-auto mb-2" />
+                  <p className="text-[10px] text-muted-foreground">
+                    Start promoting offers to see your top performers
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-              {/* Desktop - Grid */}
-              <div className="hidden md:grid md:grid-cols-3 gap-4">
-                {topConvertingOffers.map((offer: any) => (
-                  <Card key={offer.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                          {offer.featuredImageUrl ? (
-                            <img
-                              src={proxiedSrc(offer.featuredImageUrl)}
-                              alt={offer.title}
-                              className="w-full h-full object-cover rounded-lg"
-                            />
-                          ) : (
-                            <Target className="h-5 w-5 text-muted-foreground/50" />
-                          )}
+          {/* Mobile: Payment Balance */}
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold mb-1">Payment Balance</h2>
+                  <div className="text-xl font-bold text-foreground">
+                    CA${paymentBalance.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Badge variant="secondary" className="text-[8px] px-1.5 py-0 h-3.5">
+                      <DollarSign className="h-2.5 w-2.5 mr-0.5" />
+                      AffiliateXchange
+                    </Badge>
+                    <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
+                      <Clock className="h-2.5 w-2.5" />
+                      7 Days
+                    </span>
+                  </div>
+                </div>
+                <Link href="/creator/payment-settings">
+                  <Button variant="outline" size="sm" className="text-[10px] h-6 px-2">
+                    <CreditCard className="h-3 w-3 mr-1" />
+                    Payment Methods
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Mobile: Quick Stats */}
+          <div className="grid grid-cols-3 gap-2">
+            <Card>
+              <CardContent className="p-2.5 text-center">
+                <div className="text-base font-bold text-foreground">
+                  {totalClicks.toLocaleString()}
+                </div>
+                <div className="text-[9px] text-muted-foreground flex items-center justify-center gap-0.5">
+                  <MousePointerClick className="h-2.5 w-2.5" />
+                  Clicks
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-2.5 text-center">
+                <div className="text-base font-bold text-foreground">
+                  CA${totalEarnings.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="text-[9px] text-muted-foreground flex items-center justify-center gap-0.5">
+                  <DollarSign className="h-2.5 w-2.5" />
+                  Earnings
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-2.5 text-center">
+                <div className="text-base font-bold text-foreground">
+                  {conversionRate}%
+                </div>
+                <div className="text-[9px] text-muted-foreground flex items-center justify-center gap-0.5">
+                  <Percent className="h-2.5 w-2.5" />
+                  Conversion
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* ========== DESKTOP LAYOUT ========== */}
+        <div className="hidden md:block space-y-6">
+          {/* Desktop: Your Earnings Overview + Take Action */}
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="grid grid-cols-12 gap-0">
+                {/* Left side - Earnings */}
+                <div className="col-span-4 p-6 border-r">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold">Your Earnings Overview</h2>
+                    <Link href="/creator/payment-settings">
+                      <Button size="sm" className="bg-primary hover:bg-primary/90 text-xs h-8 px-3">
+                        <Wallet className="h-4 w-4 mr-1.5" />
+                        Get Paid
+                      </Button>
+                    </Link>
+                  </div>
+
+                  <div className="text-4xl font-bold text-foreground">
+                    CA${totalEarnings.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-muted-foreground">Total earnings</span>
+                    <span className="text-sm text-muted-foreground">Last 7 days</span>
+                  </div>
+
+                  {/* Mini Chart */}
+                  <div className="h-20 w-full mt-4">
+                    {activityLoading ? (
+                      <div className="h-full w-full rounded bg-muted animate-pulse" />
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={activityChartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="earningsGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <Area
+                            type="monotone"
+                            dataKey="earnings"
+                            stroke="#10b981"
+                            fill="url(#earningsGradient)"
+                            strokeWidth={2}
+                          />
+                          <Tooltip
+                            formatter={(value: number) => [`CA$${value.toFixed(2)}`, 'Earnings']}
+                            contentStyle={{ fontSize: '12px' }}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+
+                  <Link href="/analytics" className="mt-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    View Full Analytics
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </div>
+
+                {/* Right side - Take Action */}
+                <div className="col-span-8 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold">Take Action</h2>
+                    <Link href="/applications" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                      See all tasks
+                      <ChevronRight className="h-4 w-4" />
+                    </Link>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* Respond to New Offers */}
+                    <Card className="border bg-card hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                            <Bell className="h-5 w-5 text-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm">Respond to New Offers</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {pendingApplications > 0 ? `${pendingApplications} applications awaiting review` : 'Check for new opportunities'}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm truncate">{offer.title}</h3>
-                          <p className="text-xs text-muted-foreground">
-                            {getCommissionPercent(offer)} per sale
-                          </p>
+                        <Link href="/browse" className="mt-3 block">
+                          <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-xs h-8">
+                            View New Offers
+                            <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+
+                    {/* Check Offer Performance */}
+                    <Card className="border bg-card hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                            <BarChart3 className="h-5 w-5 text-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm">Check Offer Performance</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Analyze your clicks, conversions, & top...
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <Link href={`/offers/${offer.id}`} className="mt-3 block">
-                        <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-xs h-7">
-                          <Megaphone className="h-3 w-3 mr-1.5" />
-                          Promote
+                        <Link href="/analytics" className="mt-3 block">
+                          <Button size="sm" variant="outline" className="w-full text-xs h-8">
+                            View Analytics
+                            <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+
+                    {/* Join High-Payout Programs */}
+                    <Card className="border bg-card hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                            <DollarSign className="h-5 w-5 text-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm">Join High-Payout Programs</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Browse high-payout programs with generous...
+                            </p>
+                          </div>
+                        </div>
+                        <Link href="/browse?sort=highest_commission" className="mt-3 block">
+                          <Button size="sm" variant="outline" className="w-full text-xs h-8">
+                            Browse Top Offers
+                            <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Desktop: Main Content Grid */}
+          <div className="grid grid-cols-12 gap-6">
+            {/* Left Column - Offers */}
+            <div className="col-span-8 space-y-6">
+              {/* Recommended Offers */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold">Recommended Offers</h2>
+                    <p className="text-xs text-muted-foreground">Handpicked offers that fit your audience</p>
+                  </div>
+                  <Link href="/browse" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    View All
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
+
+                {offersLoading ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <Card key={i} className="animate-pulse">
+                        <CardContent className="p-4 flex items-center gap-3">
+                          <div className="h-14 w-14 rounded-lg bg-muted" />
+                          <div className="flex-1">
+                            <div className="h-4 bg-muted rounded w-32 mb-2" />
+                            <div className="h-3 bg-muted rounded w-24 mb-2" />
+                            <div className="h-8 bg-muted rounded w-full" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : hasNoNiches || profileNotFound ? (
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <Settings className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                      <p className="font-medium">Set Your Content Niches</p>
+                      <p className="text-sm text-muted-foreground mt-1 mb-4">
+                        Add your content niches in your profile to get personalized recommendations
+                      </p>
+                      <Link href="/settings">
+                        <Button size="sm">
+                          <Settings className="h-4 w-4 mr-1.5" />
+                          Update Profile
                         </Button>
                       </Link>
                     </CardContent>
                   </Card>
-                ))}
+                ) : !recommendedOffers || recommendedOffers.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <Heart className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                      <p className="text-muted-foreground">No recommended offers yet</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Check back soon for new offers matching your niches
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    {recommendedOffers.slice(0, 4).map((offer: any) => (
+                      <Card key={offer.id} className="hover:shadow-md hover:border-primary/30 transition-all">
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="h-14 w-14 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {offer.featuredImageUrl ? (
+                                <img
+                                  src={proxiedSrc(offer.featuredImageUrl)}
+                                  alt={offer.title}
+                                  className="w-full h-full object-cover rounded-lg"
+                                />
+                              ) : (
+                                <Play className="h-6 w-6 text-muted-foreground/50" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-sm truncate">{offer.title}</h3>
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                {offer.shortDescription || `Earn ${getCommissionPercent(offer)} per sale`}
+                              </p>
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mt-1.5">
+                                {getCommissionPercent(offer)} per sale
+                              </Badge>
+                            </div>
+                          </div>
+                          <Link href={`/offers/${offer.id}`} className="mt-3 block">
+                            <Button size="sm" variant="outline" className="w-full text-xs h-8">
+                              <Eye className="h-3.5 w-3.5 mr-1.5" />
+                              View Offer
+                            </Button>
+                          </Link>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
-            </>
-          ) : (
-            <Card>
-              <CardContent className="p-4 sm:p-6 text-center">
-                <Target className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-[10px] sm:text-xs text-muted-foreground">
-                  Start promoting offers to see your top performers
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
 
-        {/* Payment Balance */}
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between">
+              {/* Top Converting Offers */}
               <div>
-                <h2 className="text-sm sm:text-base font-semibold mb-1">Payment Balance</h2>
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
-                  CA${paymentBalance.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold">Top Converting Offers</h2>
+                    <p className="text-xs text-muted-foreground">Promote these high-performing programs</p>
+                  </div>
+                  <Link href="/browse" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    View All
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
                 </div>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <Badge variant="secondary" className="text-[8px] sm:text-[9px] px-1.5 py-0 h-3.5 sm:h-4">
-                    <DollarSign className="h-2.5 w-2.5 mr-0.5" />
-                    AffiliateXchange
-                  </Badge>
-                  <span className="text-[9px] sm:text-[10px] text-muted-foreground flex items-center gap-0.5">
-                    <Clock className="h-2.5 w-2.5" />
-                    7 Days
-                  </span>
-                </div>
-              </div>
-              <Link href="/creator/payment-settings">
-                <Button variant="outline" size="sm" className="text-[10px] sm:text-xs h-6 sm:h-7 px-2 sm:px-2.5">
-                  <CreditCard className="h-3 w-3 mr-1" />
-                  Payment Methods
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <Card>
-            <CardContent className="p-2.5 sm:p-3 text-center">
-              <div className="text-base sm:text-lg md:text-xl font-bold text-foreground">
-                {totalClicks.toLocaleString()}
+                {topConvertingOffers.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-4">
+                    {topConvertingOffers.map((offer: any) => (
+                      <Card key={offer.id} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {offer.featuredImageUrl ? (
+                                <img
+                                  src={proxiedSrc(offer.featuredImageUrl)}
+                                  alt={offer.title}
+                                  className="w-full h-full object-cover rounded-lg"
+                                />
+                              ) : (
+                                <Target className="h-5 w-5 text-muted-foreground/50" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-sm truncate">{offer.title}</h3>
+                              <p className="text-xs text-muted-foreground">
+                                Earn {getCommissionPercent(offer)} per sale
+                              </p>
+                            </div>
+                          </div>
+                          <Link href={`/offers/${offer.id}`} className="mt-3 block">
+                            <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-xs h-8">
+                              <Megaphone className="h-3.5 w-3.5 mr-1.5" />
+                              Promote
+                            </Button>
+                          </Link>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <Target className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground">
+                        Start promoting offers to see your top performers here
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground flex items-center justify-center gap-0.5">
-                <MousePointerClick className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                Clicks
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-2.5 sm:p-3 text-center">
-              <div className="text-base sm:text-lg md:text-xl font-bold text-foreground">
-                CA${totalEarnings.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground flex items-center justify-center gap-0.5">
-                <DollarSign className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                Earnings
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-2.5 sm:p-3 text-center">
-              <div className="text-base sm:text-lg md:text-xl font-bold text-foreground">
-                {conversionRate}%
-              </div>
-              <div className="text-[9px] sm:text-[10px] text-muted-foreground flex items-center justify-center gap-0.5">
-                <Percent className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                Conversion
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+
+            {/* Right Column - Sidebar */}
+            <div className="col-span-4 space-y-6">
+              {/* Tips & Resources */}
+              <Card>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg">Tips & Resources</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Link href="/help/affiliate-tips" className="block group">
+                    <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <Lightbulb className="h-4 w-4 text-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm group-hover:text-primary transition-colors">10 Affiliate Marketing Tips for Success</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">Learn more about affiliate beginners/dha ducess.</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                    </div>
+                  </Link>
+
+                  <Link href="/help/getting-started" className="block group">
+                    <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <BookOpen className="h-4 w-4 text-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm group-hover:text-primary transition-colors">Getting Started with Affiliate Links</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">Kickstart guide to learn goinpnch nar hade.</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                    </div>
+                  </Link>
+
+                  <Link href="/creator/payment-settings" className="block mt-4">
+                    <Button variant="outline" className="w-full justify-between text-sm h-10">
+                      <span className="flex items-center gap-2">
+                        <Wallet className="h-4 w-4" />
+                        Withdraw Funds
+                      </span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* Payment Balance */}
+              <Card>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg">Payment Balance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-baseline justify-between mb-3">
+                    <div className="text-3xl font-bold text-foreground">
+                      CA${paymentBalance.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Upcoming Payout in 2 Days
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Badge className="bg-primary/10 text-primary border-0 text-xs">
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      Affiliate Funds
+                    </Badge>
+                  </div>
+                  <Link href="/creator/payment-settings">
+                    <Button variant="outline" className="w-full text-sm h-9">
+                      <CreditCard className="h-4 w-4 mr-1.5" />
+                      Payment Methods
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* Quick Stats */}
+              <Card>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg">Quick Stats</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-foreground">
+                        {totalClicks.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                        <MousePointerClick className="h-3 w-3" />
+                        Clicks
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-foreground">
+                        CA${totalEarnings.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                      <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                        <DollarSign className="h-3 w-3" />
+                        Earnings
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xl font-bold text-foreground">
+                        {conversionRate}%
+                      </div>
+                      <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                        <Percent className="h-3 w-3" />
+                        Conversion rate
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
 
