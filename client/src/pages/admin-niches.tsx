@@ -751,17 +751,17 @@ export default function AdminNiches() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={handleCloseDialog} size="sm" className="text-xs sm:text-sm h-8 sm:h-10">
-              Cancel
-            </Button>
+          <DialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
             <Button
               onClick={handleSubmit}
               disabled={createNicheMutation.isPending || updateNicheMutation.isPending}
               size="sm"
-              className="text-xs sm:text-sm h-8 sm:h-10"
+              className="text-xs sm:text-sm h-10 sm:h-10 order-1 sm:order-2"
             >
               {editingNiche ? "Update" : "Create"}
+            </Button>
+            <Button variant="outline" onClick={handleCloseDialog} size="sm" className="text-xs sm:text-sm h-10 sm:h-10 order-2 sm:order-1">
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -847,18 +847,18 @@ export default function AdminNiches() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={handleCloseMergeDialog} size="sm" className="text-xs sm:text-sm h-8 sm:h-10">
-              Cancel
-            </Button>
+          <DialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
             <Button
               onClick={handleMerge}
               disabled={mergeNichesMutation.isPending || !sourceNiche || !targetNiche}
               variant="destructive"
               size="sm"
-              className="text-xs sm:text-sm h-8 sm:h-10"
+              className="text-xs sm:text-sm h-10 sm:h-10 order-1 sm:order-2"
             >
               {mergeNichesMutation.isPending ? "Merging..." : "Merge Niches"}
+            </Button>
+            <Button variant="outline" onClick={handleCloseMergeDialog} size="sm" className="text-xs sm:text-sm h-10 sm:h-10 order-2 sm:order-1">
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -874,19 +874,19 @@ export default function AdminNiches() {
               Consider merging niches instead if there are existing offers or creator profiles using this niche.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-0">
-            <AlertDialogCancel
-              onClick={() => setNicheToDelete(null)}
-              className="text-xs sm:text-sm h-8 sm:h-10"
-            >
-              Cancel
-            </AlertDialogCancel>
+          <AlertDialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs sm:text-sm h-8 sm:h-10"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs sm:text-sm h-10 sm:h-10 order-1 sm:order-2"
             >
               Delete
             </AlertDialogAction>
+            <AlertDialogCancel
+              onClick={() => setNicheToDelete(null)}
+              className="text-xs sm:text-sm h-10 sm:h-10 order-2 sm:order-1 mt-0"
+            >
+              Cancel
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
