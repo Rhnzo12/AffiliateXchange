@@ -36,7 +36,7 @@ import {
   Upload,
   Play,
   ExternalLink,
-  Sparkles,
+  Gift,
   ShieldCheck,
   Clock3,
   Info,
@@ -44,6 +44,9 @@ import {
   Send,
   Star,
   Briefcase,
+  Users,
+  Tag,
+  Bookmark,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -1151,7 +1154,7 @@ export default function CreatorRetainerDetail() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-xs text-teal-400 font-medium flex items-center gap-1 mb-1">
-                <Sparkles className="h-3 w-3" /> Reward
+                <Gift className="h-3 w-3" /> Reward
               </p>
               <div className="text-4xl font-bold">
                 {formatCurrency(bestValueTier?.monthlyAmount ?? contractMonthlyAmount)}
@@ -1200,7 +1203,7 @@ export default function CreatorRetainerDetail() {
 
             <div className="bg-white/10 rounded-xl p-3 backdrop-blur">
               <div className="flex items-center gap-1 text-xs text-white/60 mb-1">
-                <Sparkles className="h-3 w-3" /> Niche
+                <Tag className="h-3 w-3" /> Niche
               </div>
               <p className="text-lg font-bold truncate">
                 {contract.niches?.[0] || "General"}
@@ -1263,7 +1266,7 @@ export default function CreatorRetainerDetail() {
               </div>
               <div className="flex items-center justify-between py-2 border-b">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Sparkles className="h-4 w-4" /> Minimum Followers
+                  <Users className="h-4 w-4" /> Minimum Followers
                 </div>
                 <span className="font-semibold">
                   {contract.minimumFollowers ? contract.minimumFollowers.toLocaleString() + '+' : 'None'}
@@ -1364,74 +1367,31 @@ export default function CreatorRetainerDetail() {
 
       {/* Tiered Offers Section */}
       {hasRetainerTiers && (
-        <div className="grid lg:grid-cols-[1fr_1fr] gap-6">
-          <Card className="border-card-border">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+        <Card className="border-card-border">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">Tiered</CardTitle>
+                <Gift className="h-4 w-4 text-teal-500" />
+                <span className="text-sm font-medium">{contract.title}</span>
+              </div>
+              <Button variant="link" className="text-teal-500 p-0 h-auto text-sm">
+                <Bookmark className="h-3 w-3 mr-1" /> Bookmark Offer
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {tierSummaries.map((tier: any, index: number) => (
+              <div key={`tier-${index}`} className="flex items-center justify-between py-2 border-b last:border-0">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-base">Tired</CardTitle>
-                  <Sparkles className="h-4 w-4 text-teal-500" />
-                  <span className="text-sm font-medium">{contract.title}</span>
+                  <Badge variant="outline" className="text-xs">{tier.name}</Badge>
+                  <span className="text-sm text-muted-foreground">{tier.durationMonths} months</span>
                 </div>
-                <Button variant="link" className="text-teal-500 p-0 h-auto text-sm">
-                  Bookmark Offer &rarr;
-                </Button>
+                <span className="font-semibold">{formatCurrency(tier.monthlyAmount)}</span>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {tierSummaries.map((tier: any, index: number) => (
-                <div key={`tier-${index}`} className="flex items-center justify-between py-2 border-b last:border-0">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">{tier.name}</Badge>
-                    <span className="text-sm text-muted-foreground">{tier.durationMonths} months</span>
-                  </div>
-                  <span className="font-semibold">{formatCurrency(tier.monthlyAmount)}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="border-card-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Tiered Package</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between py-2 border-b">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Sparkles className="h-4 w-4" /> Reward
-                </div>
-                <span className="font-semibold">{contract.durationMonths} months</span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <DollarSign className="h-4 w-4" /> Payment Terms
-                </div>
-                <span className="font-semibold">{formatCurrency(contractMonthlyAmount)}</span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Sparkles className="h-4 w-4" /> Minimum Followers
-                </div>
-                <span className="font-semibold">
-                  {contract.minimumFollowers ? contract.minimumFollowers.toLocaleString() + '+' : '0'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" /> Posting Schedule
-                </div>
-              </div>
-              {!currentApplication && (
-                <Button
-                  className="w-full bg-teal-500 hover:bg-teal-600 text-white mt-2"
-                  onClick={() => setApplyOpen(true)}
-                >
-                  <Send className="h-4 w-4 mr-2" /> Apply Now
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
       {/* Live Summary Preview Section */}
@@ -1439,13 +1399,20 @@ export default function CreatorRetainerDetail() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Live Summary Preview</CardTitle>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Info className="h-4 w-4" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Real-time breakdown using company-provided details</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid lg:grid-cols-[1fr_auto_1fr] gap-6">
+          <div className="grid lg:grid-cols-2 gap-6">
             {/* Brand Info */}
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -1490,50 +1457,32 @@ export default function CreatorRetainerDetail() {
               </div>
             </div>
 
-            {/* Divider */}
-            <div className="hidden lg:block w-px bg-border" />
-
-            {/* Tiered Package Summary */}
-            <Card className="border-card-border bg-muted/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Tiered Package</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
+            {/* Financial Summary */}
+            <div className="space-y-3 p-4 rounded-lg bg-muted/30">
+              <h4 className="font-semibold text-sm">Financial Summary</h4>
+              <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" /> Reward
-                  </span>
-                  <span className="font-semibold">{contract.durationMonths} months</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <DollarSign className="h-3 w-3" /> Payment Terms
-                  </span>
+                  <span className="text-muted-foreground">Gross monthly</span>
                   <span className="font-semibold">{formatCurrency(contractMonthlyAmount)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" /> Minimum Followers
-                  </span>
-                  <span className="font-semibold">
-                    {contract.minimumFollowers ? contract.minimumFollowers.toLocaleString() + '+' : '0'}
-                  </span>
+                  <span className="text-muted-foreground">Platform fee ({totalFeeDisplay})</span>
+                  <span className="font-semibold">{formatCurrency(platformFee)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <span className="text-muted-foreground">Net to creator</span>
+                  <span className="font-semibold text-teal-600">{formatCurrency(creatorTakeHome)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-3 w-3" /> Posting Schedule
-                  </span>
+                  <span className="text-muted-foreground">Videos per month</span>
+                  <span className="font-semibold">{contractVideosPerMonth}</span>
                 </div>
-                {!currentApplication && (
-                  <Button
-                    className="w-full bg-teal-500 hover:bg-teal-600 text-white mt-3"
-                    onClick={() => setApplyOpen(true)}
-                  >
-                    <Send className="h-4 w-4 mr-2" /> Apply Now
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Value per video</span>
+                  <span className="font-semibold">{formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
