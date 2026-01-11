@@ -242,7 +242,7 @@ export default function Landing() {
                   <Button
                     onClick={handleGetStarted}
                     data-testid="button-get-started"
-                    className="h-10 sm:h-12 px-6 sm:px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-sm sm:text-base rounded-lg"
+                    className="w-full sm:w-auto h-10 sm:h-12 px-6 sm:px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-sm sm:text-base rounded-lg"
                   >
                     Get Started
                   </Button>
