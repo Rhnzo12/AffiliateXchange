@@ -2066,8 +2066,19 @@ export class DatabaseStorage implements IStorage {
         const activeCreatorsCount = await this.getActiveCreatorsCountForOffer(offer.id);
         const clickStats = await this.getOfferClickStats(offer.id);
 
+        // Get primary video thumbnail as fallback for image
+        let imageUrl = offer.featuredImageUrl;
+        if (!imageUrl) {
+          const videos = await this.getOfferVideos(offer.id);
+          const primaryVideo = videos.find(v => v.isPrimary) || videos[0];
+          if (primaryVideo?.thumbnailUrl) {
+            imageUrl = primaryVideo.thumbnailUrl;
+          }
+        }
+
         return {
           ...offer,
+          featuredImageUrl: imageUrl,
           viewCount: offer.viewCount ?? 0,
           applicationCount: offer.applicationCount ?? 0,
           featuredOnHomepage: offer.featuredOnHomepage ?? false,
