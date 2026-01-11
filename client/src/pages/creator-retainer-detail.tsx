@@ -1160,7 +1160,7 @@ export default function CreatorRetainerDetail() {
                 {formatCurrency(bestValueTier?.monthlyAmount ?? contractMonthlyAmount)}
               </div>
               <p className="text-xs text-white/70 mt-0.5">
-                Total payout for {bestValueTier?.videosPerMonth ?? contractVideosPerMonth}-video
+                Total payout for {bestValueTier?.videosPerMonth ?? contractVideosPerMonth} video{(bestValueTier?.videosPerMonth ?? contractVideosPerMonth) > 1 ? 's' : ''}
               </p>
             </div>
             <Button
@@ -1177,10 +1177,9 @@ export default function CreatorRetainerDetail() {
             <div className="bg-white/10 rounded-lg p-2">
               <div className="flex items-center gap-1 text-[9px] text-white/60 mb-0.5">
                 <Calendar className="h-2.5 w-2.5" /> Duration
-                <Info className="h-2 w-2" />
               </div>
               <p className="text-sm font-bold">{contract.durationMonths} months</p>
-              <p className="text-[8px] text-white/50 truncate">Deliverables on trial</p>
+              <p className="text-[8px] text-white/50 truncate">{contractVideosPerMonth * contract.durationMonths} videos total</p>
             </div>
 
             <div className="bg-white/10 rounded-lg p-2">
@@ -1188,7 +1187,7 @@ export default function CreatorRetainerDetail() {
                 <DollarSign className="h-2.5 w-2.5" /> Payment Terms
               </div>
               <p className="text-sm font-bold">{formatCurrency(contractMonthlyAmount)}/month</p>
-              <p className="text-[8px] text-white/50 truncate">Sponsored ad required</p>
+              <p className="text-[8px] text-white/50 truncate">Net: {formatCurrency(creatorTakeHome)}</p>
             </div>
 
             <div className="bg-white/10 rounded-lg p-2">
@@ -1196,21 +1195,30 @@ export default function CreatorRetainerDetail() {
                 <Tag className="h-2.5 w-2.5" /> Niche
               </div>
               <p className="text-sm font-bold truncate">{contract.niches?.[0] || "General"}</p>
-              <p className="text-[8px] text-white/50 truncate">Based on category</p>
+              <p className="text-[8px] text-white/50 truncate">{contract.requiredPlatform}</p>
             </div>
           </div>
 
           {/* Tags Row */}
           <div className="flex flex-wrap gap-1.5">
+            {contract.requiredPlatform && (
+              <Badge className="bg-red-500/80 text-white border-none text-[9px] h-5 px-2">
+                {contract.requiredPlatform}
+              </Badge>
+            )}
             <Badge className="bg-teal-600 text-white border-none text-[9px] h-5 px-2">
               Campaign Offer
             </Badge>
-            <Badge variant="outline" className="border-white/30 text-white/80 text-[9px] h-5 px-2">
-              Earnings
-            </Badge>
-            <Badge variant="outline" className="border-white/30 text-white/80 text-[9px] h-5 px-2">
-              All {contract.niches?.[0] || "categories"}
-            </Badge>
+            {contract.exclusivityRequired && (
+              <Badge variant="outline" className="border-white/30 text-white/80 text-[9px] h-5 px-2">
+                Exclusivity
+              </Badge>
+            )}
+            {contract.contentApprovalRequired && (
+              <Badge variant="outline" className="border-white/30 text-white/80 text-[9px] h-5 px-2">
+                Approval Required
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -1223,36 +1231,114 @@ export default function CreatorRetainerDetail() {
             <div className="flex items-start gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
               <span className="text-xs text-muted-foreground">
-                Minimum length {formatSecondsToMinutes(contract.minimumVideoLengthSeconds) || "1 min"}
+                Minimum length {formatSecondsToMinutes(contract.minimumVideoLengthSeconds) || "per brief"}
               </span>
             </div>
             {contract.contentGuidelines && (
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
-                <span className="text-xs text-muted-foreground line-clamp-2">{contract.contentGuidelines}</span>
+                <span className="text-xs text-muted-foreground">{contract.contentGuidelines}</span>
               </div>
             )}
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                Publish {contractVideosPerMonth} {contract.requiredPlatform || ""} video{contractVideosPerMonth > 1 ? 's' : ''} per month
+              </span>
+            </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
               <span className="text-xs text-muted-foreground">
                 {contract.contentApprovalRequired ? "Content approval required before posting" : "Maintain FTC-compliant disclosure"}
               </span>
             </div>
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
-              <span className="text-xs text-muted-foreground">
-                {contract.brandSafetyRequirements || "No vulgar language, maintain light, trendy tone"}
-              </span>
-            </div>
-            <div className="pt-2 text-right">
-              <Button variant="link" className="text-teal-500 p-0 h-auto text-xs">
-                View Details →
-              </Button>
-            </div>
+            {contract.brandSafetyRequirements && (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-xs text-muted-foreground">{contract.brandSafetyRequirements}</span>
+              </div>
+            )}
+            {contract.postingSchedule && (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-xs text-muted-foreground">{contract.postingSchedule}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Mobile Tiered Package */}
+        {/* Mobile Additional Terms */}
+        <Card className="border-card-border">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm">Additional Terms</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-3 space-y-3">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+              <div>
+                <span className="text-xs font-medium">Exclusivity</span>
+                <p className="text-[10px] text-muted-foreground">
+                  {contract.exclusivityRequired ? "No competing products during contract" : "Non-exclusive - work with other brands"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+              <div>
+                <span className="text-xs font-medium">Content Usage</span>
+                <p className="text-[10px] text-muted-foreground">Brand may repurpose content for ads</p>
+              </div>
+            </div>
+            {contract.minimumFollowers && (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs font-medium">Minimum Followers</span>
+                  <p className="text-[10px] text-muted-foreground">{contract.minimumFollowers.toLocaleString()}+ followers required</p>
+                </div>
+              </div>
+            )}
+            {contract.platformAccountDetails && (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs font-medium">Geographic</span>
+                  <p className="text-[10px] text-muted-foreground">{contract.platformAccountDetails}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Mobile Tiered Packages */}
+        {hasRetainerTiers && (
+          <Card className="border-card-border">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">Tiered Packages</CardTitle>
+                <Button variant="link" className="text-teal-500 p-0 h-auto text-[10px]">
+                  <Bookmark className="h-2.5 w-2.5 mr-1" /> Bookmark
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-3 space-y-2">
+              {tierSummaries.map((tier: any, index: number) => (
+                <div key={`mobile-tier-${index}`} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] h-5">{tier.name}</Badge>
+                    <span className="text-[10px] text-muted-foreground">{tier.durationMonths} months</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-semibold">{formatCurrency(tier.monthlyAmount)}/mo</p>
+                    <p className="text-[10px] text-muted-foreground">{tier.videosPerMonth} videos</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Mobile Company & Stats */}
         <Card className="border-card-border">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-sm">Tiered Package</CardTitle>
@@ -1264,38 +1350,49 @@ export default function CreatorRetainerDetail() {
               </div>
               <div>
                 <p className="text-xs font-semibold">{contract.company?.tradeName || contract.company?.legalName || "Company"}</p>
-                <p className="text-[10px] text-muted-foreground">{contract.title}</p>
+                <p className="text-[10px] text-muted-foreground line-clamp-1">{contract.title}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="space-y-2">
                 <div>
-                  <p className="text-muted-foreground">Views estimate</p>
-                  <p className="font-semibold">Up to 30k</p>
+                  <p className="text-muted-foreground">Campaign Length</p>
+                  <p className="font-semibold">{contract.durationMonths} months</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Click-through rate</p>
-                  <p className="font-semibold">About 3%</p>
+                  <p className="text-muted-foreground">Payment Terms</p>
+                  <p className="font-semibold">{formatCurrency(contractMonthlyAmount)}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Earning potential</p>
-                  <p className="font-semibold">Up to {formatCurrency(creatorTakeHome * contract.durationMonths)}</p>
+                  <p className="text-muted-foreground">Minimum Followers</p>
+                  <p className="font-semibold">{contract.minimumFollowers ? contract.minimumFollowers.toLocaleString() + '+' : 'None'}</p>
                 </div>
               </div>
               <div className="space-y-2">
                 <div>
-                  <p className="font-semibold">{formatCurrency(contractMonthlyAmount)} one time payout</p>
+                  <p className="text-muted-foreground">Videos/Month</p>
+                  <p className="font-semibold">{contractVideosPerMonth}</p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Tag className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">Technology</span>
+                <div>
+                  <p className="text-muted-foreground">Per Video Value</p>
+                  <p className="font-semibold">{formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
-                <Badge variant="outline" className="text-[10px]">
-                  {contract.niches?.[0] || "Tech"}
-                </Badge>
+                <div>
+                  <p className="text-muted-foreground">Platform</p>
+                  <Badge variant="outline" className="text-[10px] mt-0.5">
+                    {contract.requiredPlatform || "Any"}
+                  </Badge>
+                </div>
               </div>
             </div>
+
+            {contract.postingSchedule && (
+              <div className="pt-2 border-t">
+                <p className="text-[10px] text-muted-foreground mb-1">Posting Schedule</p>
+                <p className="text-xs">{contract.postingSchedule}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -1318,11 +1415,52 @@ export default function CreatorRetainerDetail() {
                 <span className="text-muted-foreground">Net to creator</span>
                 <span className="font-semibold text-teal-600">{formatCurrency(creatorTakeHome)}</span>
               </div>
-              <div className="flex items-center justify-between py-1.5">
+              <div className="flex items-center justify-between py-1.5 border-b">
                 <span className="text-muted-foreground">Videos per month</span>
                 <span className="font-semibold">{contractVideosPerMonth}</span>
               </div>
+              <div className="flex items-center justify-between py-1.5 border-b">
+                <span className="text-muted-foreground">Value per video</span>
+                <span className="font-semibold">{formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-muted-foreground">Total contract value</span>
+                <span className="font-semibold">{formatCurrency(creatorTakeHome * contract.durationMonths)}</span>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Mobile Contract Information */}
+        <Card className="border-card-border">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm">Contract Information</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 space-y-3">
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Description</p>
+              <p className="text-xs">{contract.description}</p>
+            </div>
+
+            {contract.niches && contract.niches.length > 0 && (
+              <div className="pt-2 border-t">
+                <p className="text-[10px] text-muted-foreground mb-1">Target Niches</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {contract.niches.map((niche: string, index: number) => (
+                    <Badge key={index} variant="outline" className="text-[10px] h-5">
+                      {niche}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {contract.platformAccountDetails && (
+              <div className="pt-2 border-t">
+                <p className="text-[10px] text-muted-foreground mb-1">Platform Details</p>
+                <p className="text-xs">{contract.platformAccountDetails}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
