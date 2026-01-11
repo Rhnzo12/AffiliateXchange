@@ -54,6 +54,7 @@ import {
   DollarSign,
   RefreshCw,
   MoreHorizontal,
+  Filter,
 } from "lucide-react";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
@@ -949,16 +950,18 @@ export default function AdminEmailTemplates() {
               <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
               All Templates
             </CardTitle>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex gap-2">
               <Input
                 placeholder="Search templates..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-64 h-9 text-sm"
+                className="flex-1 sm:w-64 h-9 text-sm"
               />
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-full sm:w-40 h-9 text-sm">
-                  <SelectValue placeholder="Filter by category" />
+                {/* Mobile: Icon only */}
+                <SelectTrigger className="w-10 sm:w-40 h-9 text-sm px-2 sm:px-3">
+                  <Filter className="h-4 w-4 sm:hidden" />
+                  <span className="hidden sm:inline"><SelectValue placeholder="Filter by category" /></span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
