@@ -14,6 +14,11 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../components/ui/popover";
+import {
   Table,
   TableBody,
   TableCell,
@@ -30,6 +35,9 @@ import {
   MousePointerClick,
   Users,
   Image as ImageIcon,
+  ListFilter,
+  Tag,
+  Percent,
 } from "lucide-react";
 import { TopNavBar } from "../components/TopNavBar";
 import { useLocation, useRoute } from "wouter";
@@ -153,65 +161,130 @@ export default function AdminOffers() {
         </div>
 
         {/* Filters - Mobile */}
-        <div className="sm:hidden space-y-3">
-          {/* Filter header with count */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Filters</span>
+        <div className="sm:hidden">
+          {/* Search input with filter icons */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 relative">
+              <Input
+                placeholder="Search offers..."
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                className="h-10 text-sm pl-4 pr-4 rounded-full border border-border bg-background"
+              />
             </div>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <TrendingUp className="h-3.5 w-3.5" />
-              <span>{filteredOffers.length} offers</span>
-              <span>&gt;</span>
+
+            {/* Filter icons */}
+            <div className="flex items-center gap-1 border rounded-lg p-1">
+              {/* Status Filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-8 w-8 ${filters.status && filters.status !== 'all' ? 'text-primary bg-primary/10' : ''}`}
+                  >
+                    <ListFilter className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2" align="end">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground px-2 pb-1">Status</p>
+                    {[
+                      { value: 'all', label: 'All Statuses' },
+                      { value: 'draft', label: 'Draft' },
+                      { value: 'pending_review', label: 'Pending' },
+                      { value: 'approved', label: 'Live' },
+                      { value: 'paused', label: 'Paused' },
+                      { value: 'archived', label: 'Archived' },
+                    ].map((option) => (
+                      <Button
+                        key={option.value}
+                        variant={filters.status === option.value ? 'secondary' : 'ghost'}
+                        size="sm"
+                        className="w-full justify-start text-xs h-8"
+                        onClick={() => setFilters({ ...filters, status: option.value })}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Niche Filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-8 w-8 ${filters.niche && filters.niche !== 'all' ? 'text-primary bg-primary/10' : ''}`}
+                  >
+                    <Tag className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2" align="end">
+                  <div className="space-y-1 max-h-64 overflow-y-auto">
+                    <p className="text-xs font-medium text-muted-foreground px-2 pb-1">Niche</p>
+                    <Button
+                      variant={filters.niche === 'all' || !filters.niche ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start text-xs h-8"
+                      onClick={() => setFilters({ ...filters, niche: 'all' })}
+                    >
+                      All Niches
+                    </Button>
+                    {!nichesLoading && niches.map((niche) => (
+                      <Button
+                        key={niche.id}
+                        variant={filters.niche === niche.name ? 'secondary' : 'ghost'}
+                        size="sm"
+                        className="w-full justify-start text-xs h-8"
+                        onClick={() => setFilters({ ...filters, niche: niche.name })}
+                      >
+                        {niche.name}
+                      </Button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Commission Filter */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-8 w-8 ${filters.commissionType && filters.commissionType !== 'all' ? 'text-primary bg-primary/10' : ''}`}
+                  >
+                    <Percent className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2" align="end">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground px-2 pb-1">Commission Type</p>
+                    <Button
+                      variant={filters.commissionType === 'all' || !filters.commissionType ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className="w-full justify-start text-xs h-8"
+                      onClick={() => setFilters({ ...filters, commissionType: 'all' })}
+                    >
+                      All Types
+                    </Button>
+                    {COMMISSION_TYPES.map((type) => (
+                      <Button
+                        key={type.value}
+                        variant={filters.commissionType === type.value ? 'secondary' : 'ghost'}
+                        size="sm"
+                        className="w-full justify-start text-xs h-8"
+                        onClick={() => setFilters({ ...filters, commissionType: type.value })}
+                      >
+                        {type.label}
+                      </Button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
-          </div>
-
-          {/* Filter inputs */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
-            <Input
-              placeholder="Search offers..."
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="h-9 text-sm min-w-[140px] flex-shrink-0 bg-muted/30 border-0"
-            />
-            <Select
-              value={filters.status}
-              onValueChange={(value) => setFilters({ ...filters, status: value })}
-            >
-              <SelectTrigger className="h-9 text-sm min-w-[110px] flex-shrink-0 bg-primary/10 border-0 text-primary">
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="pending_review">Pending</SelectItem>
-                <SelectItem value="approved">Live</SelectItem>
-                <SelectItem value="paused">Paused</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={filters.niche}
-              onValueChange={(value) => setFilters({ ...filters, niche: value })}
-            >
-              <SelectTrigger className="h-9 text-sm min-w-[100px] flex-shrink-0 bg-primary/10 border-0 text-primary">
-                <SelectValue placeholder="All Niches" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Niches</SelectItem>
-                {nichesLoading ? (
-                  <SelectItem value="loading" disabled>Loading...</SelectItem>
-                ) : (
-                  niches.map((niche) => (
-                    <SelectItem key={niche.id} value={niche.name}>
-                      {niche.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
           </div>
         </div>
 
