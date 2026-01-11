@@ -181,18 +181,18 @@ export default function Landing() {
             </nav>
 
             {/* Auth Buttons - Right */}
-            <div className="flex items-center gap-1.5 sm:gap-3">
+            <div className="flex items-center gap-1 sm:gap-3">
               <Button
                 variant="ghost"
                 onClick={handleLogin}
                 data-testid="button-login"
-                className="text-gray-700 hover:text-gray-900 font-medium text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-9"
+                className="text-gray-700 hover:text-gray-900 font-medium text-[10px] sm:text-sm px-1.5 sm:px-3 h-6 sm:h-9"
               >
                 Sign in
               </Button>
               <Button
                 onClick={handleRegister}
-                className="bg-primary hover:bg-primary/90 text-white font-medium px-2.5 sm:px-4 text-xs sm:text-sm h-7 sm:h-9"
+                className="bg-primary hover:bg-primary/90 text-white font-medium px-2 sm:px-4 text-[10px] sm:text-sm h-6 sm:h-9 rounded-full"
               >
                 Get Started
               </Button>
