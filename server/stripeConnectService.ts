@@ -44,6 +44,16 @@ export class StripeConnectService {
     try {
       console.log(`[Stripe Connect] Creating connected account for user ${userId}`);
 
+      // Sandbox mode: Return mock account ID for testing
+      if (isSandboxMode()) {
+        const mockAccountId = `acct_sandbox_${userId.substring(0, 8)}`;
+        console.log(`[Stripe Connect] 🏖️ SANDBOX MODE: Returning mock account ${mockAccountId}`);
+        return {
+          success: true,
+          accountId: mockAccountId,
+        };
+      }
+
       const stripe = getStripeClient();
 
       // Check if user already has a connected account
@@ -120,6 +130,15 @@ export class StripeConnectService {
     refreshUrl: string
   ): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
+      // Sandbox mode: Return the return URL directly (skip onboarding)
+      if (isSandboxMode()) {
+        console.log(`[Stripe Connect] 🏖️ SANDBOX MODE: Skipping onboarding, returning to ${returnUrl}`);
+        return {
+          success: true,
+          url: returnUrl,
+        };
+      }
+
       const stripe = getStripeClient();
 
       const accountLink = await stripe.accountLinks.create({
