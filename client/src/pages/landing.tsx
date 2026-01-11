@@ -267,179 +267,198 @@ export default function Landing() {
             {/* Right Side - Device Mockups */}
             <div className="flex-1 hidden lg:flex items-center justify-center">
               <AnimatedSection animation="fade-left" delay={200}>
-                <div className="flex items-end justify-center gap-4">
-              {/* Laptop Frame */}
-              <div className="relative flex-shrink-0" style={{ width: '65%', maxWidth: '700px' }}>
-                {/* Laptop Screen */}
-                <div className="bg-gray-800 rounded-t-xl p-1.5 pb-0">
-                  <div className="bg-white rounded-t-lg overflow-hidden">
-                    {/* Browser Bar */}
-                    <div className="bg-gray-100 border-b border-gray-200 px-2 py-1.5 flex items-center gap-2">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                        <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-                        <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                      </div>
-                      <div className="flex-1 mx-2">
-                        <div className="bg-white rounded px-2 py-0.5 text-[10px] text-gray-400 border">affiliatexchange.com</div>
-                      </div>
-                    </div>
-                    {/* Dashboard with Sidebar */}
-                    <div className="flex bg-gray-50" style={{ minHeight: '280px' }}>
-                      {/* Sidebar */}
-                      <div className="w-36 bg-white border-r border-gray-200 p-2 hidden md:block">
-                        <div className="flex items-center gap-1.5 mb-3 pb-2 border-b">
-                          <img src="/logo.png" alt="Logo" className="h-5 w-5 rounded" />
-                          <span className="font-semibold text-gray-900 text-[10px]">AffiliateXchange</span>
-                        </div>
-                        <nav className="space-y-1">
-                          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-primary/10 rounded text-primary text-[9px] font-medium">
-                            <TrendingUp className="h-3 w-3" />
-                            Dashboard
-                          </div>
-                          <div className="flex items-center gap-1.5 px-2 py-1.5 text-gray-600 text-[9px] hover:bg-gray-50 rounded">
-                            <Target className="h-3 w-3" />
-                            Offers
-                          </div>
-                          <div className="flex items-center gap-1.5 px-2 py-1.5 text-gray-600 text-[9px] hover:bg-gray-50 rounded">
-                            <DollarSign className="h-3 w-3" />
-                            Earnings
-                          </div>
-                          <div className="flex items-center gap-1.5 px-2 py-1.5 text-gray-600 text-[9px] hover:bg-gray-50 rounded">
-                            <Users className="h-3 w-3" />
-                            Applications
-                          </div>
-                        </nav>
-                      </div>
-                      {/* Main Content */}
-                      <div className="flex-1 p-3">
-                        {/* Dashboard Title */}
-                        <div className="mb-3">
-                          <h3 className="font-bold text-gray-900 text-sm">Dashboard</h3>
-                          <p className="text-[10px] text-gray-500">Real-time analytics</p>
-                        </div>
-                        {/* Stats Row */}
-                        <div className="grid grid-cols-3 gap-2 mb-3">
-                          <div className="bg-white rounded-lg p-2 text-center shadow-sm border">
-                            <div className="text-base font-bold text-primary">10K+</div>
-                            <div className="text-[8px] text-gray-500">Creators</div>
-                          </div>
-                          <div className="bg-white rounded-lg p-2 text-center shadow-sm border">
-                            <div className="text-base font-bold text-primary">CA$5M+</div>
-                            <div className="text-[8px] text-gray-500">Earnings</div>
-                          </div>
-                          <div className="bg-white rounded-lg p-2 text-center shadow-sm border">
-                            <div className="text-base font-bold text-primary">500+</div>
-                            <div className="text-[8px] text-gray-500">Brands</div>
+                <div className="relative">
+                  {/* Phone Frame - On the LEFT, overlapping laptop */}
+                  <div className="absolute -left-12 bottom-8 w-40 z-10">
+                    {/* Phone Body */}
+                    <div className="bg-gray-800 rounded-[2rem] p-1.5 shadow-2xl">
+                      {/* Phone Screen */}
+                      <div className="bg-white rounded-[1.75rem] overflow-hidden">
+                        {/* Phone Status Bar */}
+                        <div className="bg-white px-3 py-1 flex items-center justify-between">
+                          <span className="text-[8px] text-gray-600">9:41</span>
+                          <div className="w-16 h-4 bg-black rounded-full"></div>
+                          <div className="flex gap-0.5">
+                            <div className="w-3 h-2 border border-gray-400 rounded-sm"></div>
                           </div>
                         </div>
-                        {/* Affiliate Marketplace Preview */}
-                        <div className="bg-white rounded-lg p-2 shadow-sm border">
+                        {/* Phone Content */}
+                        <div className="p-3 bg-white" style={{ minHeight: '300px' }}>
+                          {/* Phone Header */}
+                          <div className="flex items-center gap-2 mb-3 pb-2 border-b">
+                            <img src="/logo.png" alt="Logo" className="h-5 w-5 rounded" />
+                            <span className="font-bold text-gray-900 text-[10px]">AffiliateXchange</span>
+                          </div>
+                          {/* Phone Dashboard Title */}
+                          <div className="mb-3">
+                            <div className="text-xs font-bold text-gray-900">Dashboard</div>
+                            <div className="text-[9px] text-gray-500">Real-time analytics</div>
+                          </div>
+                          {/* Phone Stats */}
+                          <div className="grid grid-cols-2 gap-2 mb-3">
+                            <div className="bg-gray-50 rounded-lg p-2 text-center">
+                              <div className="text-sm font-bold text-primary">10k+</div>
+                              <div className="text-[8px] text-gray-500">Creators</div>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-2 text-center">
+                              <div className="text-sm font-bold text-primary">CA$5M+</div>
+                              <div className="text-[8px] text-gray-500">Earnings</div>
+                            </div>
+                          </div>
+                          {/* Star Rating */}
+                          <div className="flex items-center gap-1 mb-3">
+                            {[1,2,3,4,5].map((i) => (
+                              <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            ))}
+                            <span className="text-[9px] text-gray-600 ml-1">5.0 out of 5</span>
+                          </div>
+                          {/* Phone Marketplace */}
                           <div className="text-[10px] font-semibold text-gray-900 mb-2">Affiliate Marketplace</div>
-                          <div className="space-y-1.5">
-                            <div className="flex gap-2 items-center p-1.5 bg-gray-50 rounded">
+                          <div className="space-y-2">
+                            <div className="flex gap-2 items-center p-1.5 bg-gray-50 rounded-lg">
                               <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=100&h=100&fit=crop&q=80" alt="Headphones" className="w-8 h-8 rounded object-cover" />
                               <div className="flex-1 min-w-0">
-                                <div className="text-[10px] font-medium text-gray-900 truncate">Sony WH-1000XM5 Headphones</div>
-                                <div className="text-[8px] text-gray-500">CA$449.99</div>
+                                <div className="text-[9px] font-medium text-gray-900 truncate">Sony WH-1000XM5</div>
+                                <div className="text-[8px] text-gray-500">CA$449.99 • Earn CA$36</div>
                               </div>
-                              <span className="bg-green-100 text-green-700 text-[8px] font-bold px-1.5 py-0.5 rounded-full">8%</span>
                             </div>
-                            <div className="flex gap-2 items-center p-1.5 bg-gray-50 rounded">
+                            <div className="flex gap-2 items-center p-1.5 bg-gray-50 rounded-lg">
                               <img src="https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=100&h=100&fit=crop&q=80" alt="Fitbit" className="w-8 h-8 rounded object-cover" />
                               <div className="flex-1 min-w-0">
-                                <div className="text-[10px] font-medium text-gray-900 truncate">Fitbit Charge 6 Tracker</div>
-                                <div className="text-[8px] text-gray-500">CA$199.95</div>
+                                <div className="text-[9px] font-medium text-gray-900 truncate">Fitbit Charge 6 Tracker</div>
+                                <div className="text-[8px] text-gray-500">CA$199.95 • Earn CA$24</div>
                               </div>
-                              <span className="bg-green-100 text-green-700 text-[8px] font-bold px-1.5 py-0.5 rounded-full">12%</span>
-                            </div>
-                            <div className="flex gap-2 items-center p-1.5 bg-gray-50 rounded">
-                              <img src="https://images.unsplash.com/photo-1522338140262-f46f5913618a?w=100&h=100&fit=crop&q=80" alt="Dyson" className="w-8 h-8 rounded object-cover" />
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[10px] font-medium text-gray-900 truncate">Dyson Airwrap Styler</div>
-                                <div className="text-[8px] text-gray-500">CA$699.99</div>
-                              </div>
-                              <span className="bg-green-100 text-green-700 text-[8px] font-bold px-1.5 py-0.5 rounded-full">6%</span>
                             </div>
                           </div>
+                        </div>
+                        {/* Phone Home Indicator */}
+                        <div className="bg-white pb-2 pt-1">
+                          <div className="w-20 h-1 bg-gray-300 rounded-full mx-auto"></div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                {/* Laptop Base */}
-                <div className="bg-gray-700 h-3 rounded-b-lg"></div>
-                <div className="bg-gray-600 h-1.5 mx-auto w-1/2 rounded-b-xl"></div>
-              </div>
 
-              {/* Phone Frame - Side by side */}
-              <div className="flex-shrink-0 w-32 lg:w-40">
-                {/* Phone Body */}
-                <div className="bg-gray-800 rounded-[1.5rem] p-1.5 shadow-2xl">
-                  {/* Phone Screen */}
-                  <div className="bg-white rounded-[1.25rem] overflow-hidden">
-                    {/* Phone Notch */}
-                    <div className="bg-gray-800 h-5 flex items-center justify-center">
-                      <div className="w-12 h-3 bg-gray-800 rounded-b-lg"></div>
-                    </div>
-                    {/* Phone Content */}
-                    <div className="p-2 bg-gray-50" style={{ minHeight: '240px' }}>
-                      {/* Phone Header */}
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1">
-                          <img src="/logo.png" alt="Logo" className="h-4 w-4 rounded" />
-                          <span className="font-semibold text-gray-900 text-[8px]">AffiliateXchange</span>
-                        </div>
-                        <div className="text-[7px] text-primary font-medium">Sign in</div>
-                      </div>
-                      {/* Phone Dashboard */}
-                      <div className="mb-2">
-                        <div className="text-[10px] font-bold text-gray-900">Dashboard</div>
-                        <div className="text-[7px] text-gray-500">Real-time analytics</div>
-                      </div>
-                      {/* Phone Stats */}
-                      <div className="grid grid-cols-2 gap-1.5 mb-2">
-                        <div className="bg-white rounded p-1.5 text-center shadow-sm border">
-                          <div className="text-xs font-bold text-primary">10K+</div>
-                          <div className="text-[7px] text-gray-500">Creators</div>
-                        </div>
-                        <div className="bg-white rounded p-1.5 text-center shadow-sm border">
-                          <div className="text-xs font-bold text-primary">CA$5M+</div>
-                          <div className="text-[7px] text-gray-500">Earnings</div>
-                        </div>
-                      </div>
-                      {/* Phone Products */}
-                      <div className="space-y-1.5">
-                        <div className="flex gap-1.5 items-center p-1 bg-white rounded shadow-sm border">
-                          <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=100&h=100&fit=crop&q=80" alt="Headphones" className="w-6 h-6 rounded object-cover" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[8px] font-medium text-gray-900 truncate">Sony Headphones</div>
-                            <div className="text-[7px] text-primary font-medium">Earn CA$36</div>
+                  {/* Laptop Frame */}
+                  <div className="relative ml-20" style={{ width: '560px' }}>
+                    {/* Laptop Screen */}
+                    <div className="bg-gray-800 rounded-t-xl p-2 pb-0">
+                      <div className="bg-white rounded-t-lg overflow-hidden shadow-inner">
+                        {/* Header Bar */}
+                        <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <img src="/logo.png" alt="Logo" className="h-5 w-5 rounded" />
+                            <span className="font-bold text-gray-900 text-xs">AffiliateXchange</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-gray-600">Sign in</span>
+                            <button className="bg-primary text-white text-[10px] font-medium px-3 py-1 rounded">Get Started</button>
                           </div>
                         </div>
-                        <div className="flex gap-1.5 items-center p-1 bg-white rounded shadow-sm border">
-                          <img src="https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=100&h=100&fit=crop&q=80" alt="Fitbit" className="w-6 h-6 rounded object-cover" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[8px] font-medium text-gray-900 truncate">Fitbit Tracker</div>
-                            <div className="text-[7px] text-primary font-medium">Earn CA$24</div>
+                        {/* Dashboard Content */}
+                        <div className="flex bg-gray-50" style={{ height: '300px' }}>
+                          {/* Main Content */}
+                          <div className="flex-1 p-4">
+                            {/* Dashboard Title */}
+                            <div className="flex items-center gap-2 mb-1">
+                              <TrendingUp className="h-4 w-4 text-primary" />
+                              <h3 className="font-bold text-gray-900 text-sm">Dashboard</h3>
+                            </div>
+                            <p className="text-[11px] text-gray-500 mb-4">Real-time analytics</p>
+                            {/* Stats Row */}
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                              <div className="bg-white rounded-lg p-3 shadow-sm border">
+                                <div className="text-xl font-bold text-primary">10k+</div>
+                                <div className="text-[10px] text-gray-500">Creators</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-3 shadow-sm border">
+                                <div className="text-xl font-bold text-primary">CA$5M+</div>
+                                <div className="text-[10px] text-gray-500">Earnings</div>
+                              </div>
+                            </div>
+                            {/* Star Rating */}
+                            <div className="flex items-center gap-1 mb-4">
+                              {[1,2,3,4,5].map((i) => (
+                                <Star key={i} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                              ))}
+                              <span className="text-[10px] text-gray-600 ml-1">5.0 out of 5</span>
+                            </div>
+                            {/* Affiliate Marketplace */}
+                            <div className="text-xs font-semibold text-gray-900 mb-2">Affiliate Marketplace</div>
+                            <div className="space-y-2">
+                              <div className="flex gap-3 items-center p-2 bg-white rounded-lg shadow-sm border">
+                                <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=100&h=100&fit=crop&q=80" alt="Headphones" className="w-10 h-10 rounded object-cover" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[11px] font-medium text-gray-900">Sony WH-1000XM5 Headphones</div>
+                                  <div className="text-[10px] text-gray-500">Electronics • Audio</div>
+                                  <div className="text-[10px] text-gray-400">CA$449.99</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-[10px] text-primary font-medium">Earn CA$36/sale</div>
+                                </div>
+                              </div>
+                              <div className="flex gap-3 items-center p-2 bg-white rounded-lg shadow-sm border">
+                                <img src="https://images.unsplash.com/photo-1522338140262-f46f5913618a?w=100&h=100&fit=crop&q=80" alt="Dyson" className="w-10 h-10 rounded object-cover" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[11px] font-medium text-gray-900">Dyson Airwrap Styler</div>
+                                  <div className="text-[10px] text-gray-500">Fitness • Wearables</div>
+                                  <div className="text-[10px] text-gray-400">CA$699.99</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-[10px] text-primary font-medium">Earn CA$42/sale</div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex gap-1.5 items-center p-1 bg-white rounded shadow-sm border">
-                          <img src="https://images.unsplash.com/photo-1522338140262-f46f5913618a?w=100&h=100&fit=crop&q=80" alt="Dyson" className="w-6 h-6 rounded object-cover" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[8px] font-medium text-gray-900 truncate">Dyson Airwrap</div>
-                            <div className="text-[7px] text-primary font-medium">Earn CA$42</div>
+                          {/* Right Sidebar - Affiliate Marketplace */}
+                          <div className="w-48 bg-white border-l border-gray-200 p-3">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-[11px] font-semibold text-gray-900">Affiliate Marketplace</span>
+                              <span className="text-[9px] text-gray-500">All Categories</span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="p-2 bg-gray-50 rounded-lg">
+                                <div className="flex gap-2 items-start">
+                                  <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=100&h=100&fit=crop&q=80" alt="Headphones" className="w-12 h-12 rounded object-cover" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[10px] font-medium text-gray-900">Sony WH-1000XM5 Headphones</div>
+                                    <div className="text-[9px] text-gray-500">CA$449.99</div>
+                                    <div className="text-[9px] text-primary font-medium">Earn CA$36/sale</div>
+                                  </div>
+                                </div>
+                                <span className="inline-block mt-1 bg-green-100 text-green-700 text-[8px] font-bold px-1.5 py-0.5 rounded">8% Commission</span>
+                              </div>
+                              <div className="p-2 bg-gray-50 rounded-lg">
+                                <div className="flex gap-2 items-start">
+                                  <img src="https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=100&h=100&fit=crop&q=80" alt="Fitbit" className="w-12 h-12 rounded object-cover" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[10px] font-medium text-gray-900">Fitbit Charge 6 Tracker</div>
+                                    <div className="text-[9px] text-gray-500">CA$199.95</div>
+                                    <div className="text-[9px] text-primary font-medium">Earn CA$24/sale</div>
+                                  </div>
+                                </div>
+                                <span className="inline-block mt-1 bg-green-100 text-green-700 text-[8px] font-bold px-1.5 py-0.5 rounded">12% Commission</span>
+                              </div>
+                              <div className="p-2 bg-gray-50 rounded-lg">
+                                <div className="flex gap-2 items-start">
+                                  <img src="https://images.unsplash.com/photo-1522338140262-f46f5913618a?w=100&h=100&fit=crop&q=80" alt="Dyson" className="w-12 h-12 rounded object-cover" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[10px] font-medium text-gray-900">Dyson Airwrap Styler</div>
+                                    <div className="text-[9px] text-gray-500">CA$699.99</div>
+                                    <div className="text-[9px] text-primary font-medium">Earn CA$70/sale</div>
+                                  </div>
+                                </div>
+                                <span className="inline-block mt-1 bg-green-100 text-green-700 text-[8px] font-bold px-1.5 py-0.5 rounded">10% Commission</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                    {/* Phone Home Indicator */}
-                    <div className="bg-gray-50 pb-1.5 pt-1">
-                      <div className="w-16 h-1 bg-gray-300 rounded-full mx-auto"></div>
-                    </div>
+                    {/* Laptop Base */}
+                    <div className="bg-gray-700 h-4 rounded-b-lg"></div>
+                    <div className="bg-gray-600 h-2 mx-auto w-1/3 rounded-b-xl"></div>
                   </div>
-                </div>
-              </div>
                 </div>
               </AnimatedSection>
             </div>
