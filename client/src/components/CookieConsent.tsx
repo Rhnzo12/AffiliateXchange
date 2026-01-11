@@ -108,46 +108,46 @@ export function CookieConsent() {
   return (
     <>
       {/* Mobile: Centered modal overlay */}
-      <div className="sm:hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <Card className="w-full max-w-sm border shadow-xl bg-background rounded-xl">
-          <CardContent className="p-4">
+      <div className="sm:hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6">
+        <Card className="w-full max-w-xs border shadow-xl bg-background rounded-xl">
+          <CardContent className="p-3">
             {/* Header with icon and close button */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🍪</span>
-                <h3 className="font-semibold text-sm">Cookies & Privacy</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg">🍪</span>
+                <h3 className="font-semibold text-xs">Cookies & Privacy</h3>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowBanner(false)}
-                className="h-7 w-7 rounded-full"
+                className="h-6 w-6 rounded-full -mr-1"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3 w-3" />
               </Button>
             </div>
 
             {/* Description */}
-            <p className="text-xs text-muted-foreground mb-3">
+            <p className="text-[11px] text-muted-foreground my-2 leading-relaxed">
               We use cookies to improve your experience, analyze traffic, and personalize content.
             </p>
 
             {/* Buttons - 2 column */}
             <div className="grid grid-cols-2 gap-2">
-              <Button onClick={acceptAll} className="h-9 text-sm">
+              <Button onClick={acceptAll} className="h-8 text-xs">
                 Accept All
               </Button>
               <Button
                 onClick={() => setShowSettings(true)}
                 variant="outline"
-                className="h-9 text-sm"
+                className="h-8 text-xs"
               >
                 Manage
               </Button>
             </div>
 
             {/* Footer links */}
-            <p className="text-xs text-muted-foreground text-center mt-3">
+            <p className="text-[10px] text-muted-foreground text-center mt-2">
               Read our{" "}
               <a href="/privacy-policy" className="underline hover:text-primary">
                 Privacy Policy
