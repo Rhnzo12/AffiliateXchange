@@ -265,11 +265,11 @@ export default function Landing() {
             </div>
 
             {/* Right Side - Device Mockups */}
-            <div className="flex-1 hidden lg:flex items-center justify-center pl-8">
+            <div className="flex-1 hidden lg:flex items-center justify-center">
               <AnimatedSection animation="fade-left" delay={200}>
-                <div className="relative">
+                <div className="relative flex items-center justify-center">
                   {/* Phone Frame - On the LEFT, overlapping laptop */}
-                  <div className="absolute -left-16 bottom-0 w-44 z-10">
+                  <div className="absolute -left-8 bottom-0 w-44 z-10">
                     {/* Phone Body */}
                     <div className="bg-gray-800 rounded-[2rem] p-1.5 shadow-2xl">
                       {/* Phone Screen */}
@@ -340,7 +340,7 @@ export default function Landing() {
                   </div>
 
                   {/* Laptop Frame */}
-                  <div className="relative ml-24" style={{ width: '620px' }}>
+                  <div className="relative ml-16" style={{ width: '620px' }}>
                     {/* Laptop Screen */}
                     <div className="bg-gray-800 rounded-t-xl p-2 pb-0">
                       <div className="bg-white rounded-t-lg overflow-hidden shadow-inner">
