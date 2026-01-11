@@ -375,8 +375,8 @@ export default function AdminOfferDetail() {
     <div className="space-y-6">
       <TopNavBar />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header - Desktop */}
+      <div className="hidden sm:flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate("/admin/offers")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -403,6 +403,35 @@ export default function AdminOfferDetail() {
               Pending {offer.pendingAction === 'delete' ? 'Deletion' : 'Suspension'}
             </Badge>
           )}
+        </div>
+      </div>
+
+      {/* Header - Mobile */}
+      <div className="sm:hidden space-y-3">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/admin/offers")} className="p-0 h-auto">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div>
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <Badge variant={STATUS_MAP[offer.status]?.variant || "secondary"} className="text-xs">
+              {STATUS_MAP[offer.status]?.label || offer.status}
+            </Badge>
+            {offer.featuredOnHomepage && (
+              <Badge variant="default" className="gap-1 text-xs">
+                <Star className="h-3 w-3" />
+                Featured
+              </Badge>
+            )}
+            {offer.pendingAction && (
+              <Badge variant="outline" className="gap-1 text-yellow-600 border-yellow-600 text-xs">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Pending {offer.pendingAction === 'delete' ? 'Deletion' : 'Suspension'}
+              </Badge>
+            )}
+          </div>
+          <h1 className="text-xl font-bold">{offer.title}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{offer.productName}</p>
         </div>
       </div>
 
@@ -495,8 +524,8 @@ export default function AdminOfferDetail() {
         </Card>
       )}
 
-      {/* Actions */}
-      <Card className="border-card-border">
+      {/* Actions - Desktop */}
+      <Card className="border-card-border hidden sm:block">
         <CardHeader>
           <CardTitle className="text-lg">Actions</CardTitle>
         </CardHeader>
@@ -569,8 +598,54 @@ export default function AdminOfferDetail() {
         </CardContent>
       </Card>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Actions - Mobile */}
+      <div className="sm:hidden">
+        <h3 className="text-sm font-semibold mb-3">Actions</h3>
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => approveMutation.mutate()}
+            disabled={approveMutation.isPending || offer.status === 'approved'}
+            className="gap-2 whitespace-nowrap flex-shrink-0"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Approve Offer
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setRejectDialog(true)}
+            disabled={rejectMutation.isPending}
+            className="gap-2 whitespace-nowrap flex-shrink-0"
+          >
+            <XCircle className="h-4 w-4" />
+            Reject Offer
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => featureMutation.mutate(!offer.featuredOnHomepage)}
+            disabled={featureMutation.isPending}
+            className="gap-2 whitespace-nowrap flex-shrink-0"
+          >
+            <Star className="h-4 w-4" />
+            {offer.featuredOnHomepage ? "Unfeature" : "Feature"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setFeeDialog(true)}
+            className="gap-2 whitespace-nowrap flex-shrink-0"
+          >
+            <DollarSign className="h-4 w-4" />
+            Adjust Fee
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats - Desktop */}
+      <div className="hidden sm:grid gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -625,52 +700,68 @@ export default function AdminOfferDetail() {
         </Card>
       </div>
 
+      {/* Stats - Mobile */}
+      <div className="sm:hidden grid grid-cols-3 gap-3">
+        <div className="bg-card border rounded-lg p-3 text-center">
+          <div className="text-xl font-bold">{applicationStats.total}</div>
+          <div className="text-xs text-muted-foreground">Total Applications</div>
+        </div>
+        <div className="bg-card border rounded-lg p-3 text-center">
+          <div className="text-xl font-bold text-green-500">{applicationStats.approved}</div>
+          <div className="text-xs text-muted-foreground">Approved</div>
+        </div>
+        <div className="bg-card border rounded-lg p-3 text-center">
+          <div className="text-xl font-bold">{performanceMetrics.totalViews}</div>
+          <div className="text-xs text-muted-foreground">Total Views</div>
+        </div>
+      </div>
+
       {/* Application Stats Breakdown */}
       <Card>
-        <CardHeader>
-          <CardTitle>Application Breakdown</CardTitle>
+        <CardHeader className="pb-2 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Application Breakdown</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <span className="text-sm text-muted-foreground">Pending</span>
-              <span className="text-2xl font-bold">{applicationStats.pending}</span>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between p-3 sm:p-4 border rounded-lg">
+              <span className="text-xs sm:text-sm text-muted-foreground">Pending</span>
+              <span className="text-lg sm:text-2xl font-bold">{applicationStats.pending}</span>
             </div>
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <span className="text-sm text-muted-foreground">Approved</span>
-              <span className="text-2xl font-bold text-green-500">{applicationStats.approved}</span>
+            <div className="flex flex-col sm:flex-row items-center justify-between p-3 sm:p-4 border rounded-lg">
+              <span className="text-xs sm:text-sm text-muted-foreground">Approved</span>
+              <span className="text-lg sm:text-2xl font-bold text-green-500">{applicationStats.approved}</span>
             </div>
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <span className="text-sm text-muted-foreground">Rejected</span>
-              <span className="text-2xl font-bold text-red-500">{applicationStats.rejected}</span>
+            <div className="flex flex-col sm:flex-row items-center justify-between p-3 sm:p-4 border rounded-lg">
+              <span className="text-xs sm:text-sm text-muted-foreground">Rejected</span>
+              <span className="text-lg sm:text-2xl font-bold text-red-500">{applicationStats.rejected}</span>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Offer Details */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Offer Information</CardTitle>
+          <CardHeader className="pb-2 sm:pb-6">
+            <CardTitle className="text-base sm:text-lg">Offer Information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4">
             <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">Short Description</div>
-              <p className="text-sm">{offer.shortDescription}</p>
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Short Description</div>
+              <p className="text-xs sm:text-sm">{offer.shortDescription}</p>
             </div>
             <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">Full Description</div>
-              <p className="text-sm whitespace-pre-wrap">{offer.fullDescription}</p>
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Full Description</div>
+              <p className="text-xs sm:text-sm whitespace-pre-wrap">{offer.fullDescription}</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <div className="text-sm font-medium text-muted-foreground mb-1">Primary Niche</div>
-                <Badge variant="outline">{offer.primaryNiche}</Badge>
+                <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Primary Niche</div>
+                <Badge variant="outline" className="text-xs">{offer.primaryNiche}</Badge>
               </div>
               {offer.additionalNiches && offer.additionalNiches.length > 0 && (
                 <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-1">Additional Niches</div>
+                  <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Additional Niches</div>
                   <div className="flex flex-wrap gap-1">
                     {offer.additionalNiches.map((niche: string, idx: number) => (
                       <Badge key={idx} variant="outline" className="text-xs">{niche}</Badge>
@@ -681,14 +772,14 @@ export default function AdminOfferDetail() {
             </div>
             {offer.productUrl && (
               <div>
-                <div className="text-sm font-medium text-muted-foreground mb-1">Product URL</div>
+                <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Product URL</div>
                 <a
                   href={offer.productUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                  className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1 break-all"
                 >
-                  <LinkIcon className="h-3 w-3" />
+                  <LinkIcon className="h-3 w-3 flex-shrink-0" />
                   {offer.productUrl}
                 </a>
               </div>
@@ -697,31 +788,31 @@ export default function AdminOfferDetail() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Commission & Requirements</CardTitle>
+          <CardHeader className="pb-2 sm:pb-6">
+            <CardTitle className="text-base sm:text-lg">Commission & Requirements</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4">
             <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">Commission Type</div>
-              <Badge>{offer.commissionType?.replace(/_/g, ' ')}</Badge>
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Commission Type</div>
+              <Badge className="text-xs">{offer.commissionType?.replace(/_/g, ' ')}</Badge>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {offer.commissionPercentage && (
                 <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-1">Commission %</div>
-                  <div className="text-lg font-semibold">{offer.commissionPercentage}%</div>
+                  <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Commission %</div>
+                  <div className="text-base sm:text-lg font-semibold">{offer.commissionPercentage}%</div>
                 </div>
               )}
               {offer.commissionAmount && (
                 <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-1">Commission Amount</div>
-                  <div className="text-lg font-semibold">${offer.commissionAmount}</div>
+                  <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Commission Amount</div>
+                  <div className="text-base sm:text-lg font-semibold">${offer.commissionAmount}</div>
                 </div>
               )}
               {offer.cookieDuration && (
                 <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-1">Cookie Duration</div>
-                  <div className="text-sm flex items-center gap-1">
+                  <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Cookie Duration</div>
+                  <div className="text-xs sm:text-sm flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {offer.cookieDuration} days
                   </div>
@@ -729,21 +820,21 @@ export default function AdminOfferDetail() {
               )}
               {offer.minimumFollowers && (
                 <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-1">Min. Followers</div>
-                  <div className="text-sm">{offer.minimumFollowers.toLocaleString()}</div>
+                  <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Min. Followers</div>
+                  <div className="text-xs sm:text-sm">{offer.minimumFollowers.toLocaleString()}</div>
                 </div>
               )}
             </div>
             {offer.listingFee && (
               <div>
-                <div className="text-sm font-medium text-muted-foreground mb-1">Listing Fee</div>
-                <div className="text-lg font-semibold">${offer.listingFee}</div>
+                <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Listing Fee</div>
+                <div className="text-base sm:text-lg font-semibold">${offer.listingFee}</div>
               </div>
             )}
             {offer.creatorRequirements && (
               <div>
-                <div className="text-sm font-medium text-muted-foreground mb-1">Creator Requirements</div>
-                <p className="text-sm whitespace-pre-wrap">{offer.creatorRequirements}</p>
+                <div className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Creator Requirements</div>
+                <p className="text-xs sm:text-sm whitespace-pre-wrap">{offer.creatorRequirements}</p>
               </div>
             )}
           </CardContent>
@@ -753,11 +844,11 @@ export default function AdminOfferDetail() {
       {/* Example Videos */}
       {videos.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle>Example Videos</CardTitle>
+          <CardHeader className="pb-2 sm:pb-6">
+            <CardTitle className="text-base sm:text-lg">Example Videos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
               {videos.map((video: any) => (
                 <div key={video.id} className="border rounded-lg overflow-hidden">
                   {video.videoUrl ? (
@@ -770,12 +861,12 @@ export default function AdminOfferDetail() {
                     </div>
                   ) : (
                     <div className="aspect-video bg-muted flex items-center justify-center">
-                      <Play className="h-12 w-12 text-muted-foreground/50" />
+                      <Play className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground/50" />
                     </div>
                   )}
                   {video.title && (
-                    <div className="p-3">
-                      <p className="text-sm font-medium line-clamp-1">{video.title}</p>
+                    <div className="p-2 sm:p-3">
+                      <p className="text-xs sm:text-sm font-medium line-clamp-1">{video.title}</p>
                     </div>
                   )}
                 </div>
@@ -788,20 +879,20 @@ export default function AdminOfferDetail() {
       {/* Edit Requests History */}
       {offer.editRequests && Array.isArray(offer.editRequests) && offer.editRequests.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle>Edit Request History</CardTitle>
+          <CardHeader className="pb-2 sm:pb-6">
+            <CardTitle className="text-base sm:text-lg">Edit Request History</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {offer.editRequests.map((request: any, idx: number) => (
-                <div key={idx} className="p-4 border rounded-lg">
+                <div key={idx} className="p-3 sm:p-4 border rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Edit Request #{idx + 1}</span>
+                    <span className="text-xs sm:text-sm font-medium">Edit Request #{idx + 1}</span>
                     <span className="text-xs text-muted-foreground">
                       {new Date(request.requestedAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="text-sm whitespace-pre-wrap">{request.notes}</p>
+                  <p className="text-xs sm:text-sm whitespace-pre-wrap">{request.notes}</p>
                 </div>
               ))}
             </div>
