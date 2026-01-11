@@ -688,10 +688,10 @@ export default function CreatorRetainers() {
 
       <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold" data-testid="heading-creator-retainers">
+        <h1 className="text-xl md:text-3xl font-bold" data-testid="heading-creator-retainers">
           Monthly Retainers
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-xs md:text-base text-muted-foreground">
           Browse ongoing monthly video production contracts
         </p>
       </div>
@@ -717,159 +717,288 @@ export default function CreatorRetainers() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2">
-              {filteredContracts.map((contract: any) => {
-                const applicationStatus = getApplicationStatus(contract.id);
-                const StatusIcon = applicationStatus.icon;
-                const monthlyAmount = Number(contract.monthlyAmount || 0);
+            <>
+              {/* ========== MOBILE LAYOUT ========== */}
+              <div className="md:hidden space-y-3">
+                {filteredContracts.map((contract: any) => {
+                  const applicationStatus = getApplicationStatus(contract.id);
+                  const monthlyAmount = Number(contract.monthlyAmount || 0);
 
-                return (
-                  <Link
-                    key={contract.id}
-                    href={`/retainers/${contract.id}`}
-                    className="block"
-                  >
-                    <Card
-                      className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-primary/30 hover:ring-primary/50 hover:shadow-primary/20 h-full"
-                      data-testid={`retainer-card-${contract.id}`}
+                  return (
+                    <Link
+                      key={`mobile-${contract.id}`}
+                      href={`/retainers/${contract.id}`}
+                      className="block"
                     >
-                      <CardHeader className="pb-3">
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-lg leading-tight line-clamp-1" data-testid={`text-retainer-title-${contract.id}`}>
-                                {contract.title}
-                              </CardTitle>
-                              {applicationStatus.badge && (
-                                <Badge
-                                  variant={
-                                    applicationStatus.variant === "default" && applicationStatus.badge.includes("Approved")
-                                      ? "default"
-                                      : applicationStatus.variant === "destructive"
-                                      ? "destructive"
-                                      : "secondary"
-                                  }
-                                  className={`mt-1.5 ${applicationStatus.badge.includes("Approved") ? "bg-green-500 hover:bg-green-600" : ""}`}
-                                >
-                                  {applicationStatus.badge}
-                                </Badge>
-                              )}
-                            </div>
+                      <Card
+                        className="border-card-border shadow-sm"
+                        data-testid={`retainer-card-mobile-${contract.id}`}
+                      >
+                        <CardContent className="p-4 space-y-3">
+                          {/* Title + Platform Badge */}
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-semibold text-base leading-tight line-clamp-2">
+                              {contract.title}
+                            </h3>
                             <PlatformBadge platform={contract.requiredPlatform} size="sm" className="shrink-0" />
                           </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+
+                          {/* Description */}
+                          <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
                             {contract.description}
                           </p>
+
+                          {/* Tags Row */}
                           <div className="flex flex-wrap gap-1.5">
                             {contract.exclusivityRequired && (
-                              <Badge className="bg-primary/10 text-primary text-xs" variant="outline">
+                              <Badge className="bg-teal-100 text-teal-700 border-teal-200 text-[10px] px-2 py-0.5 h-5" variant="outline">
                                 Exclusivity
                               </Badge>
                             )}
                             {contract.minimumVideoLengthSeconds && (
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-5">
                                 Min length: {contract.minimumVideoLengthSeconds}s
                               </Badge>
                             )}
                             {contract.postingSchedule && (
-                              <Badge variant="outline" className="text-xs">{contract.postingSchedule}</Badge>
-                            )}
-                            {contract.contentApprovalRequired && (
-                              <Badge variant="outline" className="text-xs">Platform</Badge>
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-5">{contract.postingSchedule}</Badge>
                             )}
                           </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
-                            <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                              <DollarSign className="h-4 w-4 text-primary" />
+
+                          {/* Payment Info Row */}
+                          <div className="flex items-center gap-4 py-2 border-t border-b">
+                            <div className="flex items-center gap-2">
+                              <div className="h-7 w-7 rounded-md bg-muted flex items-center justify-center">
+                                <DollarSign className="h-3.5 w-3.5 text-foreground" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Monthly Payment</p>
+                                <p className="font-semibold text-xs">CA${monthlyAmount.toLocaleString()}</p>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <p className="text-xs text-muted-foreground">Monthly Payment</p>
-                              <p className="font-semibold text-sm truncate">CA${monthlyAmount.toLocaleString()}</p>
+                            <div className="flex items-center gap-2">
+                              <div className="h-7 w-7 rounded-md bg-muted flex items-center justify-center">
+                                <Video className="h-3.5 w-3.5 text-foreground" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Videos/Month</p>
+                                <p className="font-semibold text-xs">{contract.videosPerMonth}</p>
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
-                            <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                              <Video className="h-4 w-4 text-primary" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs text-muted-foreground">Videos/Month</p>
-                              <p className="font-semibold text-sm">{contract.videosPerMonth}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
-                            <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                              <Calendar className="h-4 w-4 text-primary" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs text-muted-foreground">Duration</p>
-                              <p className="font-semibold text-sm">{contract.durationMonths} months</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
-                            <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                              <PlatformIcon platform={contract.requiredPlatform} size="md" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs text-muted-foreground">Platform</p>
-                              <p className="font-semibold text-sm truncate">{contract.requiredPlatform}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0 && (
-                          <div className="mt-3 pt-3 border-t space-y-2">
-                            <p className="text-sm font-semibold">Tiered Packages</p>
-                            <div className="flex flex-wrap gap-2">
-                              {contract.retainerTiers.map((tier: any, tierIndex: number) => (
-                                <div
-                                  key={`${contract.id}-tier-${tierIndex}`}
-                                  className="flex items-center gap-2 rounded-lg border p-2 bg-muted/30"
-                                >
-                                  <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">
+                          {/* Tiered Packages */}
+                          {Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold">Tiered Packages</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {contract.retainerTiers.map((tier: any, tierIndex: number) => (
+                                  <Badge
+                                    key={`mobile-${contract.id}-tier-${tierIndex}`}
+                                    className="bg-teal-100 text-teal-700 border-teal-200 text-[10px] px-2 py-0.5 h-5"
+                                    variant="outline"
+                                  >
                                     {tier.name}
                                   </Badge>
-                                  <span className="font-medium text-sm">{tier.name}</span>
-                                  <Badge variant="outline" className="text-xs">CA${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
-                                  <span className="text-xs text-muted-foreground">
-                                    {tier.videosPerMonth} videos / {tier.durationMonths} month{tier.durationMonths === 1 ? "" : "s"}
-                                  </span>
-                                </div>
-                              ))}
+                                ))}
+                                <span className="text-[10px] text-muted-foreground self-center">
+                                  {contract.retainerTiers[0]?.videosPerMonth} videos / {contract.retainerTiers[0]?.durationMonths} months
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {!applicationStatus.badge && (
-                          <div className="mt-3 pt-3 border-t">
+                          {/* Application Status or Apply Button */}
+                          {applicationStatus.badge ? (
+                            <Badge
+                              variant={
+                                applicationStatus.variant === "default" && applicationStatus.badge.includes("Approved")
+                                  ? "default"
+                                  : applicationStatus.variant === "destructive"
+                                  ? "destructive"
+                                  : "secondary"
+                              }
+                              className={`text-xs ${applicationStatus.badge.includes("Approved") ? "bg-green-500 hover:bg-green-600" : ""}`}
+                            >
+                              {applicationStatus.badge}
+                            </Badge>
+                          ) : (
                             <Button
-                              className="w-full sm:w-auto"
-                              variant="default"
+                              className="w-full h-8 text-xs bg-teal-500 hover:bg-teal-600 text-white"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 setSelectedContract(contract);
                                 setOpen(true);
                               }}
-                              data-testid={`button-apply-${contract.id}`}
+                              data-testid={`button-apply-mobile-${contract.id}`}
                             >
-                              <Send className="h-4 w-4 mr-2" />
+                              <Send className="h-3 w-3 mr-1.5" />
                               Apply Now
                             </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* ========== DESKTOP LAYOUT ========== */}
+              <div className="hidden md:grid gap-6 md:grid-cols-2">
+                {filteredContracts.map((contract: any) => {
+                  const applicationStatus = getApplicationStatus(contract.id);
+                  const StatusIcon = applicationStatus.icon;
+                  const monthlyAmount = Number(contract.monthlyAmount || 0);
+
+                  return (
+                    <Link
+                      key={contract.id}
+                      href={`/retainers/${contract.id}`}
+                      className="block"
+                    >
+                      <Card
+                        className="group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-card-border cursor-pointer ring-2 ring-primary/30 hover:ring-primary/50 hover:shadow-primary/20 h-full"
+                        data-testid={`retainer-card-${contract.id}`}
+                      >
+                        <CardHeader className="pb-3">
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-lg leading-tight line-clamp-1" data-testid={`text-retainer-title-${contract.id}`}>
+                                  {contract.title}
+                                </CardTitle>
+                                {applicationStatus.badge && (
+                                  <Badge
+                                    variant={
+                                      applicationStatus.variant === "default" && applicationStatus.badge.includes("Approved")
+                                        ? "default"
+                                        : applicationStatus.variant === "destructive"
+                                        ? "destructive"
+                                        : "secondary"
+                                    }
+                                    className={`mt-1.5 ${applicationStatus.badge.includes("Approved") ? "bg-green-500 hover:bg-green-600" : ""}`}
+                                  >
+                                    {applicationStatus.badge}
+                                  </Badge>
+                                )}
+                              </div>
+                              <PlatformBadge platform={contract.requiredPlatform} size="sm" className="shrink-0" />
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                              {contract.description}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {contract.exclusivityRequired && (
+                                <Badge className="bg-primary/10 text-primary text-xs" variant="outline">
+                                  Exclusivity
+                                </Badge>
+                              )}
+                              {contract.minimumVideoLengthSeconds && (
+                                <Badge variant="outline" className="text-xs">
+                                  Min length: {contract.minimumVideoLengthSeconds}s
+                                </Badge>
+                              )}
+                              {contract.postingSchedule && (
+                                <Badge variant="outline" className="text-xs">{contract.postingSchedule}</Badge>
+                              )}
+                              {contract.contentApprovalRequired && (
+                                <Badge variant="outline" className="text-xs">Platform</Badge>
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
+                              <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                <DollarSign className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs text-muted-foreground">Monthly Payment</p>
+                                <p className="font-semibold text-sm truncate">CA${monthlyAmount.toLocaleString()}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
+                              <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                <Video className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs text-muted-foreground">Videos/Month</p>
+                                <p className="font-semibold text-sm">{contract.videosPerMonth}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
+                              <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                <Calendar className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs text-muted-foreground">Duration</p>
+                                <p className="font-semibold text-sm">{contract.durationMonths} months</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-card hover:bg-primary/5 transition-colors duration-200">
+                              <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                <PlatformIcon platform={contract.requiredPlatform} size="md" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs text-muted-foreground">Platform</p>
+                                <p className="font-semibold text-sm truncate">{contract.requiredPlatform}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {Array.isArray(contract.retainerTiers) && contract.retainerTiers.length > 0 && (
+                            <div className="mt-3 pt-3 border-t space-y-2">
+                              <p className="text-sm font-semibold">Tiered Packages</p>
+                              <div className="flex flex-wrap gap-2">
+                                {contract.retainerTiers.map((tier: any, tierIndex: number) => (
+                                  <div
+                                    key={`${contract.id}-tier-${tierIndex}`}
+                                    className="flex items-center gap-2 rounded-lg border p-2 bg-muted/30"
+                                  >
+                                    <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">
+                                      {tier.name}
+                                    </Badge>
+                                    <span className="font-medium text-sm">{tier.name}</span>
+                                    <Badge variant="outline" className="text-xs">CA${tier.monthlyAmount?.toLocaleString?.() || tier.monthlyAmount}</Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {tier.videosPerMonth} videos / {tier.durationMonths} month{tier.durationMonths === 1 ? "" : "s"}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {!applicationStatus.badge && (
+                            <div className="mt-3 pt-3 border-t">
+                              <Button
+                                className="w-full sm:w-auto"
+                                variant="default"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setSelectedContract(contract);
+                                  setOpen(true);
+                                }}
+                                data-testid={`button-apply-${contract.id}`}
+                              >
+                                <Send className="h-4 w-4 mr-2" />
+                                Apply Now
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       )}
