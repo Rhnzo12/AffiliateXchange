@@ -262,163 +262,161 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Product Mockups Section - Hidden on mobile */}
+      {/* Product Mockups Section - Device Frames */}
       <section className="hidden sm:block pb-12 sm:pb-20 bg-gradient-to-b from-white to-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-start">
-            {/* Left Mockup - Dashboard Preview */}
-            <AnimatedSection animation="fade-right" delay={100}>
-              <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-              <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900">Dashboard</div>
-                    <div className="text-sm text-gray-500">Real-time analytics</div>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-gray-50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-primary">10K+</div>
-                      <div className="text-xs text-gray-500">Creators</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-primary">CA$5M+</div>
-                      <div className="text-xs text-gray-500">Earned</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-primary">500+</div>
-                      <div className="text-xs text-gray-500">Brands</div>
-                    </div>
-                  </div>
-                  {/* Product Review - Amazon Style */}
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                        ))}
+          <AnimatedSection animation="fade-up" delay={100}>
+            <div className="relative flex items-end justify-center gap-4 lg:gap-8">
+              {/* Laptop Frame */}
+              <div className="relative w-full max-w-3xl">
+                {/* Laptop Screen */}
+                <div className="bg-gray-800 rounded-t-xl p-2 pb-0">
+                  <div className="bg-white rounded-t-lg overflow-hidden">
+                    {/* Browser Bar */}
+                    <div className="bg-gray-100 border-b border-gray-200 px-3 py-2 flex items-center gap-2">
+                      <div className="flex gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-400"></div>
                       </div>
-                      <span className="text-xs font-semibold text-gray-900">5.0 out of 5</span>
-                    </div>
-                    <div className="text-xs font-medium text-gray-900 mb-1">Best headphones I've ever owned!</div>
-                    <p className="text-xs text-gray-600 leading-relaxed mb-2">
-                      "The noise cancellation is incredible. Perfect for work and travel. Battery life exceeds expectations..."
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center">
-                        <span className="text-orange-600 font-medium text-xs">M</span>
+                      <div className="flex-1 mx-4">
+                        <div className="bg-white rounded px-3 py-1 text-xs text-gray-400 border">affiliatexchange.com/dashboard</div>
                       </div>
-                      <span>Michael T.</span>
-                      <span className="text-green-600 font-medium">Verified Purchase</span>
                     </div>
-                  </div>
-                </div>
-              </div>
-              </div>
-            </AnimatedSection>
-
-            {/* Right Mockup - Affiliate Marketplace Preview */}
-            <AnimatedSection animation="fade-left" delay={200}>
-            <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-              <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-                <span className="font-medium text-gray-700">Affiliate Marketplace</span>
-                <div className="flex gap-2">
-                  <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">All Categories</span>
-                </div>
-              </div>
-              <div className="p-4 space-y-3">
-                {/* Product 1 - Electronics */}
-                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-                  <div className="flex gap-3">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                      <img
-                        src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=200&h=200&fit=crop&q=80"
-                        alt="Sony Headphones"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="font-semibold text-gray-900 text-sm">Sony WH-1000XM5 Headphones</div>
-                          <div className="text-xs text-gray-500">Electronics • Audio</div>
+                    {/* Dashboard Content */}
+                    <div className="p-4 bg-gray-50">
+                      {/* Header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <img src="/logo.png" alt="Logo" className="h-6 w-6 rounded" />
+                          <span className="font-semibold text-gray-900 text-sm">AffiliateXchange</span>
                         </div>
-                        <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap">8% Commission</span>
+                        <Button size="sm" className="h-7 text-xs">Get Started</Button>
                       </div>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                        <span>CA$449.99</span>
-                        <span className="text-primary font-medium">Earn CA$36/sale</span>
+                      {/* Dashboard Title */}
+                      <div className="mb-4">
+                        <h3 className="font-bold text-gray-900">Dashboard</h3>
+                        <p className="text-xs text-gray-500">Real-time analytics</p>
+                      </div>
+                      {/* Stats Row */}
+                      <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="bg-white rounded-lg p-3 text-center shadow-sm border">
+                          <div className="text-xl font-bold text-primary">10K+</div>
+                          <div className="text-[10px] text-gray-500">Creators</div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 text-center shadow-sm border">
+                          <div className="text-xl font-bold text-primary">CA$5M+</div>
+                          <div className="text-[10px] text-gray-500">Earnings</div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 text-center shadow-sm border">
+                          <div className="text-xl font-bold text-primary">500+</div>
+                          <div className="text-[10px] text-gray-500">Brands</div>
+                        </div>
+                      </div>
+                      {/* Affiliate Marketplace Preview */}
+                      <div className="bg-white rounded-lg p-3 shadow-sm border">
+                        <div className="text-xs font-semibold text-gray-900 mb-2">Affiliate Marketplace</div>
+                        <div className="space-y-2">
+                          {/* Product 1 */}
+                          <div className="flex gap-2 items-center p-2 bg-gray-50 rounded">
+                            <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=100&h=100&fit=crop&q=80" alt="Headphones" className="w-10 h-10 rounded object-cover" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-gray-900 truncate">Sony WH-1000XM5 Headphones</div>
+                              <div className="text-[10px] text-gray-500">CA$449.99</div>
+                            </div>
+                            <span className="bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">8%</span>
+                          </div>
+                          {/* Product 2 */}
+                          <div className="flex gap-2 items-center p-2 bg-gray-50 rounded">
+                            <img src="https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=100&h=100&fit=crop&q=80" alt="Fitbit" className="w-10 h-10 rounded object-cover" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-gray-900 truncate">Fitbit Charge 6 Tracker</div>
+                              <div className="text-[10px] text-gray-500">CA$199.95</div>
+                            </div>
+                            <span className="bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">12%</span>
+                          </div>
+                          {/* Product 3 */}
+                          <div className="flex gap-2 items-center p-2 bg-gray-50 rounded">
+                            <img src="https://images.unsplash.com/photo-1522338140262-f46f5913618a?w=100&h=100&fit=crop&q=80" alt="Dyson" className="w-10 h-10 rounded object-cover" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-gray-900 truncate">Dyson Airwrap Styler</div>
+                              <div className="text-[10px] text-gray-500">CA$699.99</div>
+                            </div>
+                            <span className="bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">6%</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+                {/* Laptop Base */}
+                <div className="bg-gray-700 h-4 rounded-b-lg"></div>
+                <div className="bg-gray-600 h-2 mx-auto w-1/2 rounded-b-xl"></div>
+              </div>
 
-                {/* Product 2 - Fitness */}
-                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-                  <div className="flex gap-3">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                      <img
-                        src="https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=200&h=200&fit=crop&q=80"
-                        alt="Fitbit Tracker"
-                        className="w-full h-full object-cover"
-                      />
+              {/* Phone Frame - Positioned to overlap */}
+              <div className="absolute right-0 lg:right-8 bottom-0 w-40 lg:w-48 z-10">
+                {/* Phone Body */}
+                <div className="bg-gray-800 rounded-[2rem] p-2 shadow-2xl">
+                  {/* Phone Screen */}
+                  <div className="bg-white rounded-[1.5rem] overflow-hidden">
+                    {/* Phone Notch */}
+                    <div className="bg-gray-800 h-6 flex items-center justify-center">
+                      <div className="w-16 h-4 bg-gray-800 rounded-b-xl"></div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="font-semibold text-gray-900 text-sm">Fitbit Charge 6 Tracker</div>
-                          <div className="text-xs text-gray-500">Fitness • Wearables</div>
+                    {/* Phone Content */}
+                    <div className="p-3 bg-gray-50 min-h-[280px]">
+                      {/* Phone Header */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-1.5">
+                          <img src="/logo.png" alt="Logo" className="h-5 w-5 rounded" />
+                          <span className="font-semibold text-gray-900 text-[10px]">AffiliateXchange</span>
                         </div>
-                        <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap">12% Commission</span>
+                        <div className="text-[8px] text-gray-500">Sign in</div>
                       </div>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                        <span>CA$199.95</span>
-                        <span className="text-primary font-medium">Earn CA$24/sale</span>
+                      {/* Phone Dashboard */}
+                      <div className="mb-3">
+                        <div className="text-xs font-bold text-gray-900">Dashboard</div>
+                        <div className="text-[8px] text-gray-500">Real-time analytics</div>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Product 3 - Beauty */}
-                <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
-                  <div className="flex gap-3">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                      <img
-                        src="https://images.unsplash.com/photo-1522338140262-f46f5913618a?w=200&h=200&fit=crop&q=80"
-                        alt="Dyson Airwrap"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="font-semibold text-gray-900 text-sm">Dyson Airwrap Styler</div>
-                          <div className="text-xs text-gray-500">Beauty • Hair Care</div>
+                      {/* Phone Stats */}
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div className="bg-white rounded p-2 text-center shadow-sm border">
+                          <div className="text-sm font-bold text-primary">10K+</div>
+                          <div className="text-[8px] text-gray-500">Creators</div>
                         </div>
-                        <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap">6% Commission</span>
+                        <div className="bg-white rounded p-2 text-center shadow-sm border">
+                          <div className="text-sm font-bold text-primary">CA$5M+</div>
+                          <div className="text-[8px] text-gray-500">Earnings</div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                        <span>CA$699.99</span>
-                        <span className="text-primary font-medium">Earn CA$42/sale</span>
+                      {/* Phone Products */}
+                      <div className="space-y-2">
+                        <div className="flex gap-2 items-center p-1.5 bg-white rounded shadow-sm border">
+                          <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=100&h=100&fit=crop&q=80" alt="Headphones" className="w-8 h-8 rounded object-cover" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[9px] font-medium text-gray-900 truncate">Sony Headphones</div>
+                            <div className="text-[8px] text-primary font-medium">Earn CA$36</div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 items-center p-1.5 bg-white rounded shadow-sm border">
+                          <img src="https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=100&h=100&fit=crop&q=80" alt="Fitbit" className="w-8 h-8 rounded object-cover" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[9px] font-medium text-gray-900 truncate">Fitbit Tracker</div>
+                            <div className="text-[8px] text-primary font-medium">Earn CA$24</div>
+                          </div>
+                        </div>
                       </div>
+                    </div>
+                    {/* Phone Home Indicator */}
+                    <div className="bg-gray-50 pb-2 pt-1">
+                      <div className="w-24 h-1 bg-gray-300 rounded-full mx-auto"></div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            </AnimatedSection>
-          </div>
+          </AnimatedSection>
         </div>
       </section>
 
