@@ -192,7 +192,7 @@ export default function Landing() {
               </Button>
               <Button
                 onClick={handleRegister}
-                className="bg-primary hover:bg-primary/90 text-white font-medium px-2 sm:px-4 text-[10px] sm:text-sm h-6 sm:h-9 rounded-full"
+                className="bg-primary hover:bg-primary/90 text-white font-medium px-2 sm:px-4 text-[10px] sm:text-sm h-6 sm:h-9"
               >
                 Get Started
               </Button>
