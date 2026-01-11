@@ -1878,6 +1878,7 @@ export default function AdminAnalytics() {
           </TabsContent>
         </Tabs>
       )}
+      </div>
 
       <GenericErrorDialog
         open={!!errorDialog}
