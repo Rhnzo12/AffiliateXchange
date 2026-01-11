@@ -201,72 +201,73 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Hero Section - Systeme.io style */}
-      <section className="pt-8 sm:pt-16 pb-6 sm:pb-8 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Main Headline */}
-          <AnimatedSection animation="fade-up">
-            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-3 sm:mb-6">
-              The easiest all-in-one{" "}
-              <span className="relative inline-block">
-                <span className="relative z-10">affiliate marketing</span>
-                <span
-                  className="absolute bottom-0 sm:bottom-1 left-0 w-full h-2 sm:h-3 bg-primary/40 -z-0"
-                  style={{ transform: "skewX(-3deg)" }}
-                />
-              </span>{" "}
-              platform
-            </h1>
-          </AnimatedSection>
+      {/* Hero Section - Split Layout */}
+      <section className="py-8 sm:py-12 lg:py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+            {/* Left Side - Text Content */}
+            <div className="flex-1 text-center lg:text-left max-w-xl lg:max-w-none">
+              {/* Main Headline */}
+              <AnimatedSection animation="fade-up">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-4 sm:mb-6">
+                  The easiest all-in-one{" "}
+                  <span className="relative inline-block">
+                    <span className="relative z-10">affiliate marketing</span>
+                    <span
+                      className="absolute bottom-0 sm:bottom-1 left-0 w-full h-2 sm:h-3 bg-primary/40 -z-0"
+                      style={{ transform: "skewX(-3deg)" }}
+                    />
+                  </span>{" "}
+                  platform
+                </h1>
+              </AnimatedSection>
 
-          {/* Subheadline */}
-          <AnimatedSection animation="fade-up" delay={100}>
-            <p className="text-base sm:text-xl text-gray-600 mb-6 sm:mb-10 max-w-2xl mx-auto">
-              Get your free account now
-            </p>
-          </AnimatedSection>
+              {/* Subheadline */}
+              <AnimatedSection animation="fade-up" delay={100}>
+                <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">
+                  Get your free account now
+                </p>
+              </AnimatedSection>
 
-          {/* Email Signup Form */}
-          <AnimatedSection animation="zoom-in" delay={200}>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 max-w-lg mx-auto mb-4 sm:mb-6 px-2 sm:px-0">
-              <Input
-                type="email"
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 h-10 sm:h-12 text-sm sm:text-base border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
-              />
-              <Button
-                onClick={handleGetStarted}
-                data-testid="button-get-started"
-                className="h-10 sm:h-12 px-6 sm:px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-sm sm:text-base rounded-lg"
-              >
-                Get Started
-              </Button>
+              {/* Email Signup Form */}
+              <AnimatedSection animation="zoom-in" delay={200}>
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 max-w-md mx-auto lg:mx-0 mb-4 sm:mb-6">
+                  <Input
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex-1 h-10 sm:h-12 text-sm sm:text-base border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                  />
+                  <Button
+                    onClick={handleGetStarted}
+                    data-testid="button-get-started"
+                    className="h-10 sm:h-12 px-6 sm:px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-sm sm:text-base rounded-lg"
+                  >
+                    Get Started
+                  </Button>
+                </div>
+              </AnimatedSection>
+
+              {/* Trust Badges */}
+              <AnimatedSection animation="fade-up" delay={300}>
+                <div className="flex flex-wrap justify-center lg:justify-start items-center gap-4 sm:gap-6 text-gray-500 text-xs sm:text-sm">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                    <span>Free forever</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                    <span>No credit card required</span>
+                  </div>
+                </div>
+              </AnimatedSection>
             </div>
-          </AnimatedSection>
 
-          {/* Trust Badges */}
-          <AnimatedSection animation="fade-up" delay={300}>
-            <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 text-gray-500 text-xs sm:text-sm">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <ThumbsUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span>Free forever</span>
-              </div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span>No credit card required</span>
-              </div>
-            </div>
-          </AnimatedSection>
-        </div>
-      </section>
-
-      {/* Product Mockups Section - Device Frames */}
-      <section className="hidden sm:block pb-12 sm:pb-20 bg-gradient-to-b from-white to-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <AnimatedSection animation="fade-up" delay={100}>
-            <div className="flex items-end justify-center gap-6 lg:gap-10">
+            {/* Right Side - Device Mockups */}
+            <div className="flex-1 hidden lg:flex items-center justify-center">
+              <AnimatedSection animation="fade-left" delay={200}>
+                <div className="flex items-end justify-center gap-4">
               {/* Laptop Frame */}
               <div className="relative flex-shrink-0" style={{ width: '65%', maxWidth: '700px' }}>
                 {/* Laptop Screen */}
@@ -439,8 +440,10 @@ export default function Landing() {
                   </div>
                 </div>
               </div>
+                </div>
+              </AnimatedSection>
             </div>
-          </AnimatedSection>
+          </div>
         </div>
       </section>
 
