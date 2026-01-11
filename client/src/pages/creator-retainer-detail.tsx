@@ -1146,8 +1146,204 @@ export default function CreatorRetainerDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Main Content Grid - Hero + Tiered Package */}
-      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+      {/* ========== MOBILE LAYOUT ========== */}
+      <div className="md:hidden space-y-4 pb-20">
+        {/* Mobile Hero Card */}
+        <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 text-white rounded-xl p-4 shadow-lg">
+          {/* Reward Header */}
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <p className="text-[10px] text-teal-400 font-medium flex items-center gap-1 mb-0.5">
+                <Gift className="h-2.5 w-2.5" /> Reward
+              </p>
+              <div className="text-3xl font-bold">
+                {formatCurrency(bestValueTier?.monthlyAmount ?? contractMonthlyAmount)}
+              </div>
+              <p className="text-xs text-white/70 mt-0.5">
+                Total payout for {bestValueTier?.videosPerMonth ?? contractVideosPerMonth}-video
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[10px] bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              <Bookmark className="h-3 w-3 mr-1" /> Bookmark Offer
+            </Button>
+          </div>
+
+          {/* Info Cards Row */}
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="bg-white/10 rounded-lg p-2">
+              <div className="flex items-center gap-1 text-[9px] text-white/60 mb-0.5">
+                <Calendar className="h-2.5 w-2.5" /> Duration
+                <Info className="h-2 w-2" />
+              </div>
+              <p className="text-sm font-bold">{contract.durationMonths} months</p>
+              <p className="text-[8px] text-white/50 truncate">Deliverables on trial</p>
+            </div>
+
+            <div className="bg-white/10 rounded-lg p-2">
+              <div className="flex items-center gap-1 text-[9px] text-white/60 mb-0.5">
+                <DollarSign className="h-2.5 w-2.5" /> Payment Terms
+              </div>
+              <p className="text-sm font-bold">{formatCurrency(contractMonthlyAmount)}/month</p>
+              <p className="text-[8px] text-white/50 truncate">Sponsored ad required</p>
+            </div>
+
+            <div className="bg-white/10 rounded-lg p-2">
+              <div className="flex items-center gap-1 text-[9px] text-white/60 mb-0.5">
+                <Tag className="h-2.5 w-2.5" /> Niche
+              </div>
+              <p className="text-sm font-bold truncate">{contract.niches?.[0] || "General"}</p>
+              <p className="text-[8px] text-white/50 truncate">Based on category</p>
+            </div>
+          </div>
+
+          {/* Tags Row */}
+          <div className="flex flex-wrap gap-1.5">
+            <Badge className="bg-teal-600 text-white border-none text-[9px] h-5 px-2">
+              Campaign Offer
+            </Badge>
+            <Badge variant="outline" className="border-white/30 text-white/80 text-[9px] h-5 px-2">
+              Earnings
+            </Badge>
+            <Badge variant="outline" className="border-white/30 text-white/80 text-[9px] h-5 px-2">
+              All {contract.niches?.[0] || "categories"}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Mobile Deliverable Requirements */}
+        <Card className="border-card-border">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm">Deliverable Requirements</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-3 space-y-2">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                Minimum length {formatSecondsToMinutes(contract.minimumVideoLengthSeconds) || "1 min"}
+              </span>
+            </div>
+            {contract.contentGuidelines && (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-xs text-muted-foreground line-clamp-2">{contract.contentGuidelines}</span>
+              </div>
+            )}
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                {contract.contentApprovalRequired ? "Content approval required before posting" : "Maintain FTC-compliant disclosure"}
+              </span>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                {contract.brandSafetyRequirements || "No vulgar language, maintain light, trendy tone"}
+              </span>
+            </div>
+            <div className="pt-2 text-right">
+              <Button variant="link" className="text-teal-500 p-0 h-auto text-xs">
+                View Details →
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Mobile Tiered Package */}
+        <Card className="border-card-border">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm">Tiered Package</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold">{contract.company?.tradeName || contract.company?.legalName || "Company"}</p>
+                <p className="text-[10px] text-muted-foreground">{contract.title}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="space-y-2">
+                <div>
+                  <p className="text-muted-foreground">Views estimate</p>
+                  <p className="font-semibold">Up to 30k</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Click-through rate</p>
+                  <p className="font-semibold">About 3%</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Earning potential</p>
+                  <p className="font-semibold">Up to {formatCurrency(creatorTakeHome * contract.durationMonths)}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <p className="font-semibold">{formatCurrency(contractMonthlyAmount)} one time payout</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Tag className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">Technology</span>
+                </div>
+                <Badge variant="outline" className="text-[10px]">
+                  {contract.niches?.[0] || "Tech"}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Mobile Live Summary Preview */}
+        <Card className="border-card-border">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm">Live Summary Preview</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between py-1.5 border-b">
+                <span className="text-muted-foreground">Gross monthly</span>
+                <span className="font-semibold">{formatCurrency(contractMonthlyAmount)}</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5 border-b">
+                <span className="text-muted-foreground">Platform fee ({totalFeeDisplay})</span>
+                <span className="font-semibold">{formatCurrency(platformFee)}</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5 border-b">
+                <span className="text-muted-foreground">Net to creator</span>
+                <span className="font-semibold text-teal-600">{formatCurrency(creatorTakeHome)}</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-muted-foreground">Videos per month</span>
+                <span className="font-semibold">{contractVideosPerMonth}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Mobile Sticky Apply Button */}
+        {!currentApplication && (
+          <div className="fixed bottom-0 left-0 right-0 p-3 bg-background border-t z-50">
+            <Button
+              className="w-full h-10 bg-teal-500 hover:bg-teal-600 text-white text-sm"
+              onClick={() => setApplyOpen(true)}
+              data-testid="button-apply-mobile"
+            >
+              <Send className="h-4 w-4 mr-2" /> Apply Now
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* ========== DESKTOP LAYOUT ========== */}
+      <div className="hidden md:block space-y-6">
+        {/* Main Content Grid - Hero + Tiered Package */}
+        <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         {/* Left Side - Hero Card */}
         <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 text-white rounded-2xl p-6 shadow-lg">
           {/* Reward Header */}
@@ -1641,6 +1837,7 @@ export default function CreatorRetainerDetail() {
           </TabsContent>
         </Tabs>
       )}
+      </div>
 
       <GenericErrorDialog
         open={!!errorDialog}
