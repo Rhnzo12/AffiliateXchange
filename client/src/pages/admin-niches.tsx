@@ -537,7 +537,7 @@ export default function AdminNiches() {
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="border rounded-md"
+                  className="sm:border rounded-md py-2 sm:py-0"
                 >
                   {/* Desktop Table Header */}
                   <div className="hidden sm:grid grid-cols-[40px_1fr_2fr_100px_100px_150px] gap-4 p-4 border-b bg-muted/50 font-medium text-sm">
@@ -549,10 +549,7 @@ export default function AdminNiches() {
                     <div className="text-right">Actions</div>
                   </div>
 
-                  {/* Mobile Table Header */}
-                  <div className="sm:hidden grid grid-cols-1 gap-2 p-3 border-b bg-muted/50 font-medium text-xs">
-                    <div>Niche</div>
-                  </div>
+                  {/* Mobile Table Header - hidden since we use cards */}
 
                   {niches.length === 0 ? (
                     <div className="p-6 sm:p-8 text-center text-muted-foreground text-sm">
@@ -565,8 +562,8 @@ export default function AdminNiches() {
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            className={`border-b last:border-b-0 ${
-                              snapshot.isDragging ? "bg-muted shadow-lg" : "hover:bg-muted/30"
+                            className={`sm:border-b sm:last:border-b-0 mb-2 sm:mb-0 last:mb-0 mx-2 sm:mx-0 rounded-lg sm:rounded-none border sm:border-0 sm:border-b ${
+                              snapshot.isDragging ? "bg-muted shadow-lg" : "hover:bg-muted/30 bg-background sm:bg-transparent"
                             }`}
                           >
                             {/* Desktop Row */}
