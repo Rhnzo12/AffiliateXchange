@@ -957,11 +957,24 @@ export default function AdminEmailTemplates() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1 sm:w-64 h-9 text-sm"
               />
+              {/* Mobile: Icon only filter */}
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                {/* Mobile: Icon only */}
-                <SelectTrigger className="w-10 sm:w-40 h-9 text-sm px-2 sm:px-3">
-                  <Filter className="h-4 w-4 sm:hidden" />
-                  <span className="hidden sm:inline"><SelectValue placeholder="Filter by category" /></span>
+                <SelectTrigger className="w-10 h-9 text-sm px-2 sm:hidden [&>svg:last-child]:hidden">
+                  <Filter className="h-4 w-4" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {CATEGORIES.map(cat => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* Desktop: Full dropdown */}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="hidden sm:flex w-40 h-9 text-sm">
+                  <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
