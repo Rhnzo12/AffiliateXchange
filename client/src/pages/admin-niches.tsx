@@ -699,7 +699,7 @@ export default function AdminNiches() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-lg mx-4 sm:mx-auto w-[calc(100%-2rem)] sm:w-full">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">
               {editingNiche ? "Edit Niche Category" : "Create Niche Category"}
@@ -769,7 +769,7 @@ export default function AdminNiches() {
 
       {/* Merge Niches Dialog */}
       <Dialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
-        <DialogContent className="max-w-lg mx-4 sm:mx-auto w-[calc(100%-2rem)] sm:w-full">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">Merge Niches</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
@@ -866,7 +866,7 @@ export default function AdminNiches() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent className="max-w-md mx-4 sm:mx-auto w-[calc(100%-2rem)] sm:w-full">
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base sm:text-lg">Delete Niche Category</AlertDialogTitle>
             <AlertDialogDescription className="text-xs sm:text-sm">
