@@ -541,10 +541,8 @@ export default function AdminNiches() {
                   </div>
 
                   {/* Mobile Table Header */}
-                  <div className="sm:hidden grid grid-cols-[1fr_70px_70px] gap-2 p-3 border-b bg-muted/50 font-medium text-xs">
-                    <div>Name</div>
-                    <div className="text-center">Status</div>
-                    <div className="text-center">Primary</div>
+                  <div className="sm:hidden grid grid-cols-1 gap-2 p-3 border-b bg-muted/50 font-medium text-xs">
+                    <div>Niche</div>
                   </div>
 
                   {niches.length === 0 ? (
@@ -627,8 +625,8 @@ export default function AdminNiches() {
 
                             {/* Mobile Row */}
                             <div className="sm:hidden p-3">
-                              <div className="grid grid-cols-[1fr_70px_70px] gap-2 items-center">
-                                <div className="min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="min-w-0 flex-1">
                                   <div className="font-medium text-sm flex items-center gap-1.5">
                                     {niche.name}
                                     {niche.isPrimary && (
@@ -639,29 +637,11 @@ export default function AdminNiches() {
                                     {niche.description || "No description"}
                                   </div>
                                 </div>
-                                <div className="text-center">
+                                <div className="shrink-0">
                                   {niche.isActive !== false ? (
                                     <Badge variant="default" className="bg-green-500 text-[10px] px-1.5 py-0.5">Active</Badge>
                                   ) : (
                                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">Inactive</Badge>
-                                  )}
-                                </div>
-                                <div className="text-center">
-                                  {!niche.isPrimary ? (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleSetPrimary(niche.id)}
-                                      disabled={setPrimaryMutation.isPending}
-                                      className="text-[10px] h-6 px-1.5"
-                                    >
-                                      <Star className="h-3 w-3 mr-0.5" />
-                                      Set
-                                    </Button>
-                                  ) : (
-                                    <span className="text-yellow-600 text-[10px] flex items-center justify-center">
-                                      <Star className="h-3 w-3 fill-yellow-500" />
-                                    </span>
                                   )}
                                 </div>
                               </div>
