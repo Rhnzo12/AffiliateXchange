@@ -107,15 +107,15 @@ export function CookieConsent() {
 
   return (
     <>
-      {/* Mobile: Centered modal overlay */}
-      <div className="sm:hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6">
-        <Card className="w-full max-w-xs border shadow-xl bg-background rounded-xl">
+      {/* Mobile: Bottom banner */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 p-3">
+        <Card className="w-full border shadow-lg bg-background rounded-xl">
           <CardContent className="p-3">
             {/* Header with icon and close button */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <span className="text-lg">🍪</span>
-                <h3 className="font-semibold text-xs">Cookies & Privacy</h3>
+                <h3 className="font-semibold text-sm">Cookies & Privacy</h3>
               </div>
               <Button
                 variant="ghost"
@@ -128,19 +128,19 @@ export function CookieConsent() {
             </div>
 
             {/* Description */}
-            <p className="text-[11px] text-muted-foreground my-2 leading-relaxed">
+            <p className="text-xs text-muted-foreground my-2">
               We use cookies to improve your experience, analyze traffic, and personalize content.
             </p>
 
             {/* Buttons - 2 column */}
             <div className="grid grid-cols-2 gap-2">
-              <Button onClick={acceptAll} className="h-8 text-xs">
+              <Button onClick={acceptAll} className="h-9 text-xs">
                 Accept All
               </Button>
               <Button
                 onClick={() => setShowSettings(true)}
                 variant="outline"
-                className="h-8 text-xs"
+                className="h-9 text-xs"
               >
                 Manage
               </Button>
