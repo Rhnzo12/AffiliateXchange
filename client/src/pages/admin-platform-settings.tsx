@@ -317,8 +317,12 @@ export default function AdminPlatformSettings() {
     }));
   }, [groupedSettings]);
 
-  // Get categories for mobile tab navigation
-  const categories = groupedSettings ? Object.keys(groupedSettings) : [];
+  // Get categories for mobile tab navigation (with General Settings first)
+  const categories = groupedSettings ? Object.keys(groupedSettings).sort((a, b) => {
+    if (a === 'general') return -1;
+    if (b === 'general') return 1;
+    return 0;
+  }) : [];
 
   // Set initial active category when data loads
   useEffect(() => {
@@ -349,16 +353,16 @@ export default function AdminPlatformSettings() {
         ) : (
           <>
             {/* Mobile: Horizontal scrollable tabs */}
-            <div className="sm:hidden mb-4 -mx-4 px-4">
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="sm:hidden mb-4 -mx-4 px-4 border-b">
+              <div className="flex gap-1 overflow-x-auto scrollbar-hide">
                 {categories.map((category) => (
                   <button
                     key={category}
                     onClick={() => setActiveCategory(category)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                    className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
                       activeCategory === category
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {categoryIcons[category]}
