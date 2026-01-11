@@ -537,7 +537,7 @@ export default function AdminNiches() {
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="border rounded-md"
+                  className="sm:border rounded-md py-2 sm:py-0"
                 >
                   {/* Desktop Table Header */}
                   <div className="hidden sm:grid grid-cols-[40px_1fr_2fr_100px_100px_150px] gap-4 p-4 border-b bg-muted/50 font-medium text-sm">
@@ -549,10 +549,7 @@ export default function AdminNiches() {
                     <div className="text-right">Actions</div>
                   </div>
 
-                  {/* Mobile Table Header */}
-                  <div className="sm:hidden grid grid-cols-1 gap-2 p-3 border-b bg-muted/50 font-medium text-xs">
-                    <div>Niche</div>
-                  </div>
+                  {/* Mobile Table Header - hidden since we use cards */}
 
                   {niches.length === 0 ? (
                     <div className="p-6 sm:p-8 text-center text-muted-foreground text-sm">
@@ -565,8 +562,8 @@ export default function AdminNiches() {
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            className={`border-b last:border-b-0 ${
-                              snapshot.isDragging ? "bg-muted shadow-lg" : "hover:bg-muted/30"
+                            className={`sm:border-b sm:last:border-b-0 mb-2 sm:mb-0 last:mb-0 mx-2 sm:mx-0 rounded-lg sm:rounded-none border sm:border-0 sm:border-b ${
+                              snapshot.isDragging ? "bg-muted shadow-lg" : "hover:bg-muted/30 bg-background sm:bg-transparent"
                             }`}
                           >
                             {/* Desktop Row */}
@@ -632,15 +629,15 @@ export default function AdminNiches() {
                               </div>
                             </div>
 
-                            {/* Mobile Row */}
-                            <div className="sm:hidden p-3">
+                            {/* Mobile Row - entire card is draggable */}
+                            <div
+                              className="sm:hidden p-3 cursor-grab active:cursor-grabbing"
+                              {...provided.dragHandleProps}
+                            >
                               <div className="flex items-center justify-between gap-2">
                                 <div className="min-w-0 flex-1">
                                   <div className="font-medium text-sm flex items-center gap-1.5">
                                     {niche.name}
-                                    {niche.isPrimary && (
-                                      <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 shrink-0" />
-                                    )}
                                   </div>
                                   <div className="text-xs text-muted-foreground truncate mt-0.5">
                                     {niche.description || "No description"}
@@ -656,19 +653,30 @@ export default function AdminNiches() {
                               </div>
                               {/* Mobile Actions Row */}
                               <div className="flex items-center justify-between mt-2 pt-2 border-t border-dashed">
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className="cursor-grab active:cursor-grabbing flex items-center gap-1 text-xs text-muted-foreground"
-                                >
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                   <GripVertical className="h-4 w-4" />
-                                  <span>Drag</span>
                                 </div>
                                 <div className="flex gap-1">
                                   <Button
                                     variant="ghost"
                                     size="sm"
+                                    className={`h-7 px-2 text-xs ${niche.isPrimary ? 'text-yellow-500' : 'text-muted-foreground'}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSetPrimary(niche.id);
+                                    }}
+                                    disabled={setPrimaryMutation.isPending || niche.isPrimary}
+                                  >
+                                    <Star className={`h-3.5 w-3.5 ${niche.isPrimary ? 'fill-yellow-500' : ''}`} />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
                                     className="h-7 px-2 text-xs"
-                                    onClick={() => handleEdit(niche)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(niche);
+                                    }}
                                   >
                                     <Pencil className="h-3.5 w-3.5" />
                                   </Button>
@@ -676,7 +684,10 @@ export default function AdminNiches() {
                                     variant="ghost"
                                     size="sm"
                                     className="h-7 px-2 text-xs text-destructive"
-                                    onClick={() => handleDelete(niche.id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(niche.id);
+                                    }}
                                     disabled={deleteNicheMutation.isPending || niche.isPrimary}
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
