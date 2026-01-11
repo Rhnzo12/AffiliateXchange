@@ -98,7 +98,9 @@ export class StripeConnectService {
       console.error('[Stripe Connect] Error creating connected account:', error.message);
 
       let errorMessage = error.message;
-      if (errorMessage?.includes("You can only create new accounts if you've signed up for Connect")) {
+      if (errorMessage?.includes('Invalid API Key provided')) {
+        errorMessage = 'Invalid Stripe API key. Please verify STRIPE_SECRET_KEY is set correctly in your environment variables and the key has not been revoked or expired.';
+      } else if (errorMessage?.includes("You can only create new accounts if you've signed up for Connect")) {
         errorMessage = 'Stripe secret key is not for a Connect-enabled platform. Enable Stripe Connect on your account and update STRIPE_SECRET_KEY, then restart the server.';
       } else if (errorMessage?.includes('When requesting the `transfers` capability')) {
         errorMessage = 'Stripe rejected transfers-only capabilities for CA accounts. Request both card_payments and transfers (or set the recipient service agreement) in createConnectedAccount, then retry onboarding.';
@@ -137,9 +139,13 @@ export class StripeConnectService {
       };
     } catch (error: any) {
       console.error('[Stripe Connect] Error creating account link:', error.message);
+      let errorMessage = error.message;
+      if (errorMessage?.includes('Invalid API Key provided')) {
+        errorMessage = 'Invalid Stripe API key. Please verify STRIPE_SECRET_KEY is set correctly in your environment variables.';
+      }
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
       };
     }
   }
@@ -180,9 +186,13 @@ export class StripeConnectService {
       };
     } catch (error: any) {
       console.error('[Stripe Connect] Error checking account status:', error.message);
+      let errorMessage = error.message;
+      if (errorMessage?.includes('Invalid API Key provided')) {
+        errorMessage = 'Invalid Stripe API key. Please verify STRIPE_SECRET_KEY is set correctly in your environment variables.';
+      }
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
       };
     }
   }
@@ -269,11 +279,13 @@ export class StripeConnectService {
       // Enhanced error handling
       let errorMessage = error.message;
 
-      if (error.code === 'insufficient_funds') {
+      if (errorMessage?.includes('Invalid API Key provided')) {
+        errorMessage = 'Invalid Stripe API key. Please verify STRIPE_SECRET_KEY is set correctly in your environment variables.';
+      } else if (error.code === 'insufficient_funds') {
         errorMessage = 'Insufficient balance in platform Stripe account. Please add funds to process payouts.';
       } else if (error.code === 'account_invalid') {
         errorMessage = 'Connected account is invalid or not properly configured.';
-      } else if (errorMessage.includes('balance')) {
+      } else if (errorMessage?.includes('balance')) {
         errorMessage = 'Insufficient balance in Stripe account. Please ensure your Stripe account has sufficient funds for transfers.';
       }
 
@@ -299,9 +311,13 @@ export class StripeConnectService {
       return { success: true };
     } catch (error: any) {
       console.error('[Stripe Connect] Error deleting account:', error.message);
+      let errorMessage = error.message;
+      if (errorMessage?.includes('Invalid API Key provided')) {
+        errorMessage = 'Invalid Stripe API key. Please verify STRIPE_SECRET_KEY is set correctly in your environment variables.';
+      }
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
       };
     }
   }
@@ -321,9 +337,13 @@ export class StripeConnectService {
       };
     } catch (error: any) {
       console.error('[Stripe Connect] Error creating login link:', error.message);
+      let errorMessage = error.message;
+      if (errorMessage?.includes('Invalid API Key provided')) {
+        errorMessage = 'Invalid Stripe API key. Please verify STRIPE_SECRET_KEY is set correctly in your environment variables.';
+      }
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
       };
     }
   }
