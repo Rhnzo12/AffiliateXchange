@@ -20,7 +20,7 @@ import { Switch } from "../components/ui/switch";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { SettingsNavigation, SettingsSection } from "../components/SettingsNavigation";
-import { Settings, DollarSign, Gauge, Tag, ToggleRight, Check, X, Plus, Trash2 } from "lucide-react";
+import { Settings, DollarSign, Gauge, Tag, ToggleRight, Check, X, Plus, Trash2, ChevronRight } from "lucide-react";
 
 interface NicheItem {
   id: string;
@@ -331,13 +331,65 @@ export default function AdminPlatformSettings() {
     }
   }, [categories.length]);
 
+  // Helper to render mobile-friendly niches display
+  const renderMobileNiches = (value: string) => {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        const niches = parsed as NicheItem[];
+        const activeNiches = niches.filter(n => n.isActive);
+        const displayNiches = activeNiches.slice(0, 3);
+        const remaining = activeNiches.length - 3;
+        return (
+          <span className="text-sm text-muted-foreground">
+            {displayNiches.map(n => n.name).join(' · ')}
+            {remaining > 0 && <span className="text-primary"> +{remaining} more</span>}
+          </span>
+        );
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <TopNavBar />
+
+      {/* Mobile: Sticky header with tabs */}
+      <div className="sm:hidden sticky top-0 z-40 bg-background border-b">
+        <div className="px-4 pt-4 pb-2">
+          <h1 className="text-xl font-bold">Platform Settings</h1>
+          <p className="text-xs text-muted-foreground">
+            Configure platform-wide settings and policies
+          </p>
+        </div>
+        <div className="px-4">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                  activeCategory === category
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {categoryIcons[category]}
+                {getCategoryTitle(category)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:pl-2 lg:pr-8 py-4 sm:py-8">
-        <div className="mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold">Platform Settings</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+        {/* Desktop: Header */}
+        <div className="hidden sm:block mb-6">
+          <h1 className="text-3xl font-bold">Platform Settings</h1>
+          <p className="text-base text-muted-foreground mt-1">
             Configure platform-wide settings and policies
           </p>
         </div>
@@ -351,119 +403,193 @@ export default function AdminPlatformSettings() {
             No settings found
           </div>
         ) : (
-          <>
-            {/* Mobile: Horizontal scrollable tabs */}
-            <div className="sm:hidden mb-4 -mx-4 px-4 border-b">
-              <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => setActiveCategory(category)}
-                    className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
-                      activeCategory === category
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {categoryIcons[category]}
-                    {getCategoryTitle(category)}
-                  </button>
-                ))}
-              </div>
+          <div className="flex gap-6">
+            {/* Desktop: Sidebar navigation */}
+            <div className="hidden sm:block">
+              <SettingsNavigation sections={adminSettingsSections} />
             </div>
 
-            <div className="flex gap-6">
-              {/* Desktop: Sidebar navigation */}
-              <div className="hidden sm:block">
-                <SettingsNavigation sections={adminSettingsSections} />
-              </div>
+            {/* Desktop: Card view */}
+            <div className="hidden sm:block flex-1 space-y-6 min-w-0 max-w-4xl">
+              {Object.entries(groupedSettings).map(([category, categorySettings]) => (
+                <Card key={category} id={`admin-${category}`} className="scroll-mt-24">
+                  <CardHeader className="p-6">
+                    <CardTitle className="text-xl">{getCategoryTitle(category)}</CardTitle>
+                    <CardDescription className="text-sm">{getCategoryDescription(category)}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6 pt-0">
+                    <div className="space-y-4">
+                      {categorySettings.map((setting) => (
+                        <div
+                          key={setting.key}
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-medium">{formatSettingKey(setting.key)}</h3>
+                              <Badge variant="outline" className="text-xs">
+                                {setting.category || "general"}
+                              </Badge>
+                            </div>
+                            {setting.description && (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {setting.description}
+                              </p>
+                            )}
+                            <div className="mt-2">
+                              {isBooleanSetting(setting.key) ? (
+                                <div className="flex items-center gap-4">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium">
+                                      {setting.value === "true" ? "On" : "Off"}
+                                    </span>
+                                    <Switch
+                                      checked={setting.value === "true"}
+                                      onCheckedChange={(checked) => handleToggle(setting, checked)}
+                                      disabled={updateMutation.isPending}
+                                    />
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">
+                                    Updated: {new Date(setting.updatedAt).toLocaleString()}
+                                  </span>
+                                </div>
+                              ) : isJsonValue(setting.value) ? (
+                                <div>
+                                  {renderJsonValue(setting.key, setting.value)}
+                                  <span className="text-xs text-muted-foreground block mt-2">
+                                    Updated: {new Date(setting.updatedAt).toLocaleString()}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-4">
+                                  <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                                    {setting.value}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    Updated: {new Date(setting.updatedAt).toLocaleString()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {!isBooleanSetting(setting.key) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(setting)}
+                              disabled={updateMutation.isPending}
+                            >
+                              Edit
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
-              <div className="flex-1 space-y-6 min-w-0 max-w-4xl">
-                {Object.entries(groupedSettings).map(([category, categorySettings]) => (
-                  <Card
-                    key={category}
-                    id={`admin-${category}`}
-                    className={`scroll-mt-24 ${activeCategory !== category ? 'hidden sm:block' : ''}`}
-                  >
-                    <CardHeader className="p-4 sm:p-6">
-                      <CardTitle className="text-lg sm:text-xl">{getCategoryTitle(category)}</CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">{getCategoryDescription(category)}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-                      <div className="space-y-3 sm:space-y-4">
-                        {categorySettings.map((setting) => (
-                          <div
-                            key={setting.key}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-gray-50 gap-3"
-                          >
+            {/* Mobile: Clean list view */}
+            <div className="sm:hidden flex-1 -mx-4">
+              {Object.entries(groupedSettings).map(([category, categorySettings]) => (
+                <div
+                  key={category}
+                  className={activeCategory !== category ? 'hidden' : ''}
+                >
+                  {/* Section header */}
+                  <div className="px-4 py-3 bg-gray-50/80">
+                    <h2 className="text-base font-semibold">{getCategoryTitle(category)}</h2>
+                  </div>
+
+                  {/* Settings list */}
+                  <div className="divide-y">
+                    {categorySettings.map((setting) => (
+                      <div
+                        key={setting.key}
+                        className="px-4 py-3 bg-background"
+                      >
+                        {isBooleanSetting(setting.key) ? (
+                          // Boolean setting - toggle on right
+                          <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-medium text-sm sm:text-base">{formatSettingKey(setting.key)}</h3>
-                                <Badge variant="outline" className="text-xs">
-                                  {setting.category || "general"}
-                                </Badge>
-                              </div>
+                              <h3 className="font-medium text-sm">{formatSettingKey(setting.key)}</h3>
                               {setting.description && (
-                                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                <p className="text-xs text-muted-foreground mt-0.5">
                                   {setting.description}
                                 </p>
                               )}
-                              <div className="mt-2">
-                                {isBooleanSetting(setting.key) ? (
-                                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs sm:text-sm font-medium">
-                                        {setting.value === "true" ? "On" : "Off"}
-                                      </span>
-                                      <Switch
-                                        checked={setting.value === "true"}
-                                        onCheckedChange={(checked) => handleToggle(setting, checked)}
-                                        disabled={updateMutation.isPending}
-                                      />
-                                    </div>
-                                    <span className="text-xs text-muted-foreground">
-                                      Updated: {new Date(setting.updatedAt).toLocaleString()}
-                                    </span>
-                                  </div>
-                                ) : isJsonValue(setting.value) ? (
-                                  <div>
-                                    {renderJsonValue(setting.key, setting.value)}
-                                    <span className="text-xs text-muted-foreground block mt-2">
-                                      Updated: {new Date(setting.updatedAt).toLocaleString()}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                                    <span className="text-xs sm:text-sm font-mono bg-gray-100 px-2 py-1 rounded inline-block">
-                                      {setting.value}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      Updated: {new Date(setting.updatedAt).toLocaleString()}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Last updated · {new Date(setting.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </p>
                             </div>
-                            {!isBooleanSetting(setting.key) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(setting)}
-                                disabled={updateMutation.isPending}
-                                className="self-end sm:self-center"
-                              >
-                                Edit
-                              </Button>
-                            )}
+                            <Switch
+                              checked={setting.value === "true"}
+                              onCheckedChange={(checked) => handleToggle(setting, checked)}
+                              disabled={updateMutation.isPending}
+                              className="mt-0.5"
+                            />
                           </div>
-                        ))}
+                        ) : setting.key === "niches" ? (
+                          // Niches - special display
+                          <button
+                            onClick={() => handleEdit(setting)}
+                            className="w-full text-left"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium text-sm">{formatSettingKey(setting.key)}</h3>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {(() => {
+                                    try {
+                                      const parsed = JSON.parse(setting.value);
+                                      return `${parsed.length} configured`;
+                                    } catch {
+                                      return '';
+                                    }
+                                  })()}
+                                </p>
+                                <div className="mt-1">
+                                  {renderMobileNiches(setting.value)}
+                                </div>
+                              </div>
+                              <ChevronRight className="h-5 w-5 text-muted-foreground mt-0.5" />
+                            </div>
+                          </button>
+                        ) : (
+                          // Regular setting - value and edit on right
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-sm">{formatSettingKey(setting.key)}</h3>
+                              {setting.description && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {setting.description}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Last updated · {new Date(setting.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-primary font-medium">
+                                {setting.value}
+                              </span>
+                              <button
+                                onClick={() => handleEdit(setting)}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <ChevronRight className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          </>
+          </div>
         )}
 
         {/* Edit Dialog */}
