@@ -132,97 +132,97 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-8">
       <TopNavBar />
       <div>
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Platform oversight and moderation</p>
+        <h1 className="text-xl sm:text-3xl font-bold">Admin Dashboard</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-0.5 sm:mt-1">Platform oversight and moderation</p>
       </div>
 
       {statsLoading ? (
         <StatsGridSkeleton />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-6">
           <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Creators</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between gap-1 sm:gap-2 space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Creators</CardTitle>
+              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalCreators || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{stats?.totalCreators || 0}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
                 {stats?.newCreatorsThisWeek || 0} this week
               </p>
             </CardContent>
           </Card>
 
           <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Companies</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between gap-1 sm:gap-2 space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Companies</CardTitle>
+              <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalCompanies || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats?.newCompaniesThisWeek || 0} this week
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{stats?.totalCompanies || 0}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
+                {stats?.newCompaniesThisWeek || 0} needs review
               </p>
             </CardContent>
           </Card>
 
           <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Companies</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between gap-1 sm:gap-2 space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Pending Offers</CardTitle>
+              <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">{stats?.pendingCompanies || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">Require review</p>
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold text-primary">{stats?.pendingOffers || 0}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">Live on platform</p>
             </CardContent>
           </Card>
 
           <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Offers</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between gap-1 sm:gap-2 space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Pending</CardTitle>
+              <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-primary">{stats?.pendingOffers || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">Awaiting approval</p>
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold text-primary">{stats?.pendingCompanies || 0}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">Awaiting approval</p>
             </CardContent>
           </Card>
 
           <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Offers</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between gap-1 sm:gap-2 space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Active Offers</CardTitle>
+              <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.activeOffers || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">Live on platform</p>
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{stats?.activeOffers || 0}</div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">Live on platform</p>
             </CardContent>
           </Card>
 
-          <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Company Risk</CardTitle>
-              <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+          <Card className="border-card-border col-span-2 sm:col-span-1">
+            <CardHeader className="flex flex-row items-center justify-between gap-1 sm:gap-2 space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">Company Risk</CardTitle>
+              <ShieldAlert className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1" title="High Risk">
-                  <ShieldAlert className="h-4 w-4 text-red-500" />
-                  <span className="text-lg font-bold text-red-600">{riskData?.summary?.highRisk || 0}</span>
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-0.5 sm:gap-1" title="High Risk">
+                  <ShieldAlert className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
+                  <span className="text-base sm:text-lg font-bold text-red-600">{riskData?.summary?.highRisk || 0}</span>
                 </div>
-                <div className="flex items-center gap-1" title="Medium Risk">
-                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                  <span className="text-lg font-bold text-yellow-600">{riskData?.summary?.mediumRisk || 0}</span>
+                <div className="flex items-center gap-0.5 sm:gap-1" title="Medium Risk">
+                  <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-500" />
+                  <span className="text-base sm:text-lg font-bold text-yellow-600">{riskData?.summary?.mediumRisk || 0}</span>
                 </div>
-                <div className="flex items-center gap-1" title="Low Risk">
-                  <ShieldCheck className="h-4 w-4 text-green-500" />
-                  <span className="text-lg font-bold text-green-600">{riskData?.summary?.lowRisk || 0}</span>
+                <div className="flex items-center gap-0.5 sm:gap-1" title="Low Risk">
+                  <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500" />
+                  <span className="text-base sm:text-lg font-bold text-green-600">{riskData?.summary?.lowRisk || 0}</span>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">High / Medium / Low</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">High / Medium / Low</p>
             </CardContent>
           </Card>
         </div>
@@ -230,98 +230,95 @@ export default function AdminDashboard() {
 
       {/* Quick Access Section */}
       <Card className="border-card-border">
-        <CardHeader>
-          <CardTitle>Quick Access</CardTitle>
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Quick Access</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-4 mb-4">
+        <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-3 sm:mb-4">
             <Link to="/admin/reviews">
-              <Button variant="outline" className="w-full h-auto py-6 flex flex-col gap-2" data-testid="button-manage-reviews">
-                <AlertCircle className="h-6 w-6" />
-                <span>Manage Reviews</span>
-                <span className="text-xs text-muted-foreground">View, edit, approve reviews</span>
+              <Button variant="outline" className="w-full h-auto py-3 sm:py-6 flex flex-col gap-1 sm:gap-2" data-testid="button-manage-reviews">
+                <AlertCircle className="h-4 w-4 sm:h-6 sm:w-6" />
+                <span className="text-xs sm:text-sm">Manage Reviews</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">View, edit, approve reviews</span>
               </Button>
             </Link>
             <Link to="/admin/companies">
-              <Button variant="outline" className="w-full h-auto py-6 flex flex-col gap-2" data-testid="button-manage-companies">
-                <Building2 className="h-6 w-6" />
-                <span>Manage Companies</span>
-                <span className="text-xs text-muted-foreground">Approve or reject companies</span>
+              <Button variant="outline" className="w-full h-auto py-3 sm:py-6 flex flex-col gap-1 sm:gap-2" data-testid="button-manage-companies">
+                <Building2 className="h-4 w-4 sm:h-6 sm:w-6" />
+                <span className="text-xs sm:text-sm">Manage Companies</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Approve new companies</span>
               </Button>
             </Link>
-            <Link to="/admin/offers">
-              <Button variant="outline" className="w-full h-auto py-6 flex flex-col gap-2" data-testid="button-manage-offers">
-                <TrendingUp className="h-6 w-6" />
-                <span>Manage Offers</span>
-                <span className="text-xs text-muted-foreground">Review and approve offers</span>
+            <Link to="/admin/offers" className="col-span-2 sm:col-span-1">
+              <Button variant="outline" className="w-full h-auto py-3 sm:py-6 flex flex-col gap-1 sm:gap-2" data-testid="button-manage-offers">
+                <TrendingUp className="h-4 w-4 sm:h-6 sm:w-6" />
+                <span className="text-xs sm:text-sm">Manage Offers</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">Review and approve offers</span>
               </Button>
             </Link>
           </div>
-          <div className="border-t pt-4">
+          <div className="border-t pt-3 sm:pt-4">
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full text-xs sm:text-sm h-9 sm:h-10"
               onClick={() => notifyPendingItemsMutation.mutate()}
               disabled={notifyPendingItemsMutation.isPending}
             >
-              <Bell className="h-4 w-4 mr-2" />
-              {notifyPendingItemsMutation.isPending ? "Sending Notifications..." : "Refresh Pending Notifications"}
+              <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+              {notifyPendingItemsMutation.isPending ? "Sending..." : "Refresh Pending Notifications"}
             </Button>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Manually trigger notifications for existing pending offers and payments
-            </p>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
         <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Pending Company Approvals</CardTitle>
-            <Badge variant="secondary">{stats?.pendingCompanies || 0}</Badge>
+          <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-6">
+            <CardTitle className="text-sm sm:text-base">Pending Company Approvals</CardTitle>
+            <Badge variant="secondary" className="text-xs">{stats?.pendingCompanies || 0}</Badge>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
             {stats?.pendingCompanies > 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground mb-4">
+              <div className="space-y-2 sm:space-y-3">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-4">
                   Companies waiting for verification
                 </p>
                 <Link to="/admin/companies">
-                  <Button variant="outline" className="w-full" data-testid="button-review-companies">
+                  <Button variant="outline" className="w-full text-xs sm:text-sm h-8 sm:h-10" data-testid="button-review-companies">
                     Review Companies
                   </Button>
                 </Link>
               </div>
             ) : (
-              <div className="text-center py-8">
-                <CheckCircle2 className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">All caught up!</p>
+              <div className="text-center py-4 sm:py-8">
+                <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground/50 mx-auto mb-1 sm:mb-2" />
+                <p className="text-xs sm:text-sm text-muted-foreground">All caught up!</p>
               </div>
             )}
           </CardContent>
         </Card>
 
         <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Pending Offers</CardTitle>
-            <Badge variant="secondary">{stats?.pendingOffers || 0}</Badge>
+          <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-6">
+            <CardTitle className="text-sm sm:text-base">Pending Offers</CardTitle>
+            <Badge variant="secondary" className="text-xs">{stats?.pendingOffers || 0}</Badge>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
             {stats?.pendingOffers > 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground mb-4">
+              <div className="space-y-2 sm:space-y-3">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-4">
                   Offers waiting for review
                 </p>
                 <Link to="/admin/offers">
-                  <Button variant="outline" className="w-full" data-testid="button-review-offers">
+                  <Button variant="outline" className="w-full text-xs sm:text-sm h-8 sm:h-10" data-testid="button-review-offers">
                     Review Offers
                   </Button>
                 </Link>
               </div>
             ) : (
-              <div className="text-center py-8">
-                <CheckCircle2 className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">All caught up!</p>
+              <div className="text-center py-4 sm:py-8">
+                <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground/50 mx-auto mb-1 sm:mb-2" />
+                <p className="text-xs sm:text-sm text-muted-foreground">All caught up!</p>
               </div>
             )}
           </CardContent>
@@ -330,28 +327,25 @@ export default function AdminDashboard() {
 
       {/* Company Risk Overview Section */}
       <Card className="border-card-border">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Company Risk Overview</CardTitle>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 sm:p-6">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <ShieldAlert className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+            <CardTitle className="text-sm sm:text-base">Company Risk Overview</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="destructive">{riskData?.summary?.highRisk || 0}</Badge>
-            <Badge className="bg-yellow-500 hover:bg-yellow-600">{riskData?.summary?.mediumRisk || 0}</Badge>
-            <Badge className="bg-green-500 hover:bg-green-600">{riskData?.summary?.lowRisk || 0}</Badge>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Badge variant="destructive" className="text-[10px] sm:text-xs px-1.5 sm:px-2">{riskData?.summary?.highRisk || 0}</Badge>
+            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-[10px] sm:text-xs px-1.5 sm:px-2">{riskData?.summary?.mediumRisk || 0}</Badge>
+            <Badge className="bg-green-500 hover:bg-green-600 text-[10px] sm:text-xs px-1.5 sm:px-2">{riskData?.summary?.lowRisk || 0}</Badge>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
           {riskLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-pulse text-sm text-muted-foreground">Loading risk assessments...</div>
+            <div className="flex items-center justify-center py-4 sm:py-8">
+              <div className="animate-pulse text-xs sm:text-sm text-muted-foreground">Loading risk assessments...</div>
             </div>
           ) : (riskData?.companies?.length || 0) > 0 ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                All companies sorted by risk score. High-risk companies may require platform fee adjustments.
-              </p>
-              <div className="space-y-3">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-2 sm:space-y-3">
                 {riskData?.companies?.slice(0, 8).map((company) => {
                   const isHigh = company.riskLevel === 'high';
                   const isMedium = company.riskLevel === 'medium';
@@ -370,84 +364,62 @@ export default function AdminDashboard() {
                     : isMedium
                     ? 'text-yellow-600 dark:text-yellow-400'
                     : 'text-green-600 dark:text-green-400';
-                  const buttonClass = isHigh
-                    ? 'border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-950'
-                    : isMedium
-                    ? 'border-yellow-200 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-950'
-                    : 'border-green-200 text-green-600 hover:bg-green-50 dark:hover:bg-green-950';
 
                   return (
-                    <div
-                      key={company.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border ${borderClass}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`flex items-center justify-center w-10 h-10 rounded-lg ${iconBgClass} shrink-0`}>
-                          {isHigh ? (
-                            <ShieldAlert className={`h-5 w-5 ${textColorClass}`} />
-                          ) : isMedium ? (
-                            <AlertTriangle className={`h-5 w-5 ${textColorClass}`} />
-                          ) : (
-                            <ShieldCheck className={`h-5 w-5 ${textColorClass}`} />
-                          )}
+                    <Link key={company.id} to={`/admin/companies/${company.id}`}>
+                      <div
+                        className={`flex items-center justify-between p-2 sm:p-3 rounded-lg border ${borderClass} cursor-pointer hover:opacity-80 transition-opacity`}
+                      >
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                          <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${iconBgClass} shrink-0`}>
+                            {isHigh ? (
+                              <ShieldAlert className={`h-4 w-4 sm:h-5 sm:w-5 ${textColorClass}`} />
+                            ) : isMedium ? (
+                              <AlertTriangle className={`h-4 w-4 sm:h-5 sm:w-5 ${textColorClass}`} />
+                            ) : (
+                              <ShieldCheck className={`h-4 w-4 sm:h-5 sm:w-5 ${textColorClass}`} />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-xs sm:text-sm truncate">{company.legalName}</div>
+                            <div className={`text-[10px] sm:text-xs ${textColorClass} mt-0.5`}>
+                              {isHigh ? 'Risk Score' : isMedium ? 'Risk Score' : 'Risk Score'}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-medium">{company.legalName}</div>
-                          {company.riskIndicators.length > 0 ? (
-                            <div className={`text-xs ${textColorClass} mt-1`}>
-                              {company.riskIndicators[0]}
-                              {company.riskIndicators.length > 1 && ` +${company.riskIndicators.length - 1} more`}
-                            </div>
-                          ) : (
-                            <div className={`text-xs ${textColorClass} mt-1`}>
-                              {isHigh ? 'High risk' : isMedium ? 'Medium risk' : 'Low risk'}
-                            </div>
-                          )}
+                        <div className="text-right shrink-0 ml-2">
+                          <div className={`text-base sm:text-lg font-bold ${textColorClass}`}>{company.riskScore}</div>
+                          <div className={`text-[10px] sm:text-xs ${textColorClass} capitalize`}>{company.riskLevel}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <div className={`text-lg font-bold ${textColorClass}`}>{company.riskScore}</div>
-                          <div className="text-xs text-muted-foreground">Risk Score</div>
-                        </div>
-                        <Link to={`/admin/companies/${company.id}`}>
-                          <Button variant="outline" size="sm" className={buttonClass}>
-                            Review
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
               {(riskData?.companies?.length || 0) > 8 && (
                 <Link to="/admin/companies">
-                  <Button variant="outline" className="w-full mt-4">
+                  <Button variant="outline" className="w-full mt-2 sm:mt-4 text-xs sm:text-sm h-8 sm:h-10">
                     View All {riskData?.companies?.length} Companies
                   </Button>
                 </Link>
               )}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <CheckCircle2 className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No companies to assess</p>
-              <p className="text-xs text-muted-foreground mt-1">Approved companies will appear here with risk assessments</p>
+            <div className="text-center py-4 sm:py-8">
+              <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground/50 mx-auto mb-1 sm:mb-2" />
+              <p className="text-xs sm:text-sm text-muted-foreground">No companies to assess</p>
             </div>
           )}
-          <div className="border-t pt-4 mt-4">
+          <div className="border-t pt-3 sm:pt-4 mt-3 sm:mt-4">
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full text-xs sm:text-sm h-8 sm:h-10"
               onClick={() => checkHighRiskMutation.mutate()}
               disabled={checkHighRiskMutation.isPending}
             >
-              <ShieldAlert className="h-4 w-4 mr-2" />
-              {checkHighRiskMutation.isPending ? "Checking Risk Levels..." : "Check & Notify High Risk Companies"}
+              <ShieldAlert className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+              {checkHighRiskMutation.isPending ? "Checking..." : "Check & Identify High Risk Companies"}
             </Button>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Scan all companies for high-risk indicators and send admin notifications
-            </p>
           </div>
         </CardContent>
       </Card>
