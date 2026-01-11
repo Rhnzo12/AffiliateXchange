@@ -267,31 +267,31 @@ export default function AdminModerationDashboard() {
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-xl sm:text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-xl sm:text-3xl font-bold">Content Moderation</h1>
           <p className="text-xs sm:text-base text-muted-foreground mt-1">
             Review and manage flagged content
           </p>
         </div>
 
-        {/* Stats - Horizontal scroll on mobile */}
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-5 sm:gap-4 scrollbar-hide">
-          <div className="flex-shrink-0 w-28 sm:w-auto bg-background border rounded-lg p-3 sm:p-4">
+        {/* Stats - 2 columns on mobile, 5 on desktop */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
+          <div className="bg-background border rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Flags</p>
             <p className="text-2xl sm:text-3xl font-bold mt-1">{stats?.total || 0}</p>
           </div>
-          <div className="flex-shrink-0 w-28 sm:w-auto bg-background border border-yellow-500/20 rounded-lg p-3 sm:p-4">
+          <div className="bg-background border border-yellow-500/20 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm font-medium text-yellow-600">Pending</p>
             <p className="text-2xl sm:text-3xl font-bold text-yellow-600 mt-1">{stats?.pending || 0}</p>
           </div>
-          <div className="flex-shrink-0 w-28 sm:w-auto bg-background border rounded-lg p-3 sm:p-4">
+          <div className="bg-background border rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm font-medium text-blue-600">Reviewed</p>
             <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1">{stats?.reviewed || 0}</p>
           </div>
-          <div className="flex-shrink-0 w-28 sm:w-auto bg-background border rounded-lg p-3 sm:p-4">
+          <div className="bg-background border rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm font-medium text-green-600">Action Taken</p>
             <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-1">{stats?.actionTaken || 0}</p>
           </div>
-          <div className="flex-shrink-0 w-28 sm:w-auto bg-background border rounded-lg p-3 sm:p-4">
+          <div className="bg-background border rounded-lg p-3 sm:p-4 col-span-2 sm:col-span-1">
             <p className="text-xs sm:text-sm font-medium text-muted-foreground">Dismissed</p>
             <p className="text-2xl sm:text-3xl font-bold text-muted-foreground mt-1">{stats?.dismissed || 0}</p>
           </div>
