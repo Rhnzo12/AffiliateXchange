@@ -962,7 +962,7 @@ export default function AdminEmailTemplates() {
                 <SelectTrigger className="w-10 h-9 text-sm px-2 sm:hidden [&>svg:last-child]:hidden">
                   <Filter className="h-4 w-4" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="mr-4">
                   <SelectItem value="all">All Categories</SelectItem>
                   {CATEGORIES.map(cat => (
                     <SelectItem key={cat.value} value={cat.value}>
