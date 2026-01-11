@@ -29,6 +29,14 @@ interface NicheItem {
   isActive: boolean;
 }
 
+// Helper to format setting key into proper sentence case
+const formatSettingKey = (key: string): string => {
+  // Replace underscores and dots with spaces
+  const words = key.replace(/[._]/g, ' ');
+  // Capitalize first letter, keep rest lowercase
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
 // Helper to check if a value is JSON
 const isJsonValue = (value: string): boolean => {
   try {
@@ -249,7 +257,7 @@ export default function AdminPlatformSettings() {
     updateMutation.mutate({
       key: setting.key,
       value: checked ? "true" : "false",
-      reason: `Toggled ${setting.key} to ${checked ? "enabled" : "disabled"}`,
+      reason: `Toggled ${formatSettingKey(setting.key)} to ${checked ? "enabled" : "disabled"}`,
     });
   };
 
@@ -347,7 +355,7 @@ export default function AdminPlatformSettings() {
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{setting.key}</h3>
+                          <h3 className="font-medium">{formatSettingKey(setting.key)}</h3>
                           <Badge variant="outline" className="text-xs">
                             {setting.category || "general"}
                           </Badge>
@@ -417,7 +425,7 @@ export default function AdminPlatformSettings() {
       <Dialog open={!!editingSetting && !isBooleanSetting(editingSetting?.key || "")} onOpenChange={(open) => !open && setEditingSetting(null)}>
         <DialogContent className={editingSetting?.key === "niches" ? "max-w-3xl max-h-[90vh] overflow-y-auto" : ""}>
           <DialogHeader>
-            <DialogTitle>Edit Setting: {editingSetting?.key}</DialogTitle>
+            <DialogTitle>Edit: {editingSetting?.key ? formatSettingKey(editingSetting.key) : ''}</DialogTitle>
             <DialogDescription>
               {editingSetting?.description || "Update this platform setting"}
             </DialogDescription>
