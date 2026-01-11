@@ -108,46 +108,46 @@ export function CookieConsent() {
   return (
     <>
       {/* Mobile: Centered modal overlay */}
-      <div className="sm:hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <Card className="w-full max-w-sm border shadow-xl bg-background rounded-xl">
-          <CardContent className="p-5">
+      <div className="sm:hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6">
+        <Card className="w-full max-w-xs border shadow-xl bg-background rounded-xl">
+          <CardContent className="p-3">
             {/* Header with icon and close button */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">🍪</span>
-                <h3 className="font-semibold text-base">Cookies & Privacy</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg">🍪</span>
+                <h3 className="font-semibold text-xs">Cookies & Privacy</h3>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowBanner(false)}
-                className="h-8 w-8 rounded-full"
+                className="h-6 w-6 rounded-full -mr-1"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
               </Button>
             </div>
 
             {/* Description */}
-            <p className="text-sm text-muted-foreground mb-5">
+            <p className="text-[11px] text-muted-foreground my-2 leading-relaxed">
               We use cookies to improve your experience, analyze traffic, and personalize content.
             </p>
 
-            {/* Buttons */}
-            <div className="space-y-2">
-              <Button onClick={acceptAll} className="w-full">
+            {/* Buttons - 2 column */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button onClick={acceptAll} className="h-8 text-xs">
                 Accept All
               </Button>
               <Button
                 onClick={() => setShowSettings(true)}
                 variant="outline"
-                className="w-full"
+                className="h-8 text-xs"
               >
-                Manage Preferences
+                Manage
               </Button>
             </div>
 
             {/* Footer links */}
-            <p className="text-xs text-muted-foreground text-center mt-4">
+            <p className="text-[10px] text-muted-foreground text-center mt-2">
               Read our{" "}
               <a href="/privacy-policy" className="underline hover:text-primary">
                 Privacy Policy
@@ -156,7 +156,6 @@ export function CookieConsent() {
               <a href="/cookie-policy" className="underline hover:text-primary">
                 Cookies
               </a>
-              .
             </p>
           </CardContent>
         </Card>
