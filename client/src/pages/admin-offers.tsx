@@ -145,101 +145,97 @@ export default function AdminOffers() {
               Manage all affiliate offers across the platform
             </p>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-            <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          {/* Desktop only - mobile shows in filters */}
+          <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+            <TrendingUp className="h-4 w-4" />
             <span>{filteredOffers.length} offers</span>
           </div>
         </div>
 
-        {/* Filters */}
-        <Card className="border-card-border">
-          <CardContent className="p-3 sm:pt-6 sm:p-6">
-            <div className="space-y-3 sm:space-y-4">
+        {/* Filters - Mobile */}
+        <div className="sm:hidden space-y-3">
+          {/* Filter header with count */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filters</span>
+            </div>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <TrendingUp className="h-3.5 w-3.5" />
+              <span>{filteredOffers.length} offers</span>
+              <span>&gt;</span>
+            </div>
+          </div>
+
+          {/* Filter inputs */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
+            <Input
+              placeholder="Search offers..."
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="h-9 text-sm min-w-[140px] flex-shrink-0 bg-muted/30 border-0"
+            />
+            <Select
+              value={filters.status}
+              onValueChange={(value) => setFilters({ ...filters, status: value })}
+            >
+              <SelectTrigger className="h-9 text-sm min-w-[110px] flex-shrink-0 bg-primary/10 border-0 text-primary">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="pending_review">Pending</SelectItem>
+                <SelectItem value="approved">Live</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.niche}
+              onValueChange={(value) => setFilters({ ...filters, niche: value })}
+            >
+              <SelectTrigger className="h-9 text-sm min-w-[100px] flex-shrink-0 bg-primary/10 border-0 text-primary">
+                <SelectValue placeholder="All Niches" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Niches</SelectItem>
+                {nichesLoading ? (
+                  <SelectItem value="loading" disabled>Loading...</SelectItem>
+                ) : (
+                  niches.map((niche) => (
+                    <SelectItem key={niche.id} value={niche.name}>
+                      {niche.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Filters - Desktop */}
+        <Card className="border-card-border hidden sm:block">
+          <CardContent className="pt-6">
+            <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
-                <span className="text-xs sm:text-sm font-medium">Filters</span>
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Filters</span>
                 {hasActiveFilters && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={clearFilters}
-                    className="ml-auto h-7 sm:h-8 px-2 text-xs sm:text-sm"
+                    className="ml-auto h-8 px-2 lg:px-3"
                   >
-                    <span className="hidden sm:inline">Clear filters</span>
-                    <span className="sm:hidden">Clear</span>
-                    <X className="ml-1 sm:ml-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    Clear filters
+                    <X className="ml-2 h-4 w-4" />
                   </Button>
                 )}
               </div>
 
-              {/* Mobile: Horizontal scrollable filters */}
-              <div className="sm:hidden">
-                <Input
-                  placeholder="Search offers..."
-                  value={filters.search}
-                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  className="h-9 text-sm mb-2"
-                />
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-3 px-3 pb-1">
-                  <Select
-                    value={filters.status}
-                    onValueChange={(value) => setFilters({ ...filters, status: value })}
-                  >
-                    <SelectTrigger className="h-8 text-xs min-w-[100px] flex-shrink-0">
-                      <SelectValue placeholder="All Statuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="pending_review">Pending</SelectItem>
-                      <SelectItem value="approved">Live</SelectItem>
-                      <SelectItem value="paused">Paused</SelectItem>
-                      <SelectItem value="archived">Archived</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={filters.niche}
-                    onValueChange={(value) => setFilters({ ...filters, niche: value })}
-                  >
-                    <SelectTrigger className="h-8 text-xs min-w-[90px] flex-shrink-0">
-                      <SelectValue placeholder="All Niches" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Niches</SelectItem>
-                      {nichesLoading ? (
-                        <SelectItem value="loading" disabled>Loading...</SelectItem>
-                      ) : (
-                        niches.map((niche) => (
-                          <SelectItem key={niche.id} value={niche.name}>
-                            {niche.name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={filters.commissionType}
-                    onValueChange={(value) => setFilters({ ...filters, commissionType: value })}
-                  >
-                    <SelectTrigger className="h-8 text-xs min-w-[100px] flex-shrink-0">
-                      <SelectValue placeholder="Commission" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {COMMISSION_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Desktop: Grid filters */}
-              <div className="hidden sm:grid gap-4 md:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-4">
                 <div>
                   <Input
                     placeholder="Search offers..."
