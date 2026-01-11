@@ -144,16 +144,16 @@ export default function Landing() {
     <div className="min-h-screen bg-white">
       {/* Header - Systeme.io style */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
-            <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover" />
-              <span className="text-xl font-bold text-gray-900">AffiliateXchange</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <img src="/logo.png" alt="AffiliateXchange Logo" className="h-6 w-6 sm:h-8 sm:w-8 rounded-md object-cover" />
+              <span className="text-base sm:text-xl font-bold text-gray-900">AffiliateXchange</span>
             </div>
 
-            {/* Navigation - Center */}
-            <nav className="hidden md:flex items-center gap-8">
+            {/* Navigation - Center (hidden on mobile) */}
+            <nav className="hidden lg:flex items-center gap-8">
               <button
                 onClick={() => scrollToSection('features')}
                 className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
@@ -181,20 +181,20 @@ export default function Landing() {
             </nav>
 
             {/* Auth Buttons - Right */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Button
                 variant="ghost"
                 onClick={handleLogin}
                 data-testid="button-login"
-                className="text-gray-700 hover:text-gray-900 font-medium"
+                className="hidden sm:inline-flex text-gray-700 hover:text-gray-900 font-medium"
               >
                 Sign in
               </Button>
               <Button
                 onClick={handleRegister}
-                className="bg-primary hover:bg-primary/90 text-white font-medium px-5"
+                className="bg-primary hover:bg-primary/90 text-white font-medium px-3 sm:px-5 text-sm sm:text-base h-9 sm:h-10"
               >
-                Start for free now
+                Get Started
               </Button>
             </div>
           </div>
@@ -202,16 +202,16 @@ export default function Landing() {
       </header>
 
       {/* Hero Section - Systeme.io style */}
-      <section className="pt-16 pb-8 bg-white">
+      <section className="pt-8 sm:pt-16 pb-6 sm:pb-8 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* Main Headline */}
           <AnimatedSection animation="fade-up">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-3 sm:mb-6">
               The easiest all-in-one{" "}
               <span className="relative inline-block">
                 <span className="relative z-10">affiliate marketing</span>
                 <span
-                  className="absolute bottom-1 left-0 w-full h-3 bg-primary/40 -z-0"
+                  className="absolute bottom-0 sm:bottom-1 left-0 w-full h-2 sm:h-3 bg-primary/40 -z-0"
                   style={{ transform: "skewX(-3deg)" }}
                 />
               </span>{" "}
@@ -221,25 +221,25 @@ export default function Landing() {
 
           {/* Subheadline */}
           <AnimatedSection animation="fade-up" delay={100}>
-            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-              Get your free account now!
+            <p className="text-base sm:text-xl text-gray-600 mb-6 sm:mb-10 max-w-2xl mx-auto">
+              Get your free account now
             </p>
           </AnimatedSection>
 
           {/* Email Signup Form */}
           <AnimatedSection animation="zoom-in" delay={200}>
-            <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-6">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 max-w-lg mx-auto mb-4 sm:mb-6 px-2 sm:px-0">
               <Input
                 type="email"
                 placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 h-12 text-base border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                className="flex-1 h-10 sm:h-12 text-sm sm:text-base border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
               />
               <Button
                 onClick={handleGetStarted}
                 data-testid="button-get-started"
-                className="h-12 px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-base rounded-lg"
+                className="h-10 sm:h-12 px-6 sm:px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-sm sm:text-base rounded-lg"
               >
                 Get Started
               </Button>
@@ -248,13 +248,13 @@ export default function Landing() {
 
           {/* Trust Badges */}
           <AnimatedSection animation="fade-up" delay={300}>
-            <div className="flex flex-wrap justify-center items-center gap-6 text-gray-500 text-sm">
-              <div className="flex items-center gap-2">
-                <ThumbsUp className="h-4 w-4" />
+            <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 text-gray-500 text-xs sm:text-sm">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <ThumbsUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span>Free forever</span>
               </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span>No credit card required</span>
               </div>
             </div>
@@ -262,10 +262,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Product Mockups Section */}
-      <section className="pb-20 bg-gradient-to-b from-white to-gray-50">
+      {/* Product Mockups Section - Hidden on mobile */}
+      <section className="hidden sm:block pb-12 sm:pb-20 bg-gradient-to-b from-white to-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-8 items-start">
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-start">
             {/* Left Mockup - Dashboard Preview */}
             <AnimatedSection animation="fade-right" delay={100}>
               <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
@@ -423,20 +423,53 @@ export default function Landing() {
       </section>
 
       {/* Trending Products Carousel Section */}
-      <section className="py-16 bg-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+      <section className="py-8 sm:py-16 bg-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mb-6 sm:mb-10">
           <AnimatedSection animation="fade-up">
             <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
                 Trending Products to Promote
               </h2>
-              <p className="text-gray-600">Top-selling items with high commission rates</p>
+              <p className="text-sm sm:text-base text-gray-600">Top selling items with high comission rates</p>
             </div>
           </AnimatedSection>
         </div>
 
-        {/* Infinite Scrolling Carousels - 3 Rows */}
-        <div className="space-y-6">
+        {/* Mobile Grid Layout - Visible only on small screens */}
+        <div className="sm:hidden px-3">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { name: "Wireless Earbuds", price: "CA$129.96", commission: "6%", earn: "CA$29", image: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400&h=400&fit=crop&q=80" },
+              { name: "Smart Watch Charger", price: "CA$49.9", commission: "CA10", earn: "CA$9", image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&h=400&fit=crop&q=80" },
+              { name: "Running Shoes", price: "CA$179.96", commission: "$49", earn: "S$26", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop&q=80" },
+              { name: "Whole Coffee Beans", price: "CA$15.99", commission: "6T0", earn: "CA$3", image: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&h=400&fit=crop&q=80" },
+              { name: "Baiance", price: "CA$15.99", commission: "$80", earn: "CA$19", image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400&h=400&fit=crop&q=80" },
+              { name: "Futer", price: "CA$15.99", commission: "G5", earn: "CA$9", image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400&h=400&fit=crop&q=80" },
+            ].map((product, i) => (
+              <div key={`mobile-${i}`} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                <div className="aspect-square bg-gray-100 relative overflow-hidden">
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <span className="absolute top-1.5 right-1.5 bg-green-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">{product.commission}</span>
+                </div>
+                <div className="p-2">
+                  <div className="font-medium text-gray-900 text-[10px] leading-tight line-clamp-2 mb-1">{product.name}</div>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-gray-900 font-semibold text-[9px]">{product.price}</span>
+                    <span className="bg-primary text-white font-medium text-[8px] px-1.5 py-0.5 rounded">Earn {product.earn}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop Infinite Scrolling Carousels - Hidden on mobile */}
+        <div className="hidden sm:block space-y-6">
           {/* Row 1 - Scrolling Left */}
           <div className="relative overflow-hidden">
             <div className="flex animate-scroll-infinite">
@@ -566,26 +599,26 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <AnimatedSection animation="fade-up" className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+      <section id="features" className="py-12 sm:py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <AnimatedSection animation="fade-up" className="text-center mb-8 sm:mb-16">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">
               Why Choose{" "}
               <span className="relative inline-block">
                 <span className="relative z-10">AffiliateXchange</span>
                 <span
-                  className="absolute bottom-1 left-0 w-full h-3 bg-primary/40 -z-0"
+                  className="absolute bottom-0 sm:bottom-1 left-0 w-full h-2 sm:h-3 bg-primary/40 -z-0"
                   style={{ transform: "skewX(-3deg)" }}
                 />
               </span>
               ?
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-sm sm:text-xl text-gray-600 max-w-2xl mx-auto">
               Everything you need to monetize your audience and grow your income
             </p>
           </AnimatedSection>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
             {features.map((feature, index) => (
               <FeatureCard key={feature.title} feature={feature} index={index} />
             ))}
@@ -594,16 +627,16 @@ export default function Landing() {
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <AnimatedSection animation="fade-up" className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+      <section id="how-it-works" className="py-12 sm:py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <AnimatedSection animation="fade-up" className="text-center mb-8 sm:mb-16">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">
               How It Works
             </h2>
-            <p className="text-xl text-gray-600">Get started in three simple steps</p>
+            <p className="text-sm sm:text-xl text-gray-600">Get started in three simple steps</p>
           </AnimatedSection>
 
-          <div className="grid md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-12">
             {steps.map((step, index) => (
               <HowItWorksStep key={step.number} step={step} index={index} />
             ))}
@@ -612,43 +645,43 @@ export default function Landing() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <AnimatedSection animation="fade-up" className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+      <section id="testimonials" className="py-12 sm:py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <AnimatedSection animation="fade-up" className="text-center mb-8 sm:mb-16">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">
               Trusted by Creators
             </h2>
-            <p className="text-xl text-gray-600">See what our community has to say</p>
+            <p className="text-sm sm:text-xl text-gray-600">See what our community has to say</p>
           </AnimatedSection>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
             {testimonials.map((creator, i) => (
               <AnimatedSection key={i} animation="zoom-in" delay={i * 100}>
                 <Card className="bg-white border-gray-200 shadow-sm hover:shadow-md transition-shadow h-full">
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex gap-1">
+                  <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                    <div className="flex gap-0.5 sm:gap-1">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <Star key={star} className="h-3 w-3 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400" />
                       ))}
                     </div>
-                    <p className="text-gray-600">
+                    <p className="text-sm sm:text-base text-gray-600">
                       "{creator.testimonial}"
                     </p>
-                    <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-100">
                       {creator.image ? (
                         <img
                           src={creator.image}
                           alt={creator.name}
-                          className="h-10 w-10 rounded-full object-cover"
+                          className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
+                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary text-sm sm:text-base">
                           {creator.name.charAt(0)}
                         </div>
                       )}
                       <div>
-                        <div className="font-semibold text-gray-900">{creator.name}</div>
-                        <div className="text-sm text-gray-500">{creator.role}</div>
+                        <div className="font-semibold text-gray-900 text-sm sm:text-base">{creator.name}</div>
+                        <div className="text-xs sm:text-sm text-gray-500">{creator.role}</div>
                       </div>
                     </div>
                   </CardContent>
@@ -660,39 +693,39 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="py-12 sm:py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 text-center">
           <AnimatedSection animation="fade-up">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">
               Ready to Start{" "}
               <span className="relative inline-block">
                 <span className="relative z-10">Earning</span>
                 <span
-                  className="absolute bottom-1 left-0 w-full h-3 bg-primary/40 -z-0"
+                  className="absolute bottom-0 sm:bottom-1 left-0 w-full h-2 sm:h-3 bg-primary/40 -z-0"
                   style={{ transform: "skewX(-3deg)" }}
                 />
               </span>
               ?
             </h2>
-            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+            <p className="text-sm sm:text-xl text-gray-600 mb-6 sm:mb-10 max-w-2xl mx-auto">
               Join thousands of creators already making money with AffiliateXchange
             </p>
           </AnimatedSection>
 
           {/* Email Signup Form */}
           <AnimatedSection animation="zoom-in" delay={100}>
-            <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-8">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 max-w-lg mx-auto mb-6 sm:mb-8 px-2 sm:px-0">
               <Input
                 type="email"
                 placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 h-12 text-base border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
+                className="flex-1 h-10 sm:h-12 text-sm sm:text-base border-gray-300 rounded-lg focus:border-primary focus:ring-primary"
               />
               <Button
                 onClick={handleGetStarted}
                 data-testid="button-join-now"
-                className="h-12 px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-base rounded-lg"
+                className="h-10 sm:h-12 px-6 sm:px-8 bg-primary hover:bg-primary/90 text-white font-semibold text-sm sm:text-base rounded-lg"
               >
                 Get Started Free
               </Button>
@@ -700,17 +733,17 @@ export default function Landing() {
           </AnimatedSection>
 
           <AnimatedSection animation="fade-up" delay={200}>
-            <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-500">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+            <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-8 text-xs sm:text-sm text-gray-500">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                 <span>No credit card required</span>
               </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                 <span>Instant approvals</span>
               </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                 <span>Free to join</span>
               </div>
             </div>
@@ -719,15 +752,15 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <footer className="border-t border-gray-200 py-8 sm:py-12 bg-white">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <AnimatedSection animation="fade-up">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-2">
-                <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover" />
-                <span className="font-bold text-gray-900">AffiliateXchange</span>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <img src="/logo.png" alt="AffiliateXchange Logo" className="h-6 w-6 sm:h-8 sm:w-8 rounded-md object-cover" />
+                <span className="font-bold text-gray-900 text-sm sm:text-base">AffiliateXchange</span>
               </div>
-              <div className="flex gap-6 text-sm">
+              <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm">
                 <Link
                   href="/privacy-policy"
                   className="text-gray-500 hover:text-gray-900 transition-colors"
@@ -741,7 +774,7 @@ export default function Landing() {
                   Terms of Service
                 </Link>
               </div>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 © 2025 AffiliateXchange. All rights reserved.
               </p>
             </div>
@@ -759,16 +792,16 @@ function FeatureCard({ feature, index }: { feature: { icon: any; title: string; 
   return (
     <div
       ref={ref}
-      className={`bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-500 ${
+      className={`bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-500 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
       style={{ transitionDelay: `${index * 100}ms` }}
     >
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary mb-4">
-        <Icon className="h-6 w-6" />
+      <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 text-primary mb-3 sm:mb-4">
+        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
       </div>
-      <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
-      <p className="text-gray-600">{feature.description}</p>
+      <h3 className="text-base sm:text-xl font-semibold text-gray-900 mb-1.5 sm:mb-2">{feature.title}</h3>
+      <p className="text-sm sm:text-base text-gray-600">{feature.description}</p>
     </div>
   );
 }
@@ -779,10 +812,10 @@ function HowItWorksStep({ step, index }: { step: { number: number; title: string
   return (
     <div
       ref={ref}
-      className="text-center space-y-4"
+      className="text-center space-y-3 sm:space-y-4"
     >
       <div
-        className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary text-white text-2xl font-bold transition-all duration-600 ${
+        className={`inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary text-white text-xl sm:text-2xl font-bold transition-all duration-600 ${
           isVisible ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
         }`}
         style={{
@@ -798,7 +831,7 @@ function HowItWorksStep({ step, index }: { step: { number: number; title: string
         }`}
         style={{ transitionDelay: `${index * 200 + 100}ms` }}
       >
-        <h3 className="text-xl font-semibold text-gray-900">{step.title}</h3>
+        <h3 className="text-base sm:text-xl font-semibold text-gray-900">{step.title}</h3>
       </div>
       <div
         className={`transition-all duration-500 ${
@@ -806,7 +839,7 @@ function HowItWorksStep({ step, index }: { step: { number: number; title: string
         }`}
         style={{ transitionDelay: `${index * 200 + 200}ms` }}
       >
-        <p className="text-gray-600">
+        <p className="text-sm sm:text-base text-gray-600">
           {step.description}
         </p>
       </div>
