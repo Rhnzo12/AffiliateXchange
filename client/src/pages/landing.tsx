@@ -752,33 +752,120 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 py-8 sm:py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <AnimatedSection animation="fade-up">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <img src="/logo.png" alt="AffiliateXchange Logo" className="h-6 w-6 sm:h-8 sm:w-8 rounded-md object-cover" />
-                <span className="font-bold text-gray-900 text-sm sm:text-base">AffiliateXchange</span>
+      <footer className="bg-[#0d1b2a] py-12 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Main Footer Content */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-8 sm:gap-12 mb-10 sm:mb-12">
+            {/* Logo & Description */}
+            <div className="col-span-2 sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center gap-2 mb-4">
+                <img src="/logo.png" alt="AffiliateXchange Logo" className="h-8 w-8 rounded-md object-cover" />
+                <span className="font-bold text-white text-lg">AffiliateXchange</span>
               </div>
-              <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm">
-                <Link
-                  href="/privacy-policy"
-                  className="text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  Privacy Policy
-                </Link>
-                <Link
-                  href="/terms-of-service"
-                  className="text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  Terms of Service
-                </Link>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-500">
-                © 2025 AffiliateXchange. All rights reserved.
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Connecting creators with top brands. From discovering offers to earning commissions - AffiliateXchange makes it simple.
               </p>
             </div>
-          </AnimatedSection>
+
+            {/* Platform Links */}
+            <div>
+              <h4 className="text-primary font-semibold mb-4 text-sm">Platform</h4>
+              <ul className="space-y-3">
+                <li>
+                  <button onClick={() => scrollToSection('features')} className="text-gray-400 hover:text-white transition-colors text-sm">
+                    Features
+                  </button>
+                </li>
+                <li>
+                  <Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    For Creators
+                  </Link>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection('how-it-works')} className="text-gray-400 hover:text-white transition-colors text-sm">
+                    How It Works
+                  </button>
+                </li>
+                <li>
+                  <Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    Pricing
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Company Links */}
+            <div>
+              <h4 className="text-primary font-semibold mb-4 text-sm">Company</h4>
+              <ul className="space-y-3">
+                <li>
+                  <Link href="/about" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    About Us
+                  </Link>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection('testimonials')} className="text-gray-400 hover:text-white transition-colors text-sm">
+                    Testimonials
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal Links */}
+            <div>
+              <h4 className="text-primary font-semibold mb-4 text-sm">Legal</h4>
+              <ul className="space-y-3">
+                <li>
+                  <Link href="/privacy-policy" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms-of-service" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/cookie-policy" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    Cookie Policy
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h4 className="text-primary font-semibold mb-4 text-sm">Contact</h4>
+              <ul className="space-y-3">
+                <li>
+                  <a href="mailto:support@affiliatexchange.com" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    support@affiliatexchange.com
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="border-t border-gray-700 pt-6 sm:pt-8">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <p className="text-gray-500 text-sm">
+                © 2025 AffiliateXchange. All rights reserved.
+              </p>
+              {/* Social Links */}
+              <div className="flex items-center gap-6">
+                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm">
+                  LinkedIn
+                </a>
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm">
+                  Twitter
+                </a>
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm">
+                  Facebook
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
