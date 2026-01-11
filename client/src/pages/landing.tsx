@@ -265,11 +265,11 @@ export default function Landing() {
             </div>
 
             {/* Right Side - Device Mockups */}
-            <div className="flex-1 hidden lg:flex items-center justify-center">
+            <div className="flex-1 hidden lg:flex items-center justify-center pl-8">
               <AnimatedSection animation="fade-left" delay={200}>
                 <div className="relative">
                   {/* Phone Frame - On the LEFT, overlapping laptop */}
-                  <div className="absolute -left-12 bottom-8 w-40 z-10">
+                  <div className="absolute -left-16 bottom-0 w-44 z-10">
                     {/* Phone Body */}
                     <div className="bg-gray-800 rounded-[2rem] p-1.5 shadow-2xl">
                       {/* Phone Screen */}
@@ -283,7 +283,7 @@ export default function Landing() {
                           </div>
                         </div>
                         {/* Phone Content */}
-                        <div className="p-3 bg-white" style={{ minHeight: '300px' }}>
+                        <div className="p-3 bg-white" style={{ minHeight: '340px' }}>
                           {/* Phone Header */}
                           <div className="flex items-center gap-2 mb-3 pb-2 border-b">
                             <img src="/logo.png" alt="Logo" className="h-5 w-5 rounded" />
@@ -340,7 +340,7 @@ export default function Landing() {
                   </div>
 
                   {/* Laptop Frame */}
-                  <div className="relative ml-20" style={{ width: '560px' }}>
+                  <div className="relative ml-24" style={{ width: '620px' }}>
                     {/* Laptop Screen */}
                     <div className="bg-gray-800 rounded-t-xl p-2 pb-0">
                       <div className="bg-white rounded-t-lg overflow-hidden shadow-inner">
@@ -356,7 +356,7 @@ export default function Landing() {
                           </div>
                         </div>
                         {/* Dashboard Content */}
-                        <div className="flex bg-gray-50" style={{ height: '300px' }}>
+                        <div className="flex bg-gray-50" style={{ height: '340px' }}>
                           {/* Main Content */}
                           <div className="flex-1 p-4">
                             {/* Dashboard Title */}
@@ -411,7 +411,7 @@ export default function Landing() {
                             </div>
                           </div>
                           {/* Right Sidebar - Affiliate Marketplace */}
-                          <div className="w-48 bg-white border-l border-gray-200 p-3">
+                          <div className="w-52 bg-white border-l border-gray-200 p-3">
                             <div className="flex items-center justify-between mb-3">
                               <span className="text-[11px] font-semibold text-gray-900">Affiliate Marketplace</span>
                               <span className="text-[9px] text-gray-500">All Categories</span>
