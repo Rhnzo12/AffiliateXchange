@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "../lib/queryClient";
 import { useAuth } from "../hooks/useAuth";
@@ -74,6 +74,15 @@ export default function AdminNiches() {
     description: ""
   });
   const [statsExpanded, setStatsExpanded] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea when dialog opens with existing content
+  useEffect(() => {
+    if (showDialog && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [showDialog, description]);
 
   const { data: niches = [], isLoading: nichesLoading } = useQuery<Niche[]>({
     queryKey: ["/api/admin/niches"],
@@ -661,8 +670,7 @@ export default function AdminNiches() {
                                     className="h-7 px-2 text-xs"
                                     onClick={() => handleEdit(niche)}
                                   >
-                                    <Pencil className="h-3.5 w-3.5 mr-1" />
-                                    Edit
+                                    <Pencil className="h-3.5 w-3.5" />
                                   </Button>
                                   <Button
                                     variant="ghost"
@@ -717,11 +725,15 @@ export default function AdminNiches() {
             <div className="space-y-1.5 sm:space-y-2">
               <label className="text-xs sm:text-sm font-medium">Description</label>
               <Textarea
+                ref={textareaRef}
                 placeholder="Brief description of this niche category..."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="text-sm"
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                className="text-sm min-h-[80px] resize-none overflow-hidden"
               />
             </div>
 
