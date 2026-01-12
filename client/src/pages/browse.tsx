@@ -812,53 +812,53 @@ export default function Browse() {
       {/* Main Content */}
       <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 pt-1 pb-4 sm:pb-6 md:pb-8 space-y-4 sm:space-y-6 md:space-y-8">
         {/* Header - Left Aligned, Black Text */}
-        <div className="space-y-2">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">Browse Offers</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">Discover exclusive affiliate opportunities from verified brands</p>
+        <div className="space-y-1 sm:space-y-2">
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">Browse Offers</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm md:text-base">Discover exclusive affiliate opportunities from verified brands</p>
         </div>
 
         {/* Category Pills - Horizontal Scroll with Multi-Select */}
-        <ScrollArea orientation="horizontal" className="w-full pb-3">
-  <div className="flex gap-2 pb-1 pr-4 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-    {categoryOptions.map(({ label, value }) => {
-      // "All" is selected when no categories are selected
-      const isSelected = value === "all"
-        ? selectedCategories.length === 0
-        : selectedCategories.includes(value);
-      const ariaPressedValue: "true" | "false" = isSelected ? "true" : "false";
-      return (
-        <button
-          key={value || label}
-          onClick={() => toggleCategory(value)}
-          className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-            isSelected
-              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
-              : 'bg-secondary/50 hover:bg-secondary text-secondary-foreground'
-          }`}
-          aria-pressed={ariaPressedValue}
-        >
-          {label}
-        </button>
-      );
-    })}
-  </div>
-</ScrollArea>
+        <ScrollArea orientation="horizontal" className="w-full pb-2 sm:pb-3">
+          <div className="flex gap-1.5 sm:gap-2 pb-1 pr-4 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {categoryOptions.map(({ label, value }) => {
+              // "All" is selected when no categories are selected
+              const isSelected = value === "all"
+                ? selectedCategories.length === 0
+                : selectedCategories.includes(value);
+              const ariaPressedValue: "true" | "false" = isSelected ? "true" : "false";
+              return (
+                <button
+                  key={value || label}
+                  onClick={() => toggleCategory(value)}
+                  className={`px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 md:py-2.5 rounded-full text-[11px] sm:text-xs md:text-sm font-medium whitespace-nowrap transition-all ${
+                    isSelected
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                      : 'bg-secondary/50 hover:bg-secondary text-secondary-foreground'
+                  }`}
+                  aria-pressed={ariaPressedValue}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
 
         {/* Filters Row */}
-        <div className="flex items-center gap-2 sm:gap-4 flex-wrap sm:flex-nowrap">
-          <div className="relative flex-1 min-w-0 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
             <Input
               placeholder="Search offers..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-muted/50"
+              className="pl-8 sm:pl-10 bg-muted/50 h-9 sm:h-10 text-sm"
               data-testid="input-search-offers"
             />
           </div>
 
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full sm:w-52" data-testid="select-sort">
+            <SelectTrigger className="w-[130px] sm:w-[180px] h-9 sm:h-10 text-xs sm:text-sm flex-shrink-0" data-testid="select-sort">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -872,11 +872,10 @@ export default function Browse() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" data-testid="button-filters" className="gap-1 sm:gap-2 flex-shrink-0">
-                <SlidersHorizontal className="h-4 w-4" />
-                <span className="hidden xs:inline">Filters</span>
+              <Button variant="outline" data-testid="button-filters" className="gap-1 sm:gap-2 flex-shrink-0 h-9 sm:h-10 px-2.5 sm:px-3">
+                <SlidersHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 {(selectedNiches.length > 0 || commissionType || minimumPayout[0] > 0 || minRating > 0 || showTrending || showPriority) && (
-                  <Badge variant="secondary" className="ml-0.5 sm:ml-1 h-5 min-w-[20px] flex items-center justify-center px-1.5">
+                  <Badge variant="secondary" className="h-4 sm:h-5 min-w-[16px] sm:min-w-[20px] flex items-center justify-center px-1 sm:px-1.5 text-[10px] sm:text-xs">
                     {selectedNiches.length + (commissionType ? 1 : 0) + (minimumPayout[0] > 0 ? 1 : 0) + (minRating > 0 ? 1 : 0) + (showTrending ? 1 : 0) + (showPriority ? 1 : 0)}
                   </Badge>
                 )}
@@ -1058,7 +1057,7 @@ export default function Browse() {
 
           <Button
             variant="outline"
-            className="flex-shrink-0 gap-2"
+            className="hidden sm:flex flex-shrink-0 gap-2"
             onClick={() => setSaveSearchDialogOpen(true)}
           >
             <BookmarkPlus className="h-4 w-4" />
@@ -1067,7 +1066,7 @@ export default function Browse() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex-shrink-0 gap-2">
+              <Button variant="ghost" className="hidden sm:flex flex-shrink-0 gap-2">
                 <Bookmark className="h-4 w-4" />
                 Saved searches
               </Button>
@@ -1160,9 +1159,9 @@ export default function Browse() {
 
         {/* Loading State */}
         {isCurrentLoading() ? (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-foreground">Loading...</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="space-y-3 sm:space-y-4">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Loading...</h2>
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4 md:gap-6">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <OfferCardSkeleton key={i} />
               ))}
@@ -1188,39 +1187,96 @@ export default function Browse() {
                   // Don't show header for monthly retainers only (shown in separate section)
                   if (onlyMonthlyRetainers) return null;
 
+                  // Mobile saved searches dropdown component
+                  const MobileSavedSearches = () => (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex sm:hidden items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                          <Bookmark className="h-3.5 w-3.5" />
+                          <span>Saved searches</span>
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-72" align="end">
+                        <DropdownMenuLabel className="text-xs">Saved searches</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {savedSearchesLoading ? (
+                          <DropdownMenuItem className="pointer-events-none text-muted-foreground text-xs">
+                            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                            Loading...
+                          </DropdownMenuItem>
+                        ) : savedSearches.length === 0 ? (
+                          <DropdownMenuItem className="pointer-events-none text-muted-foreground text-xs">
+                            No saved searches yet
+                          </DropdownMenuItem>
+                        ) : (
+                          savedSearches.slice(0, 5).map((search) => (
+                            <DropdownMenuItem
+                              key={search.id}
+                              className="text-xs py-2"
+                              onSelect={() => handleApplySavedSearch(search)}
+                            >
+                              <span className="truncate">{search.name}</span>
+                            </DropdownMenuItem>
+                          ))
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  );
+
                   // Show "Trending Offers" when only trending is selected
                   if (onlyTrending && sortedOffers.length > 0) {
                     return (
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
-                        <h2 className="text-xl sm:text-2xl font-bold text-foreground">Trending Offers</h2>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
+                          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Trending Offers</h2>
+                        </div>
+                        <MobileSavedSearches />
                       </div>
                     );
                   }
 
                   // Show "Monthly Retainers Offers" when combined with other categories
                   if (hasMonthlyRetainers && selectedCategories.length > 1 && !hasTrending && nicheCategories.length === 0) {
-                    return <h2 className="text-xl sm:text-2xl font-bold text-foreground">Monthly Retainers Offers</h2>;
+                    return (
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Monthly Retainers Offers</h2>
+                        <MobileSavedSearches />
+                      </div>
+                    );
                   }
 
                   // Show specific niche name when single niche is selected
                   if (nicheCategories.length === 1 && !hasTrending && !hasMonthlyRetainers && sortedOffers.length > 0) {
                     const categoryName = formatNicheLabel(nicheCategories[0]);
                     return (
-                      <h2 className="text-xl sm:text-2xl font-bold text-foreground capitalize">
-                        {categoryName} Offers
-                      </h2>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground capitalize">
+                          {categoryName} Offers
+                        </h2>
+                        <MobileSavedSearches />
+                      </div>
                     );
                   }
 
                   // Show "Filtered Offers" for multiple selections
                   if ((nicheCategories.length > 1 || (nicheCategories.length > 0 && (hasTrending || hasMonthlyRetainers))) && sortedOffers.length > 0) {
-                    return <h2 className="text-xl sm:text-2xl font-bold text-foreground">Filtered Offers</h2>;
+                    return (
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">Filtered Offers</h2>
+                        <MobileSavedSearches />
+                      </div>
+                    );
                   }
 
                   // Default: "All Offers" when no category is selected
                   if (selectedCategories.length === 0 && sortedOffers.length > 0) {
-                    return <h2 className="text-xl sm:text-2xl font-bold text-foreground">All Offers</h2>;
+                    return (
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">All Offers</h2>
+                        <MobileSavedSearches />
+                      </div>
+                    );
                   }
 
                   return null;
@@ -1255,7 +1311,7 @@ export default function Browse() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-4 md:gap-6">
               {displayOffers.map((offer) => {
                 const isFavorite = favorites.some(f => f.offerId === offer.id);
                 const category = getOfferCategory(offer);
@@ -1296,99 +1352,85 @@ export default function Browse() {
                             />
                             {/* Fallback if image fails */}
                             <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
-                              <Play className="h-12 w-12 text-muted-foreground/50" />
+                              <Play className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground/50" />
                             </div>
                           </>
                         ) : !isRetainer ? (
                           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-purple-500/10">
-                            <Play className="h-12 w-12 text-muted-foreground/50" />
+                            <Play className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground/50" />
                           </div>
                         ) : null}
 
                         {/* Favorite button - Top Left */}
                         <button
-                          className="rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-lg backdrop-blur-md"
-                          style={{
-                            position: 'absolute',
-                            top: '8px',
-                            left: '8px',
-                            width: '44px',
-                            height: '44px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                            zIndex: 10,
-                            border: 'none',
-                            cursor: 'pointer'
-                          }}
+                          className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-md sm:shadow-lg backdrop-blur-md bg-white/95 z-10 border-0 cursor-pointer"
                           onClick={(e) => handleFavoriteToggle(e, offer.id)}
                           data-testid={`button-favorite-${offer.id}`}
                           aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                         >
-                          <Heart className={`h-5 w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500 scale-110' : 'text-gray-600'}`} />
+                          <Heart className={`h-3.5 w-3.5 sm:h-5 sm:w-5 transition-all ${isFavorite ? 'fill-red-500 text-red-500 scale-110' : 'text-gray-600'}`} />
                         </button>
 
                         {/* Category Badge - Top Right */}
                         {category && (
-                          <div className={`absolute top-0 right-0 ${category.color} text-white px-3 py-1.5 rounded-bl-lg shadow-lg font-bold text-xs tracking-wide`}>
+                          <div className={`absolute top-0 right-0 ${category.color} text-white px-1.5 py-1 sm:px-3 sm:py-1.5 rounded-bl-lg shadow-lg font-bold text-[9px] sm:text-xs tracking-wide`}>
                             {category.label}
                           </div>
                         )}
                       </div>
 
-                      <CardContent className="p-4 sm:p-5 space-y-2 sm:space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-semibold text-sm sm:text-base line-clamp-1 flex-1">{offer.title}</h3>
+                      <CardContent className="p-2.5 sm:p-4 md:p-5 space-y-1.5 sm:space-y-2 md:space-y-3">
+                        <div className="flex items-start justify-between gap-1.5 sm:gap-2">
+                          <h3 className="font-semibold text-xs sm:text-sm md:text-base line-clamp-1 flex-1">{offer.title}</h3>
                           {!isRetainer && offer.company?.logoUrl && (
-                            <img src={proxiedSrc(offer.company.logoUrl)} alt={offer.company.tradeName} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover ring-2 ring-border flex-shrink-0" />
+                            <img src={proxiedSrc(offer.company.logoUrl)} alt={offer.company.tradeName} className="h-6 w-6 sm:h-8 sm:w-8 md:h-9 md:w-9 rounded-full object-cover ring-1 sm:ring-2 ring-border flex-shrink-0" />
                           )}
                         </div>
 
-                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">{offer.shortDescription}</p>
+                        <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground line-clamp-2 leading-relaxed">{offer.shortDescription}</p>
 
-                        <div className="flex flex-wrap gap-1 sm:gap-1.5">
+                        <div className="flex flex-wrap gap-0.5 sm:gap-1 md:gap-1.5">
                           {offer.primaryNiche && (() => {
                             const formattedNiche = formatNicheLabel(offer.primaryNiche);
                             const badgeClass = NICHE_COLORS[formattedNiche] || 'bg-secondary';
 
                             return (
-                              <Badge variant="outline" className={`text-[10px] sm:text-xs border ${badgeClass}`}>
+                              <Badge variant="outline" className={`text-[8px] sm:text-[10px] md:text-xs border px-1 sm:px-1.5 py-0 sm:py-0.5 ${badgeClass}`}>
                                 {formattedNiche}
                               </Badge>
                             );
                           })()}
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 sm:pt-3 border-t">
-                          <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
-                            <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-amber-400 text-amber-400" />
+                        <div className="flex items-center justify-between pt-1.5 sm:pt-2 md:pt-3 border-t">
+                          <div className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 text-[10px] sm:text-xs md:text-sm">
+                            <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 fill-amber-400 text-amber-400" />
                             <span className="font-medium text-foreground">{offer.company?.averageRating?.toFixed(1) || '5.0'}</span>
                           </div>
-                          <div className={`flex items-center gap-0.5 sm:gap-1 font-mono font-bold text-sm sm:text-base ${
+                          <div className={`flex items-center gap-0 sm:gap-0.5 md:gap-1 font-mono font-bold text-xs sm:text-sm md:text-base ${
                             isRetainer ? 'text-purple-600 group-hover:text-purple-700' : 'text-primary'
                           } transition-colors`}>
-                            {commissionDisplay.isCurrency && <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />}
+                            {commissionDisplay.isCurrency && <DollarSign className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4" />}
                             {commissionDisplay.value}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1 sm:gap-1.5">
-                            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span className="hidden xs:inline">{offer.activeCreatorsCount || 0} active</span>
-                            <span className="xs:hidden">{offer.activeCreatorsCount || 0}</span>
+                        <div className="flex items-center justify-between text-[10px] sm:text-xs md:text-sm text-muted-foreground">
+                          <div className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5">
+                            <Users className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4" />
+                            <span>{offer.activeCreatorsCount || 0}</span>
                           </div>
                         </div>
 
                         {/* Application Status */}
                         {hasApplied && application && (
-                          <div className="pt-2 sm:pt-3 border-t">
-                            <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                              <div className="flex items-center gap-2">
-                                <Badge variant={getApplicationStatusBadge(application.status).variant} className="text-xs">
-                                  {getApplicationStatusBadge(application.status).label}
-                                </Badge>
-                              </div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground">
-                                <span className="hidden sm:inline">Applied: </span>{formatApplicationDate(application.createdAt)}
+                          <div className="pt-1.5 sm:pt-2 md:pt-3 border-t">
+                            <div className="flex items-center justify-between gap-1 sm:gap-2">
+                              <Badge variant={getApplicationStatusBadge(application.status).variant} className="text-[8px] sm:text-[10px] md:text-xs px-1.5 sm:px-2 py-0 sm:py-0.5">
+                                {getApplicationStatusBadge(application.status).label}
+                              </Badge>
+                              <div className="text-[8px] sm:text-[10px] md:text-xs text-muted-foreground">
+                                {formatApplicationDate(application.createdAt)}
                               </div>
                             </div>
                           </div>

@@ -500,7 +500,7 @@
 
   .animate-scroll-infinite {
     display: flex;
-    animation: scroll-infinite 30s linear infinite;
+    animation: scroll-infinite 60s linear infinite;
     width: fit-content;
   }
 
@@ -516,7 +516,7 @@
 
   .animate-scroll-infinite-reverse {
     display: flex;
-    animation: scroll-infinite-reverse 30s linear infinite;
+    animation: scroll-infinite-reverse 60s linear infinite;
     width: fit-content;
   }
 }

@@ -638,99 +638,105 @@ export default function AdminAnalytics() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-background">
       <TopNavBar />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Admin Analytics</h1>
-          <p className="text-muted-foreground mt-1">
-            Platform-wide financial and user analytics
-          </p>
+      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-8 max-w-7xl mx-auto space-y-4 sm:space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
+          <div>
+            <h1 className="text-xl sm:text-3xl font-bold">Admin Analytics</h1>
+            <p className="text-xs sm:text-base text-muted-foreground mt-1">
+              Platform-wide financial and user analytics
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Select value={dateRange} onValueChange={setDateRange}>
+              <SelectTrigger className="w-32 sm:w-40 h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DATE_RANGES.map((range) => (
+                  <SelectItem key={range.value} value={range.value}>
+                    {range.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 sm:gap-2 h-9"
+              onClick={() => {
+                refetch();
+                refetchHealth();
+                queryClient.invalidateQueries({ queryKey: ["/api/admin/churn-analytics"] });
+              }}
+              disabled={analyticsLoading || healthLoading || churnLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${(analyticsLoading || healthLoading || churnLoading) ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2 justify-end">
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DATE_RANGES.map((range) => (
-                <SelectItem key={range.value} value={range.value}>
-                  {range.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => {
-              // Refresh all analytics data
-              refetch();
-              refetchHealth();
-              queryClient.invalidateQueries({ queryKey: ["/api/admin/churn-analytics"] });
-            }}
-            disabled={analyticsLoading || healthLoading || churnLoading}
-          >
-            <RefreshCw className={`h-4 w-4 ${(analyticsLoading || healthLoading || churnLoading) ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-        </div>
-      </div>
 
-      {analyticsLoading ? (
-        <>
-          <StatsGridSkeleton count={4} />
-          <ChartSkeleton />
-        </>
-      ) : (
-        <Tabs defaultValue="financial" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
-            <TabsTrigger value="financial" className="gap-2">
-              <DollarSign className="h-4 w-4" />
-              Financial
-            </TabsTrigger>
-            <TabsTrigger value="users" className="gap-2">
-              <Users className="h-4 w-4" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="platform" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Platform
-            </TabsTrigger>
-            <TabsTrigger value="health" className="gap-2">
-              <Activity className="h-4 w-4" />
-              Health
-            </TabsTrigger>
-          </TabsList>
+        {analyticsLoading ? (
+          <>
+            <StatsGridSkeleton count={4} />
+            <ChartSkeleton />
+          </>
+        ) : (
+          <Tabs defaultValue="financial" className="space-y-4 sm:space-y-6">
+            {/* Scrollable tabs on mobile */}
+            <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
+              <TabsList className="inline-flex w-auto min-w-full sm:w-full sm:max-w-lg sm:grid sm:grid-cols-4">
+                <TabsTrigger value="financial" className="gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">
+                  <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  Financial
+                </TabsTrigger>
+                <TabsTrigger value="users" className="gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">
+                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  Users
+                </TabsTrigger>
+                <TabsTrigger value="platform" className="gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">
+                  <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  Platform
+                </TabsTrigger>
+                <TabsTrigger value="health" className="gap-1 sm:gap-2 text-xs sm:text-sm px-3 sm:px-4 whitespace-nowrap">
+                  <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  Health
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
           {/* Financial Tab */}
-          <TabsContent value="financial" className="space-y-6">
+          <TabsContent value="financial" className="space-y-4 sm:space-y-6">
             {/* Export Actions */}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" className="gap-2" onClick={exportFinancialCsv}>
-                <Download className="h-4 w-4" />
-                Export CSV
+              <Button variant="outline" size="sm" className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm" onClick={exportFinancialCsv}>
+                <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Export CSV</span>
+                <span className="sm:hidden">CSV</span>
               </Button>
-              <Button variant="outline" className="gap-2" onClick={exportFinancialPdf}>
-                <FileText className="h-4 w-4" />
-                PDF Report
+              <Button variant="outline" size="sm" className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm" onClick={exportFinancialPdf}>
+                <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">PDF Report</span>
+                <span className="sm:hidden">PDF</span>
               </Button>
             </div>
 
             {/* Financial Stats Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 sm:gap-6 grid-cols-2 lg:grid-cols-4">
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Total Revenue</CardTitle>
+                  <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono text-green-600">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold font-mono text-green-600">
                     CA${(analytics?.financial?.totalRevenue || 0).toFixed(2)}
                   </div>
-                  <div className="flex items-center text-xs text-muted-foreground mt-1">
+                  <div className="flex items-center text-[10px] sm:text-xs text-muted-foreground mt-1">
                     {(analytics?.financial?.revenueGrowth || 0) >= 0 ? (
                       <>
                         <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
@@ -746,49 +752,49 @@ export default function AdminAnalytics() {
                         </span>
                       </>
                     )}
-                    <span className="ml-1">vs last period</span>
+                    <span className="ml-1 hidden sm:inline">vs last period</span>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Listing Fees</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Listing Fees</CardTitle>
+                  <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold font-mono">
                     CA${(analytics?.financial?.listingFees || 0).toFixed(2)}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">One-time offer fees</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">One-time offer fees</p>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border bg-blue-50/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Affiliate Fees</CardTitle>
-                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">Offers</Badge>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Affiliate Fees</CardTitle>
+                  <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200 text-[10px] sm:text-xs px-1.5 sm:px-2">Offers</Badge>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono text-blue-600">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold font-mono text-blue-600">
                     CA${((analytics?.financial?.affiliatePlatformFees || 0) + (analytics?.financial?.affiliateProcessingFees || 0)).toFixed(2)}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                     {analytics?.financial?.affiliateTransactionCount || 0} transactions
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border bg-purple-50/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Retainer Fees</CardTitle>
-                  <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200">Contracts</Badge>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Retainer Fees</CardTitle>
+                  <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200 text-[10px] sm:text-xs px-1.5 sm:px-2">Contracts</Badge>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono text-purple-600">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold font-mono text-purple-600">
                     CA${((analytics?.financial?.retainerPlatformFees || 0) + (analytics?.financial?.retainerProcessingFees || 0)).toFixed(2)}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                     {analytics?.financial?.retainerTransactionCount || 0} transactions
                   </p>
                 </CardContent>
@@ -796,97 +802,98 @@ export default function AdminAnalytics() {
             </div>
 
             {/* Payout Stats */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 sm:gap-6 grid-cols-2 lg:grid-cols-4">
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Payouts</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Total Payouts</CardTitle>
+                  <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold font-mono">
                     CA${(analytics?.financial?.totalPayouts || 0).toFixed(2)}
                   </div>
-                  <div className="flex gap-2 mt-2 text-xs">
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                      Affiliate: CA${(analytics?.financial?.affiliatePayouts || 0).toFixed(2)}
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 mt-2 text-[10px] sm:text-xs">
+                    <span className="px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                      Aff: CA${(analytics?.financial?.affiliatePayouts || 0).toFixed(2)}
                     </span>
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
-                      Retainer: CA${(analytics?.financial?.retainerPayouts || 0).toFixed(2)}
+                    <span className="px-1.5 sm:px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                      Ret: CA${(analytics?.financial?.retainerPayouts || 0).toFixed(2)}
                     </span>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pending Payouts</CardTitle>
-                  <Badge variant="secondary">{(analytics?.financial?.pendingPayouts || 0) > 0 ? "Action needed" : "Up to date"}</Badge>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Pending</CardTitle>
+                  <Badge variant="secondary" className="text-[9px] sm:text-xs px-1 sm:px-2 hidden sm:inline-flex">{(analytics?.financial?.pendingPayouts || 0) > 0 ? "Action needed" : "Up to date"}</Badge>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono text-yellow-600">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold font-mono text-yellow-600">
                     CA${(analytics?.financial?.pendingPayouts || 0).toFixed(2)}
                   </div>
-                  <div className="flex gap-2 mt-2 text-xs">
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                      Affiliate: CA${(analytics?.financial?.affiliatePendingPayouts || 0).toFixed(2)}
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 mt-2 text-[10px] sm:text-xs">
+                    <span className="px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                      Aff: CA${(analytics?.financial?.affiliatePendingPayouts || 0).toFixed(2)}
                     </span>
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
-                      Retainer: CA${(analytics?.financial?.retainerPendingPayouts || 0).toFixed(2)}
+                    <span className="px-1.5 sm:px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                      Ret: CA${(analytics?.financial?.retainerPendingPayouts || 0).toFixed(2)}
                     </span>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Completed Payouts</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Completed</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono text-green-600">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold font-mono text-green-600">
                     CA${(analytics?.financial?.completedPayouts || 0).toFixed(2)}
                   </div>
-                  <div className="flex gap-2 mt-2 text-xs">
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                      Affiliate: CA${(analytics?.financial?.affiliateCompletedPayouts || 0).toFixed(2)}
+                  <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 mt-2 text-[10px] sm:text-xs">
+                    <span className="px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                      Aff: CA${(analytics?.financial?.affiliateCompletedPayouts || 0).toFixed(2)}
                     </span>
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
-                      Retainer: CA${(analytics?.financial?.retainerCompletedPayouts || 0).toFixed(2)}
+                    <span className="px-1.5 sm:px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                      Ret: CA${(analytics?.financial?.retainerCompletedPayouts || 0).toFixed(2)}
                     </span>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Disputed Payments</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Disputed</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono text-red-600">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold font-mono text-red-600">
                     CA${(analytics?.financial?.disputedPayments || 0).toFixed(2)}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Requiring resolution</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Requiring resolution</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Revenue Over Time Chart */}
             <Card className="border-card-border">
-              <CardHeader>
-                <CardTitle>Revenue Over Time</CardTitle>
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="text-sm sm:text-lg">Revenue Over Time</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
                 {analytics?.financial?.revenueByPeriod && analytics.financial.revenueByPeriod.length > 0 ? (
-                  <div className="h-80">
+                  <div className="h-52 sm:h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={analytics.financial.revenueByPeriod}>
+                      <AreaChart data={analytics.financial.revenueByPeriod} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis dataKey="period" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                        <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                        <XAxis dataKey="period" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
+                        <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: "hsl(var(--popover))",
                             border: "1px solid hsl(var(--border))",
                             borderRadius: "6px",
+                            fontSize: "12px",
                           }}
                           formatter={(value: any) => [`CA$${Number(value).toFixed(2)}`, ""]}
                         />
@@ -921,7 +928,7 @@ export default function AdminAnalytics() {
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
+                  <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm">
                     No revenue data available for this period.
                   </div>
                 )}
@@ -930,12 +937,12 @@ export default function AdminAnalytics() {
 
             {/* Revenue by Source */}
             <Card className="border-card-border">
-              <CardHeader>
-                <CardTitle>Revenue by Source</CardTitle>
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="text-sm sm:text-lg">Revenue by Source</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
                 {analytics?.financial?.revenueBySource && analytics.financial.revenueBySource.length > 0 ? (
-                  <div className="h-80 flex items-center justify-center">
+                  <div className="h-52 sm:h-80 flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                       <RechartsPie>
                         <Pie
@@ -944,8 +951,9 @@ export default function AdminAnalytics() {
                           nameKey="source"
                           cx="50%"
                           cy="50%"
-                          outerRadius={100}
+                          outerRadius={70}
                           label={({ source, percent }: any) => `${source}: ${(percent * 100).toFixed(0)}%`}
+                          labelLine={{ strokeWidth: 1 }}
                         >
                           {analytics.financial.revenueBySource.map((entry, index) => (
                             <Cell key={entry.source} fill={PIE_COLORS[index % PIE_COLORS.length]} />
@@ -956,7 +964,7 @@ export default function AdminAnalytics() {
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
+                  <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm">
                     No revenue source data available.
                   </div>
                 )}
@@ -965,184 +973,186 @@ export default function AdminAnalytics() {
           </TabsContent>
 
           {/* Users Tab */}
-          <TabsContent value="users" className="space-y-6">
+          <TabsContent value="users" className="space-y-4 sm:space-y-6">
             {/* Export Actions */}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" className="gap-2" onClick={exportUsersCsv}>
-                <Download className="h-4 w-4" />
-                Export CSV
+              <Button variant="outline" size="sm" className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm" onClick={exportUsersCsv}>
+                <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Export CSV</span>
+                <span className="sm:hidden">CSV</span>
               </Button>
-              <Button variant="outline" className="gap-2" onClick={exportUsersPdf}>
-                <FileText className="h-4 w-4" />
-                PDF Report
+              <Button variant="outline" size="sm" className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm" onClick={exportUsersPdf}>
+                <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">PDF Report</span>
+                <span className="sm:hidden">PDF</span>
               </Button>
             </div>
 
             {/* User Stats Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 sm:gap-6 grid-cols-2 lg:grid-cols-4">
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Total Users</CardTitle>
+                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analytics?.users?.totalUsers || 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold">{analytics?.users?.totalUsers || 0}</div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                     +{analytics?.users?.newUsersThisWeek || 0} this week
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Creators</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Creators</CardTitle>
+                  <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analytics?.users?.totalCreators || 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold">{analytics?.users?.totalCreators || 0}</div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                     {analytics?.users?.activeCreators || 0} active
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Companies</CardTitle>
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Companies</CardTitle>
+                  <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analytics?.users?.totalCompanies || 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {analytics?.users?.pendingCompanies || 0} pending approval
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold">{analytics?.users?.totalCompanies || 0}</div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                    {analytics?.users?.pendingCompanies || 0} pending
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Suspended</CardTitle>
-                  <Badge variant={analytics?.users?.suspendedUsers ? "destructive" : "secondary"}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Suspended</CardTitle>
+                  <Badge variant={analytics?.users?.suspendedUsers ? "destructive" : "secondary"} className="text-[10px] sm:text-xs px-1.5 sm:px-2">
                     {analytics?.users?.suspendedUsers || 0}
                   </Badge>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold text-red-600">
                     {analytics?.users?.suspendedUsers || 0}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Users suspended</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Users suspended</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Churn & Acquisition Metrics */}
             <Card className="border-card-border">
-              <CardHeader>
-                <div className="flex items-center justify-between">
+              <CardHeader className="p-3 sm:p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div>
-                    <CardTitle>Acquisition & Churn Metrics</CardTitle>
-                    <CardDescription className="mt-1">
-                      User retention and growth analysis for the selected period
+                    <CardTitle className="text-sm sm:text-lg">Acquisition & Churn Metrics</CardTitle>
+                    <CardDescription className="mt-1 text-xs sm:text-sm">
+                      User retention and growth analysis
                     </CardDescription>
                   </div>
                   {churnData?.summary && (
                     <Badge
                       variant={churnData.summary.healthScore >= 70 ? "default" :
                                churnData.summary.healthScore >= 50 ? "secondary" : "destructive"}
-                      className="gap-1"
+                      className="gap-1 text-[10px] sm:text-xs"
                     >
                       <Gauge className="h-3 w-3" />
-                      Health Score: {churnData.summary.healthScore}
+                      Score: {churnData.summary.healthScore}
                     </Badge>
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
                 {churnLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading churn data...</div>
+                  <div className="text-center py-6 sm:py-8 text-muted-foreground text-sm">Loading churn data...</div>
                 ) : churnData ? (
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     {/* Summary Stats */}
-                    <div className="grid gap-4 md:grid-cols-4">
-                      <div className="p-4 rounded-lg bg-green-50 border border-green-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <UserPlus className="h-4 w-4 text-green-600" />
-                          <span className="text-sm font-medium text-green-800">New This Period</span>
+                    <div className="grid gap-2 sm:gap-4 grid-cols-2 md:grid-cols-4">
+                      <div className="p-2.5 sm:p-4 rounded-lg bg-green-50 border border-green-200">
+                        <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                          <UserPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
+                          <span className="text-[10px] sm:text-sm font-medium text-green-800">New</span>
                         </div>
-                        <div className="text-2xl font-bold text-green-700">
+                        <div className="text-lg sm:text-2xl font-bold text-green-700">
                           +{(churnData.creators.newCreatorsThisPeriod || 0) + (churnData.companies.newCompaniesThisPeriod || 0)}
                         </div>
-                        <p className="text-xs text-green-600 mt-1">
+                        <p className="text-[9px] sm:text-xs text-green-600 mt-1 hidden sm:block">
                           {churnData.creators.newCreatorsThisPeriod || 0} creators, {churnData.companies.newCompaniesThisPeriod || 0} companies
                         </p>
                       </div>
 
-                      <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <UserMinus className="h-4 w-4 text-red-600" />
-                          <span className="text-sm font-medium text-red-800">Churned This Period</span>
+                      <div className="p-2.5 sm:p-4 rounded-lg bg-red-50 border border-red-200">
+                        <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                          <UserMinus className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600" />
+                          <span className="text-[10px] sm:text-sm font-medium text-red-800">Churned</span>
                         </div>
-                        <div className="text-2xl font-bold text-red-700">
+                        <div className="text-lg sm:text-2xl font-bold text-red-700">
                           -{(churnData.creators.churnedCreatorsThisPeriod || 0) + (churnData.companies.churnedCompaniesThisPeriod || 0)}
                         </div>
-                        <p className="text-xs text-red-600 mt-1">
+                        <p className="text-[9px] sm:text-xs text-red-600 mt-1 hidden sm:block">
                           {churnData.creators.churnedCreatorsThisPeriod || 0} creators, {churnData.companies.churnedCompaniesThisPeriod || 0} companies
                         </p>
                       </div>
 
-                      <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <TrendingUp className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-800">Acquisition Rate</span>
+                      <div className="p-2.5 sm:p-4 rounded-lg bg-blue-50 border border-blue-200">
+                        <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                          <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
+                          <span className="text-[10px] sm:text-sm font-medium text-blue-800">Acquisition</span>
                         </div>
-                        <div className="text-2xl font-bold text-blue-700">
+                        <div className="text-lg sm:text-2xl font-bold text-blue-700">
                           {churnData.summary.overallAcquisitionRate.toFixed(1)}%
                         </div>
-                        <p className="text-xs text-blue-600 mt-1">New users vs existing</p>
+                        <p className="text-[9px] sm:text-xs text-blue-600 mt-1 hidden sm:block">New vs existing</p>
                       </div>
 
-                      <div className="p-4 rounded-lg bg-orange-50 border border-orange-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <TrendingDown className="h-4 w-4 text-orange-600" />
-                          <span className="text-sm font-medium text-orange-800">Churn Rate</span>
+                      <div className="p-2.5 sm:p-4 rounded-lg bg-orange-50 border border-orange-200">
+                        <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                          <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-600" />
+                          <span className="text-[10px] sm:text-sm font-medium text-orange-800">Churn</span>
                         </div>
-                        <div className="text-2xl font-bold text-orange-700">
+                        <div className="text-lg sm:text-2xl font-bold text-orange-700">
                           {churnData.summary.overallChurnRate.toFixed(1)}%
                         </div>
-                        <p className="text-xs text-orange-600 mt-1">Lost users vs total</p>
+                        <p className="text-[9px] sm:text-xs text-orange-600 mt-1 hidden sm:block">Lost vs total</p>
                       </div>
                     </div>
 
                     {/* Detailed Breakdown */}
-                    <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
                       {/* Creator Churn */}
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-semibold mb-4 flex items-center gap-2">
-                          <Users className="h-4 w-4 text-blue-600" />
+                      <div className="p-3 sm:p-4 border rounded-lg">
+                        <h4 className="font-semibold mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                          <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
                           Creator Metrics
                         </h4>
-                        <div className="space-y-3">
+                        <div className="space-y-2 sm:space-y-3">
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Active Creators</span>
-                            <span className="font-semibold">{churnData.creators.currentCreators || 0}</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground">Active Creators</span>
+                            <span className="font-semibold text-sm sm:text-base">{churnData.creators.currentCreators || 0}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">New This Period</span>
-                            <span className="font-semibold text-green-600">+{churnData.creators.newCreatorsThisPeriod || 0}</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground">New This Period</span>
+                            <span className="font-semibold text-sm sm:text-base text-green-600">+{churnData.creators.newCreatorsThisPeriod || 0}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Churned This Period</span>
-                            <span className="font-semibold text-red-600">-{churnData.creators.churnedCreatorsThisPeriod || 0}</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground">Churned</span>
+                            <span className="font-semibold text-sm sm:text-base text-red-600">-{churnData.creators.churnedCreatorsThisPeriod || 0}</span>
                           </div>
                           <div className="flex justify-between items-center pt-2 border-t">
-                            <span className="text-sm font-medium">Net Growth</span>
-                            <span className={`font-bold ${churnData.creators.netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <span className="text-xs sm:text-sm font-medium">Net Growth</span>
+                            <span className={`font-bold text-sm sm:text-base ${churnData.creators.netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {churnData.creators.netGrowth >= 0 ? '+' : ''}{churnData.creators.netGrowth}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Churn Rate</span>
-                            <Badge variant={churnData.creators.churnRate < 5 ? "default" : churnData.creators.churnRate < 10 ? "secondary" : "destructive"}>
+                            <span className="text-xs sm:text-sm text-muted-foreground">Churn Rate</span>
+                            <Badge variant={churnData.creators.churnRate < 5 ? "default" : churnData.creators.churnRate < 10 ? "secondary" : "destructive"} className="text-[10px] sm:text-xs">
                               {churnData.creators.churnRate.toFixed(1)}%
                             </Badge>
                           </div>
@@ -1150,33 +1160,33 @@ export default function AdminAnalytics() {
                       </div>
 
                       {/* Company Churn */}
-                      <div className="p-4 border rounded-lg">
-                        <h4 className="font-semibold mb-4 flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-green-600" />
+                      <div className="p-3 sm:p-4 border rounded-lg">
+                        <h4 className="font-semibold mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                          <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
                           Company Metrics
                         </h4>
-                        <div className="space-y-3">
+                        <div className="space-y-2 sm:space-y-3">
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Active Companies</span>
-                            <span className="font-semibold">{churnData.companies.currentCompanies || 0}</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground">Active Companies</span>
+                            <span className="font-semibold text-sm sm:text-base">{churnData.companies.currentCompanies || 0}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">New This Period</span>
-                            <span className="font-semibold text-green-600">+{churnData.companies.newCompaniesThisPeriod || 0}</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground">New This Period</span>
+                            <span className="font-semibold text-sm sm:text-base text-green-600">+{churnData.companies.newCompaniesThisPeriod || 0}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Churned This Period</span>
-                            <span className="font-semibold text-red-600">-{churnData.companies.churnedCompaniesThisPeriod || 0}</span>
+                            <span className="text-xs sm:text-sm text-muted-foreground">Churned</span>
+                            <span className="font-semibold text-sm sm:text-base text-red-600">-{churnData.companies.churnedCompaniesThisPeriod || 0}</span>
                           </div>
                           <div className="flex justify-between items-center pt-2 border-t">
-                            <span className="text-sm font-medium">Net Growth</span>
-                            <span className={`font-bold ${churnData.companies.netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <span className="text-xs sm:text-sm font-medium">Net Growth</span>
+                            <span className={`font-bold text-sm sm:text-base ${churnData.companies.netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {churnData.companies.netGrowth >= 0 ? '+' : ''}{churnData.companies.netGrowth}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Churn Rate</span>
-                            <Badge variant={churnData.companies.churnRate < 5 ? "default" : churnData.companies.churnRate < 10 ? "secondary" : "destructive"}>
+                            <span className="text-xs sm:text-sm text-muted-foreground">Churn Rate</span>
+                            <Badge variant={churnData.companies.churnRate < 5 ? "default" : churnData.companies.churnRate < 10 ? "secondary" : "destructive"} className="text-[10px] sm:text-xs">
                               {churnData.companies.churnRate.toFixed(1)}%
                             </Badge>
                           </div>
@@ -1185,16 +1195,16 @@ export default function AdminAnalytics() {
                     </div>
 
                     {/* Net Growth Visualization */}
-                    <div className="pt-4 border-t">
-                      <div className="flex items-center justify-center gap-8">
+                    <div className="pt-3 sm:pt-4 border-t">
+                      <div className="flex items-center justify-center gap-4 sm:gap-8">
                         <div className="text-center">
-                          <div className="text-3xl font-bold">
+                          <div className="text-xl sm:text-3xl font-bold">
                             {churnData.summary.totalActiveUsers}
                           </div>
-                          <p className="text-sm text-muted-foreground">Total Active Users</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Total Active</p>
                         </div>
                         <div className="text-center">
-                          <div className={`text-3xl font-bold ${
+                          <div className={`text-xl sm:text-3xl font-bold ${
                             (churnData.creators.netGrowth + churnData.companies.netGrowth) >= 0
                               ? 'text-green-600'
                               : 'text-red-600'
@@ -1202,13 +1212,13 @@ export default function AdminAnalytics() {
                             {(churnData.creators.netGrowth + churnData.companies.netGrowth) >= 0 ? '+' : ''}
                             {churnData.creators.netGrowth + churnData.companies.netGrowth}
                           </div>
-                          <p className="text-sm text-muted-foreground">Net Growth This Period</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Net Growth</p>
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
+                  <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm">
                     No churn data available for this period.
                   </div>
                 )}
@@ -1217,22 +1227,23 @@ export default function AdminAnalytics() {
 
             {/* User Growth Chart */}
             <Card className="border-card-border">
-              <CardHeader>
-                <CardTitle>User Growth</CardTitle>
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="text-sm sm:text-lg">User Growth</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
                 {analytics?.users?.userGrowth && analytics.users.userGrowth.length > 0 ? (
-                  <div className="h-80">
+                  <div className="h-52 sm:h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={analytics.users.userGrowth}>
+                      <LineChart data={analytics.users.userGrowth} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis dataKey="period" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                        <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                        <XAxis dataKey="period" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
+                        <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: "hsl(var(--popover))",
                             border: "1px solid hsl(var(--border))",
                             borderRadius: "6px",
+                            fontSize: "12px",
                           }}
                         />
                         <Line type="monotone" dataKey="creators" stroke="#2563eb" strokeWidth={2} name="Creators" />
@@ -1242,7 +1253,7 @@ export default function AdminAnalytics() {
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
+                  <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm">
                     No user growth data available.
                   </div>
                 )}
@@ -1250,38 +1261,38 @@ export default function AdminAnalytics() {
             </Card>
 
             {/* Top Performers */}
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
               <Card className="border-card-border">
-                <CardHeader>
-                  <CardTitle>Top Performing Creators</CardTitle>
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="text-sm sm:text-lg">Top Creators</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
                   {analytics?.users?.topCreators && analytics.users.topCreators.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {analytics.users.topCreators.slice(0, 5).map((creator, index) => (
                         <div key={creator.id} className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary/10 text-primary font-semibold text-xs sm:text-sm">
                               {index + 1}
                             </div>
-                            <div>
-                              <div className="font-medium">{creator.name}</div>
-                              <div className="text-xs text-muted-foreground">{creator.email}</div>
+                            <div className="min-w-0">
+                              <div className="font-medium text-xs sm:text-sm truncate">{creator.name}</div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground truncate">{creator.email}</div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="font-semibold font-mono text-green-600">
+                          <div className="text-right flex-shrink-0">
+                            <div className="font-semibold font-mono text-xs sm:text-sm text-green-600">
                               CA${creator.earnings.toFixed(2)}
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {creator.clicks} clicks | {creator.conversions} conv.
+                            <div className="text-[10px] sm:text-xs text-muted-foreground">
+                              {creator.clicks} clicks
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-6 sm:py-8 text-muted-foreground text-sm">
                       No creator data available.
                     </div>
                   )}
@@ -1289,28 +1300,28 @@ export default function AdminAnalytics() {
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader>
-                  <CardTitle>Top Companies</CardTitle>
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="text-sm sm:text-lg">Top Companies</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
                   {analytics?.users?.topCompanies && analytics.users.topCompanies.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       {analytics.users.topCompanies.slice(0, 5).map((company, index) => (
                         <div key={company.id} className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary/10 text-primary font-semibold text-xs sm:text-sm">
                               {index + 1}
                             </div>
-                            <div>
-                              <div className="font-medium">{company.name}</div>
-                              <div className="text-xs text-muted-foreground">{company.offers} offers</div>
+                            <div className="min-w-0">
+                              <div className="font-medium text-xs sm:text-sm truncate">{company.name}</div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground">{company.offers} offers</div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="font-semibold font-mono">
+                          <div className="text-right flex-shrink-0">
+                            <div className="font-semibold font-mono text-xs sm:text-sm">
                               CA${company.spend.toFixed(2)}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-[10px] sm:text-xs text-muted-foreground">
                               {company.creators} creators
                             </div>
                           </div>
@@ -1318,7 +1329,7 @@ export default function AdminAnalytics() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-6 sm:py-8 text-muted-foreground text-sm">
                       No company data available.
                     </div>
                   )}
@@ -1328,91 +1339,93 @@ export default function AdminAnalytics() {
           </TabsContent>
 
           {/* Platform Tab */}
-          <TabsContent value="platform" className="space-y-6">
+          <TabsContent value="platform" className="space-y-4 sm:space-y-6">
             {/* Export Actions */}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" className="gap-2" onClick={exportPlatformCsv}>
-                <Download className="h-4 w-4" />
-                Export CSV
+              <Button variant="outline" size="sm" className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm" onClick={exportPlatformCsv}>
+                <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Export CSV</span>
+                <span className="sm:hidden">CSV</span>
               </Button>
             </div>
 
             {/* Platform Stats Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 sm:gap-6 grid-cols-2 lg:grid-cols-4">
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Offers</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Total Offers</CardTitle>
+                  <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analytics?.platform?.totalOffers || 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold">{analytics?.platform?.totalOffers || 0}</div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                     {analytics?.platform?.activeOffers || 0} active | {analytics?.platform?.pendingOffers || 0} pending
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Applications</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analytics?.platform?.totalApplications || 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Creator applications</p>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold">{analytics?.platform?.totalApplications || 0}</div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Creator apps</p>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Total Clicks</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{(analytics?.platform?.totalClicks || 0).toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Tracking link clicks</p>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold">{(analytics?.platform?.totalClicks || 0).toLocaleString()}</div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Link clicks</p>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Avg. Conversion Rate</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Conv. Rate</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold">
                     {(analytics?.platform?.averageConversionRate || 0).toFixed(2)}%
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {(analytics?.platform?.totalConversions || 0).toLocaleString()} total conversions
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                    {(analytics?.platform?.totalConversions || 0).toLocaleString()} conv.
                   </p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Charts */}
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
               <Card className="border-card-border">
-                <CardHeader>
-                  <CardTitle>Offers by Niche</CardTitle>
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="text-sm sm:text-lg">Offers by Niche</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
                   {analytics?.platform?.offersByNiche && analytics.platform.offersByNiche.length > 0 ? (
-                    <div className="h-80">
+                    <div className="h-52 sm:h-80">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={analytics.platform.offersByNiche} layout="vertical">
+                        <BarChart data={analytics.platform.offersByNiche} layout="vertical" margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                          <XAxis type="number" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                          <XAxis type="number" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
                           <YAxis
                             dataKey="niche"
                             type="category"
-                            width={150}
-                            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                            width={80}
+                            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
                             tickFormatter={(value) => {
                               // Format niche names: replace underscores with spaces and capitalize
-                              return value
+                              const formatted = value
                                 .replace(/_/g, ' ')
                                 .replace(/&/g, '&')
                                 .split(' ')
                                 .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
                                 .join(' ');
+                              return formatted.length > 12 ? formatted.slice(0, 12) + '...' : formatted;
                             }}
                           />
                           <Tooltip
@@ -1420,6 +1433,7 @@ export default function AdminAnalytics() {
                               backgroundColor: "hsl(var(--popover))",
                               border: "1px solid hsl(var(--border))",
                               borderRadius: "6px",
+                              fontSize: "12px",
                             }}
                             formatter={(value: any, name: any) => [value, 'Count']}
                             labelFormatter={(label) => {
@@ -1436,7 +1450,7 @@ export default function AdminAnalytics() {
                       </ResponsiveContainer>
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-muted-foreground">
+                    <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm">
                       No niche data available.
                     </div>
                   )}
@@ -1444,12 +1458,12 @@ export default function AdminAnalytics() {
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader>
-                  <CardTitle>Applications by Status</CardTitle>
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="text-sm sm:text-lg">Applications by Status</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
                   {analytics?.platform?.applicationsByStatus && analytics.platform.applicationsByStatus.length > 0 ? (
-                    <div className="h-80 flex items-center justify-center">
+                    <div className="h-52 sm:h-80 flex items-center justify-center">
                       <ResponsiveContainer width="100%" height="100%">
                         <RechartsPie>
                           <Pie
@@ -1458,8 +1472,9 @@ export default function AdminAnalytics() {
                             nameKey="status"
                             cx="50%"
                             cy="50%"
-                            outerRadius={100}
+                            outerRadius={70}
                             label={({ status, percent }: any) => `${status}: ${(percent * 100).toFixed(0)}%`}
+                            labelLine={{ strokeWidth: 1 }}
                           >
                             {analytics.platform.applicationsByStatus.map((entry, index) => (
                               <Cell key={entry.status} fill={PIE_COLORS[index % PIE_COLORS.length]} />
@@ -1470,7 +1485,7 @@ export default function AdminAnalytics() {
                       </ResponsiveContainer>
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-muted-foreground">
+                    <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm">
                       No application status data available.
                     </div>
                   )}
@@ -1480,26 +1495,29 @@ export default function AdminAnalytics() {
           </TabsContent>
 
           {/* Health Tab - Platform Health Monitoring */}
-          <TabsContent value="health" className="space-y-6">
+          <TabsContent value="health" className="space-y-4 sm:space-y-6">
             {/* Health Actions */}
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
-                className="gap-2"
+                size="sm"
+                className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm"
                 onClick={() => refetchHealth()}
                 disabled={healthLoading}
               >
-                <RefreshCw className={`h-4 w-4 ${healthLoading ? "animate-spin" : ""}`} />
-                Refresh
+                <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${healthLoading ? "animate-spin" : ""}`} />
+                <span className="hidden sm:inline">Refresh</span>
               </Button>
               <Button
                 variant="outline"
-                className="gap-2"
+                size="sm"
+                className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm"
                 onClick={() => createSnapshotMutation.mutate()}
                 disabled={createSnapshotMutation.isPending}
               >
-                <Activity className="h-4 w-4" />
-                Create Snapshot
+                <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Create Snapshot</span>
+                <span className="sm:hidden">Snapshot</span>
               </Button>
             </div>
 
@@ -1509,21 +1527,21 @@ export default function AdminAnalytics() {
                 {healthReport.snapshot.alerts.map((alert, i) => (
                   <div
                     key={i}
-                    className={`p-4 rounded-lg flex items-center gap-3 ${
+                    className={`p-2.5 sm:p-4 rounded-lg flex items-center gap-2 sm:gap-3 ${
                       alert.severity === "critical"
                         ? "bg-red-50 border border-red-200"
                         : "bg-yellow-50 border border-yellow-200"
                     }`}
                   >
                     <AlertTriangle
-                      className={`h-5 w-5 ${
+                      className={`h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${
                         alert.severity === "critical" ? "text-red-600" : "text-yellow-600"
                       }`}
                     />
                     <span
-                      className={
+                      className={`text-xs sm:text-sm ${
                         alert.severity === "critical" ? "text-red-800" : "text-yellow-800"
-                      }
+                      }`}
                     >
                       {alert.message}
                     </span>
@@ -1533,18 +1551,18 @@ export default function AdminAnalytics() {
             )}
 
             {/* Health Scores */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 sm:gap-6 grid-cols-2 lg:grid-cols-4">
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Overall Health</CardTitle>
-                  <Activity className={`h-4 w-4 ${getHealthColor(healthReport?.snapshot?.overallHealthScore || 100)}`} />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Overall</CardTitle>
+                  <Activity className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${getHealthColor(healthReport?.snapshot?.overallHealthScore || 100)}`} />
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-2">
-                    <div className={`text-3xl font-bold ${getHealthColor(healthReport?.snapshot?.overallHealthScore || 100)}`}>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className={`text-xl sm:text-3xl font-bold ${getHealthColor(healthReport?.snapshot?.overallHealthScore || 100)}`}>
                       {healthReport?.snapshot?.overallHealthScore || 100}
                     </div>
-                    <Badge variant={getHealthBadgeVariant(healthReport?.snapshot?.overallHealthScore || 100)}>
+                    <Badge variant={getHealthBadgeVariant(healthReport?.snapshot?.overallHealthScore || 100)} className="text-[9px] sm:text-xs px-1 sm:px-2 hidden sm:inline-flex">
                       {(healthReport?.snapshot?.overallHealthScore || 100) >= 90 ? "Healthy" :
                        (healthReport?.snapshot?.overallHealthScore || 100) >= 70 ? "Fair" :
                        (healthReport?.snapshot?.overallHealthScore || 100) >= 50 ? "Degraded" : "Critical"}
@@ -1554,36 +1572,36 @@ export default function AdminAnalytics() {
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">API Health</CardTitle>
-                  <Server className={`h-4 w-4 ${getHealthColor(healthReport?.snapshot?.apiHealthScore || 100)}`} />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">API</CardTitle>
+                  <Server className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${getHealthColor(healthReport?.snapshot?.apiHealthScore || 100)}`} />
                 </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${getHealthColor(healthReport?.snapshot?.apiHealthScore || 100)}`}>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className={`text-lg sm:text-2xl font-bold ${getHealthColor(healthReport?.snapshot?.apiHealthScore || 100)}`}>
                     {healthReport?.snapshot?.apiHealthScore || 100}
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Storage Health</CardTitle>
-                  <HardDrive className={`h-4 w-4 ${getHealthColor(healthReport?.snapshot?.storageHealthScore || 100)}`} />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Storage</CardTitle>
+                  <HardDrive className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${getHealthColor(healthReport?.snapshot?.storageHealthScore || 100)}`} />
                 </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${getHealthColor(healthReport?.snapshot?.storageHealthScore || 100)}`}>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className={`text-lg sm:text-2xl font-bold ${getHealthColor(healthReport?.snapshot?.storageHealthScore || 100)}`}>
                     {healthReport?.snapshot?.storageHealthScore || 100}
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Database Health</CardTitle>
-                  <Database className={`h-4 w-4 ${getHealthColor(healthReport?.snapshot?.databaseHealthScore || 100)}`} />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Database</CardTitle>
+                  <Database className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${getHealthColor(healthReport?.snapshot?.databaseHealthScore || 100)}`} />
                 </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${getHealthColor(healthReport?.snapshot?.databaseHealthScore || 100)}`}>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className={`text-lg sm:text-2xl font-bold ${getHealthColor(healthReport?.snapshot?.databaseHealthScore || 100)}`}>
                     {healthReport?.snapshot?.databaseHealthScore || 100}
                   </div>
                 </CardContent>
@@ -1591,62 +1609,62 @@ export default function AdminAnalytics() {
             </div>
 
             {/* Key Metrics */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 sm:gap-6 grid-cols-2 lg:grid-cols-4">
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
-                  <Clock className="h-4 w-4 text-blue-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Response</CardTitle>
+                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold">
                     {(healthReport?.apiMetrics?.avgResponseTime || 0).toFixed(0)}ms
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {(healthReport?.apiMetrics?.requestsPerMinute || 0)} requests/min
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    {(healthReport?.apiMetrics?.requestsPerMinute || 0)} req/min
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
-                  <AlertCircle className="h-4 w-4 text-red-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Errors</CardTitle>
+                  <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold">
                     {(healthReport?.apiMetrics?.errorRate || 0).toFixed(2)}%
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {healthReport?.apiMetrics?.errorRequests || 0} errors / {healthReport?.apiMetrics?.totalRequests || 0} total
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    {healthReport?.apiMetrics?.errorRequests || 0}/{healthReport?.apiMetrics?.totalRequests || 0}
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Storage</CardTitle>
-                  <HardDrive className="h-4 w-4 text-purple-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Storage</CardTitle>
+                  <HardDrive className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold">
                     {formatBytes(healthReport?.storage?.totalStorageBytes || 0)}
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     {healthReport?.storage?.totalFiles || 0} files
                   </p>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Video Hosting Cost</CardTitle>
-                  <DollarSign className="h-4 w-4 text-green-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Video Cost</CardTitle>
+                  <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="text-lg sm:text-2xl font-bold">
                     ${(healthReport?.videoCosts?.totalCostUsd || 0).toFixed(2)}
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     {healthReport?.videoCosts?.totalVideos || 0} videos
                   </p>
                 </CardContent>
@@ -1654,27 +1672,27 @@ export default function AdminAnalytics() {
             </div>
 
             {/* System Info */}
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
               <Card className="border-card-border">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">System Resources</CardTitle>
+                <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">System Resources</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0 space-y-2 sm:space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Memory Usage</span>
-                    <Badge variant={Number(healthReport?.snapshot?.memoryUsagePercent || 0) > 80 ? "destructive" : "secondary"}>
+                    <span className="text-xs sm:text-sm text-muted-foreground">Memory</span>
+                    <Badge variant={Number(healthReport?.snapshot?.memoryUsagePercent || 0) > 80 ? "destructive" : "secondary"} className="text-[10px] sm:text-xs">
                       {Number(healthReport?.snapshot?.memoryUsagePercent || 0).toFixed(1)}%
                     </Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">CPU Load</span>
-                    <Badge variant={Number(healthReport?.snapshot?.cpuUsagePercent || 0) > 80 ? "destructive" : "secondary"}>
+                    <span className="text-xs sm:text-sm text-muted-foreground">CPU</span>
+                    <Badge variant={Number(healthReport?.snapshot?.cpuUsagePercent || 0) > 80 ? "destructive" : "secondary"} className="text-[10px] sm:text-xs">
                       {Number(healthReport?.snapshot?.cpuUsagePercent || 0).toFixed(1)}%
                     </Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Uptime</span>
-                    <Badge variant="outline">
+                    <span className="text-xs sm:text-sm text-muted-foreground">Uptime</span>
+                    <Badge variant="outline" className="text-[10px] sm:text-xs">
                       {formatUptime(Number(healthReport?.snapshot?.uptimeSeconds || 0))}
                     </Badge>
                   </div>
@@ -1682,57 +1700,57 @@ export default function AdminAnalytics() {
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Storage Breakdown</CardTitle>
+                <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Storage Breakdown</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0 space-y-2 sm:space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Video className="h-4 w-4" /> Videos
+                    <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                      <Video className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Videos
                     </span>
-                    <span className="text-sm font-medium">
-                      {formatBytes(healthReport?.storage?.videoStorageBytes || 0)} ({healthReport?.storage?.videoFiles || 0})
+                    <span className="text-xs sm:text-sm font-medium">
+                      {formatBytes(healthReport?.storage?.videoStorageBytes || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground flex items-center gap-2">
-                      <FileText className="h-4 w-4" /> Images
+                    <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                      <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Images
                     </span>
-                    <span className="text-sm font-medium">
-                      {formatBytes(healthReport?.storage?.imageStorageBytes || 0)} ({healthReport?.storage?.imageFiles || 0})
+                    <span className="text-xs sm:text-sm font-medium">
+                      {formatBytes(healthReport?.storage?.imageStorageBytes || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground flex items-center gap-2">
-                      <FileText className="h-4 w-4" /> Documents
+                    <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                      <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Docs
                     </span>
-                    <span className="text-sm font-medium">
-                      {formatBytes(healthReport?.storage?.documentStorageBytes || 0)} ({healthReport?.storage?.documentFiles || 0})
+                    <span className="text-xs sm:text-sm font-medium">
+                      {formatBytes(healthReport?.storage?.documentStorageBytes || 0)}
                     </span>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Video Hosting Costs</CardTitle>
+                <CardHeader className="p-3 sm:p-6 pb-1 sm:pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Video Costs</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0 space-y-2 sm:space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Storage</span>
-                    <span className="text-sm font-medium">${(healthReport?.videoCosts?.storageCostUsd || 0).toFixed(4)}/mo</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">Storage</span>
+                    <span className="text-xs sm:text-sm font-medium">${(healthReport?.videoCosts?.storageCostUsd || 0).toFixed(4)}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Bandwidth</span>
-                    <span className="text-sm font-medium">${(healthReport?.videoCosts?.bandwidthCostUsd || 0).toFixed(4)}/mo</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">Bandwidth</span>
+                    <span className="text-xs sm:text-sm font-medium">${(healthReport?.videoCosts?.bandwidthCostUsd || 0).toFixed(4)}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Transcoding</span>
-                    <span className="text-sm font-medium">${(healthReport?.videoCosts?.transcodingCostUsd || 0).toFixed(4)}</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">Transcode</span>
+                    <span className="text-xs sm:text-sm font-medium">${(healthReport?.videoCosts?.transcodingCostUsd || 0).toFixed(4)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t">
-                    <span className="text-sm font-medium">Cost per Video</span>
-                    <span className="text-sm font-bold text-green-600">${(healthReport?.videoCosts?.costPerVideoUsd || 0).toFixed(4)}</span>
+                    <span className="text-xs sm:text-sm font-medium">Per Video</span>
+                    <span className="text-xs sm:text-sm font-bold text-green-600">${(healthReport?.videoCosts?.costPerVideoUsd || 0).toFixed(4)}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -1740,121 +1758,127 @@ export default function AdminAnalytics() {
 
             {/* API Performance Chart */}
             <Card className="border-card-border">
-              <CardHeader>
-                <CardTitle>API Response Time & Error Rate</CardTitle>
-                <CardDescription>Performance over the last 7 days</CardDescription>
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="text-sm sm:text-lg">API Response Time & Error Rate</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Performance over the last 7 days</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
                 {healthReport?.apiTimeSeries && healthReport.apiTimeSeries.length > 0 ? (
-                  <div className="h-80">
+                  <div className="h-52 sm:h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={healthReport.apiTimeSeries}>
+                      <LineChart data={healthReport.apiTimeSeries} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis dataKey="date" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-                        <YAxis yAxisId="left" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+                        <XAxis dataKey="date" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
+                        <YAxis yAxisId="left" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
+                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: "hsl(var(--popover))",
                             border: "1px solid hsl(var(--border))",
                             borderRadius: "6px",
+                            fontSize: "12px",
                           }}
                         />
-                        <Legend />
-                        <Line yAxisId="left" type="monotone" dataKey="avgResponseTime" name="Avg Response Time (ms)" stroke="#2563eb" strokeWidth={2} dot={false} />
-                        <Line yAxisId="right" type="monotone" dataKey="errorRate" name="Error Rate (%)" stroke="#ef4444" strokeWidth={2} dot={false} />
+                        <Legend wrapperStyle={{ fontSize: "10px" }} />
+                        <Line yAxisId="left" type="monotone" dataKey="avgResponseTime" name="Response (ms)" stroke="#2563eb" strokeWidth={2} dot={false} />
+                        <Line yAxisId="right" type="monotone" dataKey="errorRate" name="Errors (%)" stroke="#ef4444" strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No API metrics data available yet. Metrics will appear after some API activity.
+                  <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm">
+                    No API metrics data available yet.
                   </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Top Endpoints & Errors */}
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
               <Card className="border-card-border">
-                <CardHeader>
-                  <CardTitle>Top Endpoints</CardTitle>
-                  <CardDescription>Most frequently accessed endpoints</CardDescription>
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="text-sm sm:text-lg">Top Endpoints</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Most frequently accessed</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Endpoint</TableHead>
-                        <TableHead>Method</TableHead>
-                        <TableHead className="text-right">Requests</TableHead>
-                        <TableHead className="text-right">Avg Time</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(healthReport?.apiMetrics?.topEndpoints || []).slice(0, 8).map((ep, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="font-mono text-xs">{ep.endpoint}</TableCell>
-                          <TableCell><Badge variant="outline">{ep.method}</Badge></TableCell>
-                          <TableCell className="text-right">{ep.count}</TableCell>
-                          <TableCell className="text-right">{ep.avgTime.toFixed(0)}ms</TableCell>
-                        </TableRow>
-                      ))}
-                      {(!healthReport?.apiMetrics?.topEndpoints || healthReport.apiMetrics.topEndpoints.length === 0) && (
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="overflow-x-auto -mx-3 sm:mx-0">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center text-muted-foreground">
-                            No endpoint data available
-                          </TableCell>
+                          <TableHead className="text-[10px] sm:text-xs">Endpoint</TableHead>
+                          <TableHead className="text-[10px] sm:text-xs hidden sm:table-cell">Method</TableHead>
+                          <TableHead className="text-right text-[10px] sm:text-xs">Reqs</TableHead>
+                          <TableHead className="text-right text-[10px] sm:text-xs">Time</TableHead>
                         </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {(healthReport?.apiMetrics?.topEndpoints || []).slice(0, 5).map((ep, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="font-mono text-[9px] sm:text-xs max-w-[100px] sm:max-w-none truncate">{ep.endpoint}</TableCell>
+                            <TableCell className="hidden sm:table-cell"><Badge variant="outline" className="text-[10px]">{ep.method}</Badge></TableCell>
+                            <TableCell className="text-right text-[10px] sm:text-xs">{ep.count}</TableCell>
+                            <TableCell className="text-right text-[10px] sm:text-xs">{ep.avgTime.toFixed(0)}ms</TableCell>
+                          </TableRow>
+                        ))}
+                        {(!healthReport?.apiMetrics?.topEndpoints || healthReport.apiMetrics.topEndpoints.length === 0) && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center text-muted-foreground text-xs">
+                              No endpoint data
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
 
               <Card className="border-card-border">
-                <CardHeader>
-                  <CardTitle>Recent Errors</CardTitle>
-                  <CardDescription>API errors from the last 24 hours (excludes normal auth checks)</CardDescription>
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="text-sm sm:text-lg">Recent Errors</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Last 24 hours</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Endpoint</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Message</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(healthReport?.recentErrors || []).slice(0, 8).map((error) => (
-                        <TableRow key={error.id}>
-                          <TableCell className="font-mono text-xs">{error.endpoint}</TableCell>
-                          <TableCell>
-                            <Badge variant={error.statusCode >= 500 ? "destructive" : "secondary"}>
-                              {error.statusCode}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate text-xs">
-                            {error.errorMessage || "Unknown error"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {(!healthReport?.recentErrors || healthReport.recentErrors.length === 0) && (
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+                  <div className="overflow-x-auto -mx-3 sm:mx-0">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={3} className="text-center text-muted-foreground">
-                            No recent errors - everything is running smoothly!
-                          </TableCell>
+                          <TableHead className="text-[10px] sm:text-xs">Endpoint</TableHead>
+                          <TableHead className="text-[10px] sm:text-xs">Status</TableHead>
+                          <TableHead className="text-[10px] sm:text-xs hidden sm:table-cell">Message</TableHead>
                         </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {(healthReport?.recentErrors || []).slice(0, 5).map((error) => (
+                          <TableRow key={error.id}>
+                            <TableCell className="font-mono text-[9px] sm:text-xs max-w-[80px] sm:max-w-none truncate">{error.endpoint}</TableCell>
+                            <TableCell>
+                              <Badge variant={error.statusCode >= 500 ? "destructive" : "secondary"} className="text-[9px] sm:text-xs">
+                                {error.statusCode}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate text-[10px] sm:text-xs hidden sm:table-cell">
+                              {error.errorMessage || "Unknown"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {(!healthReport?.recentErrors || healthReport.recentErrors.length === 0) && (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center text-muted-foreground text-xs">
+                              No recent errors
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
         </Tabs>
       )}
+      </div>
 
       <GenericErrorDialog
         open={!!errorDialog}
