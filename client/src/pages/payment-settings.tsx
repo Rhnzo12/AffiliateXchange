@@ -3757,7 +3757,7 @@ export default function PaymentSettings() {
 
           {/* Add Payment Method Modal */}
           <AlertDialog open={addPaymentModalOpen} onOpenChange={setAddPaymentModalOpen}>
-            <AlertDialogContent className="max-w-[calc(100%-48px)] mx-6 rounded-2xl p-6">
+            <AlertDialogContent className="w-[calc(100%-64px)] max-w-sm mx-auto rounded-2xl p-6">
               <AlertDialogHeader className="pb-2">
                 <AlertDialogTitle className="text-lg font-bold text-center">Add Payment Method</AlertDialogTitle>
               </AlertDialogHeader>

@@ -1096,7 +1096,7 @@ export default function Applications() {
 
       {/* Review Dialog */}
       <Dialog open={reviewDialog.open} onOpenChange={(open) => setReviewDialog({ ...reviewDialog, open })}>
-        <DialogContent className="max-w-2xl max-w-[calc(100%-48px)] md:max-w-2xl mx-6 md:mx-auto max-h-[90vh] overflow-y-auto rounded-2xl p-6">
+        <DialogContent className="w-[calc(100%-64px)] max-w-sm md:max-w-2xl mx-auto max-h-[90vh] overflow-y-auto rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle>
               {getExistingReview(reviewDialog.application?.id) ? "Edit Review" : "Leave a Review"}
