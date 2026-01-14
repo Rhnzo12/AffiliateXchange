@@ -3512,7 +3512,47 @@ export default function PaymentSettings() {
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="flex items-center justify-between p-4 border-b border-gray-200">
                   <h3 className="font-bold text-gray-900">Payment History</h3>
-                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1.5"
+                    onClick={() => {
+                      if (creatorPayments.length === 0) {
+                        toast({
+                          title: "No data",
+                          description: "No payment history to export",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      const csv = [
+                        ['ID', 'Description', 'Gross', 'Platform Fee', 'Processing Fee', 'Net Amount', 'Status', 'Date'],
+                        ...creatorPayments.map(p => [
+                          p.id.slice(0, 8),
+                          p.description || 'Payment',
+                          p.grossAmount,
+                          p.platformFeeAmount,
+                          p.stripeFeeAmount,
+                          p.netAmount,
+                          p.status,
+                          p.completedAt || p.createdAt
+                        ])
+                      ].map(row => row.join(',')).join('\n');
+
+                      const blob = new Blob([csv], { type: 'text/csv' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `payments-${new Date().toISOString().split('T')[0]}.csv`;
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+
+                      toast({
+                        title: "Success",
+                        description: "Payment history exported successfully",
+                      });
+                    }}
+                  >
                     <Download className="h-3.5 w-3.5" />
                     Export CSV
                   </Button>
@@ -3559,12 +3599,6 @@ export default function PaymentSettings() {
                   </div>
                 )}
               </div>
-
-              {/* Export CSV Button at bottom */}
-              <Button variant="outline" className="w-full h-11 gap-2">
-                <Download className="h-4 w-4" />
-                Export CSV
-              </Button>
             </div>
           )}
 
