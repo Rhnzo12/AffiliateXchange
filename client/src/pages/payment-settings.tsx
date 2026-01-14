@@ -3625,8 +3625,8 @@ export default function PaymentSettings() {
                     // E-Transfer / Direct Deposit card
                     if (method.payoutMethod === 'etransfer') {
                       return (
-                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-                          <div className="flex items-start gap-3">
+                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                          <div className="flex items-center gap-3">
                             {/* Icon */}
                             <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
                               <Building2 className="h-5 w-5 text-teal-600" />
@@ -3641,25 +3641,22 @@ export default function PaymentSettings() {
                               </div>
                               <p className="text-sm text-gray-500">{info.displayValue}</p>
                             </div>
-                            {/* Edit Link */}
-                            <button className="flex items-center gap-0.5 text-gray-500 hover:text-gray-700 text-sm">
-                              Edit <ChevronRight className="h-4 w-4" />
-                            </button>
+                            {/* Connected Status or Setup Button */}
+                            {needsSetup ? (
+                              <Button
+                                onClick={() => handleUpgradeETransfer(method)}
+                                size="sm"
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-xs"
+                              >
+                                Setup
+                              </Button>
+                            ) : (
+                              <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                                <CheckCircle className="h-4 w-4" />
+                                <span>Connected</span>
+                              </div>
+                            )}
                           </div>
-                          {/* Connected Status */}
-                          {needsSetup ? (
-                            <Button
-                              onClick={() => handleUpgradeETransfer(method)}
-                              className="w-full h-10 bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-sm"
-                            >
-                              Complete Setup
-                            </Button>
-                          ) : (
-                            <div className="flex items-center gap-2 bg-green-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium">
-                              <CheckCircle className="h-4 w-4" />
-                              Connected
-                            </div>
-                          )}
                         </div>
                       );
                     }
