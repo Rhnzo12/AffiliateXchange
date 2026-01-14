@@ -33,6 +33,9 @@ import {
 } from "../components/ui/alert-dialog";
 import {
   AlertTriangle,
+  Banknote,
+  Bitcoin,
+  Building2,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
@@ -51,6 +54,7 @@ import {
   Trash2,
   TrendingUp,
   Users,
+  Wallet,
   X,
   XCircle,
 } from "lucide-react";
@@ -3331,33 +3335,48 @@ export default function PaymentSettings() {
         : true;
 
     let icon = CreditCard;
+    let iconBgColor = "bg-gray-100";
+    let iconColor = "text-gray-600";
     let title = method.payoutMethod.replace("_", " ");
     let description = "";
     let displayValue = "";
 
     if (method.payoutMethod === "etransfer") {
-      icon = Landmark;
+      icon = Building2;
+      iconBgColor = "bg-teal-50";
+      iconColor = "text-teal-600";
       title = "Direct Deposit";
       description = "Receive payments directly to your bank account. Fast and secure.";
-      displayValue = method.bankAccountNumber ? `****${method.bankAccountNumber.slice(-4)}` : method.payoutEmail || "";
+      displayValue = method.bankAccountNumber ? `**** ${method.bankAccountNumber.slice(-4)}` : method.payoutEmail || "";
     } else if (method.payoutMethod === "wire") {
       icon = Landmark;
+      iconBgColor = "bg-emerald-50";
+      iconColor = "text-emerald-600";
       title = "Wire/ACH Transfer";
       description = "Bank wire transfer for larger payments.";
-      displayValue = method.bankAccountNumber ? `****${method.bankAccountNumber.slice(-4)}` : "";
+      displayValue = method.bankAccountNumber ? `**** ${method.bankAccountNumber.slice(-4)}` : "";
     } else if (method.payoutMethod === "paypal") {
-      icon = CreditCard;
+      icon = Wallet;
+      iconBgColor = "bg-blue-50";
+      iconColor = "text-blue-600";
       title = "PayPal";
       description = "Get paid securely through your PayPal account.";
-      displayValue = method.paypalEmail || "";
+      // Mask email for privacy
+      const email = method.paypalEmail || "";
+      if (email) {
+        const [localPart, domain] = email.split('@');
+        displayValue = `****@${domain || 'gmail.com'}`;
+      }
     } else if (method.payoutMethod === "crypto") {
-      icon = DollarSign;
+      icon = Bitcoin;
+      iconBgColor = "bg-orange-50";
+      iconColor = "text-orange-500";
       title = "Cryptocurrency";
-      description = "Receive payments in crypto.";
-      displayValue = method.cryptoWalletAddress ? `${method.cryptoWalletAddress.slice(0, 8)}...` : "";
+      description = `Receive payments in ${method.cryptoNetwork || 'crypto'}.`;
+      displayValue = method.cryptoWalletAddress ? `${method.cryptoWalletAddress.slice(0, 6)}...${method.cryptoWalletAddress.slice(-4)}` : "";
     }
 
-    return { icon, title, description, displayValue, isConnected, isDefault: method.isDefault };
+    return { icon, iconBgColor, iconColor, title, description, displayValue, isConnected, isDefault: method.isDefault };
   };
 
   return (
@@ -3561,68 +3580,68 @@ export default function PaymentSettings() {
                       !!method.stripeBankAccountId;
 
                     return (
-                      <div key={method.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-                        {/* Header Row */}
-                        <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            method.payoutMethod === 'paypal' ? 'bg-blue-100' : 'bg-green-100'
-                          }`}>
+                      <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+                        {/* Header Row with Icon and Title */}
+                        <div className="flex items-start gap-4">
+                          {/* Payment Method Icon */}
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${info.iconBgColor}`}>
                             {method.payoutMethod === 'paypal' ? (
-                              <span className="text-blue-600 font-bold text-sm">P</span>
+                              <span className="text-blue-600 font-bold text-xl italic">P</span>
                             ) : (
-                              <IconComponent className={`h-5 w-5 ${method.payoutMethod === 'paypal' ? 'text-blue-600' : 'text-green-600'}`} />
+                              <IconComponent className={`h-6 w-6 ${info.iconColor}`} />
                             )}
                           </div>
+                          {/* Title and Description */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-semibold text-gray-900">{info.title}</h4>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-semibold text-gray-900 text-base">{info.title}</h4>
                               {info.isDefault && (
-                                <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">Primary</Badge>
+                                <Badge className="bg-green-600 text-white border-0 text-xs px-2 py-0.5">Primary</Badge>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500 mt-0.5">{info.description}</p>
+                            <p className="text-sm text-gray-500 mt-1 leading-snug">{info.description}</p>
                           </div>
                         </div>
 
-                        {/* Display Value */}
+                        {/* Display Value (Account Number / Email) */}
                         {info.displayValue && (
-                          <p className="text-sm text-gray-700 font-mono">{info.displayValue}</p>
+                          <p className="text-sm text-gray-800 font-medium">{info.displayValue}</p>
                         )}
 
                         {/* Status and Actions */}
                         {needsSetup ? (
                           <Button
                             onClick={() => handleUpgradeETransfer(method)}
-                            className="w-full bg-yellow-600 hover:bg-yellow-700"
+                            className="w-full h-11 bg-yellow-500 hover:bg-yellow-600 text-white font-medium"
                           >
                             Complete Setup
                           </Button>
                         ) : needsWireVerification && !isWirePending ? (
                           <Button
                             onClick={() => handleVerifyWireAccount(method)}
-                            className="w-full bg-yellow-600 hover:bg-yellow-700"
+                            className="w-full h-11 bg-yellow-500 hover:bg-yellow-600 text-white font-medium"
                           >
                             Start Verification
                           </Button>
                         ) : isWirePending ? (
                           <Button
                             onClick={() => handleVerifyMicroDeposits(method)}
-                            className="w-full bg-blue-600 hover:bg-blue-700"
+                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium"
                           >
                             Verify Amounts
                           </Button>
                         ) : info.isConnected ? (
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 flex items-center gap-2 bg-green-100 text-green-700 rounded-lg px-3 py-2 text-sm font-medium">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 flex items-center gap-2 bg-green-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium">
                               <CheckCircle className="h-4 w-4" />
                               Connected
                             </div>
-                            <Button variant="outline" size="sm" className="gap-1">
-                              Edit <ChevronRight className="h-3 w-3" />
-                            </Button>
+                            <button className="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm font-medium px-2">
+                              Edit <ChevronRight className="h-4 w-4" />
+                            </button>
                           </div>
                         ) : (
-                          <Button className="w-full">
+                          <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium">
                             Connect
                           </Button>
                         )}
