@@ -34,15 +34,20 @@ import {
 import {
   AlertTriangle,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   CreditCard,
   DollarSign,
   Download,
+  Edit3,
   Eye,
   Filter,
   Info,
+  Landmark,
   Search,
   Send,
+  SlidersHorizontal,
   Trash2,
   TrendingUp,
   Users,
@@ -3288,10 +3293,415 @@ export default function PaymentSettings() {
 
   const role: User["role"] = user.role;
 
+  // Calculate payment statistics for mobile view
+  const creatorPaymentStats = useMemo(() => {
+    return creatorPayments.reduce(
+      (acc, payment) => {
+        const amount = parseFloat(payment.netAmount);
+        const disputed = isDisputedPayment(payment);
+
+        if (disputed) {
+          acc.disputedEarnings += amount;
+          return acc;
+        }
+
+        acc.totalEarnings += amount;
+
+        if (payment.status === "completed") {
+          acc.completedEarnings += amount;
+        }
+        if (payment.status === "pending") {
+          acc.pendingEarnings += amount;
+        }
+        if (payment.status === "processing") {
+          acc.processingEarnings += amount;
+        }
+        return acc;
+      },
+      { totalEarnings: 0, pendingEarnings: 0, completedEarnings: 0, processingEarnings: 0, disputedEarnings: 0 }
+    );
+  }, [creatorPayments]);
+
+  // Helper to get payment method display info for mobile
+  const getPaymentMethodInfo = (method: PaymentMethod) => {
+    const isConnected = method.payoutMethod === 'etransfer'
+      ? !!method.stripeAccountId
+      : method.payoutMethod === 'wire'
+        ? method.bankVerificationStatus === 'verified'
+        : true;
+
+    let icon = CreditCard;
+    let title = method.payoutMethod.replace("_", " ");
+    let description = "";
+    let displayValue = "";
+
+    if (method.payoutMethod === "etransfer") {
+      icon = Landmark;
+      title = "Direct Deposit";
+      description = "Receive payments directly to your bank account. Fast and secure.";
+      displayValue = method.bankAccountNumber ? `****${method.bankAccountNumber.slice(-4)}` : method.payoutEmail || "";
+    } else if (method.payoutMethod === "wire") {
+      icon = Landmark;
+      title = "Wire/ACH Transfer";
+      description = "Bank wire transfer for larger payments.";
+      displayValue = method.bankAccountNumber ? `****${method.bankAccountNumber.slice(-4)}` : "";
+    } else if (method.payoutMethod === "paypal") {
+      icon = CreditCard;
+      title = "PayPal";
+      description = "Get paid securely through your PayPal account.";
+      displayValue = method.paypalEmail || "";
+    } else if (method.payoutMethod === "crypto") {
+      icon = DollarSign;
+      title = "Cryptocurrency";
+      description = "Receive payments in crypto.";
+      displayValue = method.cryptoWalletAddress ? `${method.cryptoWalletAddress.slice(0, 8)}...` : "";
+    }
+
+    return { icon, title, description, displayValue, isConnected, isDefault: method.isDefault };
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <TopNavBar />
-      <div className="mx-auto max-w-7xl space-y-6">
+
+      {/* ========== MOBILE LAYOUT FOR CREATORS ========== */}
+      {role === "creator" && (
+        <div className="md:hidden space-y-4 pb-4">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/creator/dashboard">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <h1 className="text-xl font-bold text-gray-900">Payment Management</h1>
+            </div>
+            <Button variant="ghost" size="icon" className="h-9 w-9">
+              <SlidersHorizontal className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Mobile Tabs */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                activeTab === "overview"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500"
+              }`}
+            >
+              Payout History
+            </button>
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                activeTab === "settings"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500"
+              }`}
+            >
+              Payment Methods
+            </button>
+          </div>
+
+          {/* Mobile Payout History Tab */}
+          {activeTab === "overview" && (
+            <div className="space-y-4">
+              {/* Payout Status Breakdown */}
+              <div className="space-y-3">
+                <div>
+                  <h3 className="font-bold text-gray-900">Payout Status Breakdown</h3>
+                  <p className="text-xs text-gray-500">
+                    See where every creator payout sits: awaiting admin approval, processing, or fully paid.
+                  </p>
+                </div>
+
+                {/* Total Earnings Badge */}
+                <button className="w-full flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-200">
+                  <span className="text-sm text-gray-600">Total:</span>
+                  <div className="flex items-center gap-1">
+                    <span className="font-semibold text-gray-900">CA${creatorPaymentStats.totalEarnings.toFixed(2)}</span>
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </div>
+                </button>
+
+                {/* Status Cards - 2x2 Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Pending Admin Approval */}
+                  <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-yellow-700">Pending Admin Approval</span>
+                    </div>
+                    <div className="text-xl font-bold text-yellow-900">CA${creatorPaymentStats.pendingEarnings.toFixed(2)}</div>
+                    <div className="text-[10px] text-yellow-700 mt-1">Company approved, awaiting admin</div>
+                  </div>
+
+                  {/* Processing Payment */}
+                  <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-blue-700">Processing Payment</span>
+                    </div>
+                    <div className="text-xl font-bold text-blue-900">CA${creatorPaymentStats.processingEarnings.toFixed(2)}</div>
+                    <div className="text-[10px] text-blue-700 mt-1">Payment in progress</div>
+                  </div>
+
+                  {/* Total Paid Out */}
+                  <div className="rounded-xl border-2 border-gray-200 bg-white p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-600">Total Paid Out</span>
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    </div>
+                    <div className="text-xl font-bold text-gray-900">CA${creatorPaymentStats.completedEarnings.toFixed(2)}</div>
+                    <div className="text-[10px] text-gray-500 mt-1">Lifetime completed payouts</div>
+                  </div>
+
+                  {/* All Earnings */}
+                  <div className="rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-4 text-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-green-100">All Earnings</span>
+                      <DollarSign className="h-4 w-4 text-green-100" />
+                    </div>
+                    <div className="text-xl font-bold">CA${creatorPaymentStats.totalEarnings.toFixed(2)}</div>
+                    <div className="text-[10px] text-green-100 mt-1">Including pending & processing</div>
+                  </div>
+                </div>
+
+                {/* Disputed Earnings (if any) */}
+                {creatorPaymentStats.disputedEarnings > 0 && (
+                  <div className="rounded-xl border-2 border-orange-300 bg-orange-50 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-orange-700">Disputed</span>
+                      <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div className="text-xl font-bold text-orange-900">CA${creatorPaymentStats.disputedEarnings.toFixed(2)}</div>
+                    <div className="text-[10px] text-orange-700 mt-1">Awaiting admin resolution</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Payment History Section */}
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                  <h3 className="font-bold text-gray-900">Payment History</h3>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                    <Download className="h-3.5 w-3.5" />
+                    Export CSV
+                  </Button>
+                </div>
+
+                {creatorPayments.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <div className="mx-auto w-16 h-16 mb-4 flex items-center justify-center">
+                      <div className="relative">
+                        <div className="w-12 h-10 bg-yellow-100 rounded-lg" />
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                          <DollarSign className="h-3 w-3 text-green-600" />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-500">No payment history yet</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {creatorPayments.slice(0, 5).map((payment) => (
+                      <Link key={payment.id} href={`/payments/${payment.id}`}>
+                        <div className="p-4 hover:bg-gray-50">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {payment.description || "Payment"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {payment.completedAt
+                                  ? new Date(payment.completedAt).toLocaleDateString()
+                                  : new Date(payment.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-green-600">
+                                CA${parseFloat(payment.netAmount).toFixed(2)}
+                              </p>
+                              <StatusBadge status={payment.status} isDisputed={isDisputedPayment(payment)} />
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Export CSV Button at bottom */}
+              <Button variant="outline" className="w-full h-11 gap-2">
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
+          )}
+
+          {/* Mobile Payment Methods Tab */}
+          {activeTab === "settings" && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-500">
+                Manage your payout methods to receive payments easily.
+              </p>
+
+              {/* Payment Method Cards */}
+              {paymentMethods && paymentMethods.length > 0 ? (
+                <div className="space-y-4">
+                  {paymentMethods.map((method) => {
+                    const info = getPaymentMethodInfo(method);
+                    const IconComponent = info.icon;
+                    const needsSetup = method.payoutMethod === 'etransfer' && !method.stripeAccountId;
+                    const needsWireVerification = method.payoutMethod === 'wire' && method.bankVerificationStatus !== 'verified';
+                    const isWirePending = method.payoutMethod === 'wire' &&
+                      method.bankVerificationStatus === 'pending' &&
+                      !!method.stripeBankAccountId;
+
+                    return (
+                      <div key={method.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                        {/* Header Row */}
+                        <div className="flex items-start gap-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                            method.payoutMethod === 'paypal' ? 'bg-blue-100' : 'bg-green-100'
+                          }`}>
+                            {method.payoutMethod === 'paypal' ? (
+                              <span className="text-blue-600 font-bold text-sm">P</span>
+                            ) : (
+                              <IconComponent className={`h-5 w-5 ${method.payoutMethod === 'paypal' ? 'text-blue-600' : 'text-green-600'}`} />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-gray-900">{info.title}</h4>
+                              {info.isDefault && (
+                                <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">Primary</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">{info.description}</p>
+                          </div>
+                        </div>
+
+                        {/* Display Value */}
+                        {info.displayValue && (
+                          <p className="text-sm text-gray-700 font-mono">{info.displayValue}</p>
+                        )}
+
+                        {/* Status and Actions */}
+                        {needsSetup ? (
+                          <Button
+                            onClick={() => handleUpgradeETransfer(method)}
+                            className="w-full bg-yellow-600 hover:bg-yellow-700"
+                          >
+                            Complete Setup
+                          </Button>
+                        ) : needsWireVerification && !isWirePending ? (
+                          <Button
+                            onClick={() => handleVerifyWireAccount(method)}
+                            className="w-full bg-yellow-600 hover:bg-yellow-700"
+                          >
+                            Start Verification
+                          </Button>
+                        ) : isWirePending ? (
+                          <Button
+                            onClick={() => handleVerifyMicroDeposits(method)}
+                            className="w-full bg-blue-600 hover:bg-blue-700"
+                          >
+                            Verify Amounts
+                          </Button>
+                        ) : info.isConnected ? (
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 flex items-center gap-2 bg-green-100 text-green-700 rounded-lg px-3 py-2 text-sm font-medium">
+                              <CheckCircle className="h-4 w-4" />
+                              Connected
+                            </div>
+                            <Button variant="outline" size="sm" className="gap-1">
+                              Edit <ChevronRight className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button className="w-full">
+                            Connect
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                  <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+                  <p className="text-gray-600">No payment methods yet</p>
+                  <p className="mt-1 text-sm text-gray-500">Add a payment method to receive payouts</p>
+                </div>
+              )}
+
+              {/* Add Payment Method Section */}
+              <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+                <h3 className="font-bold text-gray-900">Add Payment Method</h3>
+
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-gray-500">Payout Method</Label>
+                    <Select value={payoutMethod} onValueChange={setPayoutMethod}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Select method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="etransfer">E-Transfer</SelectItem>
+                        <SelectItem value="wire">Wire/ACH</SelectItem>
+                        <SelectItem value="paypal">PayPal</SelectItem>
+                        <SelectItem value="crypto">Cryptocurrency</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {payoutMethod === "etransfer" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-gray-500">Email</Label>
+                      <Input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={payoutEmail}
+                        onChange={(e) => setPayoutEmail(e.target.value)}
+                        className="h-11"
+                      />
+                    </div>
+                  )}
+
+                  {payoutMethod === "paypal" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-gray-500">PayPal Email</Label>
+                      <Input
+                        type="email"
+                        placeholder="your@paypal.com"
+                        value={paypalEmail}
+                        onChange={(e) => setPaypalEmail(e.target.value)}
+                        className="h-11"
+                      />
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={() => addPaymentMethodMutation.mutate()}
+                    disabled={addPaymentMethodMutation.isPending ||
+                      (payoutMethod === "etransfer" && !payoutEmail) ||
+                      (payoutMethod === "paypal" && !paypalEmail)}
+                    className="w-full h-11"
+                  >
+                    {addPaymentMethodMutation.isPending ? "Adding..." : "Add Payment Method"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========== DESKTOP LAYOUT ========== */}
+      <div className="mx-auto max-w-7xl space-y-6 hidden md:block">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Payment Management</h1>
           <p className="mt-1 text-gray-600">Manage your payments and payouts</p>
