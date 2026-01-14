@@ -1096,7 +1096,7 @@ export default function Applications() {
 
       {/* Review Dialog */}
       <Dialog open={reviewDialog.open} onOpenChange={(open) => setReviewDialog({ ...reviewDialog, open })}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-w-[calc(100%-48px)] md:max-w-2xl mx-6 md:mx-auto max-h-[90vh] overflow-y-auto rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle>
               {getExistingReview(reviewDialog.application?.id) ? "Edit Review" : "Leave a Review"}
@@ -1165,16 +1165,18 @@ export default function Applications() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t pt-4">
+            <div className="grid grid-cols-2 gap-3 border-t pt-4">
               <Button
                 variant="outline"
                 onClick={() => setReviewDialog({ open: false, application: null })}
+                className="h-12 rounded-xl border-2 border-gray-200 font-medium"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSubmitReview}
                 disabled={submitReviewMutation.isPending || reviewForm.overallRating === 0}
+                className="h-12 rounded-xl bg-primary hover:bg-primary/90 font-medium"
               >
                 {submitReviewMutation.isPending ? "Submitting..." : "Submit Review"}
               </Button>
