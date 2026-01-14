@@ -2843,8 +2843,8 @@ export default function PaymentSettings() {
   const [verifyingPaymentMethod, setVerifyingPaymentMethod] = useState<PaymentMethod | null>(null);
   const [microDepositAmount1, setMicroDepositAmount1] = useState("");
   const [microDepositAmount2, setMicroDepositAmount2] = useState("");
-  // Add payment method modal state
-  const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
+  // Mobile add payment view state (replaces modal)
+  const [showMobileAddPayment, setShowMobileAddPayment] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -3004,6 +3004,8 @@ export default function PaymentSettings() {
       setCryptoNetwork("");
       // Increment form reset key to force remount of child components with internal state
       setFormResetKey(prev => prev + 1);
+      // Close mobile add payment view
+      setShowMobileAddPayment(false);
       // Redirect to Payment Methods tab
       setActiveTab("settings");
     },
@@ -3745,7 +3747,7 @@ export default function PaymentSettings() {
 
               {/* Add New Payment Method Button */}
               <Button
-                onClick={() => setAddPaymentModalOpen(true)}
+                onClick={() => setShowMobileAddPayment(true)}
                 variant="outline"
                 className="w-full h-12 border-dashed border-2 border-gray-300 text-gray-600 hover:border-primary hover:text-primary"
               >
@@ -3755,124 +3757,64 @@ export default function PaymentSettings() {
             </div>
           )}
 
-          {/* Add Payment Method Modal */}
-          <AlertDialog open={addPaymentModalOpen} onOpenChange={setAddPaymentModalOpen}>
-            <AlertDialogContent className="w-[calc(100%-64px)] max-w-md mx-auto rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
-              <AlertDialogHeader className="pb-2">
-                <AlertDialogTitle className="text-lg font-bold text-center">Add Payment Method</AlertDialogTitle>
-              </AlertDialogHeader>
-              <div className="space-y-5 py-2">
-                {/* Payment Method Selection Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* E-Transfer Option */}
+          {/* Mobile Add Payment Method View (New Page) */}
+          {showMobileAddPayment && (
+            <div className="fixed inset-0 z-50 bg-gray-50">
+              {/* Header */}
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+                <div className="flex items-center gap-3 px-4 py-4">
                   <button
-                    type="button"
-                    onClick={() => setPayoutMethod("etransfer")}
-                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
-                      payoutMethod === "etransfer"
-                        ? "border-primary bg-primary/5"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
+                    onClick={() => setShowMobileAddPayment(false)}
+                    className="p-1 -ml-1 hover:bg-gray-100 rounded-lg"
                   >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                      payoutMethod === "etransfer" ? "bg-teal-100" : "bg-gray-100"
-                    }`}>
-                      <Building2 className={`h-4 w-4 ${payoutMethod === "etransfer" ? "text-teal-600" : "text-gray-500"}`} />
-                    </div>
-                    <span className={`text-sm font-medium ${payoutMethod === "etransfer" ? "text-primary" : "text-gray-700"}`}>
-                      E-Transfer
-                    </span>
+                    <ChevronLeft className="h-6 w-6 text-gray-700" />
                   </button>
+                  <h1 className="text-lg font-bold text-gray-900">Add Payment Method</h1>
+                </div>
+              </div>
 
-                  {/* Wire/ACH Option */}
-                  <button
-                    type="button"
-                    onClick={() => setPayoutMethod("wire")}
-                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
-                      payoutMethod === "wire"
-                        ? "border-primary bg-primary/5"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                      payoutMethod === "wire" ? "bg-amber-100" : "bg-gray-100"
-                    }`}>
-                      <Landmark className={`h-4 w-4 ${payoutMethod === "wire" ? "text-amber-600" : "text-gray-500"}`} />
-                    </div>
-                    <span className={`text-sm font-medium ${payoutMethod === "wire" ? "text-primary" : "text-gray-700"}`}>
-                      Wire/ACH
-                    </span>
-                  </button>
-
-                  {/* PayPal Option */}
-                  <button
-                    type="button"
-                    onClick={() => setPayoutMethod("paypal")}
-                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
-                      payoutMethod === "paypal"
-                        ? "border-primary bg-primary/5"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                      payoutMethod === "paypal" ? "bg-blue-100" : "bg-gray-100"
-                    }`}>
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
-                        <path className={payoutMethod === "paypal" ? "text-blue-800" : "text-gray-600"} d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
-                        <path className={payoutMethod === "paypal" ? "text-blue-500" : "text-gray-400"} d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
-                      </svg>
-                    </div>
-                    <span className={`text-sm font-medium ${payoutMethod === "paypal" ? "text-primary" : "text-gray-700"}`}>
-                      PayPal
-                    </span>
-                  </button>
-
-                  {/* Crypto Option */}
-                  <button
-                    type="button"
-                    onClick={() => setPayoutMethod("crypto")}
-                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
-                      payoutMethod === "crypto"
-                        ? "border-primary bg-primary/5"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                      payoutMethod === "crypto" ? "bg-orange-100" : "bg-gray-100"
-                    }`}>
-                      <svg viewBox="0 0 32 32" className={`h-4 w-4 ${payoutMethod === "crypto" ? "text-orange-500" : "text-gray-500"}`} fill="currentColor">
-                        <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.189-17.98c.314-2.096-1.283-3.223-3.465-3.975l.708-2.84-1.728-.43-.69 2.765c-.454-.114-.92-.22-1.385-.326l.695-2.783L15.596 6l-.708 2.839c-.376-.086-.746-.17-1.104-.26l.002-.009-2.384-.595-.46 1.846s1.283.294 1.256.312c.7.175.826.638.805 1.006l-.806 3.235c.048.012.11.03.18.057l-.183-.045-1.13 4.532c-.086.212-.303.531-.793.41.018.025-1.256-.313-1.256-.313l-.858 1.978 2.25.561c.418.105.828.215 1.231.318l-.715 2.872 1.727.43.708-2.84c.472.127.93.245 1.378.357l-.706 2.828 1.728.43.715-2.866c2.948.558 5.164.333 6.097-2.333.752-2.146-.037-3.385-1.588-4.192 1.13-.26 1.98-1.003 2.207-2.538zm-3.95 5.538c-.533 2.147-4.148.986-5.32.695l.95-3.805c1.172.293 4.929.872 4.37 3.11zm.535-5.569c-.487 1.953-3.495.96-4.47.717l.86-3.45c.975.243 4.118.696 3.61 2.733z" />
-                      </svg>
-                    </div>
-                    <span className={`text-sm font-medium ${payoutMethod === "crypto" ? "text-primary" : "text-gray-700"}`}>
-                      Crypto
-                    </span>
-                  </button>
+              {/* Content */}
+              <div className="p-4 space-y-6 pb-32 overflow-y-auto" style={{ height: 'calc(100vh - 65px)' }}>
+                {/* Payment Method Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-gray-700">Payout Method</Label>
+                  <Select value={payoutMethod} onValueChange={setPayoutMethod}>
+                    <SelectTrigger className="h-12 rounded-xl">
+                      <SelectValue placeholder="Select method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="etransfer">E-Transfer</SelectItem>
+                      <SelectItem value="wire">Wire/ACH</SelectItem>
+                      <SelectItem value="paypal">PayPal</SelectItem>
+                      <SelectItem value="crypto">Cryptocurrency</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* Conditional Form Fields Based on Payment Method */}
+                {/* E-Transfer Fields */}
                 {payoutMethod === "etransfer" && (
-                  <div className="space-y-2">
-                    <Label className="text-sm text-gray-700">Email</Label>
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-gray-700">Email</Label>
                     <Input
                       type="email"
                       placeholder="your@email.com"
                       value={payoutEmail}
                       onChange={(e) => setPayoutEmail(e.target.value)}
-                      className="h-11"
+                      className="h-12 rounded-xl"
                     />
-                    <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 mt-2">
-                      <div className="flex gap-2">
-                        <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                        <div className="text-xs text-blue-900">
+                    <div className="rounded-xl bg-blue-50 border border-blue-200 p-4">
+                      <div className="flex gap-3">
+                        <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-blue-900">
                           <p className="font-semibold mb-1">Payment Requirements:</p>
-                          <p>E-Transfer payments via Stripe require a minimum of <strong>$1.00 CAD</strong>.</p>
+                          <p className="text-xs">E-Transfer payments via Stripe require a minimum transaction amount of <strong>$1.00 CAD</strong>. Payments below this amount cannot be processed.</p>
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
 
+                {/* Wire/ACH Fields */}
                 {payoutMethod === "wire" && (
                   <WireAchPaymentFields
                     key={`wire-ach-mobile-${formResetKey}`}
@@ -3883,19 +3825,21 @@ export default function PaymentSettings() {
                   />
                 )}
 
+                {/* PayPal Fields */}
                 {payoutMethod === "paypal" && (
-                  <div className="space-y-2">
-                    <Label className="text-sm text-gray-700">PayPal Email</Label>
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-gray-700">PayPal Email</Label>
                     <Input
                       type="email"
                       placeholder="your@paypal.com"
                       value={paypalEmail}
                       onChange={(e) => setPaypalEmail(e.target.value)}
-                      className="h-11"
+                      className="h-12 rounded-xl"
                     />
                   </div>
                 )}
 
+                {/* Crypto Fields */}
                 {payoutMethod === "crypto" && (
                   <CryptoPaymentFields
                     key={`crypto-mobile-${formResetKey}`}
@@ -3906,27 +3850,25 @@ export default function PaymentSettings() {
                   />
                 )}
               </div>
-              <AlertDialogFooter className="grid grid-cols-2 gap-3 pt-4">
-                <AlertDialogCancel className="m-0 h-12 rounded-xl border-2 border-gray-200 font-medium">
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
+
+              {/* Fixed Bottom Button */}
+              <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+                <Button
                   onClick={() => {
                     addPaymentMethodMutation.mutate();
-                    setAddPaymentModalOpen(false);
                   }}
                   disabled={addPaymentMethodMutation.isPending ||
                     (payoutMethod === "etransfer" && !payoutEmail) ||
                     (payoutMethod === "paypal" && !paypalEmail) ||
                     (payoutMethod === "wire" && (!bankRoutingNumber || !bankAccountNumber)) ||
                     (payoutMethod === "crypto" && (!cryptoWalletAddress || !cryptoNetwork))}
-                  className="m-0 h-12 rounded-xl bg-primary hover:bg-primary/90 font-medium"
+                  className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 font-medium text-base"
                 >
-                  {addPaymentMethodMutation.isPending ? "Adding..." : "Add Method"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  {addPaymentMethodMutation.isPending ? "Adding..." : "Add Payment Method"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
