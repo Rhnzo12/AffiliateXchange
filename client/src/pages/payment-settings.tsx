@@ -3590,7 +3590,7 @@ export default function PaymentSettings() {
                       method.bankVerificationStatus === 'pending' &&
                       !!method.stripeBankAccountId;
 
-                    // PayPal style card (compact with checkmark on right)
+                    // PayPal card
                     if (method.payoutMethod === 'paypal') {
                       return (
                         <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
@@ -3622,21 +3622,24 @@ export default function PaymentSettings() {
                       );
                     }
 
-                    // E-Transfer / Direct Deposit card
+                    // E-Transfer card
                     if (method.payoutMethod === 'etransfer') {
                       return (
-                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                        <div key={method.id} className={`bg-white rounded-2xl border p-4 ${needsSetup ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'}`}>
                           <div className="flex items-center gap-3">
                             {/* Icon */}
-                            <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
-                              <Building2 className="h-5 w-5 text-teal-600" />
+                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${needsSetup ? 'bg-yellow-100' : 'bg-teal-50'}`}>
+                              <Building2 className={`h-5 w-5 ${needsSetup ? 'text-yellow-600' : 'text-teal-600'}`} />
                             </div>
                             {/* Content */}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-semibold text-gray-900">E-Transfer</span>
                                 {info.isDefault && (
                                   <Badge className="bg-green-600 text-white border-0 text-[10px] px-1.5 py-0">Primary</Badge>
+                                )}
+                                {needsSetup && (
+                                  <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 text-[10px] px-1.5 py-0">Setup Required</Badge>
                                 )}
                               </div>
                               <p className="text-sm text-gray-500">{info.displayValue}</p>
@@ -3646,7 +3649,7 @@ export default function PaymentSettings() {
                               <Button
                                 onClick={() => handleUpgradeETransfer(method)}
                                 size="sm"
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-xs"
+                                className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium text-xs"
                               >
                                 Setup
                               </Button>
@@ -3674,13 +3677,19 @@ export default function PaymentSettings() {
                             </div>
                             {/* Content */}
                             <div className="flex-1 min-w-0">
-                              <span className="font-semibold text-gray-900">Cryptocurrency</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-900">Cryptocurrency</span>
+                                {info.isDefault && (
+                                  <Badge className="bg-green-600 text-white border-0 text-[10px] px-1.5 py-0">Primary</Badge>
+                                )}
+                              </div>
                               <p className="text-sm text-gray-500">{info.displayValue}</p>
                             </div>
-                            {/* Edit Link */}
-                            <button className="flex items-center gap-0.5 text-gray-500 hover:text-gray-700 text-sm">
-                              Edit <ChevronRight className="h-4 w-4" />
-                            </button>
+                            {/* Connected Badge */}
+                            <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Connected</span>
+                            </div>
                           </div>
                         </div>
                       );
@@ -3688,29 +3697,56 @@ export default function PaymentSettings() {
 
                     // Wire/ACH Transfer card
                     if (method.payoutMethod === 'wire') {
+                      const isVerified = method.bankVerificationStatus === 'verified';
                       return (
-                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                        <div key={method.id} className={`bg-white rounded-2xl border p-4 ${needsWireVerification && !isWirePending ? 'border-yellow-300 bg-yellow-50' : isWirePending ? 'border-blue-300 bg-blue-50' : 'border-gray-200'}`}>
                           <div className="flex items-center gap-3">
                             {/* Icon */}
-                            <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-                              <Landmark className="h-5 w-5 text-amber-600" />
+                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${needsWireVerification ? 'bg-yellow-100' : isWirePending ? 'bg-blue-100' : 'bg-amber-50'}`}>
+                              <Landmark className={`h-5 w-5 ${needsWireVerification ? 'text-yellow-600' : isWirePending ? 'text-blue-600' : 'text-amber-600'}`} />
                             </div>
                             {/* Content */}
                             <div className="flex-1 min-w-0">
-                              <span className="font-semibold text-gray-900">Wire/ACH Transfer</span>
-                              <p className="text-sm text-gray-500">Bank wire for large payouts</p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-gray-900">Wire/ACH</span>
+                                {info.isDefault && (
+                                  <Badge className="bg-green-600 text-white border-0 text-[10px] px-1.5 py-0">Primary</Badge>
+                                )}
+                                {needsWireVerification && !isWirePending && (
+                                  <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 text-[10px] px-1.5 py-0">Verification Required</Badge>
+                                )}
+                                {isWirePending && (
+                                  <Badge className="bg-blue-100 text-blue-800 border-blue-300 text-[10px] px-1.5 py-0">Pending</Badge>
+                                )}
+                                {isVerified && (
+                                  <Badge className="bg-green-100 text-green-800 border-green-300 text-[10px] px-1.5 py-0">Verified</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500">{info.displayValue || 'Bank wire for large payouts'}</p>
                             </div>
-                            {/* Verification Badge or Edit */}
-                            {needsWireVerification ? (
-                              <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-xs px-2 py-1 flex items-center gap-1">
-                                <AlertTriangle className="h-3 w-3" />
-                                Verification Required
-                              </Badge>
-                            ) : (
-                              <button className="flex items-center gap-0.5 text-gray-500 hover:text-gray-700 text-sm">
-                                Edit <ChevronRight className="h-4 w-4" />
-                              </button>
-                            )}
+                            {/* Action Button based on status */}
+                            {needsWireVerification && !isWirePending ? (
+                              <Button
+                                onClick={() => handleVerifyWireAccount(method)}
+                                size="sm"
+                                className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium text-xs"
+                              >
+                                Verify
+                              </Button>
+                            ) : isWirePending ? (
+                              <Button
+                                onClick={() => handleVerifyMicroDeposits(method)}
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs"
+                              >
+                                Verify Amounts
+                              </Button>
+                            ) : isVerified ? (
+                              <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                                <CheckCircle className="h-4 w-4" />
+                                <span>Connected</span>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       );
