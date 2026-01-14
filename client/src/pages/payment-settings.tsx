@@ -3757,13 +3757,13 @@ export default function PaymentSettings() {
 
           {/* Add Payment Method Modal */}
           <AlertDialog open={addPaymentModalOpen} onOpenChange={setAddPaymentModalOpen}>
-            <AlertDialogContent className="max-w-md mx-4 rounded-2xl">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-lg font-bold">Add Payment Method</AlertDialogTitle>
+            <AlertDialogContent className="max-w-[calc(100%-48px)] mx-6 rounded-2xl p-6">
+              <AlertDialogHeader className="pb-2">
+                <AlertDialogTitle className="text-lg font-bold text-center">Add Payment Method</AlertDialogTitle>
               </AlertDialogHeader>
-              <div className="space-y-4 py-2">
+              <div className="space-y-5 py-2">
                 {/* Payment Method Selection Grid */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   {/* E-Transfer Option */}
                   <button
                     type="button"
@@ -3868,8 +3868,10 @@ export default function PaymentSettings() {
                   />
                 </div>
               </div>
-              <AlertDialogFooter className="gap-2 sm:gap-0">
-                <AlertDialogCancel className="flex-1 sm:flex-none">Cancel</AlertDialogCancel>
+              <AlertDialogFooter className="grid grid-cols-2 gap-3 pt-4">
+                <AlertDialogCancel className="m-0 h-12 rounded-xl border-2 border-gray-200 font-medium">
+                  Cancel
+                </AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => {
                     addPaymentMethodMutation.mutate();
@@ -3878,9 +3880,9 @@ export default function PaymentSettings() {
                   disabled={addPaymentMethodMutation.isPending ||
                     (payoutMethod === "etransfer" && !payoutEmail) ||
                     (payoutMethod === "paypal" && !paypalEmail)}
-                  className="flex-1 sm:flex-none bg-primary hover:bg-primary/90"
+                  className="m-0 h-12 rounded-xl bg-primary hover:bg-primary/90 font-medium"
                 >
-                  {addPaymentMethodMutation.isPending ? "Adding..." : "Add Payment Method"}
+                  {addPaymentMethodMutation.isPending ? "Adding..." : "Add Method"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
