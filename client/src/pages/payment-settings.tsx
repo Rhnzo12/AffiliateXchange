@@ -3757,7 +3757,7 @@ export default function PaymentSettings() {
 
           {/* Add Payment Method Modal */}
           <AlertDialog open={addPaymentModalOpen} onOpenChange={setAddPaymentModalOpen}>
-            <AlertDialogContent className="w-[calc(100%-64px)] max-w-sm mx-auto rounded-2xl p-6">
+            <AlertDialogContent className="w-[calc(100%-64px)] max-w-md mx-auto rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
               <AlertDialogHeader className="pb-2">
                 <AlertDialogTitle className="text-lg font-bold text-center">Add Payment Method</AlertDialogTitle>
               </AlertDialogHeader>
@@ -3850,23 +3850,61 @@ export default function PaymentSettings() {
                   </button>
                 </div>
 
-                {/* Email/Identifier Input */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-gray-500">Email / Identifier</Label>
-                  <Input
-                    type="email"
-                    placeholder="your@email.com"
-                    value={payoutMethod === "paypal" ? paypalEmail : payoutEmail}
-                    onChange={(e) => {
-                      if (payoutMethod === "paypal") {
-                        setPaypalEmail(e.target.value);
-                      } else {
-                        setPayoutEmail(e.target.value);
-                      }
-                    }}
-                    className="h-11"
+                {/* Conditional Form Fields Based on Payment Method */}
+                {payoutMethod === "etransfer" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-gray-700">Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={payoutEmail}
+                      onChange={(e) => setPayoutEmail(e.target.value)}
+                      className="h-11"
+                    />
+                    <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 mt-2">
+                      <div className="flex gap-2">
+                        <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-xs text-blue-900">
+                          <p className="font-semibold mb-1">Payment Requirements:</p>
+                          <p>E-Transfer payments via Stripe require a minimum of <strong>$1.00 CAD</strong>.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {payoutMethod === "wire" && (
+                  <WireAchPaymentFields
+                    key={`wire-ach-mobile-${formResetKey}`}
+                    bankRoutingNumber={bankRoutingNumber}
+                    setBankRoutingNumber={setBankRoutingNumber}
+                    bankAccountNumber={bankAccountNumber}
+                    setBankAccountNumber={setBankAccountNumber}
                   />
-                </div>
+                )}
+
+                {payoutMethod === "paypal" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-gray-700">PayPal Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="your@paypal.com"
+                      value={paypalEmail}
+                      onChange={(e) => setPaypalEmail(e.target.value)}
+                      className="h-11"
+                    />
+                  </div>
+                )}
+
+                {payoutMethod === "crypto" && (
+                  <CryptoPaymentFields
+                    key={`crypto-mobile-${formResetKey}`}
+                    cryptoWalletAddress={cryptoWalletAddress}
+                    setCryptoWalletAddress={setCryptoWalletAddress}
+                    cryptoNetwork={cryptoNetwork}
+                    setCryptoNetwork={setCryptoNetwork}
+                  />
+                )}
               </div>
               <AlertDialogFooter className="grid grid-cols-2 gap-3 pt-4">
                 <AlertDialogCancel className="m-0 h-12 rounded-xl border-2 border-gray-200 font-medium">
@@ -3879,7 +3917,9 @@ export default function PaymentSettings() {
                   }}
                   disabled={addPaymentMethodMutation.isPending ||
                     (payoutMethod === "etransfer" && !payoutEmail) ||
-                    (payoutMethod === "paypal" && !paypalEmail)}
+                    (payoutMethod === "paypal" && !paypalEmail) ||
+                    (payoutMethod === "wire" && (!bankRoutingNumber || !bankAccountNumber)) ||
+                    (payoutMethod === "crypto" && (!cryptoWalletAddress || !cryptoNetwork))}
                   className="m-0 h-12 rounded-xl bg-primary hover:bg-primary/90 font-medium"
                 >
                   {addPaymentMethodMutation.isPending ? "Adding..." : "Add Method"}
