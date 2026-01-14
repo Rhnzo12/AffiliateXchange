@@ -3586,7 +3586,14 @@ export default function PaymentSettings() {
                           {/* Payment Method Icon */}
                           <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${info.iconBgColor}`}>
                             {method.payoutMethod === 'paypal' ? (
-                              <span className="text-blue-600 font-bold text-xl italic">P</span>
+                              <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor">
+                                <path className="text-blue-800" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
+                                <path className="text-blue-500" d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
+                              </svg>
+                            ) : method.payoutMethod === 'crypto' ? (
+                              <svg viewBox="0 0 24 24" className="h-7 w-7 text-orange-500" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z" />
+                              </svg>
                             ) : (
                               <IconComponent className={`h-6 w-6 ${info.iconColor}`} />
                             )}
@@ -3658,23 +3665,99 @@ export default function PaymentSettings() {
               )}
 
               {/* Add Payment Method Section */}
-              <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
-                <h3 className="font-bold text-gray-900">Add Payment Method</h3>
+              <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+                <h3 className="font-bold text-gray-900 text-base">Add Payment Method</h3>
 
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-gray-500">Payout Method</Label>
-                    <Select value={payoutMethod} onValueChange={setPayoutMethod}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="etransfer">E-Transfer</SelectItem>
-                        <SelectItem value="wire">Wire/ACH</SelectItem>
-                        <SelectItem value="paypal">PayPal</SelectItem>
-                        <SelectItem value="crypto">Cryptocurrency</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="space-y-4">
+                  {/* Payment Method Selection with Icons */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-gray-500 font-medium">Select Payout Method</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Direct Deposit Option */}
+                      <button
+                        type="button"
+                        onClick={() => setPayoutMethod("etransfer")}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                          payoutMethod === "etransfer"
+                            ? "border-teal-500 bg-teal-50"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          payoutMethod === "etransfer" ? "bg-teal-100" : "bg-gray-100"
+                        }`}>
+                          <Building2 className={`h-5 w-5 ${payoutMethod === "etransfer" ? "text-teal-600" : "text-gray-500"}`} />
+                        </div>
+                        <span className={`text-xs font-medium ${payoutMethod === "etransfer" ? "text-teal-700" : "text-gray-600"}`}>
+                          Direct Deposit
+                        </span>
+                      </button>
+
+                      {/* Wire/ACH Option */}
+                      <button
+                        type="button"
+                        onClick={() => setPayoutMethod("wire")}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                          payoutMethod === "wire"
+                            ? "border-emerald-500 bg-emerald-50"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          payoutMethod === "wire" ? "bg-emerald-100" : "bg-gray-100"
+                        }`}>
+                          <Landmark className={`h-5 w-5 ${payoutMethod === "wire" ? "text-emerald-600" : "text-gray-500"}`} />
+                        </div>
+                        <span className={`text-xs font-medium ${payoutMethod === "wire" ? "text-emerald-700" : "text-gray-600"}`}>
+                          Wire/ACH
+                        </span>
+                      </button>
+
+                      {/* PayPal Option */}
+                      <button
+                        type="button"
+                        onClick={() => setPayoutMethod("paypal")}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                          payoutMethod === "paypal"
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          payoutMethod === "paypal" ? "bg-blue-100" : "bg-gray-100"
+                        }`}>
+                          <svg viewBox="0 0 24 24" className={`h-5 w-5 ${payoutMethod === "paypal" ? "" : "opacity-50"}`} fill="currentColor">
+                            <path className={payoutMethod === "paypal" ? "text-blue-800" : "text-gray-600"} d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
+                            <path className={payoutMethod === "paypal" ? "text-blue-500" : "text-gray-400"} d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
+                          </svg>
+                        </div>
+                        <span className={`text-xs font-medium ${payoutMethod === "paypal" ? "text-blue-700" : "text-gray-600"}`}>
+                          PayPal
+                        </span>
+                      </button>
+
+                      {/* Crypto Option */}
+                      <button
+                        type="button"
+                        onClick={() => setPayoutMethod("crypto")}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                          payoutMethod === "crypto"
+                            ? "border-orange-500 bg-orange-50"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          payoutMethod === "crypto" ? "bg-orange-100" : "bg-gray-100"
+                        }`}>
+                          <svg viewBox="0 0 24 24" className={`h-5 w-5 ${payoutMethod === "crypto" ? "text-orange-500" : "text-gray-500"}`} fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z" />
+                          </svg>
+                        </div>
+                        <span className={`text-xs font-medium ${payoutMethod === "crypto" ? "text-orange-700" : "text-gray-600"}`}>
+                          Crypto
+                        </span>
+                      </button>
+                    </div>
                   </div>
 
                   {payoutMethod === "etransfer" && (
@@ -3708,7 +3791,7 @@ export default function PaymentSettings() {
                     disabled={addPaymentMethodMutation.isPending ||
                       (payoutMethod === "etransfer" && !payoutEmail) ||
                       (payoutMethod === "paypal" && !paypalEmail)}
-                    className="w-full h-11"
+                    className="w-full h-11 bg-blue-600 hover:bg-blue-700"
                   >
                     {addPaymentMethodMutation.isPending ? "Adding..." : "Add Payment Method"}
                   </Button>
