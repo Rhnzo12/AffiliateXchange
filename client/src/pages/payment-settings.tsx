@@ -514,7 +514,7 @@ function CryptoPaymentFields({
           <SelectTrigger id="network">
             <SelectValue placeholder="Select network" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[10000]">
             <SelectItem value="ethereum">Ethereum (ERC-20) - USDC</SelectItem>
             <SelectItem value="bsc">Binance Smart Chain (BEP-20) - BUSD</SelectItem>
             <SelectItem value="polygon">Polygon (MATIC) - USDC</SelectItem>
@@ -3854,7 +3854,7 @@ export default function PaymentSettings() {
                         </div>
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[10000]">
                       <SelectItem value="etransfer">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
