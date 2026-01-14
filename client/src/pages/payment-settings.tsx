@@ -48,6 +48,7 @@ import {
   Filter,
   Info,
   Landmark,
+  Plus,
   Search,
   Send,
   SlidersHorizontal,
@@ -2842,6 +2843,8 @@ export default function PaymentSettings() {
   const [verifyingPaymentMethod, setVerifyingPaymentMethod] = useState<PaymentMethod | null>(null);
   const [microDepositAmount1, setMicroDepositAmount1] = useState("");
   const [microDepositAmount2, setMicroDepositAmount2] = useState("");
+  // Add payment method modal state
+  const [addPaymentModalOpen, setAddPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -3334,6 +3337,8 @@ export default function PaymentSettings() {
         ? method.bankVerificationStatus === 'verified'
         : true;
 
+    const needsVerification = method.payoutMethod === 'wire' && method.bankVerificationStatus !== 'verified';
+
     let icon = CreditCard;
     let iconBgColor = "bg-gray-100";
     let iconColor = "text-gray-600";
@@ -3345,22 +3350,22 @@ export default function PaymentSettings() {
       icon = Building2;
       iconBgColor = "bg-teal-50";
       iconColor = "text-teal-600";
-      title = "Direct Deposit";
-      description = "Receive payments directly to your bank account. Fast and secure.";
-      displayValue = method.bankAccountNumber ? `**** ${method.bankAccountNumber.slice(-4)}` : method.payoutEmail || "";
+      title = "E-Transfer";
+      description = "";
+      displayValue = method.payoutEmail || "";
     } else if (method.payoutMethod === "wire") {
       icon = Landmark;
-      iconBgColor = "bg-emerald-50";
-      iconColor = "text-emerald-600";
+      iconBgColor = "bg-amber-50";
+      iconColor = "text-amber-600";
       title = "Wire/ACH Transfer";
-      description = "Bank wire transfer for larger payments.";
+      description = "Bank wire for large payouts";
       displayValue = method.bankAccountNumber ? `**** ${method.bankAccountNumber.slice(-4)}` : "";
     } else if (method.payoutMethod === "paypal") {
       icon = Wallet;
       iconBgColor = "bg-blue-50";
       iconColor = "text-blue-600";
       title = "PayPal";
-      description = "Get paid securely through your PayPal account.";
+      description = "";
       // Mask email for privacy
       const email = method.paypalEmail || "";
       if (email) {
@@ -3372,11 +3377,11 @@ export default function PaymentSettings() {
       iconBgColor = "bg-orange-50";
       iconColor = "text-orange-500";
       title = "Cryptocurrency";
-      description = `Receive payments in ${method.cryptoNetwork || 'crypto'}.`;
+      description = "";
       displayValue = method.cryptoWalletAddress ? `${method.cryptoWalletAddress.slice(0, 6)}...${method.cryptoWalletAddress.slice(-4)}` : "";
     }
 
-    return { icon, iconBgColor, iconColor, title, description, displayValue, isConnected, isDefault: method.isDefault };
+    return { icon, iconBgColor, iconColor, title, description, displayValue, isConnected, isDefault: method.isDefault, needsVerification };
   };
 
   return (
@@ -3563,13 +3568,16 @@ export default function PaymentSettings() {
           {/* Mobile Payment Methods Tab */}
           {activeTab === "settings" && (
             <div className="space-y-4">
-              <p className="text-sm text-gray-500">
-                Manage your payout methods to receive payments easily.
-              </p>
+              {/* Connected Methods Header */}
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">
+                  Connected Methods {paymentMethods && paymentMethods.length > 0 && `(${paymentMethods.length})`}
+                </h3>
+              </div>
 
-              {/* Payment Method Cards */}
+              {/* Payment Method Cards - Compact Design */}
               {paymentMethods && paymentMethods.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {paymentMethods.map((method) => {
                     const info = getPaymentMethodInfo(method);
                     const IconComponent = info.icon;
@@ -3579,79 +3587,150 @@ export default function PaymentSettings() {
                       method.bankVerificationStatus === 'pending' &&
                       !!method.stripeBankAccountId;
 
-                    return (
-                      <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-                        {/* Header Row with Icon and Title */}
-                        <div className="flex items-start gap-4">
-                          {/* Payment Method Icon */}
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${info.iconBgColor}`}>
-                            {method.payoutMethod === 'paypal' ? (
-                              <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor">
+                    // PayPal style card (compact with checkmark on right)
+                    if (method.payoutMethod === 'paypal') {
+                      return (
+                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                          <div className="flex items-center gap-3">
+                            {/* PayPal Icon */}
+                            <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor">
                                 <path className="text-blue-800" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
                                 <path className="text-blue-500" d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
                               </svg>
-                            ) : method.payoutMethod === 'crypto' ? (
-                              <svg viewBox="0 0 24 24" className="h-7 w-7 text-orange-500" fill="currentColor">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z" />
-                              </svg>
-                            ) : (
-                              <IconComponent className={`h-6 w-6 ${info.iconColor}`} />
-                            )}
-                          </div>
-                          {/* Title and Description */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="font-semibold text-gray-900 text-base">{info.title}</h4>
-                              {info.isDefault && (
-                                <Badge className="bg-green-600 text-white border-0 text-xs px-2 py-0.5">Primary</Badge>
-                              )}
                             </div>
-                            <p className="text-sm text-gray-500 mt-1 leading-snug">{info.description}</p>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-900">PayPal</span>
+                                {info.isDefault && (
+                                  <Badge className="bg-green-600 text-white border-0 text-[10px] px-1.5 py-0">Primary</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500">{info.displayValue}</p>
+                            </div>
+                            {/* Connected Badge */}
+                            <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Connected</span>
+                            </div>
                           </div>
                         </div>
+                      );
+                    }
 
-                        {/* Display Value (Account Number / Email) */}
-                        {info.displayValue && (
-                          <p className="text-sm text-gray-800 font-medium">{info.displayValue}</p>
-                        )}
-
-                        {/* Status and Actions */}
-                        {needsSetup ? (
-                          <Button
-                            onClick={() => handleUpgradeETransfer(method)}
-                            className="w-full h-11 bg-yellow-500 hover:bg-yellow-600 text-white font-medium"
-                          >
-                            Complete Setup
-                          </Button>
-                        ) : needsWireVerification && !isWirePending ? (
-                          <Button
-                            onClick={() => handleVerifyWireAccount(method)}
-                            className="w-full h-11 bg-yellow-500 hover:bg-yellow-600 text-white font-medium"
-                          >
-                            Start Verification
-                          </Button>
-                        ) : isWirePending ? (
-                          <Button
-                            onClick={() => handleVerifyMicroDeposits(method)}
-                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                          >
-                            Verify Amounts
-                          </Button>
-                        ) : info.isConnected ? (
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 flex items-center gap-2 bg-green-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium">
-                              <CheckCircle className="h-4 w-4" />
-                              Connected
+                    // E-Transfer / Direct Deposit card
+                    if (method.payoutMethod === 'etransfer') {
+                      return (
+                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+                          <div className="flex items-start gap-3">
+                            {/* Icon */}
+                            <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                              <Building2 className="h-5 w-5 text-teal-600" />
                             </div>
-                            <button className="flex items-center gap-1 text-gray-600 hover:text-gray-900 text-sm font-medium px-2">
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-900">E-Transfer</span>
+                                {info.isDefault && (
+                                  <Badge className="bg-green-600 text-white border-0 text-[10px] px-1.5 py-0">Primary</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500">{info.displayValue}</p>
+                            </div>
+                            {/* Edit Link */}
+                            <button className="flex items-center gap-0.5 text-gray-500 hover:text-gray-700 text-sm">
                               Edit <ChevronRight className="h-4 w-4" />
                             </button>
                           </div>
-                        ) : (
-                          <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium">
-                            Connect
-                          </Button>
-                        )}
+                          {/* Connected Status */}
+                          {needsSetup ? (
+                            <Button
+                              onClick={() => handleUpgradeETransfer(method)}
+                              className="w-full h-10 bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-sm"
+                            >
+                              Complete Setup
+                            </Button>
+                          ) : (
+                            <div className="flex items-center gap-2 bg-green-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium">
+                              <CheckCircle className="h-4 w-4" />
+                              Connected
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // Cryptocurrency card
+                    if (method.payoutMethod === 'crypto') {
+                      return (
+                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                          <div className="flex items-center gap-3">
+                            {/* Bitcoin Icon */}
+                            <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                              <svg viewBox="0 0 32 32" className="h-6 w-6 text-orange-500" fill="currentColor">
+                                <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.189-17.98c.314-2.096-1.283-3.223-3.465-3.975l.708-2.84-1.728-.43-.69 2.765c-.454-.114-.92-.22-1.385-.326l.695-2.783L15.596 6l-.708 2.839c-.376-.086-.746-.17-1.104-.26l.002-.009-2.384-.595-.46 1.846s1.283.294 1.256.312c.7.175.826.638.805 1.006l-.806 3.235c.048.012.11.03.18.057l-.183-.045-1.13 4.532c-.086.212-.303.531-.793.41.018.025-1.256-.313-1.256-.313l-.858 1.978 2.25.561c.418.105.828.215 1.231.318l-.715 2.872 1.727.43.708-2.84c.472.127.93.245 1.378.357l-.706 2.828 1.728.43.715-2.866c2.948.558 5.164.333 6.097-2.333.752-2.146-.037-3.385-1.588-4.192 1.13-.26 1.98-1.003 2.207-2.538zm-3.95 5.538c-.533 2.147-4.148.986-5.32.695l.95-3.805c1.172.293 4.929.872 4.37 3.11zm.535-5.569c-.487 1.953-3.495.96-4.47.717l.86-3.45c.975.243 4.118.696 3.61 2.733z" />
+                              </svg>
+                            </div>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <span className="font-semibold text-gray-900">Cryptocurrency</span>
+                              <p className="text-sm text-gray-500">{info.displayValue}</p>
+                            </div>
+                            {/* Edit Link */}
+                            <button className="flex items-center gap-0.5 text-gray-500 hover:text-gray-700 text-sm">
+                              Edit <ChevronRight className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Wire/ACH Transfer card
+                    if (method.payoutMethod === 'wire') {
+                      return (
+                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                          <div className="flex items-center gap-3">
+                            {/* Icon */}
+                            <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                              <Landmark className="h-5 w-5 text-amber-600" />
+                            </div>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <span className="font-semibold text-gray-900">Wire/ACH Transfer</span>
+                              <p className="text-sm text-gray-500">Bank wire for large payouts</p>
+                            </div>
+                            {/* Verification Badge or Edit */}
+                            {needsWireVerification ? (
+                              <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-xs px-2 py-1 flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Verification Required
+                              </Badge>
+                            ) : (
+                              <button className="flex items-center gap-0.5 text-gray-500 hover:text-gray-700 text-sm">
+                                Edit <ChevronRight className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Default card for other methods
+                    return (
+                      <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${info.iconBgColor}`}>
+                            <IconComponent className={`h-5 w-5 ${info.iconColor}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="font-semibold text-gray-900">{info.title}</span>
+                            <p className="text-sm text-gray-500">{info.displayValue}</p>
+                          </div>
+                          <button className="flex items-center gap-0.5 text-gray-500 hover:text-gray-700 text-sm">
+                            Edit <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -3664,141 +3743,148 @@ export default function PaymentSettings() {
                 </div>
               )}
 
-              {/* Add Payment Method Section */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-                <h3 className="font-bold text-gray-900 text-base">Add Payment Method</h3>
-
-                <div className="space-y-4">
-                  {/* Payment Method Selection with Icons */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-gray-500 font-medium">Select Payout Method</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Direct Deposit Option */}
-                      <button
-                        type="button"
-                        onClick={() => setPayoutMethod("etransfer")}
-                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                          payoutMethod === "etransfer"
-                            ? "border-teal-500 bg-teal-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          payoutMethod === "etransfer" ? "bg-teal-100" : "bg-gray-100"
-                        }`}>
-                          <Building2 className={`h-5 w-5 ${payoutMethod === "etransfer" ? "text-teal-600" : "text-gray-500"}`} />
-                        </div>
-                        <span className={`text-xs font-medium ${payoutMethod === "etransfer" ? "text-teal-700" : "text-gray-600"}`}>
-                          Direct Deposit
-                        </span>
-                      </button>
-
-                      {/* Wire/ACH Option */}
-                      <button
-                        type="button"
-                        onClick={() => setPayoutMethod("wire")}
-                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                          payoutMethod === "wire"
-                            ? "border-emerald-500 bg-emerald-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          payoutMethod === "wire" ? "bg-emerald-100" : "bg-gray-100"
-                        }`}>
-                          <Landmark className={`h-5 w-5 ${payoutMethod === "wire" ? "text-emerald-600" : "text-gray-500"}`} />
-                        </div>
-                        <span className={`text-xs font-medium ${payoutMethod === "wire" ? "text-emerald-700" : "text-gray-600"}`}>
-                          Wire/ACH
-                        </span>
-                      </button>
-
-                      {/* PayPal Option */}
-                      <button
-                        type="button"
-                        onClick={() => setPayoutMethod("paypal")}
-                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                          payoutMethod === "paypal"
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          payoutMethod === "paypal" ? "bg-blue-100" : "bg-gray-100"
-                        }`}>
-                          <svg viewBox="0 0 24 24" className={`h-5 w-5 ${payoutMethod === "paypal" ? "" : "opacity-50"}`} fill="currentColor">
-                            <path className={payoutMethod === "paypal" ? "text-blue-800" : "text-gray-600"} d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
-                            <path className={payoutMethod === "paypal" ? "text-blue-500" : "text-gray-400"} d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
-                          </svg>
-                        </div>
-                        <span className={`text-xs font-medium ${payoutMethod === "paypal" ? "text-blue-700" : "text-gray-600"}`}>
-                          PayPal
-                        </span>
-                      </button>
-
-                      {/* Crypto Option */}
-                      <button
-                        type="button"
-                        onClick={() => setPayoutMethod("crypto")}
-                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                          payoutMethod === "crypto"
-                            ? "border-orange-500 bg-orange-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          payoutMethod === "crypto" ? "bg-orange-100" : "bg-gray-100"
-                        }`}>
-                          <svg viewBox="0 0 24 24" className={`h-5 w-5 ${payoutMethod === "crypto" ? "text-orange-500" : "text-gray-500"}`} fill="currentColor">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z" />
-                          </svg>
-                        </div>
-                        <span className={`text-xs font-medium ${payoutMethod === "crypto" ? "text-orange-700" : "text-gray-600"}`}>
-                          Crypto
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {payoutMethod === "etransfer" && (
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-gray-500">Email</Label>
-                      <Input
-                        type="email"
-                        placeholder="your@email.com"
-                        value={payoutEmail}
-                        onChange={(e) => setPayoutEmail(e.target.value)}
-                        className="h-11"
-                      />
-                    </div>
-                  )}
-
-                  {payoutMethod === "paypal" && (
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-gray-500">PayPal Email</Label>
-                      <Input
-                        type="email"
-                        placeholder="your@paypal.com"
-                        value={paypalEmail}
-                        onChange={(e) => setPaypalEmail(e.target.value)}
-                        className="h-11"
-                      />
-                    </div>
-                  )}
-
-                  <Button
-                    onClick={() => addPaymentMethodMutation.mutate()}
-                    disabled={addPaymentMethodMutation.isPending ||
-                      (payoutMethod === "etransfer" && !payoutEmail) ||
-                      (payoutMethod === "paypal" && !paypalEmail)}
-                    className="w-full h-11 bg-blue-600 hover:bg-blue-700"
-                  >
-                    {addPaymentMethodMutation.isPending ? "Adding..." : "Add Payment Method"}
-                  </Button>
-                </div>
-              </div>
+              {/* Add New Payment Method Button */}
+              <Button
+                onClick={() => setAddPaymentModalOpen(true)}
+                variant="outline"
+                className="w-full h-12 border-dashed border-2 border-gray-300 text-gray-600 hover:border-primary hover:text-primary"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add New Payment Method
+              </Button>
             </div>
           )}
+
+          {/* Add Payment Method Modal */}
+          <AlertDialog open={addPaymentModalOpen} onOpenChange={setAddPaymentModalOpen}>
+            <AlertDialogContent className="max-w-md mx-4 rounded-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-lg font-bold">Add Payment Method</AlertDialogTitle>
+              </AlertDialogHeader>
+              <div className="space-y-4 py-2">
+                {/* Payment Method Selection Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* E-Transfer Option */}
+                  <button
+                    type="button"
+                    onClick={() => setPayoutMethod("etransfer")}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                      payoutMethod === "etransfer"
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      payoutMethod === "etransfer" ? "bg-teal-100" : "bg-gray-100"
+                    }`}>
+                      <Building2 className={`h-4 w-4 ${payoutMethod === "etransfer" ? "text-teal-600" : "text-gray-500"}`} />
+                    </div>
+                    <span className={`text-sm font-medium ${payoutMethod === "etransfer" ? "text-primary" : "text-gray-700"}`}>
+                      E-Transfer
+                    </span>
+                  </button>
+
+                  {/* Wire/ACH Option */}
+                  <button
+                    type="button"
+                    onClick={() => setPayoutMethod("wire")}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                      payoutMethod === "wire"
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      payoutMethod === "wire" ? "bg-amber-100" : "bg-gray-100"
+                    }`}>
+                      <Landmark className={`h-4 w-4 ${payoutMethod === "wire" ? "text-amber-600" : "text-gray-500"}`} />
+                    </div>
+                    <span className={`text-sm font-medium ${payoutMethod === "wire" ? "text-primary" : "text-gray-700"}`}>
+                      Wire/ACH
+                    </span>
+                  </button>
+
+                  {/* PayPal Option */}
+                  <button
+                    type="button"
+                    onClick={() => setPayoutMethod("paypal")}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                      payoutMethod === "paypal"
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      payoutMethod === "paypal" ? "bg-blue-100" : "bg-gray-100"
+                    }`}>
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+                        <path className={payoutMethod === "paypal" ? "text-blue-800" : "text-gray-600"} d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
+                        <path className={payoutMethod === "paypal" ? "text-blue-500" : "text-gray-400"} d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
+                      </svg>
+                    </div>
+                    <span className={`text-sm font-medium ${payoutMethod === "paypal" ? "text-primary" : "text-gray-700"}`}>
+                      PayPal
+                    </span>
+                  </button>
+
+                  {/* Crypto Option */}
+                  <button
+                    type="button"
+                    onClick={() => setPayoutMethod("crypto")}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                      payoutMethod === "crypto"
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      payoutMethod === "crypto" ? "bg-orange-100" : "bg-gray-100"
+                    }`}>
+                      <svg viewBox="0 0 32 32" className={`h-4 w-4 ${payoutMethod === "crypto" ? "text-orange-500" : "text-gray-500"}`} fill="currentColor">
+                        <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.189-17.98c.314-2.096-1.283-3.223-3.465-3.975l.708-2.84-1.728-.43-.69 2.765c-.454-.114-.92-.22-1.385-.326l.695-2.783L15.596 6l-.708 2.839c-.376-.086-.746-.17-1.104-.26l.002-.009-2.384-.595-.46 1.846s1.283.294 1.256.312c.7.175.826.638.805 1.006l-.806 3.235c.048.012.11.03.18.057l-.183-.045-1.13 4.532c-.086.212-.303.531-.793.41.018.025-1.256-.313-1.256-.313l-.858 1.978 2.25.561c.418.105.828.215 1.231.318l-.715 2.872 1.727.43.708-2.84c.472.127.93.245 1.378.357l-.706 2.828 1.728.43.715-2.866c2.948.558 5.164.333 6.097-2.333.752-2.146-.037-3.385-1.588-4.192 1.13-.26 1.98-1.003 2.207-2.538zm-3.95 5.538c-.533 2.147-4.148.986-5.32.695l.95-3.805c1.172.293 4.929.872 4.37 3.11zm.535-5.569c-.487 1.953-3.495.96-4.47.717l.86-3.45c.975.243 4.118.696 3.61 2.733z" />
+                      </svg>
+                    </div>
+                    <span className={`text-sm font-medium ${payoutMethod === "crypto" ? "text-primary" : "text-gray-700"}`}>
+                      Crypto
+                    </span>
+                  </button>
+                </div>
+
+                {/* Email/Identifier Input */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-gray-500">Email / Identifier</Label>
+                  <Input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={payoutMethod === "paypal" ? paypalEmail : payoutEmail}
+                    onChange={(e) => {
+                      if (payoutMethod === "paypal") {
+                        setPaypalEmail(e.target.value);
+                      } else {
+                        setPayoutEmail(e.target.value);
+                      }
+                    }}
+                    className="h-11"
+                  />
+                </div>
+              </div>
+              <AlertDialogFooter className="gap-2 sm:gap-0">
+                <AlertDialogCancel className="flex-1 sm:flex-none">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    addPaymentMethodMutation.mutate();
+                    setAddPaymentModalOpen(false);
+                  }}
+                  disabled={addPaymentMethodMutation.isPending ||
+                    (payoutMethod === "etransfer" && !payoutEmail) ||
+                    (payoutMethod === "paypal" && !paypalEmail)}
+                  className="flex-1 sm:flex-none bg-primary hover:bg-primary/90"
+                >
+                  {addPaymentMethodMutation.isPending ? "Adding..." : "Add Payment Method"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       )}
 
