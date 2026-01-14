@@ -3757,29 +3757,29 @@ export default function PaymentSettings() {
             </div>
           )}
 
-          {/* Mobile Add Payment Method View (New Page) */}
+          {/* Mobile Add Payment Method View (Full Page) */}
           {showMobileAddPayment && (
-            <div className="fixed inset-0 z-50 bg-gray-50">
+            <div className="fixed inset-0 z-50 bg-white">
               {/* Header */}
-              <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
                 <div className="flex items-center gap-3 px-4 py-4">
                   <button
                     onClick={() => setShowMobileAddPayment(false)}
                     className="p-1 -ml-1 hover:bg-gray-100 rounded-lg"
                   >
-                    <ChevronLeft className="h-6 w-6 text-gray-700" />
+                    <ChevronLeft className="h-6 w-6 text-gray-600" />
                   </button>
                   <h1 className="text-lg font-bold text-gray-900">Add Payment Method</h1>
                 </div>
               </div>
 
               {/* Content */}
-              <div className="p-4 space-y-6 pb-32 overflow-y-auto" style={{ height: 'calc(100vh - 65px)' }}>
+              <div className="px-4 py-6 space-y-5 pb-32 overflow-y-auto" style={{ height: 'calc(100vh - 65px)' }}>
                 {/* Payment Method Selection */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium text-gray-700">Payout Method</Label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-600">Payout Method</Label>
                   <Select value={payoutMethod} onValueChange={setPayoutMethod}>
-                    <SelectTrigger className="h-14 rounded-xl">
+                    <SelectTrigger className="h-14 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-primary">
                       <SelectValue>
                         <div className="flex items-center gap-3">
                           {payoutMethod === "etransfer" && (
@@ -3866,16 +3866,16 @@ export default function PaymentSettings() {
 
                 {/* E-Transfer Fields */}
                 {payoutMethod === "etransfer" && (
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium text-gray-700">Email</Label>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-600">Email</Label>
                     <Input
                       type="email"
                       placeholder="your@email.com"
                       value={payoutEmail}
                       onChange={(e) => setPayoutEmail(e.target.value)}
-                      className="h-12 rounded-xl"
+                      className="h-14 rounded-xl border-2 border-gray-200 focus:border-primary"
                     />
-                    <div className="rounded-xl bg-blue-50 border border-blue-200 p-4">
+                    <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 mt-4">
                       <div className="flex gap-3">
                         <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                         <div className="text-sm text-blue-900">
@@ -3900,14 +3900,14 @@ export default function PaymentSettings() {
 
                 {/* PayPal Fields */}
                 {payoutMethod === "paypal" && (
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium text-gray-700">PayPal Email</Label>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-600">PayPal Email</Label>
                     <Input
                       type="email"
-                      placeholder="your@paypal.com"
+                      placeholder="your@email.com"
                       value={paypalEmail}
                       onChange={(e) => setPaypalEmail(e.target.value)}
-                      className="h-12 rounded-xl"
+                      className="h-14 rounded-xl border-2 border-gray-200 focus:border-primary"
                     />
                   </div>
                 )}
@@ -3925,7 +3925,7 @@ export default function PaymentSettings() {
               </div>
 
               {/* Fixed Bottom Button */}
-              <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+              <div className="fixed bottom-0 left-0 right-0 bg-white p-4 pb-6">
                 <Button
                   onClick={() => {
                     addPaymentMethodMutation.mutate();
