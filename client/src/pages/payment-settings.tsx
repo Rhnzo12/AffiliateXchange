@@ -3759,9 +3759,9 @@ export default function PaymentSettings() {
 
           {/* Mobile Add Payment Method View (Full Page) */}
           {showMobileAddPayment && (
-            <div className="fixed inset-0 z-50 bg-white">
+            <div className="fixed inset-0 z-[100] bg-white">
               {/* Header */}
-              <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+              <div className="sticky top-0 z-[101] bg-white border-b border-gray-100">
                 <div className="flex items-center gap-3 px-4 py-4">
                   <button
                     onClick={() => setShowMobileAddPayment(false)}
@@ -3925,7 +3925,7 @@ export default function PaymentSettings() {
               </div>
 
               {/* Fixed Bottom Button */}
-              <div className="fixed bottom-0 left-0 right-0 bg-white p-4 pb-6">
+              <div className="fixed bottom-0 left-0 right-0 z-[101] bg-white p-4 pb-6">
                 <Button
                   onClick={() => {
                     addPaymentMethodMutation.mutate();
