@@ -370,28 +370,28 @@ export default function CompanyRetainers() {
 
       {/* ========== MOBILE LAYOUT ========== */}
       <div className="md:hidden space-y-4">
-        {/* Mobile Header */}
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Monthly Retainers</h1>
-          <p className="text-sm text-gray-500 mt-1">Hire creators for video production</p>
+        {/* Mobile Header with Create Button on Right */}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Monthly Retainers</h1>
+            <p className="text-xs text-gray-500 mt-0.5">Hire creators for video production</p>
+          </div>
+          {isCompanyPending ? (
+            <Button size="sm" className="gap-1.5 h-9 px-3 rounded-lg text-xs flex-shrink-0" disabled>
+              <Plus className="h-4 w-4" />
+              Create
+            </Button>
+          ) : (
+            <Dialog open={open} onOpenChange={handleDialogClose}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-1.5 h-9 px-3 rounded-lg text-xs flex-shrink-0">
+                  <Plus className="h-4 w-4" />
+                  Create
+                </Button>
+              </DialogTrigger>
+            </Dialog>
+          )}
         </div>
-
-        {/* Mobile Create Button */}
-        {isCompanyPending ? (
-          <Button className="gap-2 w-full h-12 rounded-xl" disabled>
-            <Plus className="h-5 w-5" />
-            Create Retainer
-          </Button>
-        ) : (
-          <Dialog open={open} onOpenChange={handleDialogClose}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 w-full h-12 rounded-xl">
-                <Plus className="h-5 w-5" />
-                Create Retainer
-              </Button>
-            </DialogTrigger>
-          </Dialog>
-        )}
 
         {/* Mobile Search */}
         <div className="relative">
