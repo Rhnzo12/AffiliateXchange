@@ -327,31 +327,93 @@ export default function CompanyOffers() {
             />
           </div>
 
-          {/* Mobile Filter Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <button
-              onClick={() => setStatusFilter("all")}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                statusFilter === "all"
-                  ? "bg-primary text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              All
-            </button>
-            {uniqueStatuses.map((status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors capitalize ${
-                  statusFilter === status
-                    ? "bg-primary text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {status}
-              </button>
-            ))}
+          {/* Mobile Filter Buttons */}
+          <div className="flex gap-2">
+            {/* Status Filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={statusFilter !== "all" ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1.5 h-9 rounded-lg text-xs"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  {statusFilter === "all" ? "Status" : statusFilter}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                  All Statuses
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {uniqueStatuses.map((status) => (
+                  <DropdownMenuItem
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className="capitalize"
+                  >
+                    {status}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Commission Type Filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={commissionFilter !== "all" ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1.5 h-9 rounded-lg text-xs"
+                >
+                  <DollarSign className="h-3.5 w-3.5" />
+                  {commissionFilter === "all" ? "Commission" : commissionFilter.replace("_", " ")}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setCommissionFilter("all")}>
+                  All Types
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {uniqueCommissionTypes.map((type) => (
+                  <DropdownMenuItem
+                    key={type}
+                    onClick={() => setCommissionFilter(type)}
+                    className="capitalize"
+                  >
+                    {type.replace("_", " ")}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Niche Filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={nicheFilter !== "all" ? "default" : "outline"}
+                  size="sm"
+                  className="gap-1.5 h-9 rounded-lg text-xs"
+                >
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  {nicheFilter === "all" ? "Niche" : nicheFilter}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setNicheFilter("all")}>
+                  All Niches
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {uniqueNiches.map((niche) => (
+                  <DropdownMenuItem
+                    key={niche}
+                    onClick={() => setNicheFilter(niche)}
+                  >
+                    {niche}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Mobile Results Count */}
@@ -394,12 +456,12 @@ export default function CompanyOffers() {
                 const isRetainer = offer.commissionType === 'monthly_retainer';
 
                 return (
-                  <Link key={offer.id} href={`/company/offers/${offer.id}`}>
-                    <div className={`bg-white rounded-xl border border-gray-100 p-4 ${
-                      isRetainer ? 'ring-2 ring-purple-200' : ''
-                    }`}>
-                      <div className="flex gap-4">
-                        {/* Thumbnail */}
+                  <div key={offer.id} className={`bg-white rounded-xl border border-gray-100 p-4 ${
+                    isRetainer ? 'ring-2 ring-purple-200' : ''
+                  }`}>
+                    <div className="flex gap-3">
+                      {/* Thumbnail */}
+                      <Link href={`/company/offers/${offer.id}`}>
                         <div className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 ${
                           isRetainer
                             ? 'bg-gradient-to-br from-purple-100 to-violet-100'
@@ -422,56 +484,108 @@ export default function CompanyOffers() {
                             </div>
                           )}
                         </div>
+                      </Link>
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <Link href={`/company/offers/${offer.id}`} className="flex-1 min-w-0">
                             <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm">{offer.title}</h3>
-                            {category && (
-                              <span className={`${category.color} text-white text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0`}>
-                                {category.label}
-                              </span>
-                            )}
-                          </div>
+                          </Link>
 
-                          {offer.primaryNiche && (
-                            <p className="text-xs text-gray-500 mt-1">#{offer.primaryNiche}</p>
-                          )}
+                          {/* Action Menu */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0">
+                                <MoreVertical className="h-4 w-4 text-gray-500" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/company/offers/${offer.id}`}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/company/offers/${offer.id}/edit`}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Offer
+                                </Link>
+                              </DropdownMenuItem>
+                              {offer.status === 'approved' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-yellow-600 focus:text-yellow-700"
+                                    onClick={() => {
+                                      setPriorityListingDialog({
+                                        offerId: offer.id,
+                                        offerTitle: offer.title,
+                                        isRenewal: isPriorityOffer(offer),
+                                      });
+                                    }}
+                                  >
+                                    <Crown className="mr-2 h-4 w-4" />
+                                    {isPriorityOffer(offer) ? 'Renew Priority' : 'Make Priority'}
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDeleteClick(offer)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Offer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
 
-                          <div className="flex items-center justify-between mt-2">
-                            <span className={`font-bold ${isRetainer ? 'text-purple-600' : 'text-green-600'}`}>
-                              {formatCommission(offer)}
-                              <span className="text-xs font-normal text-gray-400 ml-1">
-                                {getCommissionTypeLabel(offer)}
-                              </span>
-                            </span>
-                            <Badge
-                              variant={offer.status === 'approved' ? 'default' : 'secondary'}
-                              className="text-xs"
-                            >
-                              {offer.status}
-                            </Badge>
-                          </div>
+                        {category && (
+                          <span className={`${category.color} text-white text-xs px-2 py-0.5 rounded-full font-medium inline-block mt-1`}>
+                            {category.label}
+                          </span>
+                        )}
 
-                          {/* Stats */}
-                          <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                            <span className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              {offer.applicationCount || 0}
+                        {offer.primaryNiche && (
+                          <p className="text-xs text-gray-500 mt-1">#{offer.primaryNiche}</p>
+                        )}
+
+                        <div className="flex items-center justify-between mt-2">
+                          <span className={`font-bold ${isRetainer ? 'text-purple-600' : 'text-green-600'}`}>
+                            {formatCommission(offer)}
+                            <span className="text-xs font-normal text-gray-400 ml-1">
+                              {getCommissionTypeLabel(offer)}
                             </span>
-                            <span className="flex items-center gap-1">
-                              <Eye className="h-3 w-3" />
-                              {offer.viewCount || 0}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MousePointer className="h-3 w-3" />
-                              {offer.totalClicks || 0}
-                            </span>
-                          </div>
+                          </span>
+                          <Badge
+                            variant={offer.status === 'approved' ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {offer.status}
+                          </Badge>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {offer.applicationCount || 0}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Eye className="h-3 w-3" />
+                            {offer.viewCount || 0}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MousePointer className="h-3 w-3" />
+                            {offer.totalClicks || 0}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
