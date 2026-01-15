@@ -687,7 +687,7 @@ function WireAchPaymentFields({
           <SelectTrigger id="bank-country">
             <SelectValue placeholder="Select country" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[10000]">
             <SelectItem value="US">United States (USD)</SelectItem>
             <SelectItem value="CA">Canada (CAD)</SelectItem>
           </SelectContent>
@@ -712,7 +712,7 @@ function WireAchPaymentFields({
             <SelectTrigger id="account-holder-type">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[10000]">
               <SelectItem value="individual">Individual</SelectItem>
               <SelectItem value="company">Company</SelectItem>
             </SelectContent>
@@ -725,7 +725,7 @@ function WireAchPaymentFields({
             <SelectTrigger id="account-type">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[10000]">
               <SelectItem value="checking">Checking</SelectItem>
               <SelectItem value="savings">Savings</SelectItem>
             </SelectContent>
