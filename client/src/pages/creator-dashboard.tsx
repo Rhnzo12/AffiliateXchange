@@ -32,6 +32,7 @@ import {
   Megaphone,
   Bell,
   BarChart3,
+  TrendingUp,
 } from "lucide-react";
 import { Link } from "wouter";
 import { proxiedSrc } from "../lib/image";
