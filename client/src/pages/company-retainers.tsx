@@ -530,12 +530,6 @@ export default function CompanyRetainers() {
                             View Details
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/company/retainers/${contract.id}/edit`}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Retainer
-                          </Link>
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
