@@ -1049,23 +1049,113 @@ function PaymentMethodSettings({
       </div>
 
       <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
-        <h3 className="text-lg font-bold text-gray-900">Add Payment Method</h3>
-        <div className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="method">Payout Method</Label>
-            <Select value={payoutMethod} onValueChange={setPayoutMethod}>
-              <SelectTrigger id="method">
-                <SelectValue placeholder="Select method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="etransfer">E-Transfer</SelectItem>
-                <SelectItem value="wire">Wire/ACH</SelectItem>
-                <SelectItem value="paypal">PayPal</SelectItem>
-                <SelectItem value="crypto">Cryptocurrency</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Add Payment Method</h3>
+            <p className="text-sm text-gray-500 mt-1">Choose how you want to receive payouts</p>
+          </div>
+        </div>
+
+        {/* Payment Method Selection Cards */}
+        <div className="space-y-3 mb-6">
+          <label className="text-sm font-medium text-gray-700">Select a method</label>
+
+          {/* PayPal Option */}
+          <div
+            onClick={() => setPayoutMethod("paypal")}
+            className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              payoutMethod === "paypal"
+                ? "border-primary bg-primary/5"
+                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              payoutMethod === "paypal" ? "border-primary" : "border-gray-300"
+            }`}>
+              {payoutMethod === "paypal" && (
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              )}
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor">
+                <path className="text-blue-800" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
+                <path className="text-blue-500" d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
+              </svg>
+            </div>
+            <span className="font-medium text-gray-900">PayPal</span>
           </div>
 
+          {/* Wire/ACH Option */}
+          <div
+            onClick={() => setPayoutMethod("wire")}
+            className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              payoutMethod === "wire"
+                ? "border-primary bg-primary/5"
+                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              payoutMethod === "wire" ? "border-primary" : "border-gray-300"
+            }`}>
+              {payoutMethod === "wire" && (
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              )}
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+              <Landmark className="h-5 w-5 text-amber-600" />
+            </div>
+            <span className="font-medium text-gray-900">Wire / ACH</span>
+          </div>
+
+          {/* Crypto Option */}
+          <div
+            onClick={() => setPayoutMethod("crypto")}
+            className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              payoutMethod === "crypto"
+                ? "border-primary bg-primary/5"
+                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              payoutMethod === "crypto" ? "border-primary" : "border-gray-300"
+            }`}>
+              {payoutMethod === "crypto" && (
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              )}
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
+              <svg viewBox="0 0 32 32" className="h-6 w-6 text-orange-500" fill="currentColor">
+                <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.189-17.98c.314-2.096-1.283-3.223-3.465-3.975l.708-2.84-1.728-.43-.69 2.765c-.454-.114-.92-.22-1.385-.326l.695-2.783L15.596 6l-.708 2.839c-.376-.086-.746-.17-1.104-.26l.002-.009-2.384-.595-.46 1.846s1.283.294 1.256.312c.7.175.826.638.805 1.006l-.806 3.235c.048.012.11.03.18.057l-.183-.045-1.13 4.532c-.086.212-.303.531-.793.41.018.025-1.256-.313-1.256-.313l-.858 1.978 2.25.561c.418.105.828.215 1.231.318l-.715 2.872 1.727.43.708-2.84c.472.127.93.245 1.378.357l-.706 2.828 1.728.43.715-2.866c2.948.558 5.164.333 6.097-2.333.752-2.146-.037-3.385-1.588-4.192 1.13-.26 1.98-1.003 2.207-2.538zm-3.95 5.538c-.533 2.147-4.148.986-5.32.695l.95-3.805c1.172.293 4.929.872 4.37 3.11zm.535-5.569c-.487 1.953-3.495.96-4.47.717l.86-3.45c.975.243 4.118.696 3.61 2.733z" />
+              </svg>
+            </div>
+            <span className="font-medium text-gray-900">Crypto</span>
+          </div>
+
+          {/* E-Transfer Option */}
+          <div
+            onClick={() => setPayoutMethod("etransfer")}
+            className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              payoutMethod === "etransfer"
+                ? "border-primary bg-primary/5"
+                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              payoutMethod === "etransfer" ? "border-primary" : "border-gray-300"
+            }`}>
+              {payoutMethod === "etransfer" && (
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              )}
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-teal-600" />
+            </div>
+            <span className="font-medium text-gray-900">E-Transfer</span>
+          </div>
+        </div>
+
+        {/* Payment Method Form Fields */}
+        <div className="space-y-4">
           {payoutMethod === "etransfer" && (
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -1124,7 +1214,7 @@ function PaymentMethodSettings({
           <Button
             onClick={onAddPaymentMethod}
             disabled={isAddDisabled}
-            className="w-full"
+            className="w-full mt-4"
           >
             {isSubmitting ? "Adding..." : "Add Payment Method"}
           </Button>
