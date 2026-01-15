@@ -25,10 +25,6 @@ import {
   Lightbulb,
   BookOpen,
   ExternalLink,
-=======
-  ExternalLink,
-  BookOpen,
-  Lightbulb,
   ArrowRight,
   Eye,
   Percent,
@@ -896,7 +892,7 @@ export default function CreatorDashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm group-hover:text-primary transition-colors">10 Affiliate Marketing Tips for Success</h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">Learn more about affiliate beginners/dha ducess.</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Learn proven strategies to maximize your affiliate earnings.</p>
                       </div>
                       <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
                     </div>
@@ -909,7 +905,7 @@ export default function CreatorDashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm group-hover:text-primary transition-colors">Getting Started with Affiliate Links</h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">Kickstart guide to learn goinpnch nar hade.</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Kickstart guide to generating and promoting your unique links.</p>
                       </div>
                       <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
                     </div>
