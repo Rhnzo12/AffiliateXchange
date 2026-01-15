@@ -20,6 +20,12 @@ import {
   MousePointerClick,
   Wallet,
   CreditCard,
+  ArrowUpRight,
+  Activity,
+  Lightbulb,
+  BookOpen,
+  ExternalLink,
+=======
   ExternalLink,
   BookOpen,
   Lightbulb,
@@ -164,6 +170,37 @@ export default function CreatorDashboard() {
 
   // Payment balance
   const paymentBalance = walletData?.balance || 0;
+
+  const relatedResources = [
+    {
+      title: "10 Affiliate Marketing Tips for Success",
+      description: "Learn more about affiliate beginners and how to maximize your earnings potential.",
+      icon: Lightbulb,
+      href: "/help/affiliate-marketing-tips",
+      isExternal: false,
+    },
+    {
+      title: "Getting Started with Affiliate Links",
+      description: "Kickstart guide to learn generating and promoting your unique affiliate links.",
+      icon: BookOpen,
+      href: "/help/affiliate-links-guide",
+      isExternal: false,
+    },
+    {
+      title: "Understanding Commission Structures",
+      description: "Deep dive into different commission types and how to choose the best offers.",
+      icon: TrendingUp,
+      href: "/help/commission-guide",
+      isExternal: false,
+    },
+    {
+      title: "Creator Success Stories",
+      description: "Get inspired by top creators and learn from their affiliate marketing journeys.",
+      icon: Heart,
+      href: "/help/success-stories",
+      isExternal: false,
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -959,6 +996,70 @@ export default function CreatorDashboard() {
               </Card>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Related Resources Section */}
+      <div>
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold">Related Resources</h2>
+          <p className="text-sm text-muted-foreground">Helpful guides to boost your affiliate success</p>
+        </div>
+
+        {/* Desktop/Tablet: 2-column grid, Mobile: single column stacked list */}
+        <div className="hidden sm:grid sm:grid-cols-2 gap-4">
+          {relatedResources.map((resource) => {
+            const Icon = resource.icon;
+            return (
+              <Link key={resource.title} href={resource.href}>
+                <Card className="border-card-border hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer h-full group">
+                  <CardContent className="p-5 flex items-start gap-4">
+                    <div className="h-11 w-11 rounded-lg bg-muted flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
+                      <Icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-base leading-tight group-hover:text-primary transition-colors">
+                          {resource.title}
+                        </h3>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                        {resource.description}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Mobile: Compact list view */}
+        <div className="sm:hidden space-y-2">
+          {relatedResources.map((resource) => {
+            const Icon = resource.icon;
+            return (
+              <Link key={resource.title} href={resource.href}>
+                <Card className="border-card-border hover:shadow-sm hover:border-primary/30 transition-all duration-200 cursor-pointer active:scale-[0.99]">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Icon className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm leading-tight truncate">
+                        {resource.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                        {resource.description}
+                      </p>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
