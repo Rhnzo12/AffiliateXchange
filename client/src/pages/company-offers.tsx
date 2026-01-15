@@ -305,26 +305,26 @@ export default function CompanyOffers() {
 
         {/* ========== MOBILE LAYOUT ========== */}
         <div className="md:hidden space-y-4">
-          {/* Mobile Header */}
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">My Offers</h1>
-            <p className="text-sm text-gray-500 mt-1">Manage your affiliate offers</p>
-          </div>
-
-          {/* Mobile Create Button */}
-          {isCompanyPending ? (
-            <Button className="gap-2 w-full h-12 rounded-xl" disabled>
-              <Plus className="h-5 w-5" />
-              Create New Offer
-            </Button>
-          ) : (
-            <Link href="/company/offers/create" className="block">
-              <Button className="gap-2 w-full h-12 rounded-xl">
-                <Plus className="h-5 w-5" />
-                Create New Offer
+          {/* Mobile Header with Create Button on Right */}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">My Offers</h1>
+              <p className="text-xs text-gray-500 mt-0.5">Manage your affiliate offers</p>
+            </div>
+            {isCompanyPending ? (
+              <Button size="sm" className="gap-1.5 h-9 px-3 rounded-lg text-xs flex-shrink-0" disabled>
+                <Plus className="h-4 w-4" />
+                Create
               </Button>
-            </Link>
-          )}
+            ) : (
+              <Link href="/company/offers/create">
+                <Button size="sm" className="gap-1.5 h-9 px-3 rounded-lg text-xs flex-shrink-0">
+                  <Plus className="h-4 w-4" />
+                  Create
+                </Button>
+              </Link>
+            )}
+          </div>
 
           {/* Mobile Search */}
           <div className="relative">
