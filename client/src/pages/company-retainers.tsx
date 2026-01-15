@@ -34,7 +34,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X, ChevronDown, ChevronUp, AlertTriangle, Clock, AlertCircle } from "lucide-react";
+import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X, ChevronDown, ChevronUp, AlertTriangle, Clock, AlertCircle, MoreVertical, Edit, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "../components/ui/dropdown-menu";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -404,31 +411,64 @@ export default function CompanyRetainers() {
           />
         </div>
 
-        {/* Mobile Filter Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          <button
-            onClick={() => setStatusFilter("all")}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              statusFilter === "all"
-                ? "bg-primary text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            All
-          </button>
-          {uniqueStatuses.map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors capitalize ${
-                statusFilter === status
-                  ? "bg-primary text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {status.replace("_", " ")}
-            </button>
-          ))}
+        {/* Mobile Filter Buttons */}
+        <div className="flex gap-2">
+          {/* Status Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={statusFilter !== "all" ? "default" : "outline"}
+                size="sm"
+                className="gap-1.5 h-9 rounded-lg text-xs"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                {statusFilter === "all" ? "Status" : statusFilter.replace("_", " ")}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                All Statuses
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {uniqueStatuses.map((status) => (
+                <DropdownMenuItem
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className="capitalize"
+                >
+                  {status.replace("_", " ")}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Platform Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={platformFilter !== "all" ? "default" : "outline"}
+                size="sm"
+                className="gap-1.5 h-9 rounded-lg text-xs"
+              >
+                <Video className="h-3.5 w-3.5" />
+                {platformFilter === "all" ? "Platform" : platformFilter}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setPlatformFilter("all")}>
+                All Platforms
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {uniquePlatforms.map((platform) => (
+                <DropdownMenuItem
+                  key={platform}
+                  onClick={() => setPlatformFilter(platform)}
+                >
+                  {platform}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Mobile Results Count */}
@@ -465,71 +505,93 @@ export default function CompanyRetainers() {
         ) : (
           <div className="space-y-3">
             {filteredContracts.map((contract: any) => (
-              <Link key={contract.id} href={`/company/retainers/${contract.id}`}>
-                <div className="bg-white rounded-xl border border-gray-100 p-4 ring-2 ring-primary/20">
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm">{contract.title}</h3>
-                      <Badge variant={getStatusBadgeVariant(contract.status)} className="mt-1.5 text-xs">
-                        {contract.status.replace("_", " ")}
-                      </Badge>
-                    </div>
-                    <PlatformBadge platform={contract.requiredPlatform} size="sm" className="flex-shrink-0" />
+              <div key={contract.id} className="bg-white rounded-xl border border-gray-100 p-4 ring-2 ring-primary/20">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <Link href={`/company/retainers/${contract.id}`} className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm">{contract.title}</h3>
+                    <Badge variant={getStatusBadgeVariant(contract.status)} className="mt-1.5 text-xs">
+                      {contract.status.replace("_", " ")}
+                    </Badge>
+                  </Link>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <PlatformBadge platform={contract.requiredPlatform} size="sm" />
+                    {/* Action Menu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                          <MoreVertical className="h-4 w-4 text-gray-500" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/company/retainers/${contract.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/company/retainers/${contract.id}/edit`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Retainer
+                          </Link>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-
-                  {/* Description */}
-                  <p className="text-xs text-gray-500 line-clamp-2 mb-3">{contract.description}</p>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                      <div>
-                        <p className="text-xs text-gray-400">Monthly</p>
-                        <p className="font-semibold text-sm">CA${parseFloat(contract.monthlyAmount).toLocaleString()}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
-                      <Video className="h-4 w-4 text-primary" />
-                      <div>
-                        <p className="text-xs text-gray-400">Videos</p>
-                        <p className="font-semibold text-sm">{contract.videosPerMonth}/mo</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <div>
-                        <p className="text-xs text-gray-400">Duration</p>
-                        <p className="font-semibold text-sm">{contract.durationMonths} months</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
-                      <Users className="h-4 w-4 text-primary" />
-                      <div>
-                        <p className="text-xs text-gray-400">Applied</p>
-                        <p className="font-semibold text-sm">{contract.applicationCount || 0}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Badges */}
-                  {(contract.exclusivityRequired || contract.contentApprovalRequired) && (
-                    <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-gray-100">
-                      {contract.exclusivityRequired && (
-                        <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
-                          Exclusivity
-                        </Badge>
-                      )}
-                      {contract.contentApprovalRequired && (
-                        <Badge variant="outline" className="text-xs">
-                          Approval Required
-                        </Badge>
-                      )}
-                    </div>
-                  )}
                 </div>
-              </Link>
+
+                {/* Description */}
+                <p className="text-xs text-gray-500 line-clamp-2 mb-3">{contract.description}</p>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-gray-400">Monthly</p>
+                      <p className="font-semibold text-sm">CA${parseFloat(contract.monthlyAmount).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
+                    <Video className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-gray-400">Videos</p>
+                      <p className="font-semibold text-sm">{contract.videosPerMonth}/mo</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-gray-400">Duration</p>
+                      <p className="font-semibold text-sm">{contract.durationMonths} months</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
+                    <Users className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-gray-400">Applied</p>
+                      <p className="font-semibold text-sm">{contract.applicationCount || 0}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Badges */}
+                {(contract.exclusivityRequired || contract.contentApprovalRequired) && (
+                  <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-gray-100">
+                    {contract.exclusivityRequired && (
+                      <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
+                        Exclusivity
+                      </Badge>
+                    )}
+                    {contract.contentApprovalRequired && (
+                      <Badge variant="outline" className="text-xs">
+                        Approval Required
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
