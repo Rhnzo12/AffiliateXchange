@@ -275,17 +275,7 @@ export default function CompanyOffers() {
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navigation Bar */}
-      <TopNavBar>
-        <div className="relative flex-1 max-w-xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search offers, companies, or niches"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            className="pl-10 bg-muted/50"
-          />
-        </div>
-      </TopNavBar>
+      <TopNavBar />
 
       {/* Main Content */}
       <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8">
