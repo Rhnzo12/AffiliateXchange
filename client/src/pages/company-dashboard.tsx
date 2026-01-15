@@ -162,8 +162,8 @@ export default function CompanyDashboard() {
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-gray-600">Live Offers</span>
-              <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center">
-                <ArrowUpRight className="h-4 w-4 text-teal-600" />
+              <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center">
+                <ArrowUpRight className="h-4 w-4 text-gray-700" />
               </div>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-gray-900">{stats?.liveOffers || 0}</div>
@@ -176,8 +176,8 @@ export default function CompanyDashboard() {
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-gray-600">Pending Applications</span>
-              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
-                <FileText className="h-4 w-4 text-amber-600" />
+              <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center">
+                <FileText className="h-4 w-4 text-gray-700" />
               </div>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-gray-900">{stats?.pendingApplications || 0}</div>
@@ -190,8 +190,8 @@ export default function CompanyDashboard() {
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-gray-600">Active Creators</span>
-              <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-                <Users className="h-4 w-4 text-blue-600" />
+              <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center">
+                <Users className="h-4 w-4 text-gray-700" />
               </div>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-gray-900">{stats?.activeCreators || 0}</div>
@@ -204,8 +204,8 @@ export default function CompanyDashboard() {
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-gray-600">Total Earnings</span>
-              <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center">
-                <DollarSign className="h-4 w-4 text-green-600" />
+              <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-gray-700" />
               </div>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-gray-900">${((stats?.totalEarnings || 0) / 100).toFixed(0)}</div>
@@ -297,12 +297,12 @@ export default function CompanyDashboard() {
           </div>
         </div>
 
-        {/* Leaderboard - Clean modern design */}
+        {/* Leaderboard with Graph - Clean modern design */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between p-5 border-b border-gray-50">
             <div>
               <h3 className="font-semibold text-gray-900">Leaderboard</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Top performing creators</p>
+              <p className="text-xs text-gray-500 mt-0.5">Total clicks</p>
             </div>
             <Link href="/company/analytics">
               <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors">
@@ -311,40 +311,149 @@ export default function CompanyDashboard() {
             </Link>
           </div>
           <div className="p-5">
-            {topCreators.length === 0 ? (
-              <div className="text-center py-10">
-                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
-                  <Users className="h-7 w-7 text-gray-300" />
+            {/* Mini Line Chart - Based on real click data */}
+            {(() => {
+              // Calculate clicks per day from applications (last 7 days)
+              const today = new Date();
+              const last7Days = Array.from({ length: 7 }, (_, i) => {
+                const date = new Date(today);
+                date.setDate(date.getDate() - (6 - i));
+                return date;
+              });
+
+              // Aggregate clicks by day
+              const clicksByDay = last7Days.map(date => {
+                const dayStart = new Date(date);
+                dayStart.setHours(0, 0, 0, 0);
+                const dayEnd = new Date(date);
+                dayEnd.setHours(23, 59, 59, 999);
+
+                // Sum clicks from applications created on this day
+                const dayClicks = applications.reduce((sum: number, app: any) => {
+                  const appDate = new Date(app.updatedAt || app.createdAt);
+                  if (appDate >= dayStart && appDate <= dayEnd) {
+                    return sum + Number(app.clickCount || 0);
+                  }
+                  return sum;
+                }, 0);
+
+                return dayClicks;
+              });
+
+              // Total clicks
+              const totalClicks = applications.reduce((sum: number, app: any) => sum + Number(app.clickCount || 0), 0);
+
+              // Get max for scaling (minimum 1 to avoid division by zero)
+              const maxClicks = Math.max(...clicksByDay, 1);
+
+              // Generate SVG path for the line
+              const chartWidth = 200;
+              const chartHeight = 60;
+              const padding = 10;
+              const points = clicksByDay.map((clicks, i) => {
+                const x = padding + (i * (chartWidth - 2 * padding)) / 6;
+                const y = chartHeight - padding - ((clicks / maxClicks) * (chartHeight - 2 * padding));
+                return `${x},${y}`;
+              });
+              const linePath = `M ${points.join(' L ')}`;
+
+              // Day labels
+              const dayLabels = last7Days.map(date =>
+                date.toLocaleDateString('en-US', { weekday: 'short' })
+              );
+
+              return (
+                <div className="mb-6">
+                  <div className="flex items-end justify-between mb-2">
+                    <span className="text-2xl font-bold text-gray-900">{totalClicks}</span>
+                  </div>
+                  <div className="relative">
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-16">
+                      {/* Grid lines */}
+                      <line x1={padding} y1={chartHeight - padding} x2={chartWidth - padding} y2={chartHeight - padding} stroke="#f3f4f6" strokeWidth="1" />
+                      <line x1={padding} y1={chartHeight / 2} x2={chartWidth - padding} y2={chartHeight / 2} stroke="#f3f4f6" strokeWidth="1" strokeDasharray="4" />
+
+                      {/* Area fill */}
+                      <path
+                        d={`${linePath} L ${chartWidth - padding},${chartHeight - padding} L ${padding},${chartHeight - padding} Z`}
+                        fill="url(#gradient)"
+                        opacity="0.3"
+                      />
+
+                      {/* Line */}
+                      <path
+                        d={linePath}
+                        fill="none"
+                        stroke="#0d9488"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+
+                      {/* Points */}
+                      {clicksByDay.map((clicks, i) => {
+                        const x = padding + (i * (chartWidth - 2 * padding)) / 6;
+                        const y = chartHeight - padding - ((clicks / maxClicks) * (chartHeight - 2 * padding));
+                        return (
+                          <circle
+                            key={i}
+                            cx={x}
+                            cy={y}
+                            r="3"
+                            fill="white"
+                            stroke="#0d9488"
+                            strokeWidth="2"
+                          />
+                        );
+                      })}
+
+                      {/* Gradient definition */}
+                      <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#0d9488" stopOpacity="0.4" />
+                          <stop offset="100%" stopColor="#0d9488" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    {/* X-axis labels */}
+                    <div className="flex justify-between px-2 mt-1">
+                      {dayLabels.filter((_, i) => i % 2 === 0 || i === 6).map((label, i) => (
+                        <span key={i} className="text-xs text-gray-400">{label}</span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+              );
+            })()}
+
+            {/* Top Creators List */}
+            {topCreators.length === 0 ? (
+              <div className="text-center py-6">
                 <p className="text-sm text-gray-500">No active creators yet</p>
-                <p className="text-xs text-gray-400 mt-1">Creator rankings will appear here</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {topCreators.slice(0, 4).map((creator: any, index: number) => (
-                  <div key={creator.creatorId} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
-                    <div className={`flex items-center justify-center w-8 h-8 rounded-lg font-bold text-sm ${
+                {topCreators.slice(0, 3).map((creator: any, index: number) => (
+                  <div key={creator.creatorId} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div className={`flex items-center justify-center w-7 h-7 rounded-lg font-bold text-xs ${
                       index === 0 ? 'bg-amber-100 text-amber-700' :
                       index === 1 ? 'bg-gray-100 text-gray-600' :
-                      index === 2 ? 'bg-orange-100 text-orange-700' :
-                      'bg-gray-50 text-gray-500'
+                      'bg-orange-100 text-orange-700'
                     }`}>
                       {index + 1}
                     </div>
-                    <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                    <Avatar className="h-8 w-8 border-2 border-white shadow-sm">
                       <AvatarImage src={creator.creatorProfileImageUrl} alt={creator.creatorName} />
-                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                      <AvatarFallback className="bg-primary/10 text-primary font-medium text-xs">
                         {creator.creatorName?.charAt(0)?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm text-gray-900 truncate">{creator.creatorName}</p>
-                      <p className="text-xs text-gray-500 truncate">{creator.creatorEmail}</p>
+                      <p className="text-xs text-gray-400 truncate">{creator.creatorEmail}</p>
                     </div>
                     <div className="text-right">
-                      <div className="flex items-center gap-1 justify-end">
-                        <span className="font-semibold text-sm text-gray-900">${Number(creator.totalEarnings).toFixed(2)}</span>
-                      </div>
+                      <span className="font-semibold text-sm text-gray-900">${Number(creator.totalEarnings).toFixed(2)}</span>
                       <p className="text-xs text-gray-400">earned</p>
                     </div>
                   </div>
