@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Users, FileText, TrendingUp, DollarSign, Plus, CheckCircle, MousePointer, AlertTriangle, Clock } from "lucide-react";
+import { Users, FileText, TrendingUp, DollarSign, Plus, CheckCircle, MousePointer, AlertTriangle, Clock, ChevronRight, ArrowUpRight } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
@@ -153,130 +153,140 @@ export default function CompanyDashboard() {
         )}
       </div>
 
-      {/* Stats Grid - Improved mobile spacing */}
+      {/* Stats Grid - Modern clean design */}
       {statsLoading ? (
         <StatsGridSkeleton />
       ) : (
-        <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:gap-5 grid-cols-2 lg:grid-cols-4">
           {/* 1. Live Offers */}
-          <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-              <CardTitle className="text-xs sm:text-sm font-medium">Live Offers</CardTitle>
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-            </CardHeader>
-            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-xl sm:text-2xl font-bold">{stats?.liveOffers || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats?.draftOffers || 0} drafts
-              </p>
-            </CardContent>
-          </Card>
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-gray-600">Live Offers</span>
+              <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                <ArrowUpRight className="h-4 w-4 text-teal-600" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900">{stats?.liveOffers || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              {stats?.draftOffers || 0} drafts
+            </p>
+          </div>
 
           {/* 2. Pending Applications */}
-          <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-              <CardTitle className="text-xs sm:text-sm font-medium">Pending Applications</CardTitle>
-              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-            </CardHeader>
-            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-xl sm:text-2xl font-bold">{stats?.pendingApplications || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats?.totalApplications || 0} all time
-              </p>
-            </CardContent>
-          </Card>
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-gray-600">Pending Applications</span>
+              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+                <FileText className="h-4 w-4 text-amber-600" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900">{stats?.pendingApplications || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              All time
+            </p>
+          </div>
 
           {/* 3. Active Creators */}
-          <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-              <CardTitle className="text-xs sm:text-sm font-medium">Active Creators</CardTitle>
-              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-            </CardHeader>
-            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-xl sm:text-2xl font-bold">{stats?.activeCreators || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Working on offers
-              </p>
-            </CardContent>
-          </Card>
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-gray-600">Active Creators</span>
+              <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                <Users className="h-4 w-4 text-blue-600" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900">{stats?.activeCreators || 0}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              Working on offers
+            </p>
+          </div>
 
-          {/* 4. Total Clicks */}
-          <Card className="border-card-border">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2 p-4 sm:p-6">
-              <CardTitle className="text-xs sm:text-sm font-medium">Total Clicks</CardTitle>
-              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground shrink-0" />
-            </CardHeader>
-            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-              <div className="text-xl sm:text-2xl font-bold">{stats?.totalClicks || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats?.conversions || 0} conversions
-              </p>
-            </CardContent>
-          </Card>
+          {/* 4. Total Earnings */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-gray-600">Total Earnings</span>
+              <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-green-600" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900">${((stats?.totalEarnings || 0) / 100).toFixed(0)}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              {stats?.conversions || 0} conversions
+            </p>
+          </div>
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="border-card-border">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-            <CardTitle>Recent Applications</CardTitle>
-            <Badge variant="secondary" data-testid="badge-applications-count">{applications.length}</Badge>
-          </CardHeader>
-          <CardContent>
+      <div className="grid md:grid-cols-2 gap-5">
+        {/* Recent Applications - Clean modern design */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between p-5 border-b border-gray-50">
+            <h3 className="font-semibold text-gray-900">Recent Applications</h3>
+            <Link href="/company/applications">
+              <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors">
+                View All <ChevronRight className="h-4 w-4" />
+              </button>
+            </Link>
+          </div>
+          <div className="p-5">
             {loadingApplications ? (
               <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="p-3 rounded-md border border-border">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="h-4 w-32 bg-muted rounded animate-pulse" />
-                          <div className="h-5 w-16 bg-muted rounded animate-pulse" />
-                        </div>
-                        <div className="h-3 w-48 bg-muted rounded animate-pulse" />
-                        <div className="h-3 w-24 bg-muted rounded animate-pulse" />
-                      </div>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 animate-pulse">
+                    <div className="w-10 h-10 rounded-full bg-gray-200" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-32 bg-gray-200 rounded" />
+                      <div className="h-3 w-48 bg-gray-200 rounded" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : applications.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No applications yet</p>
+              <div className="text-center py-10">
+                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                  <FileText className="h-7 w-7 text-gray-300" />
+                </div>
+                <p className="text-sm text-gray-500">No applications yet</p>
+                <p className="text-xs text-gray-400 mt-1">Applications will appear here</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {applications.slice(0, 5).map((app: any) => (
-                  <div key={app.id} className="flex items-start justify-between gap-4 p-3 rounded-md border border-border hover-elevate" data-testid={`application-${app.id}`}>
+              <div className="space-y-3">
+                {applications.slice(0, 4).map((app: any) => (
+                  <div key={app.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors group" data-testid={`application-${app.id}`}>
+                    <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                      <AvatarImage src={app.creator?.profileImageUrl} alt={app.creatorName} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                        {app.creatorName?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h4 className="font-medium text-sm truncate" data-testid={`text-creator-${app.id}`}>{app.creatorName}</h4>
-                        <Badge 
-                          variant={
-                            app.status === 'completed' ? 'default' : 
-                            app.status === 'approved' || app.status === 'active' ? 'secondary' : 
-                            'outline'
-                          }
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h4 className="font-medium text-sm text-gray-900 truncate" data-testid={`text-creator-${app.id}`}>{app.creatorName}</h4>
+                        <Badge
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            app.status === 'completed' ? 'bg-green-100 text-green-700 border-0' :
+                            app.status === 'approved' || app.status === 'active' ? 'bg-blue-100 text-blue-700 border-0' :
+                            app.status === 'pending' ? 'bg-amber-100 text-amber-700 border-0' :
+                            'bg-gray-100 text-gray-600 border-0'
+                          }`}
                           data-testid={`badge-status-${app.id}`}
                         >
                           {app.status}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate" data-testid={`text-offer-${app.id}`}>{app.offerTitle}</p>
-                      <p className="text-xs text-tertiary-foreground mt-1">
+                      <p className="text-xs text-gray-500 truncate" data-testid={`text-offer-${app.id}`}>{app.offerTitle}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
                         {formatDistanceToNow(new Date(app.createdAt), { addSuffix: true })}
                       </p>
                     </div>
                     {(app.status === 'approved' || app.status === 'active') && (
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         onClick={() => handleMarkComplete(app.id, app.creatorName)}
                         disabled={completeApplicationMutation.isPending}
-                        className="gap-1"
+                        className="gap-1.5 bg-primary hover:bg-primary/90 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                         data-testid={`button-complete-${app.id}`}
                       >
-                        <CheckCircle className="h-3 w-3" />
+                        <CheckCircle className="h-3.5 w-3.5" />
                         Complete
                       </Button>
                     )}
@@ -284,60 +294,65 @@ export default function CompanyDashboard() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border-card-border">
-          <CardHeader>
-            <CardTitle>Top Performing Creators</CardTitle>
-          </CardHeader>
-          <CardContent>
+        {/* Leaderboard - Clean modern design */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between p-5 border-b border-gray-50">
+            <div>
+              <h3 className="font-semibold text-gray-900">Leaderboard</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Top performing creators</p>
+            </div>
+            <Link href="/company/analytics">
+              <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors">
+                View Full Leaderboard <ChevronRight className="h-4 w-4" />
+              </button>
+            </Link>
+          </div>
+          <div className="p-5">
             {topCreators.length === 0 ? (
-              <div className="text-center py-8">
-                <Users className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No active creators yet</p>
+              <div className="text-center py-10">
+                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+                  <Users className="h-7 w-7 text-gray-300" />
+                </div>
+                <p className="text-sm text-gray-500">No active creators yet</p>
+                <p className="text-xs text-gray-400 mt-1">Creator rankings will appear here</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {topCreators.map((creator: any, index: number) => (
-                  <div key={creator.creatorId} className="flex items-center justify-between p-4 rounded-lg border border-border hover:border-primary/50 transition-colors">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
-                        {index + 1}
-                      </div>
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={creator.creatorProfileImageUrl} alt={creator.creatorName} />
-                        <AvatarFallback>
-                          {creator.creatorName?.charAt(0)?.toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{creator.creatorName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{creator.creatorEmail}</p>
-                      </div>
+              <div className="space-y-3">
+                {topCreators.slice(0, 4).map((creator: any, index: number) => (
+                  <div key={creator.creatorId} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-lg font-bold text-sm ${
+                      index === 0 ? 'bg-amber-100 text-amber-700' :
+                      index === 1 ? 'bg-gray-100 text-gray-600' :
+                      index === 2 ? 'bg-orange-100 text-orange-700' :
+                      'bg-gray-50 text-gray-500'
+                    }`}>
+                      {index + 1}
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <MousePointer className="h-3 w-3" />
-                          <span className="font-medium">{creator.totalClicks}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">clicks</p>
+                    <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                      <AvatarImage src={creator.creatorProfileImageUrl} alt={creator.creatorName} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                        {creator.creatorName?.charAt(0)?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-gray-900 truncate">{creator.creatorName}</p>
+                      <p className="text-xs text-gray-500 truncate">{creator.creatorEmail}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center gap-1 justify-end">
+                        <span className="font-semibold text-sm text-gray-900">${Number(creator.totalEarnings).toFixed(2)}</span>
                       </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-green-600">
-                          <DollarSign className="h-3 w-3" />
-                          <span className="font-medium">{Number(creator.totalEarnings).toFixed(2)}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">earned</p>
-                      </div>
+                      <p className="text-xs text-gray-400">earned</p>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       <GenericErrorDialog
