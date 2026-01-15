@@ -3791,9 +3791,9 @@ export default function PaymentSettings() {
 
           {/* Mobile Add Payment Method View (Full Page) - Using Portal to render outside app container */}
           {showMobileAddPayment && createPortal(
-            <div className="fixed inset-0 z-[9999] bg-white">
+            <div className="fixed top-0 left-0 w-screen h-screen z-[9999] bg-white overflow-hidden" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }}>
               {/* Header */}
-              <div className="sticky top-0 z-[9999] bg-white border-b border-gray-100">
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
                 <div className="flex items-center gap-3 px-4 py-4">
                   <button
                     onClick={() => setShowMobileAddPayment(false)}
@@ -3957,7 +3957,7 @@ export default function PaymentSettings() {
               </div>
 
               {/* Fixed Bottom Button */}
-              <div className="fixed bottom-0 left-0 right-0 z-[9999] bg-white p-4 pb-6">
+              <div className="fixed bottom-0 left-0 right-0 z-20 bg-white p-4 pb-6" style={{ width: '100vw' }}>
                 <Button
                   onClick={() => {
                     addPaymentMethodMutation.mutate();
