@@ -288,7 +288,7 @@ export default function CompanyOffers() {
       </TopNavBar>
 
       {/* Main Content */}
-      <div className="max-w-[1600px] mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8">
         {/* Company Approval Pending Banner */}
         {isCompanyPending && (
           <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
@@ -296,40 +296,227 @@ export default function CompanyOffers() {
             <p className="flex-1 text-sm text-amber-800 dark:text-amber-200">
               <span className="font-medium">Company Approval Pending:</span> Your company registration is under review. You'll be able to create offers once approved.
             </p>
-            <Badge variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50">
+            <Badge variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 hidden sm:flex">
               <Clock className="h-3 w-3 mr-1" />
               Pending
             </Badge>
           </div>
         )}
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-foreground">My Offers</h1>
-            <p className="text-muted-foreground text-base">
-              Manage your affiliate offers and track performance
-            </p>
+        {/* ========== MOBILE LAYOUT ========== */}
+        <div className="md:hidden space-y-4">
+          {/* Mobile Header */}
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900">My Offers</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage your affiliate offers</p>
           </div>
+
+          {/* Mobile Create Button */}
           {isCompanyPending ? (
-            <Button
-              className="gap-2"
-              data-testid="button-create-offer"
-              disabled
-              title="Your company must be approved before creating offers"
-            >
-              <Plus className="h-4 w-4" />
+            <Button className="gap-2 w-full h-12 rounded-xl" disabled>
+              <Plus className="h-5 w-5" />
               Create New Offer
             </Button>
           ) : (
-            <Link href="/company/offers/create">
-              <Button className="gap-2" data-testid="button-create-offer">
-                <Plus className="h-4 w-4" />
+            <Link href="/company/offers/create" className="block">
+              <Button className="gap-2 w-full h-12 rounded-xl">
+                <Plus className="h-5 w-5" />
                 Create New Offer
               </Button>
             </Link>
           )}
+
+          {/* Mobile Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search offers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-11 rounded-xl border-gray-200 bg-white"
+            />
+          </div>
+
+          {/* Mobile Filter Tabs */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <button
+              onClick={() => setStatusFilter("all")}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                statusFilter === "all"
+                  ? "bg-primary text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              All
+            </button>
+            {uniqueStatuses.map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors capitalize ${
+                  statusFilter === status
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile Results Count */}
+          <div className="flex items-center justify-between text-sm text-gray-500">
+            <span>{filteredOffers.length} offers found</span>
+            {hasActiveFilters && (
+              <button onClick={clearFilters} className="text-primary font-medium flex items-center gap-1">
+                <X className="h-3 w-3" />
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Mobile Offers List */}
+          {loadingOffers ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 animate-pulse">
+                  <div className="flex gap-4">
+                    <div className="w-20 h-20 rounded-lg bg-gray-200" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-3/4 bg-gray-200 rounded" />
+                      <div className="h-3 w-1/2 bg-gray-200 rounded" />
+                      <div className="h-5 w-20 bg-gray-200 rounded" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredOffers.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+              <TrendingUp className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 font-medium">No offers found</p>
+              <p className="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredOffers.map((offer: any) => {
+                const category = getOfferCategory(offer);
+                const isRetainer = offer.commissionType === 'monthly_retainer';
+
+                return (
+                  <Link key={offer.id} href={`/company/offers/${offer.id}`}>
+                    <div className={`bg-white rounded-xl border border-gray-100 p-4 ${
+                      isRetainer ? 'ring-2 ring-purple-200' : ''
+                    }`}>
+                      <div className="flex gap-4">
+                        {/* Thumbnail */}
+                        <div className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 ${
+                          isRetainer
+                            ? 'bg-gradient-to-br from-purple-100 to-violet-100'
+                            : 'bg-gradient-to-br from-purple-100 to-pink-100'
+                        }`}>
+                          {offer.featuredImageUrl && !isRetainer ? (
+                            <img
+                              src={proxiedSrc(offer.featuredImageUrl)}
+                              alt={offer.title}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              {isRetainer ? (
+                                <DollarSign className="h-8 w-8 text-purple-400" />
+                              ) : (
+                                <ImageIcon className="h-8 w-8 text-gray-300" />
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm">{offer.title}</h3>
+                            {category && (
+                              <span className={`${category.color} text-white text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0`}>
+                                {category.label}
+                              </span>
+                            )}
+                          </div>
+
+                          {offer.primaryNiche && (
+                            <p className="text-xs text-gray-500 mt-1">#{offer.primaryNiche}</p>
+                          )}
+
+                          <div className="flex items-center justify-between mt-2">
+                            <span className={`font-bold ${isRetainer ? 'text-purple-600' : 'text-green-600'}`}>
+                              {formatCommission(offer)}
+                              <span className="text-xs font-normal text-gray-400 ml-1">
+                                {getCommissionTypeLabel(offer)}
+                              </span>
+                            </span>
+                            <Badge
+                              variant={offer.status === 'approved' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {offer.status}
+                            </Badge>
+                          </div>
+
+                          {/* Stats */}
+                          <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {offer.applicationCount || 0}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Eye className="h-3 w-3" />
+                              {offer.viewCount || 0}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MousePointer className="h-3 w-3" />
+                              {offer.totalClicks || 0}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
+
+        {/* ========== DESKTOP LAYOUT ========== */}
+        <div className="hidden md:block space-y-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold text-foreground">My Offers</h1>
+              <p className="text-muted-foreground text-base">
+                Manage your affiliate offers and track performance
+              </p>
+            </div>
+            {isCompanyPending ? (
+              <Button
+                className="gap-2"
+                data-testid="button-create-offer"
+                disabled
+                title="Your company must be approved before creating offers"
+              >
+                <Plus className="h-4 w-4" />
+                Create New Offer
+              </Button>
+            ) : (
+              <Link href="/company/offers/create">
+                <Button className="gap-2" data-testid="button-create-offer">
+                  <Plus className="h-4 w-4" />
+                  Create New Offer
+                </Button>
+              </Link>
+            )}
+          </div>
 
         <Card className="border-card-border">
           <CardContent className="pt-6 space-y-4">
@@ -644,6 +831,7 @@ export default function CompanyOffers() {
             })}
           </div>
         )}
+        </div>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={!!offerToDelete} onOpenChange={() => setOfferToDelete(null)}>
