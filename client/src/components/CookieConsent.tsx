@@ -107,9 +107,64 @@ export function CookieConsent() {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6">
+      {/* Mobile: Bottom banner */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 p-3">
+        <Card className="w-full border shadow-lg bg-background rounded-xl">
+          <CardContent className="p-3">
+            {/* Header with icon and close button */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg">🍪</span>
+                <h3 className="font-semibold text-sm">Cookies & Privacy</h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowBanner(false)}
+                className="h-6 w-6 rounded-full -mr-1"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+
+            {/* Description */}
+            <p className="text-xs text-muted-foreground my-2">
+              We use cookies to improve your experience, analyze traffic, and personalize content.
+            </p>
+
+            {/* Buttons - 2 column */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button onClick={acceptAll} className="h-9 text-xs">
+                Accept All
+              </Button>
+              <Button
+                onClick={() => setShowSettings(true)}
+                variant="outline"
+                className="h-9 text-xs"
+              >
+                Manage
+              </Button>
+            </div>
+
+            {/* Footer links */}
+            <p className="text-[10px] text-muted-foreground text-center mt-2">
+              Read our{" "}
+              <a href="/privacy-policy" className="underline hover:text-primary">
+                Privacy Policy
+              </a>{" "}
+              and{" "}
+              <a href="/cookie-policy" className="underline hover:text-primary">
+                Cookies
+              </a>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Desktop: Bottom banner */}
+      <div className="hidden sm:block fixed bottom-0 left-0 right-0 z-50 p-6">
         <Card className="max-w-4xl mx-auto border-2 shadow-lg">
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-6">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0 mt-1">
                 <Cookie className="h-6 w-6 text-primary" />

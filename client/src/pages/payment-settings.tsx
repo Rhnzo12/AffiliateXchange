@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -33,19 +34,29 @@ import {
 } from "../components/ui/alert-dialog";
 import {
   AlertTriangle,
+  Banknote,
+  Bitcoin,
+  Building2,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   CreditCard,
   DollarSign,
   Download,
+  Edit3,
   Eye,
   Filter,
   Info,
+  Landmark,
+  Plus,
   Search,
   Send,
+  SlidersHorizontal,
   Trash2,
   TrendingUp,
   Users,
+  Wallet,
   X,
   XCircle,
 } from "lucide-react";
@@ -503,7 +514,7 @@ function CryptoPaymentFields({
           <SelectTrigger id="network">
             <SelectValue placeholder="Select network" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[10000]">
             <SelectItem value="ethereum">Ethereum (ERC-20) - USDC</SelectItem>
             <SelectItem value="bsc">Binance Smart Chain (BEP-20) - BUSD</SelectItem>
             <SelectItem value="polygon">Polygon (MATIC) - USDC</SelectItem>
@@ -676,7 +687,7 @@ function WireAchPaymentFields({
           <SelectTrigger id="bank-country">
             <SelectValue placeholder="Select country" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[10000]">
             <SelectItem value="US">United States (USD)</SelectItem>
             <SelectItem value="CA">Canada (CAD)</SelectItem>
           </SelectContent>
@@ -701,7 +712,7 @@ function WireAchPaymentFields({
             <SelectTrigger id="account-holder-type">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[10000]">
               <SelectItem value="individual">Individual</SelectItem>
               <SelectItem value="company">Company</SelectItem>
             </SelectContent>
@@ -714,7 +725,7 @@ function WireAchPaymentFields({
             <SelectTrigger id="account-type">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[10000]">
               <SelectItem value="checking">Checking</SelectItem>
               <SelectItem value="savings">Savings</SelectItem>
             </SelectContent>
@@ -930,7 +941,32 @@ function PaymentMethodSettings({
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4 min-w-0">
-                      <CreditCard className={`h-5 w-5 flex-shrink-0 ${needsSetup ? 'text-yellow-600' : 'text-gray-400'}`} />
+                      {/* Payment Method Icon */}
+                      {method.payoutMethod === "paypal" && (
+                        <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                            <path className="text-blue-800" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
+                            <path className="text-blue-500" d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
+                          </svg>
+                        </div>
+                      )}
+                      {method.payoutMethod === "wire" && (
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${needsSetup ? 'bg-yellow-100' : 'bg-amber-50'}`}>
+                          <Landmark className={`h-5 w-5 ${needsSetup ? 'text-yellow-600' : 'text-amber-600'}`} />
+                        </div>
+                      )}
+                      {method.payoutMethod === "crypto" && (
+                        <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+                          <svg viewBox="0 0 32 32" className="h-5 w-5 text-orange-500" fill="currentColor">
+                            <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.189-17.98c.314-2.096-1.283-3.223-3.465-3.975l.708-2.84-1.728-.43-.69 2.765c-.454-.114-.92-.22-1.385-.326l.695-2.783L15.596 6l-.708 2.839c-.376-.086-.746-.17-1.104-.26l.002-.009-2.384-.595-.46 1.846s1.283.294 1.256.312c.7.175.826.638.805 1.006l-.806 3.235c.048.012.11.03.18.057l-.183-.045-1.13 4.532c-.086.212-.303.531-.793.41.018.025-1.256-.313-1.256-.313l-.858 1.978 2.25.561c.418.105.828.215 1.231.318l-.715 2.872 1.727.43.708-2.84c.472.127.93.245 1.378.357l-.706 2.828 1.728.43.715-2.866c2.948.558 5.164.333 6.097-2.333.752-2.146-.037-3.385-1.588-4.192 1.13-.26 1.98-1.003 2.207-2.538zm-3.95 5.538c-.533 2.147-4.148.986-5.32.695l.95-3.805c1.172.293 4.929.872 4.37 3.11zm.535-5.569c-.487 1.953-3.495.96-4.47.717l.86-3.45c.975.243 4.118.696 3.61 2.733z" />
+                          </svg>
+                        </div>
+                      )}
+                      {method.payoutMethod === "etransfer" && (
+                        <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center flex-shrink-0">
+                          <Building2 className="h-5 w-5 text-teal-600" />
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <div className="font-medium capitalize text-gray-900 flex flex-wrap items-center gap-2">
                           {method.payoutMethod.replace("_", " ")}
@@ -1038,23 +1074,113 @@ function PaymentMethodSettings({
       </div>
 
       <div className="rounded-xl border-2 border-gray-200 bg-white p-6">
-        <h3 className="text-lg font-bold text-gray-900">Add Payment Method</h3>
-        <div className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="method">Payout Method</Label>
-            <Select value={payoutMethod} onValueChange={setPayoutMethod}>
-              <SelectTrigger id="method">
-                <SelectValue placeholder="Select method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="etransfer">E-Transfer</SelectItem>
-                <SelectItem value="wire">Wire/ACH</SelectItem>
-                <SelectItem value="paypal">PayPal</SelectItem>
-                <SelectItem value="crypto">Cryptocurrency</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Add Payment Method</h3>
+            <p className="text-sm text-gray-500 mt-1">Choose how you want to receive payouts</p>
+          </div>
+        </div>
+
+        {/* Payment Method Selection Cards */}
+        <div className="space-y-3 mb-6">
+          <label className="text-sm font-medium text-gray-700">Select a method</label>
+
+          {/* PayPal Option */}
+          <div
+            onClick={() => setPayoutMethod("paypal")}
+            className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              payoutMethod === "paypal"
+                ? "border-primary bg-primary/5"
+                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              payoutMethod === "paypal" ? "border-primary" : "border-gray-300"
+            }`}>
+              {payoutMethod === "paypal" && (
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              )}
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor">
+                <path className="text-blue-800" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
+                <path className="text-blue-500" d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
+              </svg>
+            </div>
+            <span className="font-medium text-gray-900">PayPal</span>
           </div>
 
+          {/* Wire/ACH Option */}
+          <div
+            onClick={() => setPayoutMethod("wire")}
+            className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              payoutMethod === "wire"
+                ? "border-primary bg-primary/5"
+                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              payoutMethod === "wire" ? "border-primary" : "border-gray-300"
+            }`}>
+              {payoutMethod === "wire" && (
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              )}
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+              <Landmark className="h-5 w-5 text-amber-600" />
+            </div>
+            <span className="font-medium text-gray-900">Wire / ACH</span>
+          </div>
+
+          {/* Crypto Option */}
+          <div
+            onClick={() => setPayoutMethod("crypto")}
+            className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              payoutMethod === "crypto"
+                ? "border-primary bg-primary/5"
+                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              payoutMethod === "crypto" ? "border-primary" : "border-gray-300"
+            }`}>
+              {payoutMethod === "crypto" && (
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              )}
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
+              <svg viewBox="0 0 32 32" className="h-6 w-6 text-orange-500" fill="currentColor">
+                <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.189-17.98c.314-2.096-1.283-3.223-3.465-3.975l.708-2.84-1.728-.43-.69 2.765c-.454-.114-.92-.22-1.385-.326l.695-2.783L15.596 6l-.708 2.839c-.376-.086-.746-.17-1.104-.26l.002-.009-2.384-.595-.46 1.846s1.283.294 1.256.312c.7.175.826.638.805 1.006l-.806 3.235c.048.012.11.03.18.057l-.183-.045-1.13 4.532c-.086.212-.303.531-.793.41.018.025-1.256-.313-1.256-.313l-.858 1.978 2.25.561c.418.105.828.215 1.231.318l-.715 2.872 1.727.43.708-2.84c.472.127.93.245 1.378.357l-.706 2.828 1.728.43.715-2.866c2.948.558 5.164.333 6.097-2.333.752-2.146-.037-3.385-1.588-4.192 1.13-.26 1.98-1.003 2.207-2.538zm-3.95 5.538c-.533 2.147-4.148.986-5.32.695l.95-3.805c1.172.293 4.929.872 4.37 3.11zm.535-5.569c-.487 1.953-3.495.96-4.47.717l.86-3.45c.975.243 4.118.696 3.61 2.733z" />
+              </svg>
+            </div>
+            <span className="font-medium text-gray-900">Crypto</span>
+          </div>
+
+          {/* E-Transfer Option */}
+          <div
+            onClick={() => setPayoutMethod("etransfer")}
+            className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              payoutMethod === "etransfer"
+                ? "border-primary bg-primary/5"
+                : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              payoutMethod === "etransfer" ? "border-primary" : "border-gray-300"
+            }`}>
+              {payoutMethod === "etransfer" && (
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+              )}
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center">
+              <Building2 className="h-5 w-5 text-teal-600" />
+            </div>
+            <span className="font-medium text-gray-900">E-Transfer</span>
+          </div>
+        </div>
+
+        {/* Payment Method Form Fields */}
+        <div className="space-y-4">
           {payoutMethod === "etransfer" && (
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -1113,7 +1239,7 @@ function PaymentMethodSettings({
           <Button
             onClick={onAddPaymentMethod}
             disabled={isAddDisabled}
-            className="w-full"
+            className="w-full mt-4"
           >
             {isSubmitting ? "Adding..." : "Add Payment Method"}
           </Button>
@@ -2833,6 +2959,8 @@ export default function PaymentSettings() {
   const [verifyingPaymentMethod, setVerifyingPaymentMethod] = useState<PaymentMethod | null>(null);
   const [microDepositAmount1, setMicroDepositAmount1] = useState("");
   const [microDepositAmount2, setMicroDepositAmount2] = useState("");
+  // Mobile add payment view state (replaces modal)
+  const [showMobileAddPayment, setShowMobileAddPayment] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -2992,6 +3120,8 @@ export default function PaymentSettings() {
       setCryptoNetwork("");
       // Increment form reset key to force remount of child components with internal state
       setFormResetKey(prev => prev + 1);
+      // Close mobile add payment view
+      setShowMobileAddPayment(false);
       // Redirect to Payment Methods tab
       setActiveTab("settings");
     },
@@ -3288,10 +3418,683 @@ export default function PaymentSettings() {
 
   const role: User["role"] = user.role;
 
+  // Calculate payment statistics for mobile view
+  const creatorPaymentStats = useMemo(() => {
+    return creatorPayments.reduce(
+      (acc, payment) => {
+        const amount = parseFloat(payment.netAmount);
+        const disputed = isDisputedPayment(payment);
+
+        if (disputed) {
+          acc.disputedEarnings += amount;
+          return acc;
+        }
+
+        acc.totalEarnings += amount;
+
+        if (payment.status === "completed") {
+          acc.completedEarnings += amount;
+        }
+        if (payment.status === "pending") {
+          acc.pendingEarnings += amount;
+        }
+        if (payment.status === "processing") {
+          acc.processingEarnings += amount;
+        }
+        return acc;
+      },
+      { totalEarnings: 0, pendingEarnings: 0, completedEarnings: 0, processingEarnings: 0, disputedEarnings: 0 }
+    );
+  }, [creatorPayments]);
+
+  // Helper to get payment method display info for mobile
+  const getPaymentMethodInfo = (method: PaymentMethod) => {
+    const isConnected = method.payoutMethod === 'etransfer'
+      ? !!method.stripeAccountId
+      : method.payoutMethod === 'wire'
+        ? method.bankVerificationStatus === 'verified'
+        : true;
+
+    const needsVerification = method.payoutMethod === 'wire' && method.bankVerificationStatus !== 'verified';
+
+    let icon = CreditCard;
+    let iconBgColor = "bg-gray-100";
+    let iconColor = "text-gray-600";
+    let title = method.payoutMethod.replace("_", " ");
+    let description = "";
+    let displayValue = "";
+
+    if (method.payoutMethod === "etransfer") {
+      icon = Building2;
+      iconBgColor = "bg-teal-50";
+      iconColor = "text-teal-600";
+      title = "E-Transfer";
+      description = "";
+      displayValue = method.payoutEmail || "";
+    } else if (method.payoutMethod === "wire") {
+      icon = Landmark;
+      iconBgColor = "bg-amber-50";
+      iconColor = "text-amber-600";
+      title = "Wire/ACH Transfer";
+      description = "Bank wire for large payouts";
+      displayValue = method.bankAccountNumber ? `**** ${method.bankAccountNumber.slice(-4)}` : "";
+    } else if (method.payoutMethod === "paypal") {
+      icon = Wallet;
+      iconBgColor = "bg-blue-50";
+      iconColor = "text-blue-600";
+      title = "PayPal";
+      description = "";
+      // Mask email for privacy
+      const email = method.paypalEmail || "";
+      if (email) {
+        const [localPart, domain] = email.split('@');
+        displayValue = `****@${domain || 'gmail.com'}`;
+      }
+    } else if (method.payoutMethod === "crypto") {
+      icon = Bitcoin;
+      iconBgColor = "bg-orange-50";
+      iconColor = "text-orange-500";
+      title = "Cryptocurrency";
+      description = "";
+      displayValue = method.cryptoWalletAddress ? `${method.cryptoWalletAddress.slice(0, 6)}...${method.cryptoWalletAddress.slice(-4)}` : "";
+    }
+
+    return { icon, iconBgColor, iconColor, title, description, displayValue, isConnected, isDefault: method.isDefault, needsVerification };
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <TopNavBar />
-      <div className="mx-auto max-w-7xl space-y-6">
+
+      {/* ========== MOBILE LAYOUT FOR CREATORS ========== */}
+      {role === "creator" && (
+        <div className="md:hidden space-y-4 pb-4">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/creator/dashboard">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <h1 className="text-xl font-bold text-gray-900">Payment Management</h1>
+            </div>
+            <Button variant="ghost" size="icon" className="h-9 w-9">
+              <SlidersHorizontal className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Mobile Tabs */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                activeTab === "overview"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500"
+              }`}
+            >
+              Payout History
+            </button>
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                activeTab === "settings"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500"
+              }`}
+            >
+              Payment Methods
+            </button>
+          </div>
+
+          {/* Mobile Payout History Tab */}
+          {activeTab === "overview" && (
+            <div className="space-y-4">
+              {/* Payout Status Breakdown */}
+              <div className="space-y-3">
+                <div>
+                  <h3 className="font-bold text-gray-900">Payout Status Breakdown</h3>
+                  <p className="text-xs text-gray-500">
+                    See where every creator payout sits: awaiting admin approval, processing, or fully paid.
+                  </p>
+                </div>
+
+                {/* Total Earnings Badge */}
+                <button className="w-full flex items-center justify-between py-3 px-4 bg-white rounded-lg border border-gray-200">
+                  <span className="text-sm text-gray-600">Total:</span>
+                  <div className="flex items-center gap-1">
+                    <span className="font-semibold text-gray-900">CA${creatorPaymentStats.totalEarnings.toFixed(2)}</span>
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  </div>
+                </button>
+
+                {/* Status Cards - 2x2 Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Pending Admin Approval */}
+                  <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-yellow-700">Pending Admin Approval</span>
+                    </div>
+                    <div className="text-xl font-bold text-yellow-900">CA${creatorPaymentStats.pendingEarnings.toFixed(2)}</div>
+                    <div className="text-[10px] text-yellow-700 mt-1">Company approved, awaiting admin</div>
+                  </div>
+
+                  {/* Processing Payment */}
+                  <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-blue-700">Processing Payment</span>
+                    </div>
+                    <div className="text-xl font-bold text-blue-900">CA${creatorPaymentStats.processingEarnings.toFixed(2)}</div>
+                    <div className="text-[10px] text-blue-700 mt-1">Payment in progress</div>
+                  </div>
+
+                  {/* Total Paid Out */}
+                  <div className="rounded-xl border-2 border-gray-200 bg-white p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-600">Total Paid Out</span>
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    </div>
+                    <div className="text-xl font-bold text-gray-900">CA${creatorPaymentStats.completedEarnings.toFixed(2)}</div>
+                    <div className="text-[10px] text-gray-500 mt-1">Lifetime completed payouts</div>
+                  </div>
+
+                  {/* All Earnings */}
+                  <div className="rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-4 text-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-green-100">All Earnings</span>
+                      <DollarSign className="h-4 w-4 text-green-100" />
+                    </div>
+                    <div className="text-xl font-bold">CA${creatorPaymentStats.totalEarnings.toFixed(2)}</div>
+                    <div className="text-[10px] text-green-100 mt-1">Including pending & processing</div>
+                  </div>
+                </div>
+
+                {/* Disputed Earnings (if any) */}
+                {creatorPaymentStats.disputedEarnings > 0 && (
+                  <div className="rounded-xl border-2 border-orange-300 bg-orange-50 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-orange-700">Disputed</span>
+                      <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div className="text-xl font-bold text-orange-900">CA${creatorPaymentStats.disputedEarnings.toFixed(2)}</div>
+                    <div className="text-[10px] text-orange-700 mt-1">Awaiting admin resolution</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Payment History Section */}
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                  <h3 className="font-bold text-gray-900">Payment History</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs gap-1.5"
+                    onClick={() => {
+                      if (creatorPayments.length === 0) {
+                        toast({
+                          title: "No data",
+                          description: "No payment history to export",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      const csv = [
+                        ['ID', 'Description', 'Gross', 'Platform Fee', 'Processing Fee', 'Net Amount', 'Status', 'Date'],
+                        ...creatorPayments.map(p => [
+                          p.id.slice(0, 8),
+                          p.description || 'Payment',
+                          p.grossAmount,
+                          p.platformFeeAmount,
+                          p.stripeFeeAmount,
+                          p.netAmount,
+                          p.status,
+                          p.completedAt || p.createdAt
+                        ])
+                      ].map(row => row.join(',')).join('\n');
+
+                      const blob = new Blob([csv], { type: 'text/csv' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `payments-${new Date().toISOString().split('T')[0]}.csv`;
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+
+                      toast({
+                        title: "Success",
+                        description: "Payment history exported successfully",
+                      });
+                    }}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Export CSV
+                  </Button>
+                </div>
+
+                {creatorPayments.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <div className="mx-auto w-16 h-16 mb-4 flex items-center justify-center">
+                      <div className="relative">
+                        <div className="w-12 h-10 bg-yellow-100 rounded-lg" />
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                          <DollarSign className="h-3 w-3 text-green-600" />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-500">No payment history yet</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {creatorPayments.slice(0, 5).map((payment) => (
+                      <Link key={payment.id} href={`/payments/${payment.id}`}>
+                        <div className="p-4 hover:bg-gray-50">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {payment.description || "Payment"}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {payment.completedAt
+                                  ? new Date(payment.completedAt).toLocaleDateString()
+                                  : new Date(payment.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-green-600">
+                                CA${parseFloat(payment.netAmount).toFixed(2)}
+                              </p>
+                              <StatusBadge status={payment.status} isDisputed={isDisputedPayment(payment)} />
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Payment Methods Tab */}
+          {activeTab === "settings" && (
+            <div className="space-y-4">
+              {/* Connected Methods Header */}
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">
+                  Connected Methods {paymentMethods && paymentMethods.length > 0 && `(${paymentMethods.length})`}
+                </h3>
+              </div>
+
+              {/* Payment Method Cards - Compact Design */}
+              {paymentMethods && paymentMethods.length > 0 ? (
+                <div className="space-y-3">
+                  {paymentMethods.map((method) => {
+                    const info = getPaymentMethodInfo(method);
+                    const IconComponent = info.icon;
+                    const needsSetup = method.payoutMethod === 'etransfer' && !method.stripeAccountId;
+                    const needsWireVerification = method.payoutMethod === 'wire' && method.bankVerificationStatus !== 'verified';
+                    const isWirePending = method.payoutMethod === 'wire' &&
+                      method.bankVerificationStatus === 'pending' &&
+                      !!method.stripeBankAccountId;
+
+                    // PayPal style card (compact with checkmark on right)
+                    if (method.payoutMethod === 'paypal') {
+                      return (
+                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                          <div className="flex items-center gap-3">
+                            {/* PayPal Icon */}
+                            <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor">
+                                <path className="text-blue-800" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
+                                <path className="text-blue-500" d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
+                              </svg>
+                            </div>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-900">PayPal</span>
+                                {info.isDefault && (
+                                  <Badge className="bg-green-600 text-white border-0 text-[10px] px-1.5 py-0">Primary</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500">{info.displayValue}</p>
+                            </div>
+                            {/* Connected Badge */}
+                            <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Connected</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // E-Transfer / Direct Deposit card
+                    if (method.payoutMethod === 'etransfer') {
+                      return (
+                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                          <div className="flex items-center gap-3">
+                            {/* Icon */}
+                            <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                              <Building2 className="h-5 w-5 text-teal-600" />
+                            </div>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-900">E-Transfer</span>
+                                {info.isDefault && (
+                                  <Badge className="bg-green-600 text-white border-0 text-[10px] px-1.5 py-0">Primary</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500">{info.displayValue}</p>
+                            </div>
+                            {/* Connected Status or Setup Button */}
+                            {needsSetup ? (
+                              <Button
+                                onClick={() => handleUpgradeETransfer(method)}
+                                size="sm"
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium text-xs"
+                              >
+                                Setup
+                              </Button>
+                            ) : (
+                              <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                                <CheckCircle className="h-4 w-4" />
+                                <span>Connected</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Cryptocurrency card
+                    if (method.payoutMethod === 'crypto') {
+                      return (
+                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                          <div className="flex items-center gap-3">
+                            {/* Bitcoin Icon */}
+                            <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                              <svg viewBox="0 0 32 32" className="h-6 w-6 text-orange-500" fill="currentColor">
+                                <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.189-17.98c.314-2.096-1.283-3.223-3.465-3.975l.708-2.84-1.728-.43-.69 2.765c-.454-.114-.92-.22-1.385-.326l.695-2.783L15.596 6l-.708 2.839c-.376-.086-.746-.17-1.104-.26l.002-.009-2.384-.595-.46 1.846s1.283.294 1.256.312c.7.175.826.638.805 1.006l-.806 3.235c.048.012.11.03.18.057l-.183-.045-1.13 4.532c-.086.212-.303.531-.793.41.018.025-1.256-.313-1.256-.313l-.858 1.978 2.25.561c.418.105.828.215 1.231.318l-.715 2.872 1.727.43.708-2.84c.472.127.93.245 1.378.357l-.706 2.828 1.728.43.715-2.866c2.948.558 5.164.333 6.097-2.333.752-2.146-.037-3.385-1.588-4.192 1.13-.26 1.98-1.003 2.207-2.538zm-3.95 5.538c-.533 2.147-4.148.986-5.32.695l.95-3.805c1.172.293 4.929.872 4.37 3.11zm.535-5.569c-.487 1.953-3.495.96-4.47.717l.86-3.45c.975.243 4.118.696 3.61 2.733z" />
+                              </svg>
+                            </div>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <span className="font-semibold text-gray-900">Cryptocurrency</span>
+                              <p className="text-sm text-gray-500">{info.displayValue}</p>
+                            </div>
+                            {/* Edit Link */}
+                            <button className="flex items-center gap-0.5 text-gray-500 hover:text-gray-700 text-sm">
+                              Edit <ChevronRight className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Wire/ACH Transfer card
+                    if (method.payoutMethod === 'wire') {
+                      return (
+                        <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                          <div className="flex items-center gap-3">
+                            {/* Icon */}
+                            <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                              <Landmark className="h-5 w-5 text-amber-600" />
+                            </div>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <span className="font-semibold text-gray-900">Wire/ACH Transfer</span>
+                              <p className="text-sm text-gray-500">Bank wire for large payouts</p>
+                            </div>
+                            {/* Verification Badge or Edit */}
+                            {needsWireVerification ? (
+                              <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-xs px-2 py-1 flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Verification Required
+                              </Badge>
+                            ) : (
+                              <button className="flex items-center gap-0.5 text-gray-500 hover:text-gray-700 text-sm">
+                                Edit <ChevronRight className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Default card for other methods
+                    return (
+                      <div key={method.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${info.iconBgColor}`}>
+                            <IconComponent className={`h-5 w-5 ${info.iconColor}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="font-semibold text-gray-900">{info.title}</span>
+                            <p className="text-sm text-gray-500">{info.displayValue}</p>
+                          </div>
+                          <button className="flex items-center gap-0.5 text-gray-500 hover:text-gray-700 text-sm">
+                            Edit <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                  <DollarSign className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+                  <p className="text-gray-600">No payment methods yet</p>
+                  <p className="mt-1 text-sm text-gray-500">Add a payment method to receive payouts</p>
+                </div>
+              )}
+
+              {/* Add New Payment Method Button */}
+              <Button
+                onClick={() => setShowMobileAddPayment(true)}
+                variant="outline"
+                className="w-full h-12 border-dashed border-2 border-gray-300 text-gray-600 hover:border-primary hover:text-primary"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add New Payment Method
+              </Button>
+            </div>
+          )}
+
+          {/* Mobile Add Payment Method View (Full Page) - Using Portal to render outside app container */}
+          {showMobileAddPayment && createPortal(
+            <div className="fixed top-0 left-0 w-screen h-screen z-[9999] bg-white overflow-hidden" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }}>
+              {/* Header */}
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-100">
+                <div className="flex items-center gap-3 px-4 py-4">
+                  <button
+                    onClick={() => setShowMobileAddPayment(false)}
+                    className="p-1 -ml-1 hover:bg-gray-100 rounded-lg"
+                  >
+                    <ChevronLeft className="h-6 w-6 text-gray-600" />
+                  </button>
+                  <h1 className="text-lg font-bold text-gray-900">Add Payment Method</h1>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-4 py-6 space-y-5 pb-32 overflow-y-auto" style={{ height: 'calc(100vh - 65px)' }}>
+                {/* Payment Method Selection */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-600">Payout Method</Label>
+                  <Select value={payoutMethod} onValueChange={setPayoutMethod}>
+                    <SelectTrigger className="h-14 rounded-xl border-2 border-gray-200 focus:border-primary focus:ring-primary">
+                      <SelectValue>
+                        <div className="flex items-center gap-3">
+                          {payoutMethod === "etransfer" && (
+                            <>
+                              <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
+                                <Building2 className="h-4 w-4 text-teal-600" />
+                              </div>
+                              <span>E-Transfer</span>
+                            </>
+                          )}
+                          {payoutMethod === "wire" && (
+                            <>
+                              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                                <Landmark className="h-4 w-4 text-amber-600" />
+                              </div>
+                              <span>Wire/ACH</span>
+                            </>
+                          )}
+                          {payoutMethod === "paypal" && (
+                            <>
+                              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                                  <path className="text-blue-800" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
+                                  <path className="text-blue-500" d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
+                                </svg>
+                              </div>
+                              <span>PayPal</span>
+                            </>
+                          )}
+                          {payoutMethod === "crypto" && (
+                            <>
+                              <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+                                <svg viewBox="0 0 32 32" className="h-5 w-5 text-orange-500" fill="currentColor">
+                                  <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.189-17.98c.314-2.096-1.283-3.223-3.465-3.975l.708-2.84-1.728-.43-.69 2.765c-.454-.114-.92-.22-1.385-.326l.695-2.783L15.596 6l-.708 2.839c-.376-.086-.746-.17-1.104-.26l.002-.009-2.384-.595-.46 1.846s1.283.294 1.256.312c.7.175.826.638.805 1.006l-.806 3.235c.048.012.11.03.18.057l-.183-.045-1.13 4.532c-.086.212-.303.531-.793.41.018.025-1.256-.313-1.256-.313l-.858 1.978 2.25.561c.418.105.828.215 1.231.318l-.715 2.872 1.727.43.708-2.84c.472.127.93.245 1.378.357l-.706 2.828 1.728.43.715-2.866c2.948.558 5.164.333 6.097-2.333.752-2.146-.037-3.385-1.588-4.192 1.13-.26 1.98-1.003 2.207-2.538zm-3.95 5.538c-.533 2.147-4.148.986-5.32.695l.95-3.805c1.172.293 4.929.872 4.37 3.11zm.535-5.569c-.487 1.953-3.495.96-4.47.717l.86-3.45c.975.243 4.118.696 3.61 2.733z" />
+                                </svg>
+                              </div>
+                              <span>Cryptocurrency</span>
+                            </>
+                          )}
+                        </div>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="z-[10000]">
+                      <SelectItem value="etransfer">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
+                            <Building2 className="h-4 w-4 text-teal-600" />
+                          </div>
+                          <span>E-Transfer</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="wire">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                            <Landmark className="h-4 w-4 text-amber-600" />
+                          </div>
+                          <span>Wire/ACH</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="paypal">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                              <path className="text-blue-800" d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.77.77 0 0 1 .757-.65h6.672c2.222 0 3.863.476 4.879 1.415.962.889 1.33 2.14 1.09 3.717-.018.122-.04.247-.063.373-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H8.51a.77.77 0 0 0-.758.65l-.676 4.468z" />
+                              <path className="text-blue-500" d="M19.108 7.61c-.59 3.047-2.553 4.953-5.665 5.504-.28.05-.574.087-.883.112-.195.016-.395.025-.6.028H9.338a.77.77 0 0 0-.758.65l-1.03 6.796a.641.641 0 0 0 .633.74h3.36a.77.77 0 0 0 .757-.65l.514-3.396a.77.77 0 0 1 .758-.65h1.202c3.613 0 6.342-1.47 7.152-5.707.35-1.83.14-3.353-.775-4.427z" />
+                            </svg>
+                          </div>
+                          <span>PayPal</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="crypto">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+                            <svg viewBox="0 0 32 32" className="h-5 w-5 text-orange-500" fill="currentColor">
+                              <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.189-17.98c.314-2.096-1.283-3.223-3.465-3.975l.708-2.84-1.728-.43-.69 2.765c-.454-.114-.92-.22-1.385-.326l.695-2.783L15.596 6l-.708 2.839c-.376-.086-.746-.17-1.104-.26l.002-.009-2.384-.595-.46 1.846s1.283.294 1.256.312c.7.175.826.638.805 1.006l-.806 3.235c.048.012.11.03.18.057l-.183-.045-1.13 4.532c-.086.212-.303.531-.793.41.018.025-1.256-.313-1.256-.313l-.858 1.978 2.25.561c.418.105.828.215 1.231.318l-.715 2.872 1.727.43.708-2.84c.472.127.93.245 1.378.357l-.706 2.828 1.728.43.715-2.866c2.948.558 5.164.333 6.097-2.333.752-2.146-.037-3.385-1.588-4.192 1.13-.26 1.98-1.003 2.207-2.538zm-3.95 5.538c-.533 2.147-4.148.986-5.32.695l.95-3.805c1.172.293 4.929.872 4.37 3.11zm.535-5.569c-.487 1.953-3.495.96-4.47.717l.86-3.45c.975.243 4.118.696 3.61 2.733z" />
+                            </svg>
+                          </div>
+                          <span>Cryptocurrency</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* E-Transfer Fields */}
+                {payoutMethod === "etransfer" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-600">Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={payoutEmail}
+                      onChange={(e) => setPayoutEmail(e.target.value)}
+                      className="h-14 rounded-xl border-2 border-gray-200 focus:border-primary"
+                    />
+                    <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 mt-4">
+                      <div className="flex gap-3">
+                        <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-blue-900">
+                          <p className="font-semibold mb-1">Payment Requirements:</p>
+                          <p className="text-xs">E-Transfer payments via Stripe require a minimum transaction amount of <strong>$1.00 CAD</strong>. Payments below this amount cannot be processed.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Wire/ACH Fields */}
+                {payoutMethod === "wire" && (
+                  <WireAchPaymentFields
+                    key={`wire-ach-mobile-${formResetKey}`}
+                    bankRoutingNumber={bankRoutingNumber}
+                    setBankRoutingNumber={setBankRoutingNumber}
+                    bankAccountNumber={bankAccountNumber}
+                    setBankAccountNumber={setBankAccountNumber}
+                  />
+                )}
+
+                {/* PayPal Fields */}
+                {payoutMethod === "paypal" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-600">PayPal Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={paypalEmail}
+                      onChange={(e) => setPaypalEmail(e.target.value)}
+                      className="h-14 rounded-xl border-2 border-gray-200 focus:border-primary"
+                    />
+                  </div>
+                )}
+
+                {/* Crypto Fields */}
+                {payoutMethod === "crypto" && (
+                  <CryptoPaymentFields
+                    key={`crypto-mobile-${formResetKey}`}
+                    cryptoWalletAddress={cryptoWalletAddress}
+                    setCryptoWalletAddress={setCryptoWalletAddress}
+                    cryptoNetwork={cryptoNetwork}
+                    setCryptoNetwork={setCryptoNetwork}
+                  />
+                )}
+              </div>
+
+              {/* Fixed Bottom Button */}
+              <div className="fixed bottom-0 left-0 right-0 z-20 bg-white p-4 pb-6" style={{ width: '100vw' }}>
+                <Button
+                  onClick={() => {
+                    addPaymentMethodMutation.mutate();
+                  }}
+                  disabled={addPaymentMethodMutation.isPending ||
+                    (payoutMethod === "etransfer" && !payoutEmail) ||
+                    (payoutMethod === "paypal" && !paypalEmail) ||
+                    (payoutMethod === "wire" && (!bankRoutingNumber || !bankAccountNumber)) ||
+                    (payoutMethod === "crypto" && (!cryptoWalletAddress || !cryptoNetwork))}
+                  className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 font-medium text-base"
+                >
+                  {addPaymentMethodMutation.isPending ? "Adding..." : "Add Payment Method"}
+                </Button>
+              </div>
+            </div>,
+            document.body
+          )}
+        </div>
+      )}
+
+      {/* ========== DESKTOP LAYOUT ========== */}
+      <div className="mx-auto max-w-7xl space-y-6 hidden md:block">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Payment Management</h1>
           <p className="mt-1 text-gray-600">Manage your payments and payouts</p>

@@ -96,6 +96,203 @@ function generateSimulatedPlatformData(platform: string, username: string) {
     },
   };
 }
+
+// Fetch real YouTube channel data using access token
+async function fetchRealYouTubeData(accessToken: string): Promise<{
+  username: string;
+  profileUrl: string;
+  followers: number;
+  videoCount: number;
+  totalViews: number;
+  profileImageUrl?: string;
+} | null> {
+  try {
+    const response = await fetch(
+      "https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error("[YouTube API] Failed to fetch channel data:", response.status, await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    const channel = data.items?.[0];
+
+    if (!channel) {
+      console.error("[YouTube API] No channel found in response");
+      return null;
+    }
+
+    return {
+      username: channel.snippet?.customUrl || channel.snippet?.title || "unknown",
+      profileUrl: `https://youtube.com/${channel.snippet?.customUrl || `channel/${channel.id}`}`,
+      followers: parseInt(channel.statistics?.subscriberCount || "0", 10),
+      videoCount: parseInt(channel.statistics?.videoCount || "0", 10),
+      totalViews: parseInt(channel.statistics?.viewCount || "0", 10),
+      profileImageUrl: channel.snippet?.thumbnails?.default?.url,
+    };
+  } catch (error) {
+    console.error("[YouTube API] Error fetching data:", error);
+    return null;
+  }
+}
+
+// Refresh YouTube access token using refresh token
+async function refreshYouTubeToken(refreshToken: string): Promise<string | null> {
+  try {
+    const clientId = process.env.YOUTUBE_CLIENT_ID;
+    const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+      console.error("[YouTube API] Missing OAuth credentials for token refresh");
+      return null;
+    }
+
+    const params = new URLSearchParams();
+    params.append("client_id", clientId);
+    params.append("client_secret", clientSecret);
+    params.append("refresh_token", refreshToken);
+    params.append("grant_type", "refresh_token");
+
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      console.error("[YouTube API] Failed to refresh token:", response.status, await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    return data.access_token || null;
+  } catch (error) {
+    console.error("[YouTube API] Error refreshing token:", error);
+    return null;
+  }
+}
+
+// Fetch real TikTok data using access token
+async function fetchRealTikTokData(accessToken: string): Promise<{
+  username: string;
+  profileUrl: string;
+  followers: number;
+  videoCount: number;
+  totalViews: number;
+  profileImageUrl?: string;
+} | null> {
+  try {
+    const response = await fetch(
+      "https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name,follower_count,following_count,likes_count,video_count",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error("[TikTok API] Failed to fetch user data:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const user = data.data?.user;
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      username: user.display_name || "unknown",
+      profileUrl: `https://tiktok.com/@${user.display_name}`,
+      followers: user.follower_count || 0,
+      videoCount: user.video_count || 0,
+      totalViews: user.likes_count || 0,
+      profileImageUrl: user.avatar_url,
+    };
+  } catch (error) {
+    console.error("[TikTok API] Error fetching data:", error);
+    return null;
+  }
+}
+
+// Fetch real Instagram data using access token
+async function fetchRealInstagramData(accessToken: string): Promise<{
+  username: string;
+  profileUrl: string;
+  followers: number;
+  videoCount: number;
+  totalViews: number;
+  profileImageUrl?: string;
+} | null> {
+  try {
+    // First get the Facebook page
+    const pagesResponse = await fetch(
+      `https://graph.facebook.com/v18.0/me/accounts?access_token=${accessToken}`
+    );
+
+    if (!pagesResponse.ok) {
+      console.error("[Instagram API] Failed to fetch Facebook pages");
+      return null;
+    }
+
+    const pagesData = await pagesResponse.json();
+    const page = pagesData.data?.[0];
+
+    if (!page) {
+      return null;
+    }
+
+    // Get Instagram Business Account linked to this page
+    const igResponse = await fetch(
+      `https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account&access_token=${accessToken}`
+    );
+
+    if (!igResponse.ok) {
+      return null;
+    }
+
+    const igData = await igResponse.json();
+    const igAccountId = igData.instagram_business_account?.id;
+
+    if (!igAccountId) {
+      return null;
+    }
+
+    // Fetch Instagram account details
+    const detailsResponse = await fetch(
+      `https://graph.facebook.com/v18.0/${igAccountId}?fields=username,followers_count,media_count,profile_picture_url&access_token=${accessToken}`
+    );
+
+    if (!detailsResponse.ok) {
+      return null;
+    }
+
+    const details = await detailsResponse.json();
+
+    return {
+      username: details.username || "unknown",
+      profileUrl: `https://instagram.com/${details.username}`,
+      followers: details.followers_count || 0,
+      videoCount: details.media_count || 0,
+      totalViews: 0,
+      profileImageUrl: details.profile_picture_url,
+    };
+  } catch (error) {
+    console.error("[Instagram API] Error fetching data:", error);
+    return null;
+  }
+}
 import {
   insertCreatorProfileSchema,
   insertCompanyProfileSchema,
@@ -590,30 +787,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "No connection found for this platform" });
       }
 
-      // Simulate refreshing data from the platform
-      const simulatedData = generateSimulatedPlatformData(
-        platform,
-        existingConnection.platformUsername || 'user'
-      );
+      let platformData: {
+        followers: number;
+        videoCount: number;
+        totalViews: number;
+        username?: string;
+        profileUrl?: string;
+        profileImageUrl?: string;
+      } | null = null;
 
-      const updatedConnection = await storage.updateSocialConnection(userId, platform, {
-        followerCount: simulatedData.followers,
-        subscriberCount: platform === 'youtube' ? simulatedData.followers : null,
-        videoCount: simulatedData.videoCount,
-        totalViews: simulatedData.totalViews,
-        avgEngagementRate: simulatedData.engagementRate.toString(),
+      let newAccessToken: string | undefined;
+
+      // Try to fetch real data if OAuth tokens are available
+      if (existingConnection.accessToken) {
+        console.log(`[Social Connections] Attempting to fetch real ${platform} data with OAuth token`);
+
+        if (platform === 'youtube') {
+          platformData = await fetchRealYouTubeData(existingConnection.accessToken);
+
+          // If access token expired, try refreshing
+          if (!platformData && existingConnection.refreshToken) {
+            console.log("[Social Connections] YouTube access token may be expired, attempting refresh");
+            const refreshedToken = await refreshYouTubeToken(existingConnection.refreshToken);
+            if (refreshedToken) {
+              newAccessToken = refreshedToken;
+              platformData = await fetchRealYouTubeData(refreshedToken);
+            }
+          }
+        } else if (platform === 'tiktok') {
+          platformData = await fetchRealTikTokData(existingConnection.accessToken);
+        } else if (platform === 'instagram') {
+          platformData = await fetchRealInstagramData(existingConnection.accessToken);
+        }
+      }
+
+      // Fall back to simulated data only if no OAuth tokens or API calls failed
+      let useSimulated = false;
+      if (!platformData) {
+        console.log(`[Social Connections] No OAuth token or API call failed for ${platform}, using simulated data`);
+        useSimulated = true;
+        const simulatedData = generateSimulatedPlatformData(
+          platform,
+          existingConnection.platformUsername || 'user'
+        );
+        platformData = {
+          followers: simulatedData.followers,
+          videoCount: simulatedData.videoCount,
+          totalViews: simulatedData.totalViews,
+        };
+      }
+
+      const updateData: any = {
+        followerCount: platformData.followers,
+        subscriberCount: platform === 'youtube' ? platformData.followers : null,
+        videoCount: platformData.videoCount,
+        totalViews: platformData.totalViews,
         lastSyncedAt: new Date(),
-        metadata: simulatedData.metadata,
-      });
+        metadata: {
+          lastUpdated: new Date().toISOString(),
+          dataSource: useSimulated ? 'simulated' : 'real_api',
+        },
+      };
+
+      // Update access token if it was refreshed
+      if (newAccessToken) {
+        updateData.accessToken = newAccessToken;
+      }
+
+      // Update profile image and username if we got real data
+      if (platformData.profileImageUrl) {
+        updateData.profileImageUrl = platformData.profileImageUrl;
+      }
+      if (platformData.username) {
+        updateData.platformUsername = platformData.username;
+      }
+      if (platformData.profileUrl) {
+        updateData.profileUrl = platformData.profileUrl;
+      }
+
+      const updatedConnection = await storage.updateSocialConnection(userId, platform, updateData);
 
       // Update creator profile as well
       const updates: any = {};
       if (platform === 'youtube') {
-        updates.youtubeFollowers = simulatedData.followers;
+        updates.youtubeFollowers = platformData.followers;
+        if (platformData.profileUrl) {
+          updates.youtubeUrl = platformData.profileUrl;
+        }
       } else if (platform === 'tiktok') {
-        updates.tiktokFollowers = simulatedData.followers;
+        updates.tiktokFollowers = platformData.followers;
+        if (platformData.profileUrl) {
+          updates.tiktokUrl = platformData.profileUrl;
+        }
       } else if (platform === 'instagram') {
-        updates.instagramFollowers = simulatedData.followers;
+        updates.instagramFollowers = platformData.followers;
+        if (platformData.profileUrl) {
+          updates.instagramUrl = platformData.profileUrl;
+        }
       }
 
       await storage.updateCreatorProfile(userId, updates);
@@ -621,7 +891,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         connection: updatedConnection,
-        message: `Successfully synced ${platform} data`,
+        message: `Successfully synced ${platform} data${useSimulated ? ' (simulated)' : ' from API'}`,
+        dataSource: useSimulated ? 'simulated' : 'real_api',
       });
     } catch (error: any) {
       console.error("[Social Connections] Error syncing data:", error);

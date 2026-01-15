@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -20,7 +20,7 @@ import { Switch } from "../components/ui/switch";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { SettingsNavigation, SettingsSection } from "../components/SettingsNavigation";
-import { Settings, DollarSign, Gauge, Tag, ToggleRight, Check, X, Plus, Trash2 } from "lucide-react";
+import { Settings, DollarSign, Gauge, Tag, ToggleRight, Check, X, Plus, Trash2, ChevronRight } from "lucide-react";
 
 interface NicheItem {
   id: string;
@@ -28,6 +28,14 @@ interface NicheItem {
   description: string;
   isActive: boolean;
 }
+
+// Helper to format setting key into proper sentence case
+const formatSettingKey = (key: string): string => {
+  // Replace underscores and dots with spaces
+  const words = key.replace(/[._]/g, ' ');
+  // Capitalize first letter, keep rest lowercase
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
 
 // Helper to check if a value is JSON
 const isJsonValue = (value: string): boolean => {
@@ -126,6 +134,7 @@ export default function AdminPlatformSettings() {
   const [editValue, setEditValue] = useState("");
   const [editReason, setEditReason] = useState("");
   const [editingNiches, setEditingNiches] = useState<NicheItem[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     title?: string;
@@ -249,7 +258,7 @@ export default function AdminPlatformSettings() {
     updateMutation.mutate({
       key: setting.key,
       value: checked ? "true" : "false",
-      reason: `Toggled ${setting.key} to ${checked ? "enabled" : "disabled"}`,
+      reason: `Toggled ${formatSettingKey(setting.key)} to ${checked ? "enabled" : "disabled"}`,
     });
   };
 
@@ -289,17 +298,17 @@ export default function AdminPlatformSettings() {
     return key.includes("mode") || key.includes("enabled") || key.includes("disabled");
   };
 
+  const categoryIcons: Record<string, React.ReactNode> = {
+    general: <Settings className="h-4 w-4" />,
+    fees: <DollarSign className="h-4 w-4" />,
+    limits: <Gauge className="h-4 w-4" />,
+    pricing: <Tag className="h-4 w-4" />,
+    features: <ToggleRight className="h-4 w-4" />,
+  };
+
   // Define navigation sections based on grouped settings
   const adminSettingsSections: SettingsSection[] = useMemo(() => {
     if (!groupedSettings) return [];
-
-    const categoryIcons: Record<string, React.ReactNode> = {
-      general: <Settings className="h-4 w-4" />,
-      fees: <DollarSign className="h-4 w-4" />,
-      limits: <Gauge className="h-4 w-4" />,
-      pricing: <Tag className="h-4 w-4" />,
-      features: <ToggleRight className="h-4 w-4" />,
-    };
 
     return Object.keys(groupedSettings).map((category) => ({
       id: `admin-${category}`,
@@ -308,13 +317,79 @@ export default function AdminPlatformSettings() {
     }));
   }, [groupedSettings]);
 
+  // Get categories for mobile tab navigation (with General Settings first)
+  const categories = groupedSettings ? Object.keys(groupedSettings).sort((a, b) => {
+    if (a === 'general') return -1;
+    if (b === 'general') return 1;
+    return 0;
+  }) : [];
+
+  // Set initial active category when data loads
+  useEffect(() => {
+    if (categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0]);
+    }
+  }, [categories.length]);
+
+  // Helper to render mobile-friendly niches display
+  const renderMobileNiches = (value: string) => {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        const niches = parsed as NicheItem[];
+        const activeNiches = niches.filter(n => n.isActive);
+        const displayNiches = activeNiches.slice(0, 3);
+        const remaining = activeNiches.length - 3;
+        return (
+          <span className="text-sm text-muted-foreground">
+            {displayNiches.map(n => n.name).join(' · ')}
+            {remaining > 0 && <span className="text-primary"> +{remaining} more</span>}
+          </span>
+        );
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <TopNavBar />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:pl-2 lg:pr-8 py-8">
-        <div className="mb-6">
+
+      {/* Mobile: Sticky header with tabs */}
+      <div className="sm:hidden sticky top-0 z-40 bg-background border-b">
+        <div className="px-4 pt-4 pb-2">
+          <h1 className="text-xl font-bold">Platform Settings</h1>
+          <p className="text-xs text-muted-foreground">
+            Configure platform-wide settings and policies
+          </p>
+        </div>
+        <div className="px-4">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                  activeCategory === category
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {categoryIcons[category]}
+                {getCategoryTitle(category)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:pl-2 lg:pr-8 py-4 sm:py-8">
+        {/* Desktop: Header */}
+        <div className="hidden sm:block mb-6">
           <h1 className="text-3xl font-bold">Platform Settings</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-base text-muted-foreground mt-1">
             Configure platform-wide settings and policies
           </p>
         </div>
@@ -329,85 +404,210 @@ export default function AdminPlatformSettings() {
           </div>
         ) : (
           <div className="flex gap-6">
-            <SettingsNavigation sections={adminSettingsSections} />
+            {/* Desktop: Sidebar navigation */}
+            <div className="hidden sm:block">
+              <SettingsNavigation sections={adminSettingsSections} />
+            </div>
 
-            <div className="flex-1 space-y-6 min-w-0 max-w-4xl">
+            {/* Desktop: Clean list view */}
+            <div className="hidden sm:block flex-1 space-y-6 min-w-0 max-w-4xl">
               {Object.entries(groupedSettings).map(([category, categorySettings]) => (
-                <Card key={category} id={`admin-${category}`} className="scroll-mt-24">
-                  <CardHeader>
-                    <CardTitle>{getCategoryTitle(category)}</CardTitle>
-                    <CardDescription>{getCategoryDescription(category)}</CardDescription>
-                  </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {categorySettings.map((setting) => (
-                    <div
-                      key={setting.key}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{setting.key}</h3>
-                          <Badge variant="outline" className="text-xs">
-                            {setting.category || "general"}
-                          </Badge>
-                        </div>
-                        {setting.description && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {setting.description}
-                          </p>
-                        )}
-                        <div className="mt-2">
-                          {isBooleanSetting(setting.key) ? (
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium">
-                                  Current: {setting.value === "true" ? "Enabled" : "Disabled"}
-                                </span>
-                                <Switch
-                                  checked={setting.value === "true"}
-                                  onCheckedChange={(checked) => handleToggle(setting, checked)}
-                                  disabled={updateMutation.isPending}
-                                />
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                Updated: {new Date(setting.updatedAt).toLocaleString()}
-                              </span>
+                <div key={category} id={`admin-${category}`} className="scroll-mt-24">
+                  {/* Section header */}
+                  <div className="py-3 border-b">
+                    <h2 className="text-lg font-semibold">{getCategoryTitle(category)}</h2>
+                    <p className="text-sm text-muted-foreground">{getCategoryDescription(category)}</p>
+                  </div>
+
+                  {/* Settings list */}
+                  <div className="divide-y">
+                    {categorySettings.map((setting) => (
+                      <div
+                        key={setting.key}
+                        className="py-4"
+                      >
+                        {isBooleanSetting(setting.key) ? (
+                          // Boolean setting - toggle on right
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium">{formatSettingKey(setting.key)}</h3>
+                              {setting.description && (
+                                <p className="text-sm text-muted-foreground mt-0.5">
+                                  {setting.description}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Last updated · {new Date(setting.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </p>
                             </div>
-                          ) : isJsonValue(setting.value) ? (
-                            <div>
+                            <Switch
+                              checked={setting.value === "true"}
+                              onCheckedChange={(checked) => handleToggle(setting, checked)}
+                              disabled={updateMutation.isPending}
+                            />
+                          </div>
+                        ) : setting.key === "niches" ? (
+                          // Niches - special display
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium">{formatSettingKey(setting.key)}</h3>
+                              <p className="text-sm text-muted-foreground mt-0.5">
+                                {(() => {
+                                  try {
+                                    const parsed = JSON.parse(setting.value);
+                                    return `${parsed.length} configured`;
+                                  } catch {
+                                    return '';
+                                  }
+                                })()}
+                              </p>
                               {renderJsonValue(setting.key, setting.value)}
-                              <span className="text-xs text-muted-foreground block mt-2">
-                                Updated: {new Date(setting.updatedAt).toLocaleString()}
-                              </span>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Last updated · {new Date(setting.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </p>
                             </div>
-                          ) : (
-                            <div className="flex items-center gap-4">
-                              <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(setting)}
+                              disabled={updateMutation.isPending}
+                            >
+                              Edit
+                            </Button>
+                          </div>
+                        ) : (
+                          // Regular setting - value and edit on right
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium">{formatSettingKey(setting.key)}</h3>
+                              {setting.description && (
+                                <p className="text-sm text-muted-foreground mt-0.5">
+                                  {setting.description}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Last updated · {new Date(setting.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm text-primary font-medium">
                                 {setting.value}
                               </span>
-                              <span className="text-xs text-muted-foreground">
-                                Updated: {new Date(setting.updatedAt).toLocaleString()}
-                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(setting)}
+                                disabled={updateMutation.isPending}
+                              >
+                                Edit
+                              </Button>
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
-                      {!isBooleanSetting(setting.key) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(setting)}
-                          disabled={updateMutation.isPending}
-                        >
-                          Edit
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </CardContent>
-                </Card>
+              ))}
+            </div>
+
+            {/* Mobile: Clean list view */}
+            <div className="sm:hidden flex-1 -mx-4">
+              {Object.entries(groupedSettings).map(([category, categorySettings]) => (
+                <div
+                  key={category}
+                  className={activeCategory !== category ? 'hidden' : ''}
+                >
+                  {/* Section header */}
+                  <div className="px-4 py-3 bg-gray-50/80">
+                    <h2 className="text-base font-semibold">{getCategoryTitle(category)}</h2>
+                  </div>
+
+                  {/* Settings list */}
+                  <div className="divide-y">
+                    {categorySettings.map((setting) => (
+                      <div
+                        key={setting.key}
+                        className="px-4 py-3 bg-background"
+                      >
+                        {isBooleanSetting(setting.key) ? (
+                          // Boolean setting - toggle on right
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-sm">{formatSettingKey(setting.key)}</h3>
+                              {setting.description && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {setting.description}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Last updated · {new Date(setting.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </p>
+                            </div>
+                            <Switch
+                              checked={setting.value === "true"}
+                              onCheckedChange={(checked) => handleToggle(setting, checked)}
+                              disabled={updateMutation.isPending}
+                              className="mt-0.5"
+                            />
+                          </div>
+                        ) : setting.key === "niches" ? (
+                          // Niches - special display
+                          <button
+                            onClick={() => handleEdit(setting)}
+                            className="w-full text-left"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium text-sm">{formatSettingKey(setting.key)}</h3>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {(() => {
+                                    try {
+                                      const parsed = JSON.parse(setting.value);
+                                      return `${parsed.length} configured`;
+                                    } catch {
+                                      return '';
+                                    }
+                                  })()}
+                                </p>
+                                <div className="mt-1">
+                                  {renderMobileNiches(setting.value)}
+                                </div>
+                              </div>
+                              <ChevronRight className="h-5 w-5 text-muted-foreground mt-0.5" />
+                            </div>
+                          </button>
+                        ) : (
+                          // Regular setting - value and edit on right
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-sm">{formatSettingKey(setting.key)}</h3>
+                              {setting.description && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {setting.description}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Last updated · {new Date(setting.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-primary font-medium">
+                                {setting.value}
+                              </span>
+                              <button
+                                onClick={() => handleEdit(setting)}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <ChevronRight className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -417,7 +617,7 @@ export default function AdminPlatformSettings() {
       <Dialog open={!!editingSetting && !isBooleanSetting(editingSetting?.key || "")} onOpenChange={(open) => !open && setEditingSetting(null)}>
         <DialogContent className={editingSetting?.key === "niches" ? "max-w-3xl max-h-[90vh] overflow-y-auto" : ""}>
           <DialogHeader>
-            <DialogTitle>Edit Setting: {editingSetting?.key}</DialogTitle>
+            <DialogTitle>Edit: {editingSetting?.key ? formatSettingKey(editingSetting.key) : ''}</DialogTitle>
             <DialogDescription>
               {editingSetting?.description || "Update this platform setting"}
             </DialogDescription>
@@ -533,19 +733,21 @@ export default function AdminPlatformSettings() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+            <Button
+              onClick={handleSave}
+              disabled={updateMutation.isPending || !editReason.trim()}
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
+              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
             <Button
               variant="outline"
               onClick={() => setEditingSetting(null)}
               disabled={updateMutation.isPending}
+              className="w-full sm:w-auto order-2 sm:order-1"
             >
               Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={updateMutation.isPending || !editReason.trim()}
-            >
-              {updateMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

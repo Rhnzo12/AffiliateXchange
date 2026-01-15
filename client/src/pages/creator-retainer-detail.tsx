@@ -36,13 +36,17 @@ import {
   Upload,
   Play,
   ExternalLink,
-  Sparkles,
+  Gift,
   ShieldCheck,
   Clock3,
   Info,
   CheckCircle2,
   Send,
   Star,
+  Briefcase,
+  Users,
+  Tag,
+  Bookmark,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -516,102 +520,54 @@ export default function CreatorRetainerDetail() {
   };
 
   return (
-    <div className="space-y-6 pb-24">
-      <div className="flex items-center gap-4">
+    <div className="space-y-6 pb-8">
+      {/* Header */}
+      <div className="flex items-center gap-3">
         <Link href="/retainers">
           <Button variant="ghost" size="icon" data-testid="button-back">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-3xl font-bold" data-testid="heading-contract-title">
-              {contract.title}
-            </h1>
-            {currentApplication && (
-              <Badge variant={isApproved ? "outline" : isPending ? "default" : "destructive"}>
-                {currentApplication.status}
-              </Badge>
-            )}
-          </div>
-          <p className="text-muted-foreground">
-            by {contract.company?.tradeName || contract.company?.legalName || "Company"}
-          </p>
-        </div>
-        {/* Platform Badge */}
-        {contract.requiredPlatform && (
-          <PlatformBadge platform={contract.requiredPlatform} size="md" />
+        <h1 className="text-xl font-semibold" data-testid="heading-contract-title">
+          {contract.title}
+        </h1>
+        {currentApplication && (
+          <Badge variant={isApproved ? "outline" : isPending ? "default" : "destructive"}>
+            {currentApplication.status}
+          </Badge>
         )}
-        {isApproved && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="button-submit-deliverable">
-                <Upload className="h-4 w-4 mr-2" />
-                Submit Video
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Submit Deliverable</DialogTitle>
-                <DialogDescription>
-                  Upload a new video for this retainer contract
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="monthNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Month Number</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="1"
-                              data-testid="input-month-number"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+      </div>
 
-                    <FormField
-                      control={form.control}
-                      name="videoNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Video Number</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="1"
-                              data-testid="input-video-number"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription className="text-xs">
-                            Within this month
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
+      {/* Submit Video Dialog for Approved Creators */}
+      {isApproved && (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button data-testid="button-submit-deliverable" className="mb-4">
+              <Upload className="h-4 w-4 mr-2" />
+              Submit Video
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Submit Deliverable</DialogTitle>
+              <DialogDescription>
+                Upload a new video for this retainer contract
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="title"
+                    name="monthNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Video Title</FormLabel>
+                        <FormLabel>Month Number</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="Enter video title"
-                            data-testid="input-video-title"
+                            type="number"
+                            min="1"
+                            data-testid="input-month-number"
                             {...field}
                           />
                         </FormControl>
@@ -622,120 +578,160 @@ export default function CreatorRetainerDetail() {
 
                   <FormField
                     control={form.control}
-                    name="description"
+                    name="videoNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Description (Optional)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Add any notes about this video"
-                            rows={3}
-                            data-testid="input-description"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="space-y-2">
-                    <label htmlFor="video-upload" className="block text-sm font-medium mb-2">
-                      Video File
-                    </label>
-                    <input
-                      type="file"
-                      id="video-upload"
-                      ref={videoInputRef}
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      disabled={isUploading}
-                      className="hidden"
-                      aria-label="Upload video file"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => videoInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="w-full"
-                    >
-                      {isUploading ? (
-                        <>
-                          <Upload className="h-4 w-4 mr-2 animate-pulse" />
-                          Uploading...
-                        </>
-                      ) : videoUrl ? (
-                        <>
-                          <Video className="h-4 w-4 mr-2" />
-                          Video Uploaded ✓
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Choose Video File
-                        </>
-                      )}
-                    </Button>
-                    {videoUrl && (
-                      <p className="text-xs text-green-600">
-                        ✓ Video uploaded successfully
-                      </p>
-                    )}
-                    {!videoUrl && (
-                      <p className="text-xs text-muted-foreground">
-                        Select your video file (max 500MB)
-                      </p>
-                    )}
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="platformUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Platform URL (Optional)</FormLabel>
+                        <FormLabel>Video Number</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="https://tiktok.com/@brand/video/..."
-                            data-testid="input-platform-url"
+                            type="number"
+                            min="1"
+                            data-testid="input-video-number"
                             {...field}
                           />
                         </FormControl>
                         <FormDescription className="text-xs">
-                          Link to the video on {contract.requiredPlatform}
+                          Within this month
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                </div>
 
-                  <DialogFooter>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setOpen(false);
-                        form.reset();
-                        setVideoUrl("");
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={uploadMutation.isPending}
-                      data-testid="button-submit-upload"
-                    >
-                      {uploadMutation.isPending ? "Submitting..." : "Submit Video"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Video Title</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter video title"
+                          data-testid="input-video-title"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Add any notes about this video"
+                          rows={3}
+                          data-testid="input-description"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-2">
+                  <label htmlFor="video-upload" className="block text-sm font-medium mb-2">
+                    Video File
+                  </label>
+                  <input
+                    type="file"
+                    id="video-upload"
+                    ref={videoInputRef}
+                    accept="video/*"
+                    onChange={handleVideoUpload}
+                    disabled={isUploading}
+                    className="hidden"
+                    aria-label="Upload video file"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => videoInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="w-full"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Upload className="h-4 w-4 mr-2 animate-pulse" />
+                        Uploading...
+                      </>
+                    ) : videoUrl ? (
+                      <>
+                        <Video className="h-4 w-4 mr-2" />
+                        Video Uploaded
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Choose Video File
+                      </>
+                    )}
+                  </Button>
+                  {videoUrl && (
+                    <p className="text-xs text-green-600">
+                      Video uploaded successfully
+                    </p>
+                  )}
+                  {!videoUrl && (
+                    <p className="text-xs text-muted-foreground">
+                      Select your video file (max 500MB)
+                    </p>
+                  )}
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="platformUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Platform URL (Optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="https://tiktok.com/@brand/video/..."
+                          data-testid="input-platform-url"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Link to the video on {contract.requiredPlatform}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setOpen(false);
+                      form.reset();
+                      setVideoUrl("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={uploadMutation.isPending}
+                    data-testid="button-submit-upload"
+                  >
+                    {uploadMutation.isPending ? "Submitting..." : "Submit Video"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Resubmit Revision Dialog */}
       <Dialog open={resubmitOpen} onOpenChange={setResubmitOpen}>
@@ -1150,363 +1146,716 @@ export default function CreatorRetainerDetail() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid gap-4 xl:grid-cols-[1.8fr_1.1fr]">
-        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-500 text-white rounded-2xl p-6 shadow-lg space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-1">
-              <p className="uppercase text-xs tracking-[0.2em] text-white/70">Monthly Retainer</p>
+      {/* ========== MOBILE LAYOUT ========== */}
+      <div className="md:hidden space-y-4 pb-20">
+        {/* Mobile Hero Card */}
+        <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 text-white rounded-xl p-4 shadow-lg">
+          {/* Reward Header */}
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <p className="text-[10px] text-teal-400 font-medium flex items-center gap-1 mb-0.5">
+                <Gift className="h-2.5 w-2.5" /> Reward
+              </p>
+              <div className="text-3xl font-bold">
+                {formatCurrency(bestValueTier?.monthlyAmount ?? contractMonthlyAmount)}
+              </div>
+              <p className="text-xs text-white/70 mt-0.5">
+                Total payout for {bestValueTier?.videosPerMonth ?? contractVideosPerMonth} video{(bestValueTier?.videosPerMonth ?? contractVideosPerMonth) > 1 ? 's' : ''}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[10px] bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              <Bookmark className="h-3 w-3 mr-1" /> Bookmark Offer
+            </Button>
+          </div>
+
+          {/* Info Cards Row */}
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="bg-white/10 rounded-lg p-2">
+              <div className="flex items-center gap-1 text-[9px] text-white/60 mb-0.5">
+                <Calendar className="h-2.5 w-2.5" /> Duration
+              </div>
+              <p className="text-sm font-bold">{contract.durationMonths} months</p>
+              <p className="text-[8px] text-white/50 truncate">{contractVideosPerMonth * contract.durationMonths} videos total</p>
+            </div>
+
+            <div className="bg-white/10 rounded-lg p-2">
+              <div className="flex items-center gap-1 text-[9px] text-white/60 mb-0.5">
+                <DollarSign className="h-2.5 w-2.5" /> Payment Terms
+              </div>
+              <p className="text-sm font-bold">{formatCurrency(contractMonthlyAmount)}/month</p>
+              <p className="text-[8px] text-white/50 truncate">Net: {formatCurrency(creatorTakeHome)}</p>
+            </div>
+
+            <div className="bg-white/10 rounded-lg p-2">
+              <div className="flex items-center gap-1 text-[9px] text-white/60 mb-0.5">
+                <Tag className="h-2.5 w-2.5" /> Niche
+              </div>
+              <p className="text-sm font-bold truncate">{contract.niches?.[0] || "General"}</p>
+              <p className="text-[8px] text-white/50 truncate">{contract.requiredPlatform}</p>
+            </div>
+          </div>
+
+          {/* Tags Row */}
+          <div className="flex flex-wrap gap-1.5">
+            {contract.requiredPlatform && (
+              <Badge className="bg-red-500/80 text-white border-none text-[9px] h-5 px-2">
+                {contract.requiredPlatform}
+              </Badge>
+            )}
+            <Badge className="bg-teal-600 text-white border-none text-[9px] h-5 px-2">
+              Campaign Offer
+            </Badge>
+            {contract.exclusivityRequired && (
+              <Badge variant="outline" className="border-white/30 text-white/80 text-[9px] h-5 px-2">
+                Exclusivity
+              </Badge>
+            )}
+            {contract.contentApprovalRequired && (
+              <Badge variant="outline" className="border-white/30 text-white/80 text-[9px] h-5 px-2">
+                Approval Required
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Deliverable Requirements */}
+        <Card className="border-card-border">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm">Deliverable Requirements</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-3 space-y-2">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                Minimum length {formatSecondsToMinutes(contract.minimumVideoLengthSeconds) || "per brief"}
+              </span>
+            </div>
+            {contract.contentGuidelines && (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-xs text-muted-foreground">{contract.contentGuidelines}</span>
+              </div>
+            )}
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                Publish {contractVideosPerMonth} {contract.requiredPlatform || ""} video{contractVideosPerMonth > 1 ? 's' : ''} per month
+              </span>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                {contract.contentApprovalRequired ? "Content approval required before posting" : "Maintain FTC-compliant disclosure"}
+              </span>
+            </div>
+            {contract.brandSafetyRequirements && (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-xs text-muted-foreground">{contract.brandSafetyRequirements}</span>
+              </div>
+            )}
+            {contract.postingSchedule && (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-xs text-muted-foreground">{contract.postingSchedule}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Mobile Additional Terms */}
+        <Card className="border-card-border">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm">Additional Terms</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-3 space-y-3">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+              <div>
+                <span className="text-xs font-medium">Exclusivity</span>
+                <p className="text-[10px] text-muted-foreground">
+                  {contract.exclusivityRequired ? "No competing products during contract" : "Non-exclusive - work with other brands"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+              <div>
+                <span className="text-xs font-medium">Content Usage</span>
+                <p className="text-[10px] text-muted-foreground">Brand may repurpose content for ads</p>
+              </div>
+            </div>
+            {contract.minimumFollowers && (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs font-medium">Minimum Followers</span>
+                  <p className="text-[10px] text-muted-foreground">{contract.minimumFollowers.toLocaleString()}+ followers required</p>
+                </div>
+              </div>
+            )}
+            {contract.platformAccountDetails && (
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-teal-500 mt-0.5 shrink-0" />
+                <div>
+                  <span className="text-xs font-medium">Geographic</span>
+                  <p className="text-[10px] text-muted-foreground">{contract.platformAccountDetails}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Mobile Tiered Packages */}
+        {hasRetainerTiers && (
+          <Card className="border-card-border">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">Tiered Packages</CardTitle>
+                <Button variant="link" className="text-teal-500 p-0 h-auto text-[10px]">
+                  <Bookmark className="h-2.5 w-2.5 mr-1" /> Bookmark
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-3 space-y-2">
+              {tierSummaries.map((tier: any, index: number) => (
+                <div key={`mobile-tier-${index}`} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] h-5">{tier.name}</Badge>
+                    <span className="text-[10px] text-muted-foreground">{tier.durationMonths} months</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-semibold">{formatCurrency(tier.monthlyAmount)}/mo</p>
+                    <p className="text-[10px] text-muted-foreground">{tier.videosPerMonth} videos</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Mobile Company & Stats */}
+        <Card className="border-card-border">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm">Tiered Package</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold">{contract.company?.tradeName || contract.company?.legalName || "Company"}</p>
+                <p className="text-[10px] text-muted-foreground line-clamp-1">{contract.title}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="space-y-2">
+                <div>
+                  <p className="text-muted-foreground">Campaign Length</p>
+                  <p className="font-semibold">{contract.durationMonths} months</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Payment Terms</p>
+                  <p className="font-semibold">{formatCurrency(contractMonthlyAmount)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Minimum Followers</p>
+                  <p className="font-semibold">{contract.minimumFollowers ? contract.minimumFollowers.toLocaleString() + '+' : 'None'}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-muted-foreground">Videos/Month</p>
+                  <p className="font-semibold">{contractVideosPerMonth}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Per Video Value</p>
+                  <p className="font-semibold">{formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Platform</p>
+                  <Badge variant="outline" className="text-[10px] mt-0.5">
+                    {contract.requiredPlatform || "Any"}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {contract.postingSchedule && (
+              <div className="pt-2 border-t">
+                <p className="text-[10px] text-muted-foreground mb-1">Posting Schedule</p>
+                <p className="text-xs">{contract.postingSchedule}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Mobile Live Summary Preview */}
+        <Card className="border-card-border">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm">Live Summary Preview</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between py-1.5 border-b">
+                <span className="text-muted-foreground">Gross monthly</span>
+                <span className="font-semibold">{formatCurrency(contractMonthlyAmount)}</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5 border-b">
+                <span className="text-muted-foreground">Platform fee ({totalFeeDisplay})</span>
+                <span className="font-semibold">{formatCurrency(platformFee)}</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5 border-b">
+                <span className="text-muted-foreground">Net to creator</span>
+                <span className="font-semibold text-teal-600">{formatCurrency(creatorTakeHome)}</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5 border-b">
+                <span className="text-muted-foreground">Videos per month</span>
+                <span className="font-semibold">{contractVideosPerMonth}</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5 border-b">
+                <span className="text-muted-foreground">Value per video</span>
+                <span className="font-semibold">{formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-muted-foreground">Total contract value</span>
+                <span className="font-semibold">{formatCurrency(creatorTakeHome * contract.durationMonths)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Mobile Contract Information */}
+        <Card className="border-card-border">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-sm">Contract Information</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 space-y-3">
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-1">Description</p>
+              <p className="text-xs">{contract.description}</p>
+            </div>
+
+            {contract.niches && contract.niches.length > 0 && (
+              <div className="pt-2 border-t">
+                <p className="text-[10px] text-muted-foreground mb-1">Target Niches</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {contract.niches.map((niche: string, index: number) => (
+                    <Badge key={index} variant="outline" className="text-[10px] h-5">
+                      {niche}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {contract.platformAccountDetails && (
+              <div className="pt-2 border-t">
+                <p className="text-[10px] text-muted-foreground mb-1">Platform Details</p>
+                <p className="text-xs">{contract.platformAccountDetails}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Mobile Sticky Apply Button */}
+        {!currentApplication && (
+          <div className="fixed bottom-0 left-0 right-0 p-3 bg-background border-t z-50">
+            <Button
+              className="w-full h-10 bg-teal-500 hover:bg-teal-600 text-white text-sm"
+              onClick={() => setApplyOpen(true)}
+              data-testid="button-apply-mobile"
+            >
+              <Send className="h-4 w-4 mr-2" /> Apply Now
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* ========== DESKTOP LAYOUT ========== */}
+      <div className="hidden md:block space-y-6">
+        {/* Main Content Grid - Hero + Tiered Package */}
+        <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+        {/* Left Side - Hero Card */}
+        <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 text-white rounded-2xl p-6 shadow-lg">
+          {/* Reward Header */}
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-xs text-teal-400 font-medium flex items-center gap-1 mb-1">
+                <Gift className="h-3 w-3" /> Reward
+              </p>
               <div className="text-4xl font-bold">
                 {formatCurrency(bestValueTier?.monthlyAmount ?? contractMonthlyAmount)}
               </div>
-              <p className="text-sm text-white/80">
-                {bestValueTier?.videosPerMonth ?? contractVideosPerMonth} videos / month ·
-                {" "}
-                {formatCurrency(
-                  calculatePerVideoCost(
-                    bestValueTier?.monthlyAmount ?? contractMonthlyAmount,
-                    bestValueTier?.videosPerMonth ?? contractVideosPerMonth
-                  ),
-                  { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-                )} per video
+              <p className="text-sm text-white/70 mt-1">
+                Total payout for {bestValueTier?.videosPerMonth ?? contractVideosPerMonth} video{(bestValueTier?.videosPerMonth ?? contractVideosPerMonth) > 1 ? 's' : ''}
               </p>
             </div>
-
-            <div className="flex flex-col items-end gap-2 text-sm">
-              <Badge variant="outline" className="bg-white/10 text-white border-white/30">
-                <Calendar className="h-3.5 w-3.5 mr-1" /> {contract.durationMonths} month contract
-              </Badge>
-              {hasRetainerTiers && bestValueTier && (
-                <Badge className="bg-emerald-500 text-white border-none">
-                  <Sparkles className="h-3.5 w-3.5 mr-1" /> Best value: {bestValueTier.name}
+            <div className="flex flex-col gap-2">
+              {contract.requiredPlatform && (
+                <Badge className="bg-red-500/90 text-white border-none text-xs">
+                  {contract.requiredPlatform} Focused
                 </Badge>
               )}
+              <Badge className="bg-teal-500/90 text-white border-none text-xs">
+                Affiliate Focused Campaign
+              </Badge>
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-3">
+          {/* Info Cards Row */}
+          <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="bg-white/10 rounded-xl p-3 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <DollarSign className="h-4 w-4" /> Platform fee
+              <div className="flex items-center gap-1 text-xs text-white/60 mb-1">
+                <Calendar className="h-3 w-3" /> Duration
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-3.5 w-3.5" />
+                      <Info className="h-3 w-3" />
                     </TooltipTrigger>
-                    <TooltipContent>AffiliateXchange charges a {totalFeeDisplay} platform fee.</TooltipContent>
+                    <TooltipContent>Contract duration</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <p className="text-lg font-semibold">{formatCurrency(platformFee, { maximumFractionDigits: 0 })}</p>
-              <p className="text-xs text-white/70">You take home {formatCurrency(creatorTakeHome, { maximumFractionDigits: 0 })}</p>
+              <p className="text-lg font-bold">{contract.durationMonths} months</p>
+              <p className="text-[10px] text-white/50">Deliverables on this trial</p>
             </div>
 
             <div className="bg-white/10 rounded-xl p-3 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <Video className="h-4 w-4" /> Deliverables
+              <div className="flex items-center gap-1 text-xs text-white/60 mb-1">
+                <DollarSign className="h-3 w-3" /> Payment Terms
               </div>
-              <p className="text-lg font-semibold">
-                {contractVideosPerMonth} / month
-              </p>
-              <p className="text-xs text-white/70">Minimum length {formatSecondsToMinutes(contract.minimumVideoLengthSeconds) || "per brief"}</p>
+              <p className="text-lg font-bold">{formatCurrency(contractMonthlyAmount)} month</p>
+              <p className="text-[10px] text-white/50">Nets: {formatCurrency(creatorTakeHome)} per month</p>
             </div>
 
             <div className="bg-white/10 rounded-xl p-3 backdrop-blur">
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <ShieldCheck className="h-4 w-4" /> Terms
+              <div className="flex items-center gap-1 text-xs text-white/60 mb-1">
+                <Tag className="h-3 w-3" /> Niche
               </div>
-              <p className="text-lg font-semibold flex items-center gap-2">
-                {contract.contentApprovalRequired ? "Approval required" : "Self-approve"}
+              <p className="text-lg font-bold truncate">
+                {contract.niches?.[0] || "General"}
               </p>
-              <p className="text-xs text-white/70">
-                {contract.exclusivityRequired ? "Exclusivity applies" : "Open to multiple brands"}
-              </p>
+              <p className="text-[10px] text-white/50">Based on category</p>
             </div>
           </div>
 
+          {/* Tags Row */}
           <div className="flex flex-wrap gap-2">
-            {getValidationBadge("Content approval", !!contract.contentApprovalRequired)}
-            {getValidationBadge("Exclusivity", !!contract.exclusivityRequired)}
-            {getValidationBadge("Posting schedule", !!contract.postingSchedule)}
-            {getValidationBadge("Min video length", !!contract.minimumVideoLengthSeconds)}
+            <Badge className="bg-teal-600 text-white border-none text-xs">
+              Compare Offer
+            </Badge>
+            {contract.minimumFollowers && (
+              <Badge variant="outline" className="border-white/30 text-white/80 text-xs">
+                {contract.minimumFollowers.toLocaleString()}+ Followers
+              </Badge>
+            )}
+            <Badge variant="outline" className="border-white/30 text-white/80 text-xs">
+              Earning Scheme
+            </Badge>
+            {!contract.contentApprovalRequired && (
+              <Badge variant="outline" className="border-white/30 text-white/80 text-xs">
+                Self Regulates
+              </Badge>
+            )}
           </div>
         </div>
 
-        <div className="space-y-4">
-          <Card className="border-card-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Timeline & Fees</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
+        {/* Right Side - Tiered Package Card */}
+        <Card className="border-card-border">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Tiered Package</CardTitle>
+              {!currentApplication && (
+                <Button
+                  className="bg-teal-500 hover:bg-teal-600 text-white"
+                  onClick={() => setApplyOpen(true)}
+                  data-testid="button-apply-retainer"
+                >
+                  Apply Now
+                  <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2 border-b">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock3 className="h-4 w-4" /> Contract length
+                  <Calendar className="h-4 w-4" /> Campaign Length
                 </div>
                 <span className="font-semibold">{contract.durationMonths} months</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2 border-b">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <DollarSign className="h-4 w-4" /> Monthly retainer
+                  <DollarSign className="h-4 w-4" /> Payment Terms
+                </div>
+                <span className="font-semibold">{formatCurrency(contractMonthlyAmount)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Users className="h-4 w-4" /> Minimum Followers
                 </div>
                 <span className="font-semibold">
-                  {formatCurrency(contractMonthlyAmount, { maximumFractionDigits: 0 })}
+                  {contract.minimumFollowers ? contract.minimumFollowers.toLocaleString() + '+' : 'None'}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Video className="h-4 w-4" /> Value per video
-                </div>
-                <span className="font-semibold">
-                  {formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card className="border-card-border">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Posting Schedule</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>{contract.postingSchedule || "No custom posting schedule provided."}</p>
+            {/* Posting Schedule Section */}
+            <div className="pt-2">
+              <div className="flex items-center gap-2 text-sm font-medium mb-2">
+                <Calendar className="h-4 w-4" /> Posting Schedule
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {contract.postingSchedule || `Post ${contractVideosPerMonth} video${contractVideosPerMonth > 1 ? 's' : ''} per month`}
+              </p>
               {contract.minimumVideoLengthSeconds && (
-                <p className="text-xs text-foreground/80">Minimum length: {formatSecondsToMinutes(contract.minimumVideoLengthSeconds)}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Recommended length: {formatSecondsToMinutes(contract.minimumVideoLengthSeconds)}
+                </p>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Tabs defaultValue="details" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          {isApproved && (
-            <TabsTrigger value="deliverables" data-testid="tab-deliverables">
-              My Deliverables ({deliverables?.length || 0})
-            </TabsTrigger>
-          )}
-        </TabsList>
+      {/* Deliverable Requirements Section */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle className="text-base">Deliverable Requirements</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+              <span className="text-sm text-muted-foreground">
+                Minimum length {formatSecondsToMinutes(contract.minimumVideoLengthSeconds) || "per brief"}
+              </span>
+            </div>
+            {contract.contentGuidelines && (
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                <span className="text-sm text-muted-foreground">{contract.contentGuidelines}</span>
+              </div>
+            )}
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+              <span className="text-sm text-muted-foreground">
+                Publish {contractVideosPerMonth} {contract.requiredPlatform || "video"} video{contractVideosPerMonth > 1 ? 's' : ''} per month
+              </span>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+              <span className="text-sm text-muted-foreground">
+                {contract.contentApprovalRequired ? "Content approval required before posting" : "Maintain FTC-compliant disclosure"}
+              </span>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+              <span className="text-sm text-muted-foreground">
+                {contract.brandSafetyRequirements || "Follow provided talking points"}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="details" className="space-y-6">
-          <Card className="border-card-border">
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <CardTitle>Tiered Packages</CardTitle>
-              <p className="text-sm text-muted-foreground">Up to 5 tiers · auto-calculated per-video cost</p>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {hasRetainerTiers ? (
-                tierSummaries.map((tier: any, index: number) => (
-                  <div
-                    key={`${tier.name}-${index}`}
-                    className="rounded-xl border border-card-border p-4 bg-muted/30 shadow-sm"
-                  >
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline">{tier.name}</Badge>
-                      <span className="text-xs text-muted-foreground">{tier.durationMonths} months</span>
-                    </div>
-                    <div className="mt-3 text-2xl font-bold">{formatCurrency(tier.monthlyAmount)}</div>
-                    <p className="text-sm text-muted-foreground">
-                      {tier.videosPerMonth} videos / month ·
-                      {" "}
-                      {formatCurrency(tier.perVideoCost, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                      {" "}
-                      per video
-                    </p>
-                    <div className="mt-3 h-1.5 rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-sky-400 to-indigo-500"
-                        style={{ width: `${Math.min(100, (tier.videosPerMonth / (contractVideosPerMonth || 1)) * 100)}%` }}
-                      />
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">Value per video</p>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-xl border border-card-border p-6 bg-muted/20 col-span-full">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Info className="h-4 w-4" />
-                    No additional tiers were provided. Using base package details.
-                  </div>
-                  <div className="mt-3 text-lg font-semibold">
-                    {contractVideosPerMonth} videos / month · {formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per video
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="grid lg:grid-cols-2 gap-4">
-            <Card className="border-card-border">
-              <CardHeader>
-                <CardTitle>Deliverable Requirements</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Video className="h-4 w-4 text-primary" />
-                  {contract.minimumVideoLengthSeconds
-                    ? `Minimum length: ${formatSecondsToMinutes(contract.minimumVideoLengthSeconds)}`
-                    : "Length per creative brief"}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock3 className="h-4 w-4 text-primary" />
-                  {contract.postingSchedule || "Posting schedule will be coordinated directly."}
-                </div>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-primary" />
-                  {contract.videosPerMonth} videos required each month
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  {contract.durationMonths} month agreement
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-card-border">
-              <CardHeader>
-                <CardTitle>Additional Terms</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-primary" /> Content approval
-                  </div>
-                  <Badge variant={contract.contentApprovalRequired ? "outline" : "secondary"}>
-                    {contract.contentApprovalRequired ? "Required" : "Not required"}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-primary" /> Exclusivity
-                  </div>
-                  <Badge variant={contract.exclusivityRequired ? "destructive" : "outline"}>
-                    {contract.exclusivityRequired ? "Exclusive" : "No exclusivity"}
-                  </Badge>
-                </div>
-                {contract.minimumFollowers && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary" /> Minimum followers
-                    </div>
-                    <span className="font-semibold text-foreground">
-                      {contract.minimumFollowers.toLocaleString()}
-                    </span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="border-card-border">
-            <CardHeader>
-              <CardTitle>Contract Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Card className="border-card-border">
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
               <div>
-                <h4 className="font-semibold mb-2">Description</h4>
-                <p className="text-muted-foreground">{contract.description}</p>
+                <span className="text-sm font-medium">Exclusivity</span>
+                <p className="text-sm text-muted-foreground">
+                  {contract.exclusivityRequired ? "No competing products during contract" : "Non-exclusive - work with other brands"}
+                </p>
               </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+              <div>
+                <span className="text-sm font-medium">Content Usage</span>
+                <p className="text-sm text-muted-foreground">
+                  Brand may repurpose content for ads
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+              <div>
+                <span className="text-sm font-medium">Geographic</span>
+                <p className="text-sm text-muted-foreground">
+                  {contract.platformAccountDetails || "Global"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-              <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t">
+      {/* Tiered Offers Section */}
+      {hasRetainerTiers && (
+        <Card className="border-card-border">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">Tiered</CardTitle>
+                <Gift className="h-4 w-4 text-teal-500" />
+                <span className="text-sm font-medium">{contract.title}</span>
+              </div>
+              <Button variant="link" className="text-teal-500 p-0 h-auto text-sm">
+                <Bookmark className="h-3 w-3 mr-1" /> Bookmark Offer
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {tierSummaries.map((tier: any, index: number) => (
+              <div key={`tier-${index}`} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">{tier.name}</Badge>
+                  <span className="text-sm text-muted-foreground">{tier.durationMonths} months</span>
+                </div>
+                <span className="font-semibold">{formatCurrency(tier.monthlyAmount)}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Live Summary Preview Section */}
+      <Card className="border-card-border">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Live Summary Preview</CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Real-time breakdown using company-provided details</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Brand Info */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                  <Briefcase className="h-5 w-5 text-muted-foreground" />
+                </div>
                 <div>
-                  <h4 className="font-semibold mb-1">Required Platform</h4>
-                  <p className="text-muted-foreground">{contract.requiredPlatform}</p>
-                </div>
-                {contract.minimumFollowers && (
-                  <div>
-                    <h4 className="font-semibold mb-1">Minimum Followers</h4>
-                    <p className="text-muted-foreground">
-                      {contract.minimumFollowers.toLocaleString()}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {contract.platformAccountDetails && (
-                <div className="pt-4 border-t">
-                  <h4 className="font-semibold mb-2">Platform Account Details</h4>
-                  <p className="text-muted-foreground">{contract.platformAccountDetails}</p>
-                </div>
-              )}
-
-              {contract.contentGuidelines && (
-                <div className="pt-4 border-t">
-                  <h4 className="font-semibold mb-2">Content Guidelines</h4>
-                  <p className="text-muted-foreground">{contract.contentGuidelines}</p>
-                </div>
-              )}
-
-              {contract.brandSafetyRequirements && (
-                <div className="pt-4 border-t">
-                  <h4 className="font-semibold mb-2">Brand Safety Requirements</h4>
-                  <p className="text-muted-foreground">{contract.brandSafetyRequirements}</p>
-                </div>
-              )}
-
-              {contract.niches && contract.niches.length > 0 && (
-                <div className="pt-4 border-t">
-                  <h4 className="font-semibold mb-2">Target Niches</h4>
-                  <div className="flex gap-2 flex-wrap">
-                    {contract.niches.map((niche: string, index: number) => (
-                      <Badge key={index} variant="outline">
-                        {niche}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-card-border">
-            <CardHeader>
-              <CardTitle>Live Summary Preview</CardTitle>
-              <p className="text-sm text-muted-foreground">Real-time breakdown using company-provided details.</p>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-4 text-sm">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span>Gross monthly</span>
-                  <span className="font-semibold">{formatCurrency(contractMonthlyAmount, { maximumFractionDigits: 0 })}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Platform fee ({totalFeeDisplay})</span>
-                  <span className="font-semibold">{formatCurrency(platformFee, { maximumFractionDigits: 0 })}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Net to creator</span>
-                  <span className="font-semibold text-emerald-600">
-                    {formatCurrency(creatorTakeHome, { maximumFractionDigits: 0 })}
-                  </span>
+                  <p className="text-xs text-muted-foreground">Brand</p>
+                  <p className="font-semibold">{contract.company?.tradeName || contract.company?.legalName || contract.title}</p>
+                  <p className="text-xs text-muted-foreground">{formatCurrency(contractMonthlyAmount)} one-time payout</p>
                 </div>
               </div>
-              <div className="space-y-2">
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Views estimate</p>
+                  <p className="font-semibold">Up to 20k</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Brands</p>
+                  <p className="font-semibold text-sm">{contract.title}</p>
+                  <p className="text-xs text-muted-foreground">{formatCurrency(contractMonthlyAmount)} one-time</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Click-through rate</p>
+                  <p className="font-semibold">About 3%</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Category</p>
+                  <p className="text-xs text-muted-foreground">{contract.niches?.[0] || "General"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Earning potential</p>
+                  <p className="font-semibold">Up to {formatCurrency(creatorTakeHome * contract.durationMonths)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Technology</p>
+                  <Badge variant="outline" className="text-xs mt-1">
+                    {contract.niches?.[0] || "Tech"}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Financial Summary */}
+            <div className="space-y-3 p-4 rounded-lg bg-muted/30">
+              <h4 className="font-semibold text-sm">Financial Summary</h4>
+              <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <span>Videos per month</span>
+                  <span className="text-muted-foreground">Gross monthly</span>
+                  <span className="font-semibold">{formatCurrency(contractMonthlyAmount)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Platform fee ({totalFeeDisplay})</span>
+                  <span className="font-semibold">{formatCurrency(platformFee)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <span className="text-muted-foreground">Net to creator</span>
+                  <span className="font-semibold text-teal-600">{formatCurrency(creatorTakeHome)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Videos per month</span>
                   <span className="font-semibold">{contractVideosPerMonth}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Value per video</span>
-                  <span className="font-semibold">
-                    {formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+                  <span className="text-muted-foreground">Value per video</span>
+                  <span className="font-semibold">{formatCurrency(basePerVideo, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                {bestValueTier && (
-                  <div className="flex items-center justify-between">
-                    <span>Best tier preview</span>
-                    <span className="font-semibold">
-                      {bestValueTier.name} · {formatCurrency(bestValueTier.perVideoCost, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/video
-                    </span>
-                  </div>
-                )}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {isApproved && (
+      {/* Contract Description */}
+      <Card className="border-card-border">
+        <CardHeader>
+          <CardTitle className="text-base">Contract Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <h4 className="font-semibold mb-2 text-sm">Description</h4>
+            <p className="text-sm text-muted-foreground">{contract.description}</p>
+          </div>
+
+          {contract.niches && contract.niches.length > 0 && (
+            <div className="pt-4 border-t">
+              <h4 className="font-semibold mb-2 text-sm">Target Niches</h4>
+              <div className="flex gap-2 flex-wrap">
+                {contract.niches.map((niche: string, index: number) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {niche}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Deliverables Tab for Approved Creators */}
+      {isApproved && (
+        <Tabs defaultValue="deliverables" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="deliverables" data-testid="tab-deliverables">
+              My Deliverables ({deliverables?.length || 0})
+            </TabsTrigger>
+          </TabsList>
+
           <TabsContent value="deliverables" className="space-y-6">
             {deliverables && deliverables.length > 0 ? (
               <div className="grid gap-4">
@@ -1598,12 +1947,12 @@ export default function CreatorRetainerDetail() {
                           <div className="pt-3 border-t space-y-1">
                             {deliverable.submittedAt && (
                               <p className="text-xs text-muted-foreground">
-                                📤 Submitted {format(new Date(deliverable.submittedAt), "MMM d, yyyy 'at' h:mm a")}
+                                Submitted {format(new Date(deliverable.submittedAt), "MMM d, yyyy 'at' h:mm a")}
                               </p>
                             )}
                             {deliverable.reviewedAt && (
                               <p className="text-xs text-muted-foreground">
-                                ✅ Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}
+                                Reviewed {format(new Date(deliverable.reviewedAt), "MMM d, yyyy 'at' h:mm a")}
                               </p>
                             )}
                           </div>
@@ -1624,37 +1973,9 @@ export default function CreatorRetainerDetail() {
               </Card>
             )}
           </TabsContent>
-        )}
-      </Tabs>
-
-      {/* Sticky Apply Button */}
-      {!currentApplication && (
-        <div
-          className="fixed bottom-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50"
-          style={{
-            left: isMobile ? 0 : sidebarState === 'expanded' ? 'var(--sidebar-width, 16rem)' : 'var(--sidebar-width-icon, 3rem)'
-          }}
-        >
-          <div className="container max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1">
-                <p className="font-semibold text-sm sm:text-base">{contract.title}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  {formatCurrency(contractMonthlyAmount)} / month · {contractVideosPerMonth} videos
-                </p>
-              </div>
-              <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
-                <DialogTrigger asChild>
-                  <Button className="w-full sm:w-auto" variant="default" data-testid="button-apply-retainer-sticky">
-                    <Send className="h-4 w-4 mr-2" />
-                    Apply Now
-                  </Button>
-                </DialogTrigger>
-              </Dialog>
-            </div>
-          </div>
-        </div>
+        </Tabs>
       )}
+      </div>
 
       <GenericErrorDialog
         open={!!errorDialog}

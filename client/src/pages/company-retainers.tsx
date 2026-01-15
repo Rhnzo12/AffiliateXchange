@@ -34,7 +34,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X, ChevronDown, ChevronUp, AlertTriangle, Clock, AlertCircle } from "lucide-react";
+import { Plus, DollarSign, Video, Calendar, Users, Eye, Filter, X, ChevronDown, ChevronUp, AlertTriangle, Clock, AlertCircle, MoreVertical, Edit, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "../components/ui/dropdown-menu";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -351,7 +358,7 @@ export default function CompanyRetainers() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 md:px-0">
       <TopNavBar />
 
       {/* Company Approval Pending Banner */}
@@ -361,22 +368,240 @@ export default function CompanyRetainers() {
           <p className="flex-1 text-sm text-amber-800 dark:text-amber-200">
             <span className="font-medium">Company Approval Pending:</span> Your company registration is under review. You'll be able to create retainers once approved.
           </p>
-          <Badge variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50">
+          <Badge variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 hidden sm:flex">
             <Clock className="h-3 w-3 mr-1" />
             Pending
           </Badge>
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold" data-testid="heading-company-retainers">
-            Monthly Retainers
-          </h1>
-          <p className="text-muted-foreground">
-            Hire creators for ongoing monthly video production
-          </p>
+      {/* ========== MOBILE LAYOUT ========== */}
+      <div className="md:hidden space-y-4">
+        {/* Mobile Header with Create Button on Right */}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Monthly Retainers</h1>
+            <p className="text-xs text-gray-500 mt-0.5">Hire creators for video production</p>
+          </div>
+          {isCompanyPending ? (
+            <Button size="sm" className="gap-1.5 h-9 px-3 rounded-lg text-xs flex-shrink-0" disabled>
+              <Plus className="h-4 w-4" />
+              Create
+            </Button>
+          ) : (
+            <Dialog open={open} onOpenChange={handleDialogClose}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-1.5 h-9 px-3 rounded-lg text-xs flex-shrink-0">
+                  <Plus className="h-4 w-4" />
+                  Create
+                </Button>
+              </DialogTrigger>
+            </Dialog>
+          )}
         </div>
+
+        {/* Mobile Search */}
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search retainers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-11 rounded-xl border-gray-200 bg-white"
+          />
+        </div>
+
+        {/* Mobile Filter Buttons */}
+        <div className="flex gap-2">
+          {/* Status Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={statusFilter !== "all" ? "default" : "outline"}
+                size="sm"
+                className="gap-1.5 h-9 rounded-lg text-xs"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                {statusFilter === "all" ? "Status" : statusFilter.replace("_", " ")}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                All Statuses
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {uniqueStatuses.map((status) => (
+                <DropdownMenuItem
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className="capitalize"
+                >
+                  {status.replace("_", " ")}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Platform Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={platformFilter !== "all" ? "default" : "outline"}
+                size="sm"
+                className="gap-1.5 h-9 rounded-lg text-xs"
+              >
+                <Video className="h-3.5 w-3.5" />
+                {platformFilter === "all" ? "Platform" : platformFilter}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setPlatformFilter("all")}>
+                All Platforms
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {uniquePlatforms.map((platform) => (
+                <DropdownMenuItem
+                  key={platform}
+                  onClick={() => setPlatformFilter(platform)}
+                >
+                  {platform}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Mobile Results Count */}
+        <div className="flex items-center justify-between text-sm text-gray-500">
+          <span>{filteredContracts.length} retainers found</span>
+          {hasActiveFilters && (
+            <button onClick={clearFilters} className="text-primary font-medium flex items-center gap-1">
+              <X className="h-3 w-3" />
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* Mobile Retainers List */}
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 animate-pulse">
+                <div className="h-5 w-3/4 bg-gray-200 rounded mb-2" />
+                <div className="h-4 w-1/2 bg-gray-200 rounded mb-3" />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="h-16 bg-gray-100 rounded-lg" />
+                  <div className="h-16 bg-gray-100 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredContracts.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+            <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 font-medium">No retainers found</p>
+            <p className="text-gray-400 text-sm mt-1">Create your first retainer contract</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredContracts.map((contract: any) => (
+              <div key={contract.id} className="bg-white rounded-xl border border-gray-100 p-4 ring-2 ring-primary/20">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <Link href={`/company/retainers/${contract.id}`} className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm">{contract.title}</h3>
+                    <Badge variant={getStatusBadgeVariant(contract.status)} className="mt-1.5 text-xs">
+                      {contract.status.replace("_", " ")}
+                    </Badge>
+                  </Link>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <PlatformBadge platform={contract.requiredPlatform} size="sm" />
+                    {/* Action Menu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                          <MoreVertical className="h-4 w-4 text-gray-500" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/company/retainers/${contract.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </Link>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <p className="text-xs text-gray-500 line-clamp-2 mb-3">{contract.description}</p>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-gray-400">Monthly</p>
+                      <p className="font-semibold text-sm">CA${parseFloat(contract.monthlyAmount).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
+                    <Video className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-gray-400">Videos</p>
+                      <p className="font-semibold text-sm">{contract.videosPerMonth}/mo</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-gray-400">Duration</p>
+                      <p className="font-semibold text-sm">{contract.durationMonths} months</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50">
+                    <Users className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-xs text-gray-400">Applied</p>
+                      <p className="font-semibold text-sm">{contract.applicationCount || 0}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Badges */}
+                {(contract.exclusivityRequired || contract.contentApprovalRequired) && (
+                  <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-gray-100">
+                    {contract.exclusivityRequired && (
+                      <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
+                        Exclusivity
+                      </Badge>
+                    )}
+                    {contract.contentApprovalRequired && (
+                      <Badge variant="outline" className="text-xs">
+                        Approval Required
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ========== DESKTOP LAYOUT ========== */}
+      <div className="hidden md:block space-y-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold" data-testid="heading-company-retainers">
+              Monthly Retainers
+            </h1>
+            <p className="text-muted-foreground">
+              Hire creators for ongoing monthly video production
+            </p>
+          </div>
         {isCompanyPending ? (
           <Button
             data-testid="button-create-retainer"
@@ -1064,6 +1289,7 @@ export default function CompanyRetainers() {
           ))}
         </div>
       )}
+      </div>
 
       <GenericErrorDialog
         open={errorDialog.open}

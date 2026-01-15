@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
 import { Progress } from "../components/ui/progress";
-import { Copy, ExternalLink, MessageSquare, TrendingUp, FileText, Clock, CheckCircle2, Star, StarOff, Filter, Search, X, DollarSign, Calendar, CheckCircle, AlertTriangle, Eye, MessageCircle, Upload } from "lucide-react";
+import { Copy, ExternalLink, MessageSquare, TrendingUp, FileText, Clock, CheckCircle2, Star, StarOff, Filter, Search, X, DollarSign, Calendar, CheckCircle, AlertTriangle, Eye, MessageCircle, Upload, ChevronLeft, SlidersHorizontal, MoreHorizontal } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { proxiedSrc } from "../lib/image";
 import { TopNavBar } from "../components/TopNavBar";
@@ -26,6 +26,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 
 const STATUS_COLORS: Record<string, any> = {
   pending: { variant: "secondary" as const, icon: Clock },
@@ -384,79 +390,371 @@ export default function Applications() {
   return (
     <div className="space-y-6">
       <TopNavBar />
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">My Applications</h1>
-        <p className="text-muted-foreground mt-1">Track all your affiliate applications in one place</p>
+
+      {/* ========== MOBILE LAYOUT ========== */}
+      <div className="md:hidden space-y-4 pb-4">
+        {/* Mobile Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/browse">
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <h1 className="text-xl font-bold">My Applications</h1>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <SlidersHorizontal className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="p-2 space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Status</label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      {uniqueStatuses.map((status) => (
+                        <SelectItem key={status} value={status} className="capitalize">
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Offer</label>
+                  <Select value={offerFilter} onValueChange={setOfferFilter}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="All offers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Offers</SelectItem>
+                      {uniqueOffers.map(([id, title]) => (
+                        <SelectItem key={id} value={id}>
+                          {title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {hasActiveFilters && (
+                  <Button variant="outline" size="sm" onClick={clearFilters} className="w-full text-xs">
+                    <X className="h-3 w-3 mr-1" />
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Mobile Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search offers or niche"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="pl-10 h-11 bg-muted/50 border-0"
+          />
+        </div>
+
+        {/* Mobile Filter Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+          <Button
+            variant={activeTab === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("all")}
+            className={`rounded-full px-4 h-9 text-sm whitespace-nowrap flex-shrink-0 ${
+              activeTab === "all" ? "bg-primary text-primary-foreground" : "bg-muted/50 border-0"
+            }`}
+          >
+            All ({applications?.length || 0})
+          </Button>
+          <Button
+            variant={activeTab === "pending" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("pending")}
+            className={`rounded-full px-4 h-9 text-sm whitespace-nowrap flex-shrink-0 ${
+              activeTab === "pending" ? "bg-primary text-primary-foreground" : "bg-muted/50 border-0"
+            }`}
+          >
+            Pending
+          </Button>
+          <Button
+            variant={activeTab === "approved" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("approved")}
+            className={`rounded-full px-4 h-9 text-sm whitespace-nowrap flex-shrink-0 ${
+              activeTab === "approved" ? "bg-primary text-primary-foreground" : "bg-muted/50 border-0"
+            }`}
+          >
+            Approved
+          </Button>
+          <Button
+            variant={activeTab === "active" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveTab("active")}
+            className={`rounded-full px-4 h-9 text-sm whitespace-nowrap flex-shrink-0 ${
+              activeTab === "active" ? "bg-primary text-primary-foreground" : "bg-muted/50 border-0"
+            }`}
+          >
+            Active
+          </Button>
+        </div>
+
+        {/* Mobile Application Cards */}
+        {applicationsLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="border-card-border animate-pulse">
+                <CardContent className="p-4">
+                  <div className="flex gap-4">
+                    <div className="w-24 h-24 bg-muted rounded-lg flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded w-3/4" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
+                      <div className="h-6 bg-muted rounded w-20" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : totalApplications === 0 ? (
+          <Card className="border-card-border">
+            <CardContent className="p-8 text-center">
+              <FileText className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+              <h3 className="font-semibold text-base mb-1">No applications yet</h3>
+              <p className="text-sm text-muted-foreground mb-4">Start browsing offers and apply to begin earning</p>
+              <Link href="/browse">
+                <Button variant="default" size="sm">
+                  Browse Offers
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : filteredApplications.length === 0 ? (
+          <Card className="border-card-border">
+            <CardContent className="p-8 text-center">
+              <Search className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+              <h3 className="font-semibold text-base mb-1">No applications match</h3>
+              <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {filteredApplications.map((application: any) => {
+              const StatusIcon = STATUS_COLORS[application.status]?.icon || Clock;
+              const canShowReviewButton = application.status === 'approved' || application.status === 'active';
+              const existingReview = getExistingReview(application.id);
+
+              return (
+                <Card key={application.id} className="border-card-border overflow-hidden">
+                  <CardContent className="p-4 space-y-4">
+                    {/* Product Info Row */}
+                    <div className="flex gap-4">
+                      {/* Product Image */}
+                      <div className="w-24 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                        {application.offer?.featuredImageUrl ? (
+                          <img
+                            src={proxiedSrc(application.offer.featuredImageUrl)}
+                            alt={application.offer.title}
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <FileText className="h-8 w-8 text-muted-foreground/50" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <Link href={`/offers/${application.offer?.id}`}>
+                          <h3 className="font-semibold text-sm leading-tight line-clamp-2 hover:text-primary">
+                            {application.offer?.title || "Untitled Offer"}
+                          </h3>
+                        </Link>
+                        <p className="text-xs text-muted-foreground">
+                          {application.offer?.company?.tradeName || "Company"}
+                        </p>
+                        <Badge
+                          {...STATUS_COLORS[application.status]}
+                          className="gap-1 text-xs capitalize"
+                        >
+                          <StatusIcon className="h-3 w-3" />
+                          {application.status}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Commission & Type Row */}
+                    <div className="flex justify-between text-sm border-t border-b py-3">
+                      <div>
+                        <span className="text-muted-foreground">Commission:</span>
+                        <span className="ml-2 font-medium font-mono">{formatCommission(application.offer)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Type:</span>
+                        <span className="ml-2 font-medium capitalize">
+                          {application.offer?.commissionType?.replace(/_/g, ' ') || 'Per Sale'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tracking Link Section - Only for approved applications */}
+                    {application.status === 'approved' && application.trackingLink && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Your Tracking Link</p>
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <code className="text-xs text-muted-foreground break-all">
+                            {application.trackingLink}
+                          </code>
+                        </div>
+                        <Button
+                          onClick={() => copyTrackingLink(application.trackingLink)}
+                          className="w-full h-11 gap-2"
+                        >
+                          <Copy className="h-4 w-4" />
+                          Copy Link
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Action Buttons Row */}
+                    <div className="flex items-center justify-between pt-2">
+                      <Link href={`/analytics/${application.id}`}>
+                        <Button variant="ghost" size="sm" className="gap-2 text-sm h-9 px-0">
+                          <TrendingUp className="h-4 w-4" />
+                          View Analytics
+                        </Button>
+                      </Link>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <Link href={`/applications/${application.id}`}>
+                            <DropdownMenuItem className="gap-2">
+                              <FileText className="h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                          </Link>
+                          <Link href={`/messages?application=${application.id}`}>
+                            <DropdownMenuItem className="gap-2">
+                              <MessageSquare className="h-4 w-4" />
+                              Message Company
+                            </DropdownMenuItem>
+                          </Link>
+                          <Link href={`/offers/${application.offer?.id}`}>
+                            <DropdownMenuItem className="gap-2">
+                              <ExternalLink className="h-4 w-4" />
+                              View Offer
+                            </DropdownMenuItem>
+                          </Link>
+                          {canShowReviewButton && (
+                            <DropdownMenuItem onClick={() => handleOpenReviewDialog(application)} className="gap-2">
+                              <Star className="h-4 w-4" />
+                              {existingReview ? "Edit Review" : "Leave Review"}
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      <Card className="border-card-border">
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Filter className="h-4 w-4" />
-              <span className="text-sm font-semibold uppercase tracking-wider">Search & Filter</span>
-            </div>
-            <div className="sm:ml-auto text-sm text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">{filteredApplications.length}</span> of {totalApplications}
-              {` application${totalApplications === 1 ? "" : "s"}`}
-            </div>
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs sm:ml-4">
-                <X className="h-3 w-3 mr-1" />
-                Clear Filters
-              </Button>
-            )}
-          </div>
+      {/* ========== DESKTOP LAYOUT ========== */}
+      <div className="hidden md:block space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold">My Applications</h1>
+          <p className="text-muted-foreground mt-1">Track all your affiliate applications in one place</p>
+        </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
-              <Input
-                placeholder="Search by offer or niche"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {uniqueStatuses.map((status) => (
-                    <SelectItem key={status} value={status} className="capitalize">
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Offer</label>
-              <Select value={offerFilter} onValueChange={setOfferFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All offers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Offers</SelectItem>
-                  {uniqueOffers.map(([id, title]) => (
-                    <SelectItem key={id} value={id}>
-                      {title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Active Monthly Retainers Dashboard */}
-      {(activeRetainerContracts.length > 0 || completedRetainerContracts.length > 0) && (
         <Card className="border-card-border">
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Filter className="h-4 w-4" />
+                <span className="text-sm font-semibold uppercase tracking-wider">Search & Filter</span>
+              </div>
+              <div className="sm:ml-auto text-sm text-muted-foreground">
+                Showing <span className="font-semibold text-foreground">{filteredApplications.length}</span> of {totalApplications}
+                {` application${totalApplications === 1 ? "" : "s"}`}
+              </div>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs sm:ml-4">
+                  <X className="h-3 w-3 mr-1" />
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Search</label>
+                <Input
+                  placeholder="Search by offer or niche"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {uniqueStatuses.map((status) => (
+                      <SelectItem key={status} value={status} className="capitalize">
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Offer</label>
+                <Select value={offerFilter} onValueChange={setOfferFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All offers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Offers</SelectItem>
+                    {uniqueOffers.map(([id, title]) => (
+                      <SelectItem key={id} value={id}>
+                        {title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Active Monthly Retainers Dashboard - Desktop Only */}
+      {(activeRetainerContracts.length > 0 || completedRetainerContracts.length > 0) && (
+        <Card className="hidden md:block border-card-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Active Monthly Retainers</CardTitle>
             <p className="text-sm text-muted-foreground">Your active and completed retainer contracts at a glance</p>
@@ -613,8 +911,8 @@ export default function Applications() {
         </Card>
       )}
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      {/* Tabs - Desktop Only */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden md:block">
         <TabsList>
           <TabsTrigger value="all" data-testid="tab-all">
             All ({applications?.length || 0})
@@ -798,7 +1096,7 @@ export default function Applications() {
 
       {/* Review Dialog */}
       <Dialog open={reviewDialog.open} onOpenChange={(open) => setReviewDialog({ ...reviewDialog, open })}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100%-64px)] max-w-sm md:max-w-2xl mx-auto max-h-[90vh] overflow-y-auto rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle>
               {getExistingReview(reviewDialog.application?.id) ? "Edit Review" : "Leave a Review"}
@@ -867,16 +1165,18 @@ export default function Applications() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t pt-4">
+            <div className="grid grid-cols-2 gap-3 border-t pt-4">
               <Button
                 variant="outline"
                 onClick={() => setReviewDialog({ open: false, application: null })}
+                className="h-12 rounded-xl border-2 border-gray-200 font-medium"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSubmitReview}
                 disabled={submitReviewMutation.isPending || reviewForm.overallRating === 0}
+                className="h-12 rounded-xl bg-primary hover:bg-primary/90 font-medium"
               >
                 {submitReviewMutation.isPending ? "Submitting..." : "Submit Review"}
               </Button>

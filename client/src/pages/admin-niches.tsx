@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "../lib/queryClient";
 import { useAuth } from "../hooks/useAuth";
@@ -34,7 +34,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Tags, GripVertical, Star, Merge, ArrowRight } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "../components/ui/collapsible";
+import { Plus, Pencil, Trash2, Tags, GripVertical, Star, Merge, ArrowRight, ChevronDown, ChevronUp, List } from "lucide-react";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
@@ -68,6 +73,16 @@ export default function AdminNiches() {
     title: "",
     description: ""
   });
+  const [statsExpanded, setStatsExpanded] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea when dialog opens with existing content
+  useEffect(() => {
+    if (showDialog && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [showDialog, description]);
 
   const { data: niches = [], isLoading: nichesLoading } = useQuery<Niche[]>({
     queryKey: ["/api/admin/niches"],
@@ -403,29 +418,70 @@ export default function AdminNiches() {
   const targetNicheData = niches.find(n => n.id === targetNiche);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <TopNavBar />
 
-      <div className="flex items-center justify-between">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-3xl font-bold">Niche Categories</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-xl sm:text-3xl font-bold">Niche Categories</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
             Manage niche categories for offers and creator profiles
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowMergeDialog(true)}>
-            <Merge className="h-4 w-4 mr-2" />
-            Merge Niches
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-10" onClick={() => setShowMergeDialog(true)}>
+            <Merge className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden xs:inline">Merge Niches</span>
+            <span className="xs:hidden">Merge</span>
           </Button>
-          <Button onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" className="sm:hidden h-8 px-2">
+            <List className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="sm" className="text-xs sm:text-sm h-8 sm:h-10" onClick={handleCreate}>
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Add Niche
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      {/* Stats Section - Collapsible on mobile */}
+      <div className="sm:hidden">
+        <Collapsible open={statsExpanded} onOpenChange={setStatsExpanded}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between h-10 text-sm">
+              <span className="flex items-center gap-2">
+                <Tags className="h-4 w-4" />
+                Stats Overview ({niches.length} total, {activeCount} active)
+              </span>
+              {statsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3">
+            <div className="grid grid-cols-2 gap-2">
+              <Card className="p-3">
+                <div className="text-xs text-muted-foreground">Total Niches</div>
+                <div className="text-xl font-bold">{niches.length}</div>
+              </Card>
+              <Card className="p-3">
+                <div className="text-xs text-muted-foreground">Active</div>
+                <div className="text-xl font-bold text-green-600">{activeCount}</div>
+              </Card>
+              <Card className="p-3">
+                <div className="text-xs text-muted-foreground">Inactive</div>
+                <div className="text-xl font-bold text-muted-foreground">{niches.length - activeCount}</div>
+              </Card>
+              <Card className="p-3">
+                <div className="text-xs text-muted-foreground">Primary</div>
+                <div className="text-sm font-semibold text-primary truncate">{primaryNiche?.name || "Not set"}</div>
+              </Card>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+
+      {/* Desktop Stats Grid */}
+      <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Total Niches</CardTitle>
@@ -465,26 +521,26 @@ export default function AdminNiches() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Tags className="h-5 w-5" />
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Tags className="h-4 w-4 sm:h-5 sm:w-5" />
             All Niches
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Drag and drop rows to reorder niches. The order affects how niches appear in dropdowns.
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Drag and drop to reorder niches. The order affects how niches appear in dropdowns.
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="niches">
               {(provided) => (
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="border rounded-md"
+                  className="sm:border rounded-md py-2 sm:py-0"
                 >
-                  {/* Table Header */}
-                  <div className="grid grid-cols-[40px_1fr_2fr_100px_100px_150px] gap-4 p-4 border-b bg-muted/50 font-medium text-sm">
+                  {/* Desktop Table Header */}
+                  <div className="hidden sm:grid grid-cols-[40px_1fr_2fr_100px_100px_150px] gap-4 p-4 border-b bg-muted/50 font-medium text-sm">
                     <div></div>
                     <div>Name</div>
                     <div>Description</div>
@@ -493,8 +549,10 @@ export default function AdminNiches() {
                     <div className="text-right">Actions</div>
                   </div>
 
+                  {/* Mobile Table Header - hidden since we use cards */}
+
                   {niches.length === 0 ? (
-                    <div className="p-8 text-center text-muted-foreground">
+                    <div className="p-6 sm:p-8 text-center text-muted-foreground text-sm">
                       No niches found. Click "Add Niche" to create one.
                     </div>
                   ) : (
@@ -504,68 +562,138 @@ export default function AdminNiches() {
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            className={`grid grid-cols-[40px_1fr_2fr_100px_100px_150px] gap-4 p-4 items-center border-b last:border-b-0 ${
-                              snapshot.isDragging ? "bg-muted shadow-lg" : "hover:bg-muted/30"
+                            className={`sm:border-b sm:last:border-b-0 mb-2 sm:mb-0 last:mb-0 mx-2 sm:mx-0 rounded-lg sm:rounded-none border sm:border-0 sm:border-b ${
+                              snapshot.isDragging ? "bg-muted shadow-lg" : "hover:bg-muted/30 bg-background sm:bg-transparent"
                             }`}
                           >
-                            <div
-                              {...provided.dragHandleProps}
-                              className="cursor-grab active:cursor-grabbing"
-                            >
-                              <GripVertical className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                            <div className="font-medium flex items-center gap-2">
-                              {niche.name}
-                              {niche.isPrimary && (
-                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                              )}
-                            </div>
-                            <div className="text-muted-foreground truncate">
-                              {niche.description || "No description"}
-                            </div>
-                            <div>
-                              {niche.isActive !== false ? (
-                                <Badge variant="default" className="bg-green-500">Active</Badge>
-                              ) : (
-                                <Badge variant="secondary">Inactive</Badge>
-                              )}
-                            </div>
-                            <div>
-                              {!niche.isPrimary ? (
+                            {/* Desktop Row */}
+                            <div className="hidden sm:grid grid-cols-[40px_1fr_2fr_100px_100px_150px] gap-4 p-4 items-center">
+                              <div
+                                {...provided.dragHandleProps}
+                                className="cursor-grab active:cursor-grabbing"
+                              >
+                                <GripVertical className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                              <div className="font-medium flex items-center gap-2">
+                                {niche.name}
+                                {niche.isPrimary && (
+                                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                )}
+                              </div>
+                              <div className="text-muted-foreground truncate">
+                                {niche.description || "No description"}
+                              </div>
+                              <div>
+                                {niche.isActive !== false ? (
+                                  <Badge variant="default" className="bg-green-500">Active</Badge>
+                                ) : (
+                                  <Badge variant="secondary">Inactive</Badge>
+                                )}
+                              </div>
+                              <div>
+                                {!niche.isPrimary ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleSetPrimary(niche.id)}
+                                    disabled={setPrimaryMutation.isPending}
+                                    className="text-xs"
+                                  >
+                                    <Star className="h-3 w-3 mr-1" />
+                                    Set
+                                  </Button>
+                                ) : (
+                                  <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                                    <Star className="h-3 w-3 mr-1 fill-yellow-500" />
+                                    Primary
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex justify-end gap-2">
                                 <Button
                                   variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleSetPrimary(niche.id)}
-                                  disabled={setPrimaryMutation.isPending}
-                                  className="text-xs"
+                                  size="icon"
+                                  onClick={() => handleEdit(niche)}
                                 >
-                                  <Star className="h-3 w-3 mr-1" />
-                                  Set
+                                  <Pencil className="h-4 w-4" />
                                 </Button>
-                              ) : (
-                                <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                                  <Star className="h-3 w-3 mr-1 fill-yellow-500" />
-                                  Primary
-                                </Badge>
-                              )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDelete(niche.id)}
+                                  disabled={deleteNicheMutation.isPending || niche.isPrimary}
+                                  title={niche.isPrimary ? "Cannot delete primary niche" : "Delete niche"}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(niche)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(niche.id)}
-                                disabled={deleteNicheMutation.isPending || niche.isPrimary}
-                                title={niche.isPrimary ? "Cannot delete primary niche" : "Delete niche"}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+
+                            {/* Mobile Row - entire card is draggable */}
+                            <div
+                              className="sm:hidden p-3 cursor-grab active:cursor-grabbing"
+                              {...provided.dragHandleProps}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-medium text-sm flex items-center gap-1.5">
+                                    {niche.name}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground truncate mt-0.5">
+                                    {niche.description || "No description"}
+                                  </div>
+                                </div>
+                                <div className="shrink-0">
+                                  {niche.isActive !== false ? (
+                                    <Badge variant="default" className="bg-green-500 text-[10px] px-1.5 py-0.5">Active</Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">Inactive</Badge>
+                                  )}
+                                </div>
+                              </div>
+                              {/* Mobile Actions Row */}
+                              <div className="flex items-center justify-between mt-2 pt-2 border-t border-dashed">
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <GripVertical className="h-4 w-4" />
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`h-7 px-2 text-xs ${niche.isPrimary ? 'text-yellow-500' : 'text-muted-foreground'}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSetPrimary(niche.id);
+                                    }}
+                                    disabled={setPrimaryMutation.isPending || niche.isPrimary}
+                                  >
+                                    <Star className={`h-3.5 w-3.5 ${niche.isPrimary ? 'fill-yellow-500' : ''}`} />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(niche);
+                                    }}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(niche.id);
+                                    }}
+                                    disabled={deleteNicheMutation.isPending || niche.isPrimary}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         )}
@@ -582,42 +710,48 @@ export default function AdminNiches() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
               {editingNiche ? "Edit Niche Category" : "Create Niche Category"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               {editingNiche
                 ? "Update the details of this niche category."
                 : "Add a new niche category for creators and offers."}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Name *</label>
+          <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Name *</label>
               <Input
                 placeholder="e.g., Tech & Gadgets"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                className="h-9 sm:h-10 text-sm"
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Description</label>
               <Textarea
+                ref={textareaRef}
                 placeholder="Brief description of this niche category..."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                className="text-sm min-h-[80px] resize-none overflow-hidden"
               />
             </div>
 
-            <div className="flex items-center justify-between space-x-2 pt-2">
+            <div className="flex items-center justify-between space-x-2 pt-1 sm:pt-2">
               <div>
-                <label className="text-sm font-medium">Active</label>
-                <p className="text-xs text-muted-foreground">
+                <label className="text-xs sm:text-sm font-medium">Active</label>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
                   Inactive niches won't appear in dropdowns
                 </p>
               </div>
@@ -628,15 +762,17 @@ export default function AdminNiches() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
-              Cancel
-            </Button>
+          <DialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
             <Button
               onClick={handleSubmit}
               disabled={createNicheMutation.isPending || updateNicheMutation.isPending}
+              size="sm"
+              className="text-xs sm:text-sm h-10 sm:h-10 order-1 sm:order-2"
             >
               {editingNiche ? "Update" : "Create"}
+            </Button>
+            <Button variant="outline" onClick={handleCloseDialog} size="sm" className="text-xs sm:text-sm h-10 sm:h-10 order-2 sm:order-1">
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -644,64 +780,64 @@ export default function AdminNiches() {
 
       {/* Merge Niches Dialog */}
       <Dialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Merge Niches</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Merge Niches</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Merge one niche into another. All offers and creator profiles using the source niche
-              will be updated to use the target niche. The source niche will be deleted.
+              will be updated to use the target niche.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Source Niche (will be deleted)</label>
+          <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Source Niche (will be deleted)</label>
               <Select value={sourceNiche} onValueChange={setSourceNiche}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10 text-sm">
                   <SelectValue placeholder="Select niche to merge from" />
                 </SelectTrigger>
                 <SelectContent>
                   {niches
                     .filter(n => n.id !== targetNiche && !n.isPrimary)
                     .map((niche) => (
-                      <SelectItem key={niche.id} value={niche.id}>
+                      <SelectItem key={niche.id} value={niche.id} className="text-sm">
                         {niche.name}
                       </SelectItem>
                     ))}
                 </SelectContent>
               </Select>
               {sourceNiche && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
                   This niche will be deleted after merge
                 </p>
               )}
             </div>
 
             {sourceNiche && targetNiche && (
-              <div className="flex items-center justify-center gap-4 py-4">
+              <div className="flex items-center justify-center gap-3 sm:gap-4 py-3 sm:py-4">
                 <div className="text-center">
-                  <Badge variant="outline" className="mb-2">{sourceNicheData?.name}</Badge>
-                  <p className="text-xs text-muted-foreground">Source</p>
+                  <Badge variant="outline" className="mb-1.5 sm:mb-2 text-xs">{sourceNicheData?.name}</Badge>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Source</p>
                 </div>
-                <ArrowRight className="h-6 w-6 text-muted-foreground" />
+                <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                 <div className="text-center">
-                  <Badge variant="default" className="mb-2">{targetNicheData?.name}</Badge>
-                  <p className="text-xs text-muted-foreground">Target</p>
+                  <Badge variant="default" className="mb-1.5 sm:mb-2 text-xs">{targetNicheData?.name}</Badge>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Target</p>
                 </div>
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Target Niche (will remain)</label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Target Niche (will remain)</label>
               <Select value={targetNiche} onValueChange={setTargetNiche}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9 sm:h-10 text-sm">
                   <SelectValue placeholder="Select niche to merge into" />
                 </SelectTrigger>
                 <SelectContent>
                   {niches
                     .filter(n => n.id !== sourceNiche)
                     .map((niche) => (
-                      <SelectItem key={niche.id} value={niche.id}>
+                      <SelectItem key={niche.id} value={niche.id} className="text-sm">
                         {niche.name}
                         {niche.isPrimary && " (Primary)"}
                       </SelectItem>
@@ -709,30 +845,31 @@ export default function AdminNiches() {
                 </SelectContent>
               </Select>
               {targetNiche && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
                   All references will be updated to this niche
                 </p>
               )}
             </div>
 
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 rounded-md p-3">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                <strong>Warning:</strong> This action cannot be undone. All offers and creator profiles
-                using the source niche will be permanently updated.
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 rounded-md p-2.5 sm:p-3">
+              <p className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Warning:</strong> This action cannot be undone.
               </p>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseMergeDialog}>
-              Cancel
-            </Button>
+          <DialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
             <Button
               onClick={handleMerge}
               disabled={mergeNichesMutation.isPending || !sourceNiche || !targetNiche}
               variant="destructive"
+              size="sm"
+              className="text-xs sm:text-sm h-10 sm:h-10 order-1 sm:order-2"
             >
               {mergeNichesMutation.isPending ? "Merging..." : "Merge Niches"}
+            </Button>
+            <Button variant="outline" onClick={handleCloseMergeDialog} size="sm" className="text-xs sm:text-sm h-10 sm:h-10 order-2 sm:order-1">
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -740,22 +877,27 @@ export default function AdminNiches() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Niche Category</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-base sm:text-lg">Delete Niche Category</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs sm:text-sm">
               Are you sure you want to delete this niche category? This action cannot be undone.
               Consider merging niches instead if there are existing offers or creator profiles using this niche.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setNicheToDelete(null)}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs sm:text-sm h-10 sm:h-10 order-1 sm:order-2"
             >
               Delete
             </AlertDialogAction>
+            <AlertDialogCancel
+              onClick={() => setNicheToDelete(null)}
+              className="text-xs sm:text-sm h-10 sm:h-10 order-2 sm:order-1 mt-0"
+            >
+              Cancel
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
