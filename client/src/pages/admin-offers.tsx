@@ -42,6 +42,7 @@ import {
 import { TopNavBar } from "../components/TopNavBar";
 import { useLocation, useRoute } from "wouter";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { proxiedSrc } from "../lib/image";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   draft: { label: "Draft", variant: "outline" },
@@ -420,7 +421,7 @@ export default function AdminOffers() {
                     <div className="w-14 h-14 rounded-lg bg-muted shrink-0 overflow-hidden">
                       {offer.featuredImageUrl ? (
                         <img
-                          src={offer.featuredImageUrl}
+                          src={proxiedSrc(offer.featuredImageUrl)}
                           alt={offer.title}
                           className="w-full h-full object-cover"
                         />
@@ -512,7 +513,7 @@ export default function AdminOffers() {
                           <div className="w-10 h-10 rounded-lg bg-muted shrink-0 overflow-hidden">
                             {offer.featuredImageUrl ? (
                               <img
-                                src={offer.featuredImageUrl}
+                                src={proxiedSrc(offer.featuredImageUrl)}
                                 alt={offer.title}
                                 className="w-full h-full object-cover"
                               />
