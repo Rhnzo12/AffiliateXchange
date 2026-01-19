@@ -409,7 +409,7 @@ export default function CreatorDashboard() {
               </Link>
             </div>
             <div className="space-y-2">
-              <Link href="/help/affiliate-tips" className="block group">
+              <Link href="/help/affiliate-marketing-tips" className="block group">
                 <Card className="hover:shadow-sm transition-shadow">
                   <CardContent className="p-2.5">
                     <div className="flex items-center gap-2.5">
@@ -426,7 +426,7 @@ export default function CreatorDashboard() {
                 </Card>
               </Link>
 
-              <Link href="/help/getting-started" className="block group">
+              <Link href="/help/affiliate-links-guide" className="block group">
                 <Card className="hover:shadow-sm transition-shadow">
                   <CardContent className="p-2.5">
                     <div className="flex items-center gap-2.5">
@@ -886,7 +886,7 @@ export default function CreatorDashboard() {
                   <CardTitle className="text-lg">Tips & Resources</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Link href="/help/affiliate-tips" className="block group">
+                  <Link href="/help/affiliate-marketing-tips" className="block group">
                     <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
                       <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                         <Lightbulb className="h-4 w-4 text-foreground" />
@@ -899,7 +899,7 @@ export default function CreatorDashboard() {
                     </div>
                   </Link>
 
-                  <Link href="/help/getting-started" className="block group">
+                  <Link href="/help/affiliate-links-guide" className="block group">
                     <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
                       <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                         <BookOpen className="h-4 w-4 text-foreground" />
