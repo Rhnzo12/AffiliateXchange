@@ -1221,10 +1221,10 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                 </div>
 
                 {/* Desktop Table View */}
-                <table className="hidden lg:table w-full min-w-[820px] text-sm">
-                  <thead className="text-xs uppercase text-muted-foreground border-b">
+                <table className="hidden lg:table w-full min-w-[900px] text-sm">
+                  <thead className="text-xs uppercase text-muted-foreground border-b bg-gray-50/50">
                     <tr>
-                      <th className="py-3 pl-2 pr-3 w-10">
+                      <th className="py-3 pl-4 pr-3 w-10">
                         <Checkbox
                           checked={allOfferSelected}
                           ref={(el) => {
@@ -1236,15 +1236,15 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                           aria-label={`Select all creators for ${offer.offerTitle}`}
                         />
                       </th>
-                      <th className="py-3 text-left font-medium">Creator</th>
-                      <th className="py-3 text-left font-medium">Status</th>
-                      <th className="py-3 text-left font-medium">Performance</th>
-                      <th className="py-3 text-left font-medium">Metrics</th>
-                      <th className="py-3 text-left font-medium">Join Date</th>
-                      <th className="py-3 text-left font-medium">Quick Actions</th>
+                      <th className="py-3 text-left font-medium tracking-wider">Creator</th>
+                      <th className="py-3 text-left font-medium tracking-wider">Status</th>
+                      <th className="py-3 text-left font-medium tracking-wider">Performance</th>
+                      <th className="py-3 text-left font-medium tracking-wider">Metrics</th>
+                      <th className="py-3 text-left font-medium tracking-wider">Join Date</th>
+                      <th className="py-3 text-left font-medium tracking-wider">Quick Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-gray-100">
                     {offer.items.map((application) => {
                       const creatorInitial =
                         (application.creator?.firstName?.[0] || application.creator?.email?.[0] || "C").toUpperCase();
@@ -1255,30 +1255,30 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                       const statusBadgeClass = (() => {
                         switch (application.status) {
                           case "pending":
-                            return "bg-amber-100 text-amber-800 border-amber-200";
+                            return "bg-amber-100 text-amber-800";
                           case "approved":
-                            return "bg-blue-100 text-blue-800 border-blue-200";
+                            return "bg-blue-100 text-blue-800";
                           case "active":
-                            return "bg-emerald-100 text-emerald-800 border-emerald-200";
+                            return "bg-emerald-100 text-emerald-800";
                           case "paused":
-                            return "bg-slate-200 text-slate-700 border-slate-300";
+                            return "bg-slate-100 text-slate-700";
                           case "completed":
-                            return "bg-purple-100 text-purple-800 border-purple-200";
+                            return "bg-purple-100 text-purple-800";
                           case "rejected":
-                            return "bg-red-100 text-red-700 border-red-200";
+                            return "bg-red-100 text-red-700";
                           default:
-                            return "bg-muted text-foreground border-border";
+                            return "bg-gray-100 text-gray-700";
                         }
                       })();
 
                       const performanceBadgeClass = (() => {
                         switch (application.performanceTier) {
                           case "high":
-                            return "bg-emerald-100 text-emerald-800 border-emerald-200";
+                            return "bg-emerald-100 text-emerald-800";
                           case "medium":
-                            return "bg-sky-100 text-sky-800 border-sky-200";
+                            return "bg-sky-100 text-sky-800";
                           default:
-                            return "bg-amber-100 text-amber-800 border-amber-200";
+                            return "bg-amber-100 text-amber-800";
                         }
                       })();
 
@@ -1287,9 +1287,9 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                       return (
                         <tr
                           key={application.id}
-                          className={`align-top transition-colors ${isSelected ? "bg-primary/5" : ""}`}
+                          className={`align-middle transition-colors hover:bg-gray-50/50 ${isSelected ? "bg-primary/5" : ""}`}
                         >
-                          <td className="py-4 pl-2 pr-3 w-10">
+                          <td className="py-4 pl-4 pr-3 w-10">
                             <Checkbox
                               checked={isSelected}
                               onCheckedChange={() => toggleApplicationSelection(application.id)}
@@ -1297,28 +1297,28 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                             />
                           </td>
                           <td className="py-4 pr-4">
-                            <div className="flex items-start gap-3">
-                              <Avatar className="h-10 w-10">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10 border border-gray-200">
                                 <AvatarImage src={proxiedSrc(application.creator?.profileImageUrl) || undefined} />
-                                <AvatarFallback>{creatorInitial}</AvatarFallback>
+                                <AvatarFallback className="bg-primary/10 text-primary font-medium">{creatorInitial}</AvatarFallback>
                               </Avatar>
-                              <div>
-                                <div className="font-medium leading-tight">{fullName}</div>
-                                <div className="text-xs text-muted-foreground">{application.creator?.email || "No email"}</div>
-                                <div className="flex flex-wrap gap-1 pt-1">
+                              <div className="min-w-0">
+                                <div className="font-semibold text-gray-900">{fullName}</div>
+                                <div className="text-xs text-muted-foreground truncate">{application.creator?.email || "No email"}</div>
+                                <div className="flex flex-wrap gap-1 mt-1">
                                   {application.creator?.youtubeUrl && (
-                                    <Badge variant="outline" className="gap-1">
-                                      <ExternalLink className="h-3 w-3" /> YouTube
+                                    <Badge variant="outline" className="gap-1 text-[10px] px-1.5 py-0 h-5 font-normal">
+                                      <ExternalLink className="h-2.5 w-2.5" /> YouTube
                                     </Badge>
                                   )}
                                   {application.creator?.tiktokUrl && (
-                                    <Badge variant="outline" className="gap-1">
-                                      <ExternalLink className="h-3 w-3" /> TikTok
+                                    <Badge variant="outline" className="gap-1 text-[10px] px-1.5 py-0 h-5 font-normal">
+                                      <ExternalLink className="h-2.5 w-2.5" /> TikTok
                                     </Badge>
                                   )}
                                   {application.creator?.instagramUrl && (
-                                    <Badge variant="outline" className="gap-1">
-                                      <ExternalLink className="h-3 w-3" /> Instagram
+                                    <Badge variant="outline" className="gap-1 text-[10px] px-1.5 py-0 h-5 font-normal">
+                                      <ExternalLink className="h-2.5 w-2.5" /> Instagram
                                     </Badge>
                                   )}
                                 </div>
@@ -1326,8 +1326,8 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                             </div>
                           </td>
                           <td className="py-4 pr-4">
-                            <div className="flex flex-col gap-2">
-                              <Badge variant="outline" className={`w-fit ${statusBadgeClass}`}>
+                            <div className="space-y-2">
+                              <Badge className={`${statusBadgeClass} font-medium text-xs px-2.5 py-0.5 border-0`}>
                                 {formatStatusLabel(application.status)}
                               </Badge>
                               <Select
@@ -1339,8 +1339,8 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                                 }}
                                 disabled={statusUpdatingId === application.id || updateStatusMutation.isPending}
                               >
-                                <SelectTrigger className="h-8 w-[180px] text-xs">
-                                  <SelectValue />
+                                <SelectTrigger className="h-8 w-[140px] text-xs bg-white">
+                                  <SelectValue placeholder="Change status" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {STATUS_OPTIONS.map((option) => (
@@ -1353,60 +1353,55 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                             </div>
                           </td>
                           <td className="py-4 pr-4">
-                            <Badge variant="outline" className={`w-fit ${performanceBadgeClass}`}>
-                              {formatPerformanceLabel(application.performanceTier)}
-                            </Badge>
-                            <div className="text-xs text-muted-foreground mt-2">
-                              {(application.conversionRate * 100).toFixed(1)}% conversion rate
+                            <div className="space-y-1">
+                              <Badge className={`${performanceBadgeClass} font-medium text-xs px-2.5 py-0.5 border-0`}>
+                                {formatPerformanceLabel(application.performanceTier)}
+                              </Badge>
+                              <div className="text-xs text-muted-foreground">
+                                {(application.conversionRate * 100).toFixed(1)}% conversion rate
+                              </div>
                             </div>
                           </td>
                           <td className="py-4 pr-4">
-                            <div className="grid grid-cols-3 gap-3 text-center">
-                              <div>
-                                <div className="text-xs text-muted-foreground">Clicks</div>
-                                <div className="font-semibold">{application.clicks}</div>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-4 text-sm">
+                                <span><span className="font-semibold text-gray-900">{application.clicks}</span> <span className="text-muted-foreground">Clicks</span></span>
+                                <span><span className="font-semibold text-gray-900">{application.conversions}</span> <span className="text-muted-foreground">Conversions</span></span>
                               </div>
-                              <div>
-                                <div className="text-xs text-muted-foreground">Conversions</div>
-                                <div className="font-semibold">{application.conversions}</div>
-                              </div>
-                              <div>
-                                <div className="text-xs text-muted-foreground">Earned</div>
-                                <div className="font-semibold">${application.earnings.toFixed(2)}</div>
-                              </div>
+                              <div className="font-semibold text-gray-900">${application.earnings.toFixed(2)}</div>
+                              {application.pendingPayment && (
+                                <div className="flex items-center gap-1 text-xs text-amber-600">
+                                  <DollarSign className="h-3 w-3" /> Pending: ${Number(application.pendingPayment.netAmount || 0).toFixed(2)}
+                                </div>
+                              )}
                             </div>
-                            {application.pendingPayment && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-                                <PauseCircle className="h-3 w-3" /> Pending payout: ${Number(application.pendingPayment.netAmount || 0).toFixed(2)}
-                              </div>
-                            )}
                           </td>
                           <td className="py-4 pr-4">
-                            <div className="text-sm font-medium">{formatDate(application.joinDate)}</div>
+                            <div className="text-sm text-gray-900">{formatDate(application.joinDate)}</div>
                           </td>
-                          <td className="py-4">
-                            <div className="flex flex-wrap gap-2">
+                          <td className="py-4 pr-4">
+                            <div className="grid grid-cols-2 gap-2 max-w-[280px]">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="gap-2"
+                                className="gap-1.5 h-8 text-xs justify-start"
                                 data-testid={`button-message-${application.id}`}
                                 onClick={() => startConversationMutation.mutate(application.id)}
                                 disabled={startConversationMutation.isPending}
                               >
-                                <MessageSquare className="h-4 w-4" />
+                                <MessageSquare className="h-3.5 w-3.5" />
                                 Message
                               </Button>
                               <Link href={`/analytics/${application.id}`} className="flex">
-                                <Button variant="outline" size="sm" className="gap-2">
-                                  <TrendingUp className="h-4 w-4" />
+                                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs justify-start w-full">
+                                  <TrendingUp className="h-3.5 w-3.5" />
                                   Analytics
                                 </Button>
                               </Link>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="gap-2"
+                                className="gap-1.5 h-8 text-xs justify-start"
                                 onClick={() => {
                                   if (application.pendingPayment?.id) {
                                     approvePayoutMutation.mutate({ paymentId: application.pendingPayment.id });
@@ -1418,21 +1413,21 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                                   payoutProcessingId === application.pendingPayment?.id
                                 }
                               >
-                                <CheckCircle2 className="h-4 w-4" />
+                                <CheckCircle2 className="h-3.5 w-3.5" />
                                 Approve Payout
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="gap-2 text-red-600"
+                                className="gap-1.5 h-8 text-xs justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => {
-                                  if (window.confirm("Pause this creator on the offer?")) {
+                                  if (window.confirm("Remove this creator from the offer?")) {
                                     updateStatusMutation.mutate({ applicationId: application.id, status: "paused" });
                                   }
                                 }}
                                 disabled={statusUpdatingId === application.id && updateStatusMutation.isPending}
                               >
-                                <PauseCircle className="h-4 w-4" />
+                                <Trash2 className="h-3.5 w-3.5" />
                                 Remove
                               </Button>
                             </div>
