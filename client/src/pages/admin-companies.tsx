@@ -6,6 +6,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import {
   Table,
   TableBody,
@@ -51,6 +52,7 @@ type Company = {
   tradeName?: string;
   industry?: string;
   websiteUrl?: string;
+  logoUrl?: string;
   status: "pending" | "approved" | "rejected" | "suspended";
   createdAt: string;
   approvedAt?: string;
@@ -486,9 +488,12 @@ export default function AdminCompanies() {
                     <TableRow key={company.id} className="hover:bg-gray-50 cursor-pointer">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 shrink-0">
-                            <Building2 className="h-5 w-5 text-gray-600" />
-                          </div>
+                          <Avatar className="h-10 w-10 rounded-lg border">
+                            <AvatarImage src={company.logoUrl} alt={company.legalName} className="object-cover" />
+                            <AvatarFallback className="rounded-lg bg-gray-100 text-gray-600">
+                              <Building2 className="h-5 w-5" />
+                            </AvatarFallback>
+                          </Avatar>
                           <div className="min-w-0">
                             <p className="font-medium text-gray-900 truncate">{company.legalName}</p>
                             {company.tradeName && company.tradeName !== company.legalName && (
@@ -586,9 +591,12 @@ export default function AdminCompanies() {
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gray-100 shrink-0">
-                        <Building2 className="h-6 w-6 text-gray-600" />
-                      </div>
+                      <Avatar className="h-12 w-12 rounded-lg border">
+                        <AvatarImage src={company.logoUrl} alt={company.legalName} className="object-cover" />
+                        <AvatarFallback className="rounded-lg bg-gray-100 text-gray-600">
+                          <Building2 className="h-6 w-6" />
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="min-w-0">
                         <p className="font-semibold text-gray-900 truncate">{company.legalName}</p>
                         {company.tradeName && company.tradeName !== company.legalName && (
