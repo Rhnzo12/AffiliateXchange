@@ -274,19 +274,19 @@ export default function AdminCreators() {
     switch (creator.accountStatus) {
       case "active":
         return (
-          <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+          <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-100">
             Active
           </Badge>
         );
       case "suspended":
         return (
-          <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">
+          <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-100">
             Suspended
           </Badge>
         );
       case "banned":
         return (
-          <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
+          <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-100">
             Banned
           </Badge>
         );
@@ -362,8 +362,8 @@ export default function AdminCreators() {
                   <p className="text-sm text-gray-500">Total Creators</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-blue-600" />
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-gray-600" />
                 </div>
               </div>
             </CardContent>
@@ -373,10 +373,10 @@ export default function AdminCreators() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Active</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                  <ShieldCheck className="h-5 w-5 text-green-600" />
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <ShieldCheck className="h-5 w-5 text-gray-600" />
                 </div>
               </div>
             </CardContent>
@@ -386,10 +386,10 @@ export default function AdminCreators() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Suspended</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.suspended}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.suspended}</p>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <ShieldOff className="h-5 w-5 text-yellow-600" />
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <ShieldOff className="h-5 w-5 text-gray-600" />
                 </div>
               </div>
             </CardContent>
@@ -399,10 +399,10 @@ export default function AdminCreators() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Banned</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.banned}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.banned}</p>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
-                  <Ban className="h-5 w-5 text-red-600" />
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <Ban className="h-5 w-5 text-gray-600" />
                 </div>
               </div>
             </CardContent>
@@ -598,7 +598,7 @@ export default function AdminCreators() {
                               <>
                                 <DropdownMenuItem
                                   onClick={() => handleAction(creator, "suspend")}
-                                  className="cursor-pointer text-yellow-600"
+                                  className="cursor-pointer"
                                   data-testid={`button-suspend-${creator.id}`}
                                 >
                                   <ShieldOff className="h-4 w-4 mr-2" />
@@ -606,7 +606,7 @@ export default function AdminCreators() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleAction(creator, "ban")}
-                                  className="cursor-pointer text-red-600"
+                                  className="cursor-pointer"
                                   data-testid={`button-ban-${creator.id}`}
                                 >
                                   <Ban className="h-4 w-4 mr-2" />
@@ -618,7 +618,7 @@ export default function AdminCreators() {
                               !creator.isDeleted && (
                                 <DropdownMenuItem
                                   onClick={() => handleAction(creator, "unsuspend")}
-                                  className="cursor-pointer text-green-600"
+                                  className="cursor-pointer"
                                   data-testid={`button-unsuspend-${creator.id}`}
                                 >
                                   <ShieldCheck className="h-4 w-4 mr-2" />
