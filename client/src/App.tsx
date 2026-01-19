@@ -76,6 +76,7 @@ import Register from "./pages/register";
 import SelectRole from "./pages/select-role";
 import PrivacyPolicy from "./pages/privacy-policy";
 import TermsOfService from "./pages/terms-of-service";
+import CookiePolicy from "./pages/cookie-policy";
 import About from "./pages/about";
 import OAuthCallback from "./pages/oauth-callback";
 import ForgotPassword from "./pages/forgot-password";
@@ -102,6 +103,7 @@ function PublicRouter() {
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
+      <Route path="/cookie-policy" component={CookiePolicy} />
       <Route path="/about" component={About} />
       <Route path="/oauth-callback" component={OAuthCallback} />
       <Route component={Landing} />
@@ -489,7 +491,7 @@ function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   // Define public routes
-  const publicRoutes = ['/login', '/register', '/select-role', '/forgot-password', '/reset-password', '/privacy-policy', '/terms-of-service', '/about'];
+  const publicRoutes = ['/login', '/register', '/select-role', '/forgot-password', '/reset-password', '/privacy-policy', '/terms-of-service', '/cookie-policy', '/about'];
   const isPublicRoute = publicRoutes.includes(location);
 
   // While loading, show a loading state
