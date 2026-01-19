@@ -1092,36 +1092,39 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                     return (
                       <Card key={application.id} className="border-0 shadow-sm">
                         <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-12 w-12 border">
+                          {/* Header with Status Badge */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <Avatar className="h-10 w-10 border shrink-0">
                                 <AvatarImage src={proxiedSrc(application.creator?.profileImageUrl) || undefined} />
                                 <AvatarFallback className="bg-gray-100 text-gray-600">
                                   {creatorInitial}
                                 </AvatarFallback>
                               </Avatar>
-                              <div>
-                                <p className="font-semibold text-gray-900">{fullName}</p>
-                                <p className="text-sm text-gray-500">{offer.offerTitle}</p>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-gray-900 truncate">{fullName}</p>
+                                <p className="text-sm text-gray-500 truncate">{offer.offerTitle}</p>
                               </div>
                             </div>
-                            {getStatusBadge(application.status)}
+                            <div className="shrink-0 ml-2">
+                              {getStatusBadge(application.status)}
+                            </div>
                           </div>
 
                           {/* Stats Row */}
-                          <div className="flex items-center justify-between py-3 border-t border-b border-gray-100">
-                            <div className="flex items-center gap-1.5">
-                              <TrendingUp className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm">
+                          <div className="flex items-center justify-between py-3 border-t border-b border-gray-100 text-sm">
+                            <div className="flex items-center gap-1">
+                              <TrendingUp className="h-3.5 w-3.5 text-gray-400" />
+                              <span>
                                 <span className="font-medium text-gray-900">{application.clicks}</span>
                                 <span className="text-gray-500"> clicks</span>
                               </span>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <DollarSign className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm font-medium text-gray-900">${application.earnings.toFixed(2)}</span>
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-3.5 w-3.5 text-gray-400" />
+                              <span className="font-medium text-gray-900">${application.earnings.toFixed(2)}</span>
                             </div>
-                            <div className="text-sm text-gray-600">{formatDate(application.joinDate)}</div>
+                            <div className="text-gray-600">{formatDate(application.joinDate)}</div>
                           </div>
 
                           {/* Action Buttons */}
