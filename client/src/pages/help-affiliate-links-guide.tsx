@@ -8,17 +8,15 @@ import {
   Copy,
   Share2,
   MousePointerClick,
-  Smartphone,
   Globe,
   Mail,
-  MessageCircle,
   CheckCircle2,
   AlertTriangle,
   Lightbulb,
   ArrowRight,
-  Video,
   Mic,
 } from "lucide-react";
+import { SiInstagram, SiYoutube, SiTiktok } from "react-icons/si";
 import { Link } from "wouter";
 
 const steps = [
@@ -87,7 +85,7 @@ const steps = [
 const platforms = [
   {
     name: "Instagram",
-    icon: Smartphone,
+    icon: SiInstagram,
     tips: [
       "Add link to your bio using Linktree or similar",
       "Use 'Link' sticker in Stories",
@@ -97,7 +95,7 @@ const platforms = [
   },
   {
     name: "YouTube",
-    icon: Video,
+    icon: SiYoutube,
     tips: [
       "Add links in video description",
       "Pin comment with link",
@@ -107,7 +105,7 @@ const platforms = [
   },
   {
     name: "TikTok",
-    icon: Smartphone,
+    icon: SiTiktok,
     tips: [
       "Add link to your bio",
       "Mention 'link in bio' in videos",

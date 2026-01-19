@@ -14,9 +14,8 @@ import {
   Lightbulb,
   ArrowRight,
   Clock,
-  Smartphone,
-  Video,
 } from "lucide-react";
+import { SiInstagram, SiYoutube } from "react-icons/si";
 import { Link } from "wouter";
 
 const successStories = [
@@ -25,7 +24,7 @@ const successStories = [
     handle: "@sarahfitlife",
     avatar: "SC",
     platform: "Instagram",
-    platformIcon: Smartphone,
+    platformIcon: SiInstagram,
     niche: "Fitness & Wellness",
     followers: "125K",
     monthlyEarnings: "$4,200",
@@ -52,7 +51,7 @@ const successStories = [
     handle: "@techwitmarc",
     avatar: "MJ",
     platform: "YouTube",
-    platformIcon: Video,
+    platformIcon: SiYoutube,
     niche: "Tech Reviews",
     followers: "89K",
     monthlyEarnings: "$6,800",
@@ -79,7 +78,7 @@ const successStories = [
     handle: "@emmacooks",
     avatar: "ER",
     platform: "Instagram",
-    platformIcon: Smartphone,
+    platformIcon: SiInstagram,
     niche: "Food & Cooking",
     followers: "67K",
     monthlyEarnings: "$2,900",
@@ -106,7 +105,7 @@ const successStories = [
     handle: "@davidgames",
     avatar: "DP",
     platform: "YouTube",
-    platformIcon: Video,
+    platformIcon: SiYoutube,
     niche: "Gaming",
     followers: "210K",
     monthlyEarnings: "$8,500",
@@ -133,7 +132,7 @@ const successStories = [
     handle: "@aishabeauty",
     avatar: "AW",
     platform: "Instagram",
-    platformIcon: Smartphone,
+    platformIcon: SiInstagram,
     niche: "Beauty & Skincare",
     followers: "156K",
     monthlyEarnings: "$5,100",
