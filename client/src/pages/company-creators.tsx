@@ -163,6 +163,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
   const [pendingPlatformFilters, setPendingPlatformFilters] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [mobileExportMenuOpen, setMobileExportMenuOpen] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const [payoutProcessingId, setPayoutProcessingId] = useState<string | null>(null);
   const [errorDialog, setErrorDialog] = useState<{ title: string; message: string } | null>(null);
@@ -777,7 +778,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                 <SelectItem value="oldest">Oldest</SelectItem>
               </SelectContent>
             </Select>
-            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+            <DropdownMenu open={mobileExportMenuOpen} onOpenChange={setMobileExportMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5 h-9">
                   <Download className="h-4 w-4" />
@@ -791,7 +792,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                 <DropdownMenuItem
                   className="gap-2"
                   onClick={() => {
-                    setExportMenuOpen(false);
+                    setMobileExportMenuOpen(false);
                     exportCreatorCsv();
                   }}
                 >
@@ -801,15 +802,15 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                 <DropdownMenuItem
                   className="gap-2"
                   onClick={() => {
-                    setExportMenuOpen(false);
+                    setMobileExportMenuOpen(false);
                     exportCreatorPdf();
                   }}
                 >
                   <FileText className="h-4 w-4" />
-                PDF report
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  PDF report
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
