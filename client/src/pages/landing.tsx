@@ -671,165 +671,180 @@ export default function Landing() {
       </section>
 
       {/* Platform Features Section */}
-      <section id="platform-features" className="py-12 sm:py-20 bg-gradient-to-b from-gray-50 to-white">
+      <section id="platform-features" className="py-12 sm:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             {/* For Creators Card */}
             <AnimatedSection animation="fade-right" delay={0}>
-              <Card className="bg-white border-gray-200 shadow-lg h-full overflow-hidden">
-                <CardContent className="p-6 sm:p-8">
+              <div className="relative rounded-2xl overflow-hidden h-full" style={{ background: 'linear-gradient(135deg, #e0f7f6 0%, #f0fdf4 50%, #fef9c3 100%)' }}>
+                <div className="p-6 sm:p-8">
+                  {/* Header */}
                   <div className="text-center mb-6">
-                    <span className="text-sm font-medium text-primary">For Creators</span>
+                    <span className="text-primary font-semibold">For Creators</span>
                     <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mt-2">
-                      Earn More From the Content You Already Create
+                      Earn More From Your Content
                     </h3>
                     <p className="text-sm text-gray-600 mt-2">
-                      Everything you need to turn influence into predictable income.
+                      Partner with top brands and turn your influence into steady income.
                     </p>
                   </div>
 
-                  <div className="space-y-5">
-                    {/* Monetize Smarter */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                          <CheckCircle2 className="h-3 w-3 text-white" />
-                        </div>
-                        <span className="font-semibold text-gray-900">Monetize Smarter</span>
+                  {/* Content Grid */}
+                  <div className="flex flex-col sm:flex-row gap-6">
+                    {/* Features List */}
+                    <div className="flex-1 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+                        <span className="font-semibold text-gray-900">For Creators</span>
                       </div>
-                      <div className="ml-7 space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Access verified, high-paying affiliate offers</span>
+                      <div className="space-y-2 ml-1">
+                        <div className="flex items-start gap-2 text-sm text-gray-700">
+                          <CheckCircle2 className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                          <span>Browse high-ticket affiliate offers</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Transparent commissions & fast payouts</span>
+                        <div className="flex items-start gap-2 text-sm text-gray-700">
+                          <CheckCircle2 className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                          <span>Track clicks, conversions & fast payouts</span>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Grow With Data */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                          <CheckCircle2 className="h-3 w-3 text-white" />
-                        </div>
-                        <span className="font-semibold text-gray-900">Grow With Data</span>
-                      </div>
-                      <div className="ml-7 space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Real-time performance insights</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Know which content actually converts</span>
+                        <div className="flex items-start gap-2 text-sm text-gray-700">
+                          <CheckCircle2 className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                          <span>Access exclusive monthly retainers</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Predictable Income */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                          <CheckCircle2 className="h-3 w-3 text-white" />
+                    {/* Dashboard Mockup */}
+                    <div className="flex-1 relative">
+                      {/* Main Stats Card */}
+                      <div className="bg-white rounded-xl shadow-lg p-4 relative z-10">
+                        <div className="text-xs text-gray-500 mb-1">Creator Dashboard</div>
+                        <div className="text-2xl font-bold text-gray-900">$3,245.87</div>
+                        <div className="flex gap-4 mt-2 text-xs">
+                          <div>
+                            <div className="text-gray-500">Clicks</div>
+                            <div className="font-semibold">12,490</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Sales</div>
+                            <div className="font-semibold">621</div>
+                          </div>
                         </div>
-                        <span className="font-semibold text-gray-900">Predictable Income</span>
+                        {/* Mini Chart */}
+                        <div className="mt-3 h-8 flex items-end gap-0.5">
+                          {[40, 65, 45, 80, 55, 70, 90, 60, 75, 85].map((h, i) => (
+                            <div key={i} className="flex-1 bg-primary/20 rounded-t" style={{ height: `${h}%` }} />
+                          ))}
+                        </div>
                       </div>
-                      <div className="ml-7 space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Monthly retainers with brands you trust</span>
+
+                      {/* Offer Card */}
+                      <div className="bg-white rounded-lg shadow-md p-3 mt-2 flex items-center gap-3">
+                        <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <DollarSign className="h-5 w-5 text-blue-600" />
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Less chasing, more stability</span>
+                        <div className="flex-1">
+                          <div className="text-sm font-semibold">Best Buy Affiliate</div>
+                          <div className="text-xs text-gray-500">Best Buy</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-gray-900">$90.00</div>
+                          <div className="text-xs text-primary">Approve</div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </AnimatedSection>
 
             {/* For Brands Card */}
             <AnimatedSection animation="fade-left" delay={100}>
-              <Card className="bg-white border-gray-200 shadow-lg h-full overflow-hidden">
-                <CardContent className="p-6 sm:p-8">
+              <div className="relative rounded-2xl overflow-hidden h-full" style={{ background: 'linear-gradient(135deg, #e0f7f6 0%, #f0fdf4 50%, #fef9c3 100%)' }}>
+                <div className="p-6 sm:p-8">
+                  {/* Header */}
                   <div className="text-center mb-6">
-                    <span className="text-sm font-medium text-primary">For Brands</span>
+                    <span className="text-primary font-semibold">For Brands</span>
                     <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mt-2">
-                      Turn Creators Into a Scalable Growth Channel
+                      Scale with Proven Creators
                     </h3>
                     <p className="text-sm text-gray-600 mt-2">
-                      Launch, manage, and scale affiliate campaigns without friction.
+                      Launch affiliate campaigns that drive revenue and grow your brand.
                     </p>
                   </div>
 
-                  <div className="space-y-5">
-                    {/* Launch Faster */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                          <CheckCircle2 className="h-3 w-3 text-white" />
-                        </div>
-                        <span className="font-semibold text-gray-900">Launch Faster</span>
-                      </div>
-                      <div className="ml-7 space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Create campaigns in minutes</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Flexible commission structures</span>
+                  {/* Content Grid */}
+                  <div className="flex flex-col sm:flex-row gap-6">
+                    {/* Features List */}
+                    <div className="flex-1 space-y-4">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold text-gray-900">Find relevant creators</span>
+                          <span className="text-gray-700"> to promote your brand.</span>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Find the Right Creators */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                          <CheckCircle2 className="h-3 w-3 text-white" />
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold text-gray-900">Create and optimize</span>
+                          <span className="text-gray-700"> campaigns with ease.</span>
                         </div>
-                        <span className="font-semibold text-gray-900">Find the Right Creators</span>
                       </div>
-                      <div className="ml-7 space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Discover creators aligned with your brand</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Review, approve, and onboard seamlessly</span>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-semibold text-gray-900">Track clicks,</span>
+                          <span className="text-gray-700"> conversions & ROI.</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Measure What Matters */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                          <CheckCircle2 className="h-3 w-3 text-white" />
+                    {/* Dashboard Mockup */}
+                    <div className="flex-1 relative">
+                      {/* Stats Card */}
+                      <div className="bg-white rounded-xl shadow-lg p-4 relative z-10">
+                        <div className="text-xs text-gray-500 mb-1">Campaign Performance</div>
+                        <div className="text-2xl font-bold text-gray-900">$3,245.87</div>
+                        <div className="flex gap-4 mt-2 text-xs">
+                          <div>
+                            <div className="text-gray-500">Creators</div>
+                            <div className="font-semibold">9,230</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Conv.</div>
+                            <div className="font-semibold">471</div>
+                          </div>
                         </div>
-                        <span className="font-semibold text-gray-900">Measure What Matters</span>
                       </div>
-                      <div className="ml-7 space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Track clicks, conversions, and ROI</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
-                          <span>Pay only for performance</span>
+
+                      {/* Creator Discovery Card */}
+                      <div className="bg-white rounded-lg shadow-md p-3 mt-2">
+                        <div className="text-xs font-semibold text-gray-700 mb-2">Creator Discovery</div>
+                        <div className="space-y-2">
+                          {[
+                            { name: "Sarah Adams", followers: "125K", rate: "9% Outreach" },
+                            { name: "Mark Jones", followers: "89K", rate: "$15 per sale" },
+                            { name: "Emily Rose", followers: "65K", rate: "10% per sale" },
+                          ].map((creator, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold">
+                                {creator.name.charAt(0)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-medium truncate">{creator.name}</div>
+                                <div className="text-[10px] text-gray-500">{creator.followers} · {creator.rate}</div>
+                              </div>
+                              <div className="text-[10px] text-primary font-medium border border-primary rounded px-1.5 py-0.5">
+                                Approve
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </AnimatedSection>
           </div>
         </div>
