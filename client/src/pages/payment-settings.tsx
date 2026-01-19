@@ -3526,9 +3526,6 @@ export default function PaymentSettings() {
               </Link>
               <h1 className="text-xl font-bold text-gray-900">Payment Management</h1>
             </div>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <SlidersHorizontal className="h-5 w-5" />
-            </Button>
           </div>
 
           {/* Mobile Tabs */}
