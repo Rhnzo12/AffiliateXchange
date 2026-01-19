@@ -749,23 +749,6 @@ export default function Landing() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="mt-8 space-y-3">
-                    <Button
-                      onClick={handleRegister}
-                      className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-semibold"
-                    >
-                      Start Earning as a Creator
-                      <ChevronDown className="h-4 w-4 ml-2 -rotate-90" />
-                    </Button>
-                    <button
-                      onClick={() => setLocation("/offers")}
-                      className="w-full text-center text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center justify-center gap-1"
-                    >
-                      Browse Offers
-                      <ChevronDown className="h-4 w-4 -rotate-90" />
-                    </button>
-                  </div>
                 </CardContent>
               </Card>
             </AnimatedSection>
@@ -844,23 +827,6 @@ export default function Landing() {
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="mt-8 space-y-3">
-                    <Button
-                      onClick={handleRegister}
-                      className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-semibold"
-                    >
-                      Launch a Campaign
-                      <ChevronDown className="h-4 w-4 ml-2 -rotate-90" />
-                    </Button>
-                    <button
-                      onClick={() => setLocation("/register")}
-                      className="w-full text-center text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center justify-center gap-1"
-                    >
-                      Find Creators
-                      <ChevronDown className="h-4 w-4 -rotate-90" />
-                    </button>
                   </div>
                 </CardContent>
               </Card>
