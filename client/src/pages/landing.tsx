@@ -671,132 +671,200 @@ export default function Landing() {
       </section>
 
       {/* Platform Features Section */}
-      <section id="platform-features" className="py-12 sm:py-20 bg-white">
+      <section id="platform-features" className="py-12 sm:py-20 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <AnimatedSection animation="fade-up" className="text-center mb-8 sm:mb-16">
-            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">
-              Platform{" "}
-              <span className="relative inline-block">
-                <span className="relative z-10">Features</span>
-                <span
-                  className="absolute bottom-0 sm:bottom-1 left-0 w-full h-2 sm:h-3 bg-primary/40 -z-0"
-                  style={{ transform: "skewX(-3deg)" }}
-                />
-              </span>
-            </h2>
-            <p className="text-sm sm:text-xl text-gray-600 max-w-2xl mx-auto">
-              Powerful tools designed for creators and brands
-            </p>
-          </AnimatedSection>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+            {/* For Creators Card */}
+            <AnimatedSection animation="fade-right" delay={0}>
+              <Card className="bg-white border-gray-200 shadow-lg h-full overflow-hidden">
+                <CardContent className="p-6 sm:p-8">
+                  <div className="text-center mb-6">
+                    <span className="text-sm font-medium text-primary">For Creators</span>
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mt-2">
+                      Earn More From the Content You Already Create
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Everything you need to turn influence into predictable income.
+                    </p>
+                  </div>
 
-          {/* For Creators */}
-          <div className="mb-12 sm:mb-16">
-            <AnimatedSection animation="fade-up">
-              <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 text-center">
-                For Creators
-              </h3>
-            </AnimatedSection>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              <AnimatedSection animation="zoom-in" delay={0}>
-                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
-                      <Target className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <div className="space-y-5">
+                    {/* Monetize Smarter */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                          <CheckCircle2 className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="font-semibold text-gray-900">Monetize Smarter</span>
+                      </div>
+                      <div className="ml-7 space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Access verified, high-paying affiliate offers</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Transparent commissions & fast payouts</span>
+                        </div>
+                      </div>
                     </div>
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Offer Marketplace</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Browse thousands of affiliate offers from verified brands. Filter by niche, commission type, and payout structure.</p>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-              <AnimatedSection animation="zoom-in" delay={100}>
-                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
-                      <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                    </div>
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Analytics Dashboard</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Track clicks, conversions, and earnings in real-time. Understand what content drives the most revenue.</p>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-              <AnimatedSection animation="zoom-in" delay={200}>
-                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
-                      <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                    </div>
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Payment Management</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Track your earnings, manage payment methods, and withdraw your commissions with ease.</p>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-              <AnimatedSection animation="zoom-in" delay={300}>
-                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
-                      <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                    </div>
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Monthly Retainers</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Access exclusive retainer opportunities for stable monthly income with your favorite brands.</p>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-            </div>
-          </div>
 
-          {/* For Brands */}
-          <div>
-            <AnimatedSection animation="fade-up">
-              <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 text-center">
-                For Brands
-              </h3>
+                    {/* Grow With Data */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                          <CheckCircle2 className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="font-semibold text-gray-900">Grow With Data</span>
+                      </div>
+                      <div className="ml-7 space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Real-time performance insights</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Know which content actually converts</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Predictable Income */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                          <CheckCircle2 className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="font-semibold text-gray-900">Predictable Income</span>
+                      </div>
+                      <div className="ml-7 space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Monthly retainers with brands you trust</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Less chasing, more stability</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 space-y-3">
+                    <Button
+                      onClick={handleRegister}
+                      className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-semibold"
+                    >
+                      Start Earning as a Creator
+                      <ChevronDown className="h-4 w-4 ml-2 -rotate-90" />
+                    </Button>
+                    <button
+                      onClick={() => setLocation("/offers")}
+                      className="w-full text-center text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center justify-center gap-1"
+                    >
+                      Browse Offers
+                      <ChevronDown className="h-4 w-4 -rotate-90" />
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
             </AnimatedSection>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              <AnimatedSection animation="zoom-in" delay={0}>
-                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
-                      <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+
+            {/* For Brands Card */}
+            <AnimatedSection animation="fade-left" delay={100}>
+              <Card className="bg-white border-gray-200 shadow-lg h-full overflow-hidden">
+                <CardContent className="p-6 sm:p-8">
+                  <div className="text-center mb-6">
+                    <span className="text-sm font-medium text-primary">For Brands</span>
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mt-2">
+                      Turn Creators Into a Scalable Growth Channel
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Launch, manage, and scale affiliate campaigns without friction.
+                    </p>
+                  </div>
+
+                  <div className="space-y-5">
+                    {/* Launch Faster */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                          <CheckCircle2 className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="font-semibold text-gray-900">Launch Faster</span>
+                      </div>
+                      <div className="ml-7 space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Create campaigns in minutes</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Flexible commission structures</span>
+                        </div>
+                      </div>
                     </div>
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Campaign Management</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Create and manage affiliate campaigns with customizable commission structures and requirements.</p>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-              <AnimatedSection animation="zoom-in" delay={100}>
-                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
-                      <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+
+                    {/* Find the Right Creators */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                          <CheckCircle2 className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="font-semibold text-gray-900">Find the Right Creators</span>
+                      </div>
+                      <div className="ml-7 space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Discover creators aligned with your brand</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Review, approve, and onboard seamlessly</span>
+                        </div>
+                      </div>
                     </div>
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Creator Discovery</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Find and connect with creators that match your brand. Review applications and approve partnerships.</p>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-              <AnimatedSection animation="zoom-in" delay={200}>
-                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
-                      <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+
+                    {/* Measure What Matters */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                          <CheckCircle2 className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="font-semibold text-gray-900">Measure What Matters</span>
+                      </div>
+                      <div className="ml-7 space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Track clicks, conversions, and ROI</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-gray-400" />
+                          <span>Pay only for performance</span>
+                        </div>
+                      </div>
                     </div>
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Performance Tracking</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Monitor campaign performance with detailed analytics on clicks, conversions, and ROI.</p>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-              <AnimatedSection animation="zoom-in" delay={300}>
-                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
-                      <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                    </div>
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Secure Payouts</h4>
-                    <p className="text-xs sm:text-sm text-gray-600">Manage creator payments seamlessly with our secure payment processing system.</p>
-                  </CardContent>
-                </Card>
-              </AnimatedSection>
-            </div>
+                  </div>
+
+                  <div className="mt-8 space-y-3">
+                    <Button
+                      onClick={handleRegister}
+                      className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-semibold"
+                    >
+                      Launch a Campaign
+                      <ChevronDown className="h-4 w-4 ml-2 -rotate-90" />
+                    </Button>
+                    <button
+                      onClick={() => setLocation("/register")}
+                      className="w-full text-center text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center justify-center gap-1"
+                    >
+                      Find Creators
+                      <ChevronDown className="h-4 w-4 -rotate-90" />
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            </AnimatedSection>
           </div>
         </div>
       </section>
