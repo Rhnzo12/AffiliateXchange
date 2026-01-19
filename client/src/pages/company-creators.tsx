@@ -35,6 +35,7 @@ import {
   Loader2,
   Filter,
   ChevronDown,
+  Trash2,
 } from "lucide-react";
 import { exportCreatorListPDF, type CreatorExportData } from "../lib/export-utils";
 import { Link, useLocation } from "wouter";
@@ -1067,7 +1068,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                         case "pending":
                           return "bg-amber-100 text-amber-800 border-amber-200";
                         case "approved":
-                          return "bg-blue-100 text-blue-800 border-blue-200";
+                          return "bg-emerald-50 text-emerald-700 border-emerald-200";
                         case "active":
                           return "bg-emerald-100 text-emerald-800 border-emerald-200";
                         case "paused":
@@ -1084,18 +1085,18 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                     const performanceBadgeClass = (() => {
                       switch (application.performanceTier) {
                         case "high":
-                          return "bg-emerald-100 text-emerald-800 border-emerald-200";
+                          return "bg-emerald-50 text-emerald-700";
                         case "medium":
-                          return "bg-sky-100 text-sky-800 border-sky-200";
+                          return "bg-sky-50 text-sky-700";
                         default:
-                          return "bg-amber-100 text-amber-800 border-amber-200";
+                          return "bg-amber-50 text-amber-700";
                       }
                     })();
 
                     return (
                       <div
                         key={application.id}
-                        className={`border rounded-lg p-4 space-y-3 transition-colors ${isSelected ? "bg-primary/5 border-primary/30" : "border-gray-200"}`}
+                        className={`bg-white border rounded-xl p-4 space-y-3 shadow-sm ${isSelected ? "ring-2 ring-primary/30" : "border-gray-100"}`}
                       >
                         {/* Creator Info Row */}
                         <div className="flex items-start gap-3">
@@ -1103,15 +1104,33 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                             checked={isSelected}
                             onCheckedChange={() => toggleApplicationSelection(application.id)}
                             aria-label={`Select ${fullName}`}
-                            className="mt-1"
+                            className="mt-2.5"
                           />
-                          <Avatar className="h-10 w-10 flex-shrink-0">
+                          <Avatar className="h-10 w-10 flex-shrink-0 border border-gray-200">
                             <AvatarImage src={proxiedSrc(application.creator?.profileImageUrl) || undefined} />
-                            <AvatarFallback>{creatorInitial}</AvatarFallback>
+                            <AvatarFallback className="bg-primary/10 text-primary">{creatorInitial}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-gray-900 truncate">{fullName}</div>
+                            <div className="font-semibold text-gray-900">{fullName}</div>
                             <div className="text-sm text-muted-foreground truncate">{application.creator?.email || "No email"}</div>
+                            {/* Platform Badges */}
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {application.creator?.youtubeUrl && (
+                                <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5 font-normal">
+                                  <ExternalLink className="h-3 w-3" /> YouTube
+                                </Badge>
+                              )}
+                              {application.creator?.tiktokUrl && (
+                                <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5 font-normal">
+                                  <ExternalLink className="h-3 w-3" /> TikTok
+                                </Badge>
+                              )}
+                              {application.creator?.instagramUrl && (
+                                <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5 font-normal">
+                                  <ExternalLink className="h-3 w-3" /> Instagram
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                           <Select
                             value={application.status}
@@ -1122,7 +1141,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                             }}
                             disabled={statusUpdatingId === application.id || updateStatusMutation.isPending}
                           >
-                            <SelectTrigger className={`h-8 w-auto min-w-[100px] text-xs ${statusBadgeClass} border`}>
+                            <SelectTrigger className={`h-7 w-auto min-w-[95px] text-xs rounded-full ${statusBadgeClass} border`}>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1135,48 +1154,27 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                           </Select>
                         </div>
 
-                        {/* Platform Badges */}
-                        <div className="flex flex-wrap gap-1.5 pl-8">
-                          {application.creator?.youtubeUrl && (
-                            <Badge variant="outline" className="gap-1 text-xs">
-                              <ExternalLink className="h-3 w-3" /> YouTube
-                            </Badge>
-                          )}
-                          {application.creator?.tiktokUrl && (
-                            <Badge variant="outline" className="gap-1 text-xs">
-                              <ExternalLink className="h-3 w-3" /> TikTok
-                            </Badge>
-                          )}
-                          {application.creator?.instagramUrl && (
-                            <Badge variant="outline" className="gap-1 text-xs">
-                              <ExternalLink className="h-3 w-3" /> Instagram
-                            </Badge>
-                          )}
-                        </div>
-
                         {/* Stats Row */}
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground border-t border-b py-2">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground py-2">
                           <span><span className="font-semibold text-gray-900">{application.clicks}</span> Clicks</span>
-                          <span className="text-gray-300">|</span>
                           <span><span className="font-semibold text-gray-900">{(application.conversionRate * 100).toFixed(1)}%</span> conversion rate</span>
-                          <span className="text-gray-300">|</span>
                           <span className="font-semibold text-gray-900">${application.earnings.toFixed(2)}</span>
                         </div>
 
                         {/* Performance & Date Row */}
                         <div className="flex items-center justify-between">
-                          <Badge variant="outline" className={`${performanceBadgeClass}`}>
+                          <span className={`text-sm font-medium px-2 py-0.5 rounded ${performanceBadgeClass}`}>
                             {formatPerformanceLabel(application.performanceTier)}
-                          </Badge>
+                          </span>
                           <span className="text-sm text-muted-foreground">{formatDate(application.joinDate)}</span>
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex flex-wrap gap-2 pt-2">
+                        <div className="flex items-center gap-2 pt-1">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="gap-1.5 flex-1"
+                            className="gap-1.5 h-9 px-4"
                             data-testid={`button-message-${application.id}`}
                             onClick={() => startConversationMutation.mutate(application.id)}
                             disabled={startConversationMutation.isPending}
@@ -1186,7 +1184,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                           </Button>
                           <Button
                             size="sm"
-                            className="gap-1.5 flex-1 bg-primary hover:bg-primary/90 text-white"
+                            className="gap-1.5 h-9 px-4 bg-primary hover:bg-primary/90 text-white"
                             onClick={() => {
                               if (application.pendingPayment?.id) {
                                 approvePayoutMutation.mutate({ paymentId: application.pendingPayment.id });
@@ -1204,15 +1202,15 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                           <Button
                             variant="outline"
                             size="sm"
-                            className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50"
+                            className="gap-1.5 h-9 px-4 text-red-600 border-red-200 hover:bg-red-50"
                             onClick={() => {
-                              if (window.confirm("Pause this creator on the offer?")) {
+                              if (window.confirm("Remove this creator from the offer?")) {
                                 updateStatusMutation.mutate({ applicationId: application.id, status: "paused" });
                               }
                             }}
                             disabled={statusUpdatingId === application.id && updateStatusMutation.isPending}
                           >
-                            <XCircle className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                             Remove
                           </Button>
                         </div>
