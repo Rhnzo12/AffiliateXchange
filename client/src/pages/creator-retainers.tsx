@@ -760,10 +760,13 @@ export default function CreatorRetainers() {
                                 Min length: {contract.minimumVideoLengthSeconds}s
                               </Badge>
                             )}
-                            {contract.postingSchedule && (
-                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-5">{contract.postingSchedule}</Badge>
-                            )}
                           </div>
+                          {/* Posting Schedule - separate row for long text */}
+                          {contract.postingSchedule && (
+                            <p className="text-[10px] text-muted-foreground leading-relaxed">
+                              {contract.postingSchedule}
+                            </p>
+                          )}
 
                           {/* Payment Info Row */}
                           <div className="flex items-center gap-4 py-2 border-t border-b">
