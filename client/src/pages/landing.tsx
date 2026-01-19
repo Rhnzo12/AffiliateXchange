@@ -996,7 +996,7 @@ export default function Landing() {
               <h4 className="text-primary font-semibold mb-4 text-sm">Platform</h4>
               <ul className="space-y-3">
                 <li>
-                  <button onClick={() => scrollToSection('features')} className="text-gray-400 hover:text-white transition-colors text-sm">
+                  <button onClick={() => scrollToSection('platform-features')} className="text-gray-400 hover:text-white transition-colors text-sm">
                     Features
                   </button>
                 </li>
