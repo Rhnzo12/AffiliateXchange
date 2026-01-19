@@ -79,6 +79,7 @@ import TermsOfService from "./pages/terms-of-service";
 import OAuthCallback from "./pages/oauth-callback";
 import ForgotPassword from "./pages/forgot-password";
 import ResetPassword from "./pages/reset-password";
+import HelpAffiliateMarketingTips from "./pages/help-affiliate-marketing-tips";
 import { HeaderContentProvider, useHeaderContent } from "./components/HeaderContentContext";
 import { CompanyTourProvider } from "./contexts/CompanyTourContext";
 import { CompanyTour } from "./components/CompanyTour";
@@ -373,6 +374,7 @@ function ProtectedRouter() {
               <Route path="/favorites" component={Favorites} />
               <Route path="/creator/payment-settings" component={PaymentSettings} />
               <Route path="/payments/:id" component={PaymentDetail} />
+              <Route path="/help/affiliate-marketing-tips" component={HelpAffiliateMarketingTips} />
             </>
           )}
 
