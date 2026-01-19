@@ -157,6 +157,8 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [platformFilters, setPlatformFilters] = useState<string[]>([]);
+  const [offerFilter, setOfferFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("newest");
   const [pendingStatusFilters, setPendingStatusFilters] = useState<string[]>([]);
   const [pendingPlatformFilters, setPendingPlatformFilters] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
@@ -342,10 +344,21 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
     });
   }, [applications]);
 
+  // Get unique offers for dropdown
+  const uniqueOffers = useMemo(() => {
+    const seen = new Map<string, string>();
+    normalizedApplications.forEach((app) => {
+      if (app.offer?.id && app.offer?.title) {
+        seen.set(app.offer.id, app.offer.title);
+      }
+    });
+    return Array.from(seen.entries());
+  }, [normalizedApplications]);
+
   const filteredApplications = useMemo(() => {
     const searchValue = searchTerm.trim().toLowerCase();
 
-    return normalizedApplications.filter((application) => {
+    let result = normalizedApplications.filter((application) => {
       const haystack = [
         `${application.creator?.firstName || ""} ${application.creator?.lastName || ""}`.trim(),
         application.creator?.email || "",
@@ -373,9 +386,21 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
           ? true
           : creatorPlatforms.some((platform) => platformFilters.includes(platform));
 
-      return matchesSearch && matchesStatus && matchesPlatform;
+      const matchesOffer = offerFilter === "all" || application.offer?.id === offerFilter;
+
+      return matchesSearch && matchesStatus && matchesPlatform && matchesOffer;
     });
-  }, [normalizedApplications, platformFilters, searchTerm, statusFilters]);
+
+    // Sort results
+    result.sort((a, b) => {
+      if (sortOrder === "newest") {
+        return (b.joinDate?.getTime() || 0) - (a.joinDate?.getTime() || 0);
+      }
+      return (a.joinDate?.getTime() || 0) - (b.joinDate?.getTime() || 0);
+    });
+
+    return result;
+  }, [normalizedApplications, platformFilters, searchTerm, statusFilters, offerFilter, sortOrder]);
 
   const groupedOffers = useMemo(() => {
     const map = new Map<string, { offerTitle: string; items: NormalizedApplication[] }>();
@@ -546,7 +571,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
   const totalCreators = normalizedApplications.length;
 
   const hasActiveFilters =
-    searchTerm.trim().length > 0 || statusFilters.length > 0 || platformFilters.length > 0;
+    searchTerm.trim().length > 0 || statusFilters.length > 0 || platformFilters.length > 0 || offerFilter !== "all";
 
   const toggleStatusFilter = (value: string) => {
     setPendingStatusFilters((prev) =>
@@ -564,6 +589,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
     setSearchTerm("");
     setStatusFilters([]);
     setPlatformFilters([]);
+    setOfferFilter("all");
     setPendingStatusFilters([]);
     setPendingPlatformFilters([]);
   };
@@ -711,34 +737,55 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
     <div className="space-y-4 lg:space-y-8">
       {!hideTopNav && <TopNavBar />}
 
-      {/* Desktop Header */}
-      <div className="hidden lg:flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Creators by Offer</h1>
-          <p className="text-muted-foreground mt-1">
-            Track every creator working on your offers and take action in one place.
-          </p>
+      {/* Mobile Search & Filter Bar */}
+      <div className="lg:hidden space-y-3">
+        {/* Row 1: Search + All Offers */}
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Search by product name, ID, or SKU..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="flex-1"
+          />
+          <Select value={offerFilter} onValueChange={setOfferFilter}>
+            <SelectTrigger className="w-auto min-w-[100px] h-9 text-sm shrink-0">
+              <SelectValue placeholder="All Offers" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Offers</SelectItem>
+              {uniqueOffers.map(([id, title]) => (
+                <SelectItem key={id} value={id}>
+                  {title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div className="flex gap-2">
-          <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-            <div
-              onMouseEnter={() => setExportMenuOpen(true)}
-              onMouseLeave={() => setExportMenuOpen(false)}
-              className="shrink-0"
-            >
+        {/* Row 2: Showing count + Newest + Export */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            Showing <span className="font-semibold text-foreground">{totalVisibleCreators}</span> of {totalCreators}
+            {` creator${totalCreators === 1 ? "" : "s"}`}
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={sortOrder} onValueChange={setSortOrder}>
+              <SelectTrigger className="w-auto min-w-[90px] h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="oldest">Oldest</SelectItem>
+              </SelectContent>
+            </Select>
+            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-1.5 h-9">
                   <Download className="h-4 w-4" />
                   Export
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-48"
-                onMouseEnter={() => setExportMenuOpen(true)}
-                onMouseLeave={() => setExportMenuOpen(false)}
-              >
+              <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>Export creators</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -759,128 +806,6 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                   }}
                 >
                   <FileText className="h-4 w-4" />
-                  PDF report
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </div>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Mobile Search & Filter Bar */}
-      <div className="lg:hidden space-y-3">
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="Search by product name, ID, or SKU..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            className="flex-1"
-          />
-          <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1 shrink-0">
-                All Offers
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="filter-menu-scroll w-72 space-y-2">
-              <DropdownMenuLabel>Filter creators</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <Accordion type="multiple" className="space-y-1">
-                <AccordionItem value="status" className="border-none">
-                  <AccordionTrigger className="px-2 py-1 text-sm font-medium hover:no-underline">
-                    Status
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-1">
-                    {STATUS_OPTIONS.map((option) => (
-                      <DropdownMenuCheckboxItem
-                        key={option.value}
-                        checked={pendingStatusFilters.includes(option.value)}
-                        onCheckedChange={() => toggleStatusFilter(option.value)}
-                        onSelect={(event) => event.preventDefault()}
-                      >
-                        {option.label}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="platform" className="border-none">
-                  <AccordionTrigger className="px-2 py-1 text-sm font-medium hover:no-underline">
-                    Platform
-                  </AccordionTrigger>
-                  <AccordionContent className="space-y-1">
-                    {PLATFORM_OPTIONS.map((option) => (
-                      <DropdownMenuCheckboxItem
-                        key={option.value}
-                        checked={pendingPlatformFilters.includes(option.value)}
-                        onCheckedChange={() => togglePlatformFilter(option.value)}
-                        onSelect={(event) => event.preventDefault()}
-                      >
-                        {option.label}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-              <DropdownMenuSeparator />
-              <div className="flex items-center justify-between gap-2 px-2 pb-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2 text-muted-foreground"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    clearFilters();
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                  Clear
-                </Button>
-                <Button
-                  size="sm"
-                  className="gap-2 border-0 bg-gray-200 text-black shadow-none hover:bg-gray-300"
-                  onClick={applyFilters}
-                >
-                  Apply
-                </Button>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            Showing <span className="font-semibold text-foreground">{totalVisibleCreators}</span> of {totalCreators}
-            {` creator${totalCreators === 1 ? "" : "s"}`}
-          </div>
-          <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <Download className="h-4 w-4" />
-                Export
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Export creators</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="gap-2"
-                onClick={() => {
-                  setExportMenuOpen(false);
-                  exportCreatorCsv();
-                }}
-              >
-                <Download className="h-4 w-4" />
-                CSV file
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="gap-2"
-                onClick={() => {
-                  setExportMenuOpen(false);
-                  exportCreatorPdf();
-                }}
-              >
-                <FileText className="h-4 w-4" />
                 PDF report
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -891,85 +816,79 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
       {/* Desktop Filter Card */}
       <Card className="border-card-border hidden lg:block">
         <CardContent className="pt-6 space-y-4">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-4">
-            <div className="flex w-full items-center gap-2 xl:max-w-md">
-              <Input
-                placeholder="Search by product name, ID, or SKU..."
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                className="w-full"
-              />
-              <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              placeholder="Search by product name, ID, or SKU..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="flex-1 min-w-[200px] max-w-md"
+            />
+            <Select value={offerFilter} onValueChange={setOfferFilter}>
+              <SelectTrigger className="w-auto min-w-[120px]">
+                <SelectValue placeholder="All Offers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Offers</SelectItem>
+                {uniqueOffers.map(([id, title]) => (
+                  <SelectItem key={id} value={id}>
+                    {title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sortOrder} onValueChange={setSortOrder}>
+              <SelectTrigger className="w-auto min-w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="oldest">Oldest</SelectItem>
+              </SelectContent>
+            </Select>
+            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+              <div
+                onMouseEnter={() => setExportMenuOpen(true)}
+                onMouseLeave={() => setExportMenuOpen(false)}
+              >
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" aria-label="Filter" className="shrink-0">
-                    <Filter className="h-4 w-4" />
+                  <Button variant="outline" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Export
+                    <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="filter-menu-scroll w-72 space-y-2">
-                  <DropdownMenuLabel>Filter creators</DropdownMenuLabel>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-48"
+                  onMouseEnter={() => setExportMenuOpen(true)}
+                  onMouseLeave={() => setExportMenuOpen(false)}
+                >
+                  <DropdownMenuLabel>Export creators</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <Accordion type="multiple" className="space-y-1">
-                    <AccordionItem value="status" className="border-none">
-                      <AccordionTrigger className="px-2 py-1 text-sm font-medium hover:no-underline">
-                        Status
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-1">
-                        {STATUS_OPTIONS.map((option) => (
-                          <DropdownMenuCheckboxItem
-                            key={option.value}
-                            checked={pendingStatusFilters.includes(option.value)}
-                            onCheckedChange={() => toggleStatusFilter(option.value)}
-                            onSelect={(event) => event.preventDefault()}
-                          >
-                            {option.label}
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                      </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="platform" className="border-none">
-                      <AccordionTrigger className="px-2 py-1 text-sm font-medium hover:no-underline">
-                        Platform
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-1">
-                        {PLATFORM_OPTIONS.map((option) => (
-                          <DropdownMenuCheckboxItem
-                            key={option.value}
-                            checked={pendingPlatformFilters.includes(option.value)}
-                            onCheckedChange={() => togglePlatformFilter(option.value)}
-                            onSelect={(event) => event.preventDefault()}
-                          >
-                            {option.label}
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                  <DropdownMenuSeparator />
-                  <div className="flex items-center justify-between gap-2 px-2 pb-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-2 text-muted-foreground"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        clearFilters();
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                      Clear filters
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="gap-2 border-0 bg-gray-200 text-black shadow-none hover:bg-gray-300"
-                      onClick={applyFilters}
-                    >
-                      Apply
-                    </Button>
-                  </div>
+                  <DropdownMenuItem
+                    className="gap-2"
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      exportCreatorCsv();
+                    }}
+                  >
+                    <Download className="h-4 w-4" />
+                    CSV file
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="gap-2"
+                    onClick={() => {
+                      setExportMenuOpen(false);
+                      exportCreatorPdf();
+                    }}
+                  >
+                    <FileText className="h-4 w-4" />
+                    PDF report
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground xl:ml-auto">
+              </div>
+            </DropdownMenu>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
               Showing <span className="font-semibold text-foreground">{totalVisibleCreators}</span> of {totalCreators}
               {` creator${totalCreators === 1 ? "" : "s"}`}
               {hasActiveFilters && (
