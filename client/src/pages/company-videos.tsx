@@ -452,7 +452,7 @@ export default function CompanyVideos({ hideTopNav = false }: CompanyVideosProps
       {/* Video Preview Dialog */}
       {selectedVideo && (
         <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
             <DialogHeader>
               <DialogTitle className="line-clamp-2">{selectedVideo.title || "Video"}</DialogTitle>
               <DialogDescription className="line-clamp-3">
