@@ -4093,6 +4093,193 @@ export default function PaymentSettings() {
         </div>
       )}
 
+      {/* ========== MOBILE LAYOUT FOR ADMIN ========== */}
+      {role === "admin" && (
+        <div className="md:hidden space-y-4 pb-4">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/admin/dashboard">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <h1 className="text-xl font-bold text-gray-900">Payment Administration</h1>
+            </div>
+          </div>
+
+          {/* Mobile Tabs */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                activeTab === "dashboard"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500"
+              }`}
+            >
+              Platform Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                activeTab === "settings"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500"
+              }`}
+            >
+              Payment Settings
+            </button>
+          </div>
+
+          {/* Mobile Dashboard Tab */}
+          {activeTab === "dashboard" && (
+            <div className="space-y-4">
+              {/* Stats Grid - 2x2 */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Platform Revenue */}
+                <div className="rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 p-4 text-white">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-purple-100">Platform Revenue</span>
+                    <TrendingUp className="h-4 w-4 text-purple-100" />
+                  </div>
+                  <div className="text-xl font-bold">
+                    CA${allPayments.reduce((sum, p) => sum + parseFloat(p.platformFeeAmount) + parseFloat(p.stripeFeeAmount), 0).toFixed(2)}
+                  </div>
+                </div>
+
+                {/* Total GMV */}
+                <div className="rounded-xl border-2 border-gray-200 bg-white p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-600">Total GMV</span>
+                    <DollarSign className="h-4 w-4 text-green-500" />
+                  </div>
+                  <div className="text-xl font-bold text-gray-900">
+                    CA${allPayments.reduce((sum, p) => sum + parseFloat(p.grossAmount), 0).toFixed(2)}
+                  </div>
+                </div>
+
+                {/* Total Transactions */}
+                <div className="rounded-xl border-2 border-gray-200 bg-white p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-600">Transactions</span>
+                    <Send className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <div className="text-xl font-bold text-gray-900">{allPayments.length}</div>
+                </div>
+
+                {/* Pending */}
+                <div className="rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 text-white">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-yellow-100">Pending</span>
+                    <Clock className="h-4 w-4 text-yellow-100" />
+                  </div>
+                  <div className="text-xl font-bold">
+                    {allPayments.filter(p => p.status === "pending" || p.status === "processing").length}
+                  </div>
+                </div>
+              </div>
+
+              {/* Transactions Header */}
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-gray-900">Recent Transactions</h2>
+                <span className="text-xs text-gray-500">{allPayments.length} total</span>
+              </div>
+
+              {/* Transaction Cards */}
+              <div className="space-y-3">
+                {allPayments.length === 0 ? (
+                  <div className="rounded-xl border-2 border-gray-200 bg-white p-8 text-center">
+                    <DollarSign className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500 text-sm">No transactions found</p>
+                  </div>
+                ) : (
+                  allPayments.slice(0, 10).map((payment) => (
+                    <Link key={payment.id} href={`/payments/${payment.id}`}>
+                      <div className="rounded-xl border-2 border-gray-200 bg-white p-4 hover:border-gray-300 transition-colors">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="font-medium text-gray-900 text-sm">
+                              {payment.description || "Payment"}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              ID: {payment.id.slice(0, 8)}...
+                            </p>
+                          </div>
+                          <StatusBadge status={payment.status} isDisputed={isDisputedPayment(payment)} />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div>
+                            <p className="text-xs text-gray-500">Gross</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              CA${parseFloat(payment.grossAmount).toFixed(2)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Fee</p>
+                            <p className="text-sm font-medium text-purple-600">
+                              CA${(parseFloat(payment.platformFeeAmount) + parseFloat(payment.stripeFeeAmount)).toFixed(2)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Net</p>
+                            <p className="text-sm font-medium text-green-600">
+                              CA${parseFloat(payment.netAmount).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                          <span className="text-xs text-gray-500">
+                            {payment.completedAt
+                              ? new Date(payment.completedAt).toLocaleDateString()
+                              : new Date(payment.createdAt).toLocaleDateString()}
+                          </span>
+                          {payment.status === 'pending' && (
+                            <Badge className="bg-green-100 text-green-700 text-xs">
+                              Ready to Approve
+                            </Badge>
+                          )}
+                          {payment.status === 'processing' && (
+                            <Badge className="bg-blue-100 text-blue-700 text-xs">
+                              Ready to Send
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                )}
+                {allPayments.length > 10 && (
+                  <p className="text-center text-xs text-gray-500 pt-2">
+                    Showing 10 of {allPayments.length} transactions. View on desktop for full list.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Settings Tab */}
+          {activeTab === "settings" && (
+            <div className="space-y-4">
+              <div className="rounded-xl border-2 border-gray-200 bg-white p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <SlidersHorizontal className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Platform Settings</h3>
+                    <p className="text-xs text-gray-500">Configure payment options</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
+                  For full platform payment settings including fee configuration and funding accounts, please use the desktop version.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ========== DESKTOP LAYOUT ========== */}
       <div className="mx-auto max-w-7xl space-y-6 hidden md:block">
         <div>
