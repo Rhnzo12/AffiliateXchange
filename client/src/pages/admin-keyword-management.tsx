@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "../lib/queryClient";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
@@ -33,9 +33,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Plus, Pencil, Trash2, ShieldAlert, Filter, X, AlertTriangle } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  ShieldAlert,
+  Search,
+  X,
+  AlertTriangle,
+  ShieldCheck,
+  ShieldOff,
+  ChevronLeft,
+  MoreHorizontal,
+  ArrowUpDown,
+  ToggleLeft,
+  ToggleRight,
+} from "lucide-react";
 import { TopNavBar } from "../components/TopNavBar";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
+import { ListSkeleton } from "../components/skeletons";
+import { Link } from "wouter";
+
+type SortField = "keyword" | "category" | "severity" | "status";
+type SortDirection = "asc" | "desc";
 
 type BannedKeyword = {
   id: string;
@@ -59,9 +86,10 @@ export default function AdminKeywordManagement() {
   const [severity, setSeverity] = useState(1);
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState<SortField>("keyword");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     title: string;
@@ -78,30 +106,69 @@ export default function AdminKeywordManagement() {
     enabled: isAuthenticated && user?.role === 'admin',
   });
 
+  // Stats
+  const stats = useMemo(() => {
+    return {
+      total: keywords.length,
+      active: keywords.filter((k) => k.isActive).length,
+      inactive: keywords.filter((k) => !k.isActive).length,
+      highSeverity: keywords.filter((k) => k.severity >= 4).length,
+    };
+  }, [keywords]);
+
+  // Filter and sort keywords
   const filteredKeywords = useMemo(() => {
-    return keywords.filter((kw) => {
-      const matchesSearch = searchTerm
-        ? kw.keyword.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          kw.description?.toLowerCase().includes(searchTerm.toLowerCase())
-        : true;
+    let result = keywords.filter((kw) => {
+      // Status filter
+      if (statusFilter !== "all") {
+        if (statusFilter === "active" && !kw.isActive) return false;
+        if (statusFilter === "inactive" && kw.isActive) return false;
+        if (statusFilter === "high-severity" && kw.severity < 4) return false;
+      }
 
-      const matchesCategory = categoryFilter === "all" || kw.category === categoryFilter;
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && kw.isActive) ||
-        (statusFilter === "inactive" && !kw.isActive);
+      // Search filter
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        const matchesSearch =
+          kw.keyword.toLowerCase().includes(search) ||
+          kw.description?.toLowerCase().includes(search) ||
+          kw.category.toLowerCase().includes(search);
+        if (!matchesSearch) return false;
+      }
 
-      return matchesSearch && matchesCategory && matchesStatus;
+      return true;
     });
-  }, [keywords, searchTerm, categoryFilter, statusFilter]);
 
-  const hasActiveFilters =
-    searchTerm.trim().length > 0 || categoryFilter !== "all" || statusFilter !== "all";
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case "keyword":
+          comparison = a.keyword.localeCompare(b.keyword);
+          break;
+        case "category":
+          comparison = a.category.localeCompare(b.category);
+          break;
+        case "severity":
+          comparison = a.severity - b.severity;
+          break;
+        case "status":
+          comparison = (a.isActive ? 1 : 0) - (b.isActive ? 1 : 0);
+          break;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
 
-  const clearFilters = () => {
-    setSearchTerm("");
-    setCategoryFilter("all");
-    setStatusFilter("all");
+    return result;
+  }, [keywords, searchTerm, statusFilter, sortField, sortDirection]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
   };
 
   const createKeywordMutation = useMutation({
@@ -280,25 +347,27 @@ export default function AdminKeywordManagement() {
     setIsActive(true);
   };
 
-  const getCategoryBadgeColor = (cat: string) => {
-    switch (cat) {
-      case "profanity":
-        return "bg-red-500/10 text-red-500 border-red-500/20";
-      case "spam":
-        return "bg-orange-500/10 text-orange-500 border-orange-500/20";
-      case "legal":
-        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-      case "harassment":
-        return "bg-pink-500/10 text-pink-500 border-pink-500/20";
-      default:
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-    }
+  const getCategoryBadge = (cat: string) => {
+    return (
+      <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-100 capitalize">
+        {cat}
+      </Badge>
+    );
+  };
+
+  const getSeverityDisplay = (sev: number) => {
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className={`font-medium ${sev >= 4 ? 'text-gray-900' : 'text-gray-600'}`}>{sev}/5</span>
+        {sev >= 4 && <AlertTriangle className="h-3.5 w-3.5 text-gray-500" />}
+      </div>
+    );
   };
 
   const getSeverityColor = (sev: number) => {
-    if (sev >= 4) return "text-red-600 font-bold";
-    if (sev >= 3) return "text-orange-600 font-semibold";
-    return "text-muted-foreground";
+    if (sev >= 4) return "text-gray-900 font-bold";
+    if (sev >= 3) return "text-gray-700 font-semibold";
+    return "text-gray-500";
   };
 
   if (isLoading || keywordsLoading) {
@@ -313,208 +382,411 @@ export default function AdminKeywordManagement() {
     return null;
   }
 
-  const activeCount = keywords.filter((k) => k.isActive).length;
-  const categoryCounts = keywords.reduce(
-    (acc, kw) => {
-      acc[kw.category] = (acc[kw.category] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+  const statusTabs = [
+    { key: "all", label: "All", count: stats.total },
+    { key: "active", label: "Active", count: stats.active },
+    { key: "inactive", label: "Inactive", count: stats.inactive },
+    { key: "high-severity", label: "High Severity", count: stats.highSeverity },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50">
       <TopNavBar />
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Banned Keywords Management</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage banned keywords for automatic content moderation
-          </p>
-        </div>
-        <Button onClick={handleCreate}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Keyword
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Keywords</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{keywords.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">{activeCount}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-muted-foreground">
-              {keywords.length - activeCount}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">High Severity (4-5)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">
-              {keywords.filter((k) => k.severity >= 4).length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="border-card-border">
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Filter className="h-4 w-4" />
-              <span className="text-sm font-semibold uppercase tracking-wider">
-                Search & Filter
-              </span>
-            </div>
-            <div className="sm:ml-auto text-sm text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">{filteredKeywords.length}</span>{" "}
-              of {keywords.length} {keywords.length === 1 ? "keyword" : "keywords"}
-            </div>
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" className="text-xs sm:ml-4" onClick={clearFilters}>
-                <X className="h-3 w-3 mr-1" />
-                Clear Filters
+      {/* Mobile Header */}
+      <div className="md:hidden px-4 py-4 bg-white border-b">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/admin/dashboard">
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <ChevronLeft className="h-5 w-5" />
               </Button>
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Keywords</h1>
+              <p className="text-sm text-gray-500">{stats.total} total</p>
+            </div>
+          </div>
+          <Button size="sm" onClick={handleCreate}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6 space-y-4 md:space-y-6">
+        {/* Desktop Header */}
+        <div className="hidden md:flex md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Banned Keywords Management</h1>
+            <p className="text-gray-500 mt-1">Manage keywords for automatic content moderation</p>
+          </div>
+          <Button onClick={handleCreate}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Keyword
+          </Button>
+        </div>
+
+        {/* Mobile Compact Stats */}
+        <div className="md:hidden">
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <ShieldAlert className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.total}</span>
+              <span className="text-xs text-gray-500">Total</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <ShieldCheck className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.active}</span>
+              <span className="text-xs text-gray-500">Active</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <ShieldOff className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.inactive}</span>
+              <span className="text-xs text-gray-500">Inactive</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <AlertTriangle className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.highSeverity}</span>
+              <span className="text-xs text-gray-500">High</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Stats Cards */}
+        <div className="hidden md:grid md:grid-cols-4 gap-4">
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Total Keywords</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <ShieldAlert className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Active</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <ShieldCheck className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Inactive</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.inactive}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <ShieldOff className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">High Severity</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.highSeverity}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-3 md:p-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+              {/* Status Tabs */}
+              <div className="flex gap-1 overflow-x-auto pb-1 md:pb-0 -mx-1 px-1">
+                {statusTabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setStatusFilter(tab.key)}
+                    className={`px-2.5 py-1 md:px-3 md:py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${
+                      statusFilter === tab.key
+                        ? "bg-primary text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    {tab.label}
+                    <span className="ml-1 text-[10px] md:text-xs opacity-70">({tab.count})</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search */}
+              <div className="flex-1 md:max-w-sm">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search keywords..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 bg-gray-50 border-gray-200 h-9 md:h-10 text-sm"
+                    data-testid="input-search-keywords"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Desktop Table */}
+        <Card className="border-0 shadow-sm hidden md:block">
+          <CardContent className="p-0">
+            {keywordsLoading ? (
+              <div className="p-6">
+                <ListSkeleton count={5} />
+              </div>
+            ) : filteredKeywords.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <ShieldAlert className="h-12 w-12 text-gray-300 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">No keywords found</h3>
+                <p className="text-sm text-gray-500">
+                  {searchTerm ? "Try adjusting your search terms" : "No keywords match the current filter"}
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="w-[200px]">
+                      <button
+                        onClick={() => handleSort("keyword")}
+                        className="flex items-center gap-1 font-medium text-gray-700 hover:text-gray-900"
+                      >
+                        Keyword
+                        <ArrowUpDown className="h-3.5 w-3.5" />
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        onClick={() => handleSort("category")}
+                        className="flex items-center gap-1 font-medium text-gray-700 hover:text-gray-900"
+                      >
+                        Category
+                        <ArrowUpDown className="h-3.5 w-3.5" />
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        onClick={() => handleSort("severity")}
+                        className="flex items-center gap-1 font-medium text-gray-700 hover:text-gray-900"
+                      >
+                        Severity
+                        <ArrowUpDown className="h-3.5 w-3.5" />
+                      </button>
+                    </TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>
+                      <button
+                        onClick={() => handleSort("status")}
+                        className="flex items-center gap-1 font-medium text-gray-700 hover:text-gray-900"
+                      >
+                        Status
+                        <ArrowUpDown className="h-3.5 w-3.5" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="w-[100px] text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredKeywords.map((kw) => (
+                    <TableRow
+                      key={kw.id}
+                      className={`hover:bg-gray-50 ${!kw.isActive ? 'opacity-60' : ''}`}
+                      data-testid={`row-keyword-${kw.id}`}
+                    >
+                      <TableCell>
+                        <span className="font-mono font-semibold text-gray-900">{kw.keyword}</span>
+                      </TableCell>
+                      <TableCell>{getCategoryBadge(kw.category)}</TableCell>
+                      <TableCell>{getSeverityDisplay(kw.severity)}</TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-500 truncate max-w-[200px] block">
+                          {kw.description || "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className="bg-gray-100 text-gray-700 hover:bg-gray-100"
+                        >
+                          {kw.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => handleEdit(kw)}
+                              className="cursor-pointer"
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit Keyword
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => toggleKeywordMutation.mutate(kw.id)}
+                              className="cursor-pointer"
+                            >
+                              {kw.isActive ? (
+                                <>
+                                  <ToggleLeft className="h-4 w-4 mr-2" />
+                                  Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <ToggleRight className="h-4 w-4 mr-2" />
+                                  Activate
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(kw.id)}
+                              className="cursor-pointer text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Keyword
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Search</label>
-              <Input
-                placeholder="Search keywords or descriptions"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="profanity">Profanity</SelectItem>
-                  <SelectItem value="spam">Spam</SelectItem>
-                  <SelectItem value="legal">Legal</SelectItem>
-                  <SelectItem value="harassment">Harassment</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Keywords</SelectItem>
-                  <SelectItem value="active">Active Only</SelectItem>
-                  <SelectItem value="inactive">Inactive Only</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="pt-6">
-          {filteredKeywords.length === 0 ? (
-            <div className="text-center py-12">
-              <ShieldAlert className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                {keywords.length === 0 ? "No banned keywords yet" : "No keywords match your filters"}
-              </h3>
-              <p className="text-muted-foreground">
-                {keywords.length === 0
-                  ? "Add keywords to automatically flag inappropriate content"
-                  : "Try adjusting your search terms or resetting the selected filters"}
-              </p>
-            </div>
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-3">
+          {keywordsLoading ? (
+            <ListSkeleton count={5} />
+          ) : filteredKeywords.length === 0 ? (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <ShieldAlert className="h-12 w-12 text-gray-300 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">No keywords found</h3>
+                <p className="text-sm text-gray-500 text-center">
+                  {searchTerm ? "Try adjusting your search terms" : "No keywords match the current filter"}
+                </p>
+              </CardContent>
+            </Card>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Keyword</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-center">Severity</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredKeywords.map((kw) => (
-                  <TableRow key={kw.id}>
-                    <TableCell className="font-mono font-semibold">{kw.keyword}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={getCategoryBadgeColor(kw.category)}>
-                        {kw.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <span className={getSeverityColor(kw.severity)}>{kw.severity}</span>
-                        {kw.severity >= 4 && <AlertTriangle className="h-3 w-3 text-red-600" />}
+            filteredKeywords.map((kw) => (
+              <Card
+                key={kw.id}
+                className={`border-0 shadow-sm ${!kw.isActive ? 'opacity-60' : ''}`}
+                data-testid={`card-keyword-${kw.id}`}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-mono font-semibold text-gray-900 text-lg">{kw.keyword}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {getCategoryBadge(kw.category)}
+                        <Badge
+                          variant="secondary"
+                          className="bg-gray-100 text-gray-700 hover:bg-gray-100"
+                        >
+                          {kw.isActive ? "Active" : "Inactive"}
+                        </Badge>
                       </div>
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
-                      {kw.description || "-"}
-                    </TableCell>
-                    <TableCell className="text-center">
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className={`text-sm ${getSeverityColor(kw.severity)}`}>
+                        {kw.severity}/5
+                      </span>
+                      {kw.severity >= 4 && <AlertTriangle className="h-4 w-4 text-gray-500" />}
+                    </div>
+                  </div>
+
+                  {kw.description && (
+                    <p className="text-sm text-gray-500 mb-3 line-clamp-2">{kw.description}</p>
+                  )}
+
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">Toggle:</span>
                       <Switch
                         checked={kw.isActive}
                         onCheckedChange={() => toggleKeywordMutation.mutate(kw.id)}
                         disabled={toggleKeywordMutation.isPending}
                       />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(kw)}>
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(kw.id)}
-                          disabled={deleteKeywordMutation.isPending}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    </div>
 
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          Actions
+                          <MoreHorizontal className="h-4 w-4 ml-1" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={() => handleEdit(kw)}
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(kw.id)}
+                          className="cursor-pointer text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+
+        {/* Results count */}
+        {!keywordsLoading && filteredKeywords.length > 0 && (
+          <p className="text-sm text-gray-500 text-center">
+            Showing {filteredKeywords.length} of {keywords.length} keywords
+          </p>
+        )}
+      </div>
+
+      {/* Add/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -564,7 +836,7 @@ export default function AdminKeywordManagement() {
                 className="w-full"
                 aria-label="Severity level"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-gray-500">
                 1 = Low severity, 5 = Critical severity
               </p>
             </div>
