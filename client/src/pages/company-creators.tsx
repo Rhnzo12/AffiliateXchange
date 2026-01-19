@@ -810,6 +810,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
       </div>
 
