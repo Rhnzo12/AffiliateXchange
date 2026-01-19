@@ -738,191 +738,198 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
     );
   }
 
+  // Status tabs for filtering
+  const statusTabs = [
+    { key: "all", label: "All", count: totalCreators },
+    { key: "approved", label: "Approved", count: normalizedApplications.filter(a => a.status === "approved").length },
+    { key: "active", label: "Active", count: normalizedApplications.filter(a => a.status === "active").length },
+    { key: "paused", label: "Paused", count: normalizedApplications.filter(a => a.status === "paused").length },
+    { key: "completed", label: "Completed", count: normalizedApplications.filter(a => a.status === "completed").length },
+  ];
+
   return (
-    <div className="space-y-4 lg:space-y-8">
+    <div className="min-h-screen bg-gray-50">
       {!hideTopNav && <TopNavBar />}
 
-      {/* Mobile Search & Filter Bar */}
-      <div className="lg:hidden space-y-3">
-        {/* Row 1: Search + All Offers */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by product name, ID, or SKU..."
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              className="pl-9 h-10"
-            />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6 space-y-4 md:space-y-6">
+        {/* Desktop Header */}
+        <div className="hidden md:block">
+          <h1 className="text-2xl font-bold text-gray-900">Approved Creators</h1>
+          <p className="text-gray-500 mt-1">Manage creators assigned to your offers and track their performance</p>
+        </div>
+
+        {/* Mobile Compact Stats */}
+        <div className="md:hidden">
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <Users className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{totalCreators}</span>
+              <span className="text-xs text-gray-500">Total</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <span className="text-sm font-semibold text-gray-900">{normalizedApplications.filter(a => a.status === "approved").length}</span>
+              <span className="text-xs text-gray-500">Approved</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <PlayCircle className="h-4 w-4 text-blue-500" />
+              <span className="text-sm font-semibold text-gray-900">{normalizedApplications.filter(a => a.status === "active").length}</span>
+              <span className="text-xs text-gray-500">Active</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <PauseCircle className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{normalizedApplications.filter(a => a.status === "paused").length}</span>
+              <span className="text-xs text-gray-500">Paused</span>
+            </div>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-10 gap-2 shrink-0">
-                All Offers
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Filter by Offer</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className={offerFilter === "all" ? "bg-accent" : ""}
-                onClick={() => setOfferFilter("all")}
-              >
-                All Offers
-              </DropdownMenuItem>
-              {uniqueOffers.map(([id, title]) => (
-                <DropdownMenuItem
-                  key={id}
-                  className={offerFilter === id ? "bg-accent" : ""}
-                  onClick={() => setOfferFilter(id)}
-                >
-                  {title}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
-        {/* Row 2: Export */}
-        <div className="flex justify-end">
-          <DropdownMenu open={mobileExportMenuOpen} onOpenChange={setMobileExportMenuOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-10 gap-2">
-                <Download className="h-4 w-4" />
-                Export
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Export creators</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="gap-2"
-                onClick={() => {
-                  setMobileExportMenuOpen(false);
-                  exportCreatorCsv();
-                }}
-              >
-                <Download className="h-4 w-4" />
-                CSV file
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="gap-2"
-                onClick={() => {
-                  setMobileExportMenuOpen(false);
-                  exportCreatorPdf();
-                }}
-              >
-                <FileText className="h-4 w-4" />
-                PDF report
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
 
-      {/* Desktop Filter Bar - Positioned at top */}
-      <div className="hidden lg:flex items-center gap-2 -mt-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search creators..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            className="pl-9 h-9"
-          />
+        {/* Desktop Stats Cards */}
+        <div className="hidden md:grid md:grid-cols-4 gap-4">
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Total Creators</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalCreators}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Approved</p>
+                  <p className="text-2xl font-bold text-gray-900">{normalizedApplications.filter(a => a.status === "approved").length}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Active</p>
+                  <p className="text-2xl font-bold text-gray-900">{normalizedApplications.filter(a => a.status === "active").length}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <PlayCircle className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Paused</p>
+                  <p className="text-2xl font-bold text-gray-900">{normalizedApplications.filter(a => a.status === "paused").length}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <PauseCircle className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9" title="Filter by Offer">
-              <Tag className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>Filter by Offer</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className={offerFilter === "all" ? "bg-accent" : ""}
-              onClick={() => setOfferFilter("all")}
-            >
-              All Offers
-            </DropdownMenuItem>
-            {uniqueOffers.map(([id, title]) => (
-              <DropdownMenuItem
-                key={id}
-                className={offerFilter === id ? "bg-accent" : ""}
-                onClick={() => setOfferFilter(id)}
-              >
-                {title}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9" title="Sort Order">
-              <Clock className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-36">
-            <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className={sortOrder === "newest" ? "bg-accent" : ""}
-              onClick={() => setSortOrder("newest")}
-            >
-              Newest
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className={sortOrder === "oldest" ? "bg-accent" : ""}
-              onClick={() => setSortOrder("oldest")}
-            >
-              Oldest
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9" title="Export">
-              <Download className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>Export creators</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="gap-2"
-              onClick={() => {
-                setExportMenuOpen(false);
-                exportCreatorCsv();
-              }}
-            >
-              <Download className="h-4 w-4" />
-              CSV file
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="gap-2"
-              onClick={() => {
-                setExportMenuOpen(false);
-                exportCreatorPdf();
-              }}
-            >
-              <FileText className="h-4 w-4" />
-              PDF report
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
-          <span className="font-semibold text-foreground">{totalVisibleCreators}</span>/{totalCreators}
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" className="h-8 px-2" onClick={clearFilters}>
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
-      </div>
 
-      {/* Bulk Actions Toolbar */}
+        {/* Filters */}
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-3 md:p-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+              {/* Status Tabs */}
+              <div className="flex gap-1 overflow-x-auto pb-1 md:pb-0 -mx-1 px-1">
+                {statusTabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => {
+                      if (tab.key === "all") {
+                        setStatusFilters([]);
+                      } else {
+                        setStatusFilters([tab.key]);
+                      }
+                    }}
+                    className={`px-2.5 py-1 md:px-3 md:py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${
+                      (tab.key === "all" && statusFilters.length === 0) || statusFilters.includes(tab.key)
+                        ? "bg-primary text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    {tab.label}
+                    <span className="ml-1 text-[10px] md:text-xs opacity-70">({tab.count})</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search */}
+              <div className="flex-1 md:max-w-sm">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search by creator or offer..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 bg-gray-50 border-gray-200 h-9 md:h-10 text-sm"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Export Button - Desktop */}
+              <div className="hidden md:block">
+                <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Download className="h-4 w-4" />
+                      Export
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel>Export creators</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        exportCreatorCsv();
+                      }}
+                    >
+                      <Download className="h-4 w-4" />
+                      CSV file
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="gap-2"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        exportCreatorPdf();
+                      }}
+                    >
+                      <FileText className="h-4 w-4" />
+                      PDF report
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Bulk Actions Toolbar */}
       {selectedApplications.size > 0 && (
         <Card className="border-primary bg-primary/5">
           <CardContent className="py-4">
@@ -1055,160 +1062,96 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                   return (
                     <>
                 {/* Mobile Card View */}
-                <div className="lg:hidden space-y-4">
-                  {/* Creator Cards */}
+                <div className="lg:hidden space-y-3">
                   {offer.items.map((application) => {
                     const creatorInitial =
                       (application.creator?.firstName?.[0] || application.creator?.email?.[0] || "C").toUpperCase();
                     const fullName = `${application.creator?.firstName || ""} ${application.creator?.lastName || ""}`.trim() ||
                       application.creator?.email ||
                       "Creator";
-                    const isSelected = selectedApplications.has(application.id);
 
-                    const statusBadgeClass = (() => {
-                      switch (application.status) {
+                    const getStatusBadge = (status: string) => {
+                      switch (status) {
                         case "pending":
-                          return "bg-amber-100 text-amber-800";
+                          return <Badge className="bg-amber-100 text-amber-800 border-amber-200">Pending</Badge>;
                         case "approved":
-                          return "bg-emerald-100 text-emerald-700";
+                          return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Approved</Badge>;
                         case "active":
-                          return "bg-emerald-100 text-emerald-800";
+                          return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Active</Badge>;
                         case "paused":
-                          return "bg-slate-100 text-slate-700";
+                          return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Paused</Badge>;
                         case "completed":
-                          return "bg-purple-100 text-purple-800";
+                          return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Completed</Badge>;
                         case "rejected":
-                          return "bg-red-100 text-red-700";
+                          return <Badge className="bg-red-100 text-red-800 border-red-200">Rejected</Badge>;
                         default:
-                          return "bg-gray-100 text-gray-700";
+                          return <Badge variant="secondary">{status}</Badge>;
                       }
-                    })();
-
-                    const performanceBadgeClass = (() => {
-                      switch (application.performanceTier) {
-                        case "high":
-                          return "bg-emerald-100 text-emerald-700 border border-emerald-200";
-                        case "medium":
-                          return "bg-sky-100 text-sky-700 border border-sky-200";
-                        default:
-                          return "bg-amber-100 text-amber-700 border border-amber-200";
-                      }
-                    })();
+                    };
 
                     return (
-                      <div
-                        key={application.id}
-                        className={`bg-white border rounded-lg ${isSelected ? "ring-2 ring-primary/30 border-primary/30" : "border-gray-200"}`}
-                      >
-                        {/* Header Row: CREATOR label + Status Badge */}
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleApplicationSelection(application.id)}
-                              aria-label={`Select ${fullName}`}
-                            />
-                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Creator</span>
-                          </div>
-                          <Badge className={`${statusBadgeClass} text-xs font-medium px-2.5 py-0.5 border-0`}>
-                            {formatStatusLabel(application.status)}
-                          </Badge>
-                        </div>
-
-                        <div className="p-4 space-y-4">
-                          {/* Creator Info Row */}
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10 flex-shrink-0 border border-gray-200">
-                              <AvatarImage src={proxiedSrc(application.creator?.profileImageUrl) || undefined} />
-                              <AvatarFallback className="bg-primary/10 text-primary font-medium">{creatorInitial}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-gray-900">{fullName}</div>
-                              <div className="text-sm text-muted-foreground truncate">{application.creator?.email || "No email"}</div>
+                      <Card key={application.id} className="border-0 shadow-sm">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-12 w-12 border">
+                                <AvatarImage src={proxiedSrc(application.creator?.profileImageUrl) || undefined} />
+                                <AvatarFallback className="bg-gray-100 text-gray-600">
+                                  {creatorInitial}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-semibold text-gray-900">{fullName}</p>
+                                <p className="text-sm text-gray-500">{offer.offerTitle}</p>
+                              </div>
                             </div>
-                          </div>
-
-                          {/* Platform Badge */}
-                          <div className="flex flex-wrap gap-1.5">
-                            {application.creator?.youtubeUrl && (
-                              <Badge variant="outline" className="gap-1.5 text-xs px-2 py-1 font-normal">
-                                <ExternalLink className="h-3 w-3" /> YouTube
-                              </Badge>
-                            )}
-                            {application.creator?.tiktokUrl && (
-                              <Badge variant="outline" className="gap-1.5 text-xs px-2 py-1 font-normal">
-                                <ExternalLink className="h-3 w-3" /> TikTok
-                              </Badge>
-                            )}
-                            {application.creator?.instagramUrl && (
-                              <Badge variant="outline" className="gap-1.5 text-xs px-2 py-1 font-normal">
-                                <ExternalLink className="h-3 w-3" /> Instagram
-                              </Badge>
-                            )}
+                            {getStatusBadge(application.status)}
                           </div>
 
                           {/* Stats Row */}
-                          <div className="flex items-center justify-between text-sm py-2">
-                            <span className="text-muted-foreground"><span className="font-semibold text-gray-900">{application.clicks}</span> Clicks</span>
-                            <span className="text-muted-foreground"><span className="font-semibold text-gray-900">{(application.conversionRate * 100).toFixed(1)}%</span> conversion rate</span>
-                            <span className="font-semibold text-gray-900">${application.earnings.toFixed(2)}</span>
-                          </div>
-
-                          {/* Performance & Date Row */}
-                          <div className="flex items-center justify-between">
-                            <Badge className={`${performanceBadgeClass} text-xs font-medium px-2.5 py-1`}>
-                              {formatPerformanceLabel(application.performanceTier)}
-                            </Badge>
-                            <span className="text-sm text-muted-foreground">{formatDate(application.joinDate)}</span>
+                          <div className="flex items-center justify-between py-3 border-t border-b border-gray-100">
+                            <div className="flex items-center gap-1.5">
+                              <TrendingUp className="h-4 w-4 text-gray-400" />
+                              <span className="text-sm">
+                                <span className="font-medium text-gray-900">{application.clicks}</span>
+                                <span className="text-gray-500"> clicks</span>
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <DollarSign className="h-4 w-4 text-gray-400" />
+                              <span className="text-sm font-medium text-gray-900">${application.earnings.toFixed(2)}</span>
+                            </div>
+                            <div className="text-sm text-gray-600">{formatDate(application.joinDate)}</div>
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex items-center gap-2 pt-2">
+                          <div className="flex items-center gap-2 mt-3">
                             <Button
-                              variant="outline"
                               size="sm"
-                              className="gap-1.5 h-9 flex-1 text-sm"
-                              data-testid={`button-message-${application.id}`}
+                              variant="outline"
+                              className="flex-1"
                               onClick={() => startConversationMutation.mutate(application.id)}
                               disabled={startConversationMutation.isPending}
                             >
-                              <MessageSquare className="h-4 w-4" />
-                              Email
+                              <MessageSquare className="h-4 w-4 mr-1" />
+                              Message
                             </Button>
-                            <Button
-                              size="sm"
-                              className="gap-1.5 h-9 flex-1 bg-teal-600 hover:bg-teal-700 text-white text-sm"
-                              onClick={() => {
-                                if (application.pendingPayment?.id) {
-                                  approvePayoutMutation.mutate({ paymentId: application.pendingPayment.id });
-                                }
-                              }}
-                              disabled={
-                                !application.pendingPayment ||
-                                approvePayoutMutation.isPending ||
-                                payoutProcessingId === application.pendingPayment?.id
-                              }
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                              Approve Payout
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-1.5 h-9 flex-1 text-red-600 border-red-200 hover:bg-red-50 text-sm"
-                              onClick={() => {
-                                if (window.confirm("Remove this creator from the offer?")) {
-                                  updateStatusMutation.mutate({ applicationId: application.id, status: "paused" });
-                                }
-                              }}
-                              disabled={statusUpdatingId === application.id && updateStatusMutation.isPending}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Remove
-                            </Button>
+                            {application.pendingPayment && (
+                              <Button
+                                size="sm"
+                                className="flex-1 bg-primary hover:bg-primary/90"
+                                onClick={() => {
+                                  approvePayoutMutation.mutate({ paymentId: application.pendingPayment!.id });
+                                }}
+                                disabled={approvePayoutMutation.isPending || payoutProcessingId === application.pendingPayment?.id}
+                              >
+                                <DollarSign className="h-4 w-4 mr-1" />
+                                Payout
+                              </Button>
+                            )}
                           </div>
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                     );
                   })}
                 </div>
@@ -1438,6 +1381,14 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
           ))}
         </div>
       )}
+
+        {/* Results count */}
+        {!loadingCreators && filteredApplications.length > 0 && (
+          <p className="text-sm text-gray-500 text-center">
+            Showing {filteredApplications.length} of {totalCreators} creators
+          </p>
+        )}
+      </div>
 
       {/* Bulk Action Confirmation Dialog */}
       <AlertDialog open={bulkActionDialog !== null} onOpenChange={(open) => !open && setBulkActionDialog(null)}>
