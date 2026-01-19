@@ -155,13 +155,13 @@ export default function Landing() {
             {/* Navigation - Center (hidden on mobile) */}
             <nav className="hidden lg:flex items-center gap-8">
               <button
-                onClick={() => scrollToSection('features')}
+                onClick={() => scrollToSection('why-affiliatexchange')}
                 className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
               >
                 Why AffiliateXchange?
               </button>
               <button
-                onClick={() => scrollToSection('features')}
+                onClick={() => scrollToSection('platform-features')}
                 className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
               >
                 Features
@@ -642,8 +642,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-12 sm:py-20 bg-gray-50">
+      {/* Why AffiliateXchange Section */}
+      <section id="why-affiliatexchange" className="py-12 sm:py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <AnimatedSection animation="fade-up" className="text-center mb-8 sm:mb-16">
             <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">
@@ -666,6 +666,137 @@ export default function Landing() {
             {features.map((feature, index) => (
               <FeatureCard key={feature.title} feature={feature} index={index} />
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Platform Features Section */}
+      <section id="platform-features" className="py-12 sm:py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <AnimatedSection animation="fade-up" className="text-center mb-8 sm:mb-16">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">
+              Platform{" "}
+              <span className="relative inline-block">
+                <span className="relative z-10">Features</span>
+                <span
+                  className="absolute bottom-0 sm:bottom-1 left-0 w-full h-2 sm:h-3 bg-primary/40 -z-0"
+                  style={{ transform: "skewX(-3deg)" }}
+                />
+              </span>
+            </h2>
+            <p className="text-sm sm:text-xl text-gray-600 max-w-2xl mx-auto">
+              Powerful tools designed for creators and brands
+            </p>
+          </AnimatedSection>
+
+          {/* For Creators */}
+          <div className="mb-12 sm:mb-16">
+            <AnimatedSection animation="fade-up">
+              <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 text-center">
+                For Creators
+              </h3>
+            </AnimatedSection>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              <AnimatedSection animation="zoom-in" delay={0}>
+                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+                      <Target className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Offer Marketplace</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">Browse thousands of affiliate offers from verified brands. Filter by niche, commission type, and payout structure.</p>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+              <AnimatedSection animation="zoom-in" delay={100}>
+                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+                      <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Analytics Dashboard</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">Track clicks, conversions, and earnings in real-time. Understand what content drives the most revenue.</p>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+              <AnimatedSection animation="zoom-in" delay={200}>
+                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+                      <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Payment Management</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">Track your earnings, manage payment methods, and withdraw your commissions with ease.</p>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+              <AnimatedSection animation="zoom-in" delay={300}>
+                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+                      <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Monthly Retainers</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">Access exclusive retainer opportunities for stable monthly income with your favorite brands.</p>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+            </div>
+          </div>
+
+          {/* For Brands */}
+          <div>
+            <AnimatedSection animation="fade-up">
+              <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 text-center">
+                For Brands
+              </h3>
+            </AnimatedSection>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              <AnimatedSection animation="zoom-in" delay={0}>
+                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+                      <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Campaign Management</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">Create and manage affiliate campaigns with customizable commission structures and requirements.</p>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+              <AnimatedSection animation="zoom-in" delay={100}>
+                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+                      <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Creator Discovery</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">Find and connect with creators that match your brand. Review applications and approve partnerships.</p>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+              <AnimatedSection animation="zoom-in" delay={200}>
+                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+                      <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Performance Tracking</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">Monitor campaign performance with detailed analytics on clicks, conversions, and ROI.</p>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+              <AnimatedSection animation="zoom-in" delay={300}>
+                <Card className="bg-gray-50 border-gray-200 h-full hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+                      <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Secure Payouts</h4>
+                    <p className="text-xs sm:text-sm text-gray-600">Manage creator payments seamlessly with our secure payment processing system.</p>
+                  </CardContent>
+                </Card>
+              </AnimatedSection>
+            </div>
           </div>
         </div>
       </section>
