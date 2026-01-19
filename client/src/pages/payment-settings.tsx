@@ -33,6 +33,12 @@ import {
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+import {
   AlertTriangle,
   Banknote,
   Bitcoin,
@@ -49,6 +55,7 @@ import {
   Filter,
   Info,
   Landmark,
+  MoreVertical,
   Plus,
   Search,
   Send,
@@ -4089,6 +4096,304 @@ export default function PaymentSettings() {
               </div>
             </div>,
             document.body
+          )}
+        </div>
+      )}
+
+      {/* ========== MOBILE LAYOUT FOR COMPANY ========== */}
+      {role === "company" && (
+        <div className="md:hidden space-y-4 pb-4">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/company/dashboard">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <h1 className="text-xl font-bold text-gray-900">Payment Management</h1>
+            </div>
+          </div>
+
+          {/* Mobile Tabs */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                activeTab === "overview"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500"
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                activeTab === "settings"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500"
+              }`}
+            >
+              Payment Methods
+            </button>
+            <button
+              onClick={() => setActiveTab("approvals")}
+              className={`relative flex-1 py-3 text-sm font-medium text-center transition-colors ${
+                activeTab === "approvals"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500"
+              }`}
+            >
+              Approvals
+              {companyPayments.filter((p) => p.status === "pending" || p.status === "processing").length > 0 && (
+                <span className="ml-1 inline-flex items-center rounded-full bg-yellow-100 px-1.5 py-0.5 text-[10px] font-bold text-yellow-800">
+                  {companyPayments.filter((p) => p.status === "pending" || p.status === "processing").length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Mobile Overview Tab */}
+          {activeTab === "overview" && (
+            <div className="space-y-4">
+              {/* Stats Grid - 2x2 */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Total Paid Out */}
+                <div className="rounded-xl border-2 border-gray-200 bg-white p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-600">Total Paid Out</span>
+                    <Send className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <div className="text-xl font-bold text-gray-900">
+                    CA${companyPayments.filter((p) => p.status === "completed").reduce((sum, p) => sum + parseFloat(p.grossAmount), 0).toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-1">All-time</div>
+                </div>
+
+                {/* Pending */}
+                <div className="rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 text-white">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-yellow-100">Pending</span>
+                    <Clock className="h-4 w-4 text-yellow-100" />
+                  </div>
+                  <div className="text-xl font-bold">
+                    CA${companyPayments.filter((p) => p.status === "pending" || p.status === "processing").reduce((sum, p) => sum + parseFloat(p.grossAmount), 0).toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-yellow-100 mt-1">Requires action</div>
+                </div>
+
+                {/* Total Payments */}
+                <div className="rounded-xl border-2 border-gray-200 bg-white p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-600">Total Payments</span>
+                    <Users className="h-4 w-4 text-purple-500" />
+                  </div>
+                  <div className="text-xl font-bold text-gray-900">{companyPayments.length}</div>
+                  <div className="text-[10px] text-gray-500 mt-1">All transactions</div>
+                </div>
+
+                {/* Completed */}
+                <div className="rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-4 text-white">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-green-100">Completed</span>
+                    <CheckCircle className="h-4 w-4 text-green-100" />
+                  </div>
+                  <div className="text-xl font-bold">
+                    {companyPayments.filter((p) => p.status === "completed").length}
+                  </div>
+                  <div className="text-[10px] text-green-100 mt-1">Paid out</div>
+                </div>
+              </div>
+
+              {/* Payment History */}
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-gray-900">Payment History</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => {
+                    if (companyPayments.length === 0) {
+                      toast({
+                        title: "No data",
+                        description: "No payment history to export",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    const csv = [
+                      ['ID', 'Description', 'Creator Earnings', 'Fees', 'Status', 'Date'],
+                      ...companyPayments.map(p => [
+                        p.id.slice(0, 8),
+                        p.description || 'Payment',
+                        p.grossAmount,
+                        (parseFloat(p.platformFeeAmount) + parseFloat(p.stripeFeeAmount)).toFixed(2),
+                        p.status,
+                        p.completedAt || p.createdAt
+                      ])
+                    ].map(row => row.join(',')).join('\n');
+
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `company-payments-${new Date().toISOString().split('T')[0]}.csv`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+
+                    toast({
+                      title: "Success",
+                      description: "Payment history exported successfully",
+                    });
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export
+                </Button>
+              </div>
+
+              {/* Payment Cards */}
+              <div className="space-y-3">
+                {companyPayments.length === 0 ? (
+                  <div className="rounded-xl border-2 border-gray-200 bg-white p-8 text-center">
+                    <DollarSign className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500 text-sm">No payment history yet</p>
+                  </div>
+                ) : (
+                  companyPayments.slice(0, 10).map((payment) => (
+                    <Link key={payment.id} href={`/payments/${payment.id}`}>
+                      <div className="rounded-xl border-2 border-gray-200 bg-white p-4 hover:border-gray-300 transition-colors">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-gray-900">{payment.description || "Payment"}</span>
+                          <StatusBadge status={payment.status} isDisputed={isDisputedPayment(payment)} />
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">
+                            {payment.completedAt
+                              ? new Date(payment.completedAt).toLocaleDateString()
+                              : new Date(payment.createdAt).toLocaleDateString()}
+                          </span>
+                          <span className="font-semibold text-gray-900">CA${parseFloat(payment.grossAmount).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Payment Methods Tab */}
+          {activeTab === "settings" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-gray-900">Payment Methods</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => setShowMobileAddPayment(true)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add
+                </Button>
+              </div>
+
+              {/* Payment Methods List */}
+              <div className="space-y-3">
+                {!paymentMethods || paymentMethods.length === 0 ? (
+                  <div className="rounded-xl border-2 border-gray-200 bg-white p-8 text-center">
+                    <CreditCard className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500 text-sm">No payment methods added</p>
+                    <p className="text-gray-400 text-xs mt-1">Add a payment method to fund creator payouts</p>
+                  </div>
+                ) : (
+                  paymentMethods.map((method) => {
+                    const info = getPaymentMethodInfo(method);
+                    const IconComponent = info.icon;
+                    return (
+                      <div key={method.id} className="rounded-xl border-2 border-gray-200 bg-white p-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full ${info.iconBgColor} flex items-center justify-center`}>
+                            <IconComponent className={`h-5 w-5 ${info.iconColor}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">{info.title}</span>
+                              {info.isDefault && (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Primary</Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500 truncate">{info.displayValue}</p>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {!info.isDefault && (
+                                <DropdownMenuItem onClick={() => handleSetPrimary(method.id)}>
+                                  Set as Primary
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => handleDeleteClick(method)}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Approvals Tab */}
+          {activeTab === "approvals" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-gray-900">Pending Approvals</h2>
+                <span className="text-xs text-gray-500">
+                  {companyPayments.filter((p) => p.status === "pending" || p.status === "processing").length} pending
+                </span>
+              </div>
+
+              {/* Approval Cards */}
+              <div className="space-y-3">
+                {companyPayments.filter((p) => p.status === "pending" || p.status === "processing").length === 0 ? (
+                  <div className="rounded-xl border-2 border-gray-200 bg-white p-8 text-center">
+                    <CheckCircle className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500 text-sm">No pending approvals</p>
+                    <p className="text-gray-400 text-xs mt-1">All payouts have been processed</p>
+                  </div>
+                ) : (
+                  companyPayments.filter((p) => p.status === "pending" || p.status === "processing").map((payment) => (
+                    <Link key={payment.id} href={`/payments/${payment.id}`}>
+                      <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 hover:border-yellow-300 transition-colors">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-gray-900">{payment.description || "Payment"}</span>
+                          <StatusBadge status={payment.status} isDisputed={isDisputedPayment(payment)} />
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">
+                            {new Date(payment.createdAt).toLocaleDateString()}
+                          </span>
+                          <span className="font-semibold text-gray-900">CA${parseFloat(payment.grossAmount).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}
