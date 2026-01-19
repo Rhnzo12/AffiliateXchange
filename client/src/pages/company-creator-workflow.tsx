@@ -62,11 +62,11 @@ export default function CompanyCreatorWorkflow({ defaultTab = "videos" }: Compan
 
       {/* Header with Gradient Wave */}
       <div className="relative bg-white border-b overflow-hidden">
-        {/* Gradient Wave Decoration */}
-        <div className="absolute top-0 right-0 w-96 h-full pointer-events-none overflow-hidden">
+        {/* Gradient Wave Decoration - Hidden on mobile for cleaner look */}
+        <div className="absolute top-0 right-0 w-64 md:w-96 h-full pointer-events-none overflow-hidden hidden sm:block">
           <svg
             viewBox="0 0 400 200"
-            className="absolute -right-20 -top-10 w-[500px] h-[250px] opacity-60"
+            className="absolute -right-10 md:-right-20 -top-5 md:-top-10 w-[300px] md:w-[500px] h-[150px] md:h-[250px] opacity-60"
             preserveAspectRatio="none"
           >
             <defs>
@@ -97,28 +97,28 @@ export default function CompanyCreatorWorkflow({ defaultTab = "videos" }: Compan
           </svg>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Creator Workflow</h1>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6 relative">
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">Creator Workflow</h1>
 
-          {/* Tabs */}
-          <div className="mt-6">
+          {/* Tabs - Scrollable on mobile */}
+          <div className="mt-4 md:mt-6 -mx-4 px-4 md:mx-0 md:px-0">
             <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList className="flex w-full items-center justify-start gap-6 border-b border-gray-200 bg-transparent p-0 sm:w-auto">
+              <TabsList className="flex w-full items-center justify-start gap-4 md:gap-6 border-b border-gray-200 bg-transparent p-0 overflow-x-auto scrollbar-hide">
                 <TabsTrigger
                   value="videos"
-                  className="relative h-auto rounded-none bg-transparent px-0 pb-3 text-sm font-semibold text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:after:absolute data-[state=active]:after:left-0 data-[state=active]:after:top-full data-[state=active]:after:block data-[state=active]:after:h-0.5 data-[state=active]:after:w-full data-[state=active]:after:bg-primary"
+                  className="relative h-auto rounded-none bg-transparent px-0 pb-2.5 md:pb-3 text-sm font-semibold text-gray-500 whitespace-nowrap data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:after:absolute data-[state=active]:after:left-0 data-[state=active]:after:top-full data-[state=active]:after:block data-[state=active]:after:h-0.5 data-[state=active]:after:w-full data-[state=active]:after:bg-primary"
                 >
                   Promotional Videos
                 </TabsTrigger>
                 <TabsTrigger
                   value="applications"
-                  className="relative h-auto rounded-none bg-transparent px-0 pb-3 text-sm font-semibold text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:after:absolute data-[state=active]:after:left-0 data-[state=active]:after:top-full data-[state=active]:after:block data-[state=active]:after:h-0.5 data-[state=active]:after:w-full data-[state=active]:after:bg-primary"
+                  className="relative h-auto rounded-none bg-transparent px-0 pb-2.5 md:pb-3 text-sm font-semibold text-gray-500 whitespace-nowrap data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:after:absolute data-[state=active]:after:left-0 data-[state=active]:after:top-full data-[state=active]:after:block data-[state=active]:after:h-0.5 data-[state=active]:after:w-full data-[state=active]:after:bg-primary"
                 >
                   Applications
                 </TabsTrigger>
                 <TabsTrigger
                   value="creators"
-                  className="relative h-auto rounded-none bg-transparent px-0 pb-3 text-sm font-semibold text-gray-500 data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:after:absolute data-[state=active]:after:left-0 data-[state=active]:after:top-full data-[state=active]:after:block data-[state=active]:after:h-0.5 data-[state=active]:after:w-full data-[state=active]:after:bg-primary"
+                  className="relative h-auto rounded-none bg-transparent px-0 pb-2.5 md:pb-3 text-sm font-semibold text-gray-500 whitespace-nowrap data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:after:absolute data-[state=active]:after:left-0 data-[state=active]:after:top-full data-[state=active]:after:block data-[state=active]:after:h-0.5 data-[state=active]:after:w-full data-[state=active]:after:bg-primary"
                 >
                   Approved Creators
                 </TabsTrigger>
@@ -129,7 +129,7 @@ export default function CompanyCreatorWorkflow({ defaultTab = "videos" }: Compan
       </div>
 
       {/* Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsContent value="videos" className="mt-0">
             <CompanyVideos hideTopNav />
