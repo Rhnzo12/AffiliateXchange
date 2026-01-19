@@ -344,9 +344,6 @@ export default function CompanyVideos({ hideTopNav = false }: CompanyVideosProps
       <div className="flex items-center gap-2 text-sm flex-wrap">
         <span className="font-semibold text-gray-900">{stats.total.toLocaleString()}</span>
         <span className="text-gray-500">Promotional Videos</span>
-        <span className="text-gray-300 mx-1">|</span>
-        <span className="font-semibold text-amber-600">{stats.pending.toLocaleString()}</span>
-        <span className="text-gray-500">Pending Approval</span>
         {hasActiveFilters && (
           <>
             <span className="text-gray-300 mx-1">|</span>
@@ -358,39 +355,6 @@ export default function CompanyVideos({ hideTopNav = false }: CompanyVideosProps
         )}
       </div>
 
-      {/* Status Filter Tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-1">
-        <button
-          onClick={() => setStatusFilter("all")}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-            statusFilter === "all"
-              ? "bg-primary text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          All ({stats.total})
-        </button>
-        <button
-          onClick={() => setStatusFilter("pending")}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-            statusFilter === "pending"
-              ? "bg-primary text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          Pending ({stats.pending})
-        </button>
-        <button
-          onClick={() => setStatusFilter("approved")}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-            statusFilter === "approved"
-              ? "bg-primary text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          Approved ({stats.approved})
-        </button>
-      </div>
 
       {allVideos.length === 0 ? (
         <Card className="border-0 shadow-sm">
@@ -442,10 +406,6 @@ export default function CompanyVideos({ hideTopNav = false }: CompanyVideosProps
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                   <Play className="h-10 w-10 text-white" />
                 </div>
-                {/* Status Badge */}
-                <div className="absolute top-2 left-2">
-                  {getStatusBadge(video)}
-                </div>
               </div>
               <CardContent className="p-3">
                 <h4 className="font-semibold text-sm text-gray-900 line-clamp-1" data-testid={`text-video-title-${video.id}`}>
@@ -482,33 +442,6 @@ export default function CompanyVideos({ hideTopNav = false }: CompanyVideosProps
                     <Eye className="h-3 w-3 mr-1" />
                     View Offer
                   </Button>
-
-                  {(video.status === 'pending' || !video.status) && (
-                    <Button
-                      size="sm"
-                      className="h-8 text-xs bg-teal-500 hover:bg-teal-600"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        approveMutation.mutate(video.id);
-                      }}
-                    >
-                      Approve
-                    </Button>
-                  )}
-
-                  {(video.status === 'pending' || !video.status) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        rejectMutation.mutate(video.id);
-                      }}
-                    >
-                      Reject
-                    </Button>
-                  )}
                 </div>
               </CardContent>
             </Card>
