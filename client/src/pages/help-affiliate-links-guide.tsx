@@ -13,9 +13,11 @@ import {
   Mail,
   MessageCircle,
   CheckCircle2,
-  AlertCircle,
+  AlertTriangle,
   Lightbulb,
   ArrowRight,
+  Video,
+  Mic,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -95,7 +97,7 @@ const platforms = [
   },
   {
     name: "YouTube",
-    icon: Globe,
+    icon: Video,
     tips: [
       "Add links in video description",
       "Pin comment with link",
@@ -135,7 +137,7 @@ const platforms = [
   },
   {
     name: "Podcasts",
-    icon: MessageCircle,
+    icon: Mic,
     tips: [
       "Mention promo codes verbally",
       "Include links in show notes",
@@ -149,7 +151,7 @@ const bestPractices = [
   {
     title: "Always Disclose",
     description: "Use #ad, #sponsored, or #affiliate to stay FTC compliant",
-    icon: AlertCircle,
+    icon: AlertTriangle,
     type: "warning",
   },
   {
@@ -161,7 +163,7 @@ const bestPractices = [
   {
     title: "Don't Spam",
     description: "Balance promotional content with valuable, non-promotional posts",
-    icon: AlertCircle,
+    icon: AlertTriangle,
     type: "warning",
   },
   {
@@ -184,8 +186,8 @@ export default function HelpAffiliatLinksGuide() {
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <BookOpen className="h-5 w-5 text-primary" />
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+              <BookOpen className="h-5 w-5 text-foreground" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">Getting Started with Affiliate Links</h1>
@@ -214,7 +216,7 @@ export default function HelpAffiliatLinksGuide() {
       {/* Step by Step Guide */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
-          <LinkIcon className="h-5 w-5 text-primary" />
+          <LinkIcon className="h-5 w-5 text-foreground" />
           Step-by-Step Guide
         </h2>
 
@@ -222,7 +224,7 @@ export default function HelpAffiliatLinksGuide() {
           <Card key={step.number}>
             <CardContent className="p-5">
               <div className="flex items-start gap-4">
-                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold shrink-0">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-foreground font-bold shrink-0 border">
                   {step.number}
                 </div>
                 <div className="flex-1 space-y-3">
@@ -233,7 +235,7 @@ export default function HelpAffiliatLinksGuide() {
                   <ul className="space-y-1.5">
                     {step.details.map((detail, index) => (
                       <li key={index} className="flex items-start gap-2 text-sm">
-                        <ArrowRight className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                         <span>{detail}</span>
                       </li>
                     ))}
@@ -248,7 +250,7 @@ export default function HelpAffiliatLinksGuide() {
       {/* Platform-Specific Tips */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
-          <Share2 className="h-5 w-5 text-primary" />
+          <Share2 className="h-5 w-5 text-foreground" />
           Platform-Specific Tips
         </h2>
 
@@ -267,7 +269,7 @@ export default function HelpAffiliatLinksGuide() {
                   <ul className="space-y-1.5">
                     {platform.tips.map((tip, index) => (
                       <li key={index} className="flex items-start gap-2 text-sm">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="h-3.5 w-3.5 text-foreground shrink-0 mt-0.5" />
                         <span className="text-muted-foreground">{tip}</span>
                       </li>
                     ))}
@@ -282,7 +284,7 @@ export default function HelpAffiliatLinksGuide() {
       {/* Best Practices */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-primary" />
+          <Lightbulb className="h-5 w-5 text-foreground" />
           Best Practices
         </h2>
 
@@ -290,20 +292,11 @@ export default function HelpAffiliatLinksGuide() {
           {bestPractices.map((practice, index) => {
             const Icon = practice.icon;
             return (
-              <Card
-                key={index}
-                className={
-                  practice.type === "warning"
-                    ? "border-yellow-500/30 bg-yellow-500/5"
-                    : "border-green-500/30 bg-green-500/5"
-                }
-              >
+              <Card key={index}>
                 <CardContent className="p-4 flex items-start gap-3">
-                  <Icon
-                    className={`h-5 w-5 shrink-0 ${
-                      practice.type === "warning" ? "text-yellow-500" : "text-green-500"
-                    }`}
-                  />
+                  <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <Icon className="h-4 w-4 text-foreground" />
+                  </div>
                   <div>
                     <h4 className="font-medium text-sm">{practice.title}</h4>
                     <p className="text-sm text-muted-foreground">{practice.description}</p>
@@ -316,7 +309,7 @@ export default function HelpAffiliatLinksGuide() {
       </div>
 
       {/* Quick Actions */}
-      <Card className="border-primary/20 bg-primary/5">
+      <Card>
         <CardContent className="p-6">
           <h3 className="font-semibold text-lg mb-4">Ready to Get Started?</h3>
           <div className="flex flex-wrap gap-3">

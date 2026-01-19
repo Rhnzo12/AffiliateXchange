@@ -12,8 +12,11 @@ import {
   MessageSquare,
   BarChart3,
   Shield,
-  Zap,
+  MousePointerClick,
   CheckCircle2,
+  BookOpen,
+  Handshake,
+  GraduationCap,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -22,7 +25,6 @@ const tips = [
     number: 1,
     title: "Know Your Audience Inside Out",
     icon: Users,
-    color: "bg-blue-500",
     description:
       "Understanding your audience is the foundation of successful affiliate marketing. The better you know who follows you, the better you can match them with relevant offers.",
     keyPoints: [
@@ -38,7 +40,6 @@ const tips = [
     number: 2,
     title: "Choose Quality Over Quantity",
     icon: Target,
-    color: "bg-purple-500",
     description:
       "It's tempting to promote every offer that comes your way, but being selective builds trust with your audience and leads to higher conversion rates.",
     keyPoints: [
@@ -54,7 +55,6 @@ const tips = [
     number: 3,
     title: "Create Authentic Content",
     icon: MessageSquare,
-    color: "bg-green-500",
     description:
       "Authentic content outperforms obvious advertisements every time. Your audience follows you for your unique voice and perspective—keep that in your promotions.",
     keyPoints: [
@@ -70,7 +70,6 @@ const tips = [
     number: 4,
     title: "Diversify Your Income Streams",
     icon: DollarSign,
-    color: "bg-yellow-500",
     description:
       "Don't put all your eggs in one basket. Working with multiple brands and offer types protects your income and opens more opportunities.",
     keyPoints: [
@@ -86,7 +85,6 @@ const tips = [
     number: 5,
     title: "Optimize Your Timing",
     icon: Clock,
-    color: "bg-orange-500",
     description:
       "When you post matters almost as much as what you post. Strategic timing can significantly boost your conversion rates.",
     keyPoints: [
@@ -101,8 +99,7 @@ const tips = [
   {
     number: 6,
     title: "Master the Art of CTAs",
-    icon: Zap,
-    color: "bg-red-500",
+    icon: MousePointerClick,
     description:
       "A strong call-to-action (CTA) guides your audience on what to do next. Without it, even great content won't convert.",
     keyPoints: [
@@ -118,7 +115,6 @@ const tips = [
     number: 7,
     title: "Track Everything",
     icon: BarChart3,
-    color: "bg-indigo-500",
     description:
       "Data-driven creators earn more. Understanding your metrics helps you double down on what works and drop what doesn't.",
     keyPoints: [
@@ -133,8 +129,7 @@ const tips = [
   {
     number: 8,
     title: "Build Long-term Brand Relationships",
-    icon: Shield,
-    color: "bg-teal-500",
+    icon: Handshake,
     description:
       "One-off promotions are fine, but long-term partnerships are where the real money is. Brands value reliable creators and reward them accordingly.",
     keyPoints: [
@@ -149,8 +144,7 @@ const tips = [
   {
     number: 9,
     title: "Stay Compliant and Transparent",
-    icon: CheckCircle2,
-    color: "bg-cyan-500",
+    icon: Shield,
     description:
       "Transparency isn't just ethical—it's required by law. Proper disclosure protects you legally and actually increases audience trust.",
     keyPoints: [
@@ -165,8 +159,7 @@ const tips = [
   {
     number: 10,
     title: "Never Stop Learning",
-    icon: TrendingUp,
-    color: "bg-pink-500",
+    icon: GraduationCap,
     description:
       "The affiliate marketing landscape evolves constantly. Successful creators stay curious and adapt to new trends, platforms, and strategies.",
     keyPoints: [
@@ -192,8 +185,8 @@ export default function HelpAffiliateMarketingTips() {
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Lightbulb className="h-5 w-5 text-primary" />
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+              <Lightbulb className="h-5 w-5 text-foreground" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">10 Affiliate Marketing Tips for Success</h1>
@@ -227,10 +220,8 @@ export default function HelpAffiliateMarketingTips() {
             <Card key={tip.number} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex items-start gap-4">
-                  <div
-                    className={`h-12 w-12 rounded-xl ${tip.color} flex items-center justify-center shrink-0`}
-                  >
-                    <Icon className="h-6 w-6 text-white" />
+                  <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                    <Icon className="h-6 w-6 text-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -250,19 +241,19 @@ export default function HelpAffiliateMarketingTips() {
                   <ul className="space-y-1.5">
                     {tip.keyPoints.map((point, index) => (
                       <li key={index} className="flex items-start gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="h-4 w-4 text-foreground shrink-0 mt-0.5" />
                         <span>{point}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
+                <div className="bg-muted/50 border border-border rounded-lg p-4">
                   <div className="flex items-start gap-2">
-                    <Lightbulb className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <Lightbulb className="h-4 w-4 text-foreground shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-medium text-sm text-primary">Pro Tip: </span>
-                      <span className="text-sm">{tip.proTip}</span>
+                      <span className="font-medium text-sm">Pro Tip: </span>
+                      <span className="text-sm text-muted-foreground">{tip.proTip}</span>
                     </div>
                   </div>
                 </div>
@@ -273,18 +264,24 @@ export default function HelpAffiliateMarketingTips() {
       </div>
 
       {/* Summary Card */}
-      <Card className="border-primary/20 bg-primary/5">
+      <Card>
         <CardContent className="p-6">
-          <h3 className="font-semibold text-lg mb-3">Quick Recap</h3>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {tips.map((tip) => (
-              <div key={tip.number} className="flex items-center gap-2 text-sm">
-                <span className="font-medium text-primary">#{tip.number}</span>
-                <span>{tip.title}</span>
-              </div>
-            ))}
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen className="h-5 w-5 text-foreground" />
+            <h3 className="font-semibold text-lg">Quick Recap</h3>
           </div>
-          <div className="mt-4 pt-4 border-t border-primary/10">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {tips.map((tip) => {
+              const Icon = tip.icon;
+              return (
+                <div key={tip.number} className="flex items-center gap-2 text-sm">
+                  <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span>#{tip.number} {tip.title}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 pt-4 border-t">
             <p className="text-sm text-muted-foreground">
               Remember: Success in affiliate marketing doesn't happen overnight. Stay consistent,
               keep learning, and focus on providing value to your audience. The commissions will
