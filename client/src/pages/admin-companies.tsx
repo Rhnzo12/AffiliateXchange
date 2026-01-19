@@ -301,15 +301,41 @@ export default function AdminCompanies() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6 space-y-4 md:space-y-6">
         {/* Desktop Header */}
         <div className="hidden md:block">
           <h1 className="text-2xl font-bold text-gray-900">Company Management</h1>
           <p className="text-gray-500 mt-1">Manage all companies on the platform</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {/* Mobile Compact Stats */}
+        <div className="md:hidden">
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <Building2 className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.total}</span>
+              <span className="text-xs text-gray-500">Total</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <CheckCircle className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.approved}</span>
+              <span className="text-xs text-gray-500">Approved</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <Clock className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.pending}</span>
+              <span className="text-xs text-gray-500">Pending</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <XCircle className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.rejected}</span>
+              <span className="text-xs text-gray-500">Rejected</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Stats Cards */}
+        <div className="hidden md:grid md:grid-cols-5 gap-4">
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -362,7 +388,7 @@ export default function AdminCompanies() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm col-span-2 md:col-span-1">
+          <Card className="border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -379,22 +405,22 @@ export default function AdminCompanies() {
 
         {/* Filters */}
         <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <CardContent className="p-3 md:p-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
               {/* Status Tabs */}
-              <div className="flex gap-1 overflow-x-auto pb-2 md:pb-0">
+              <div className="flex gap-1 overflow-x-auto pb-1 md:pb-0 -mx-1 px-1">
                 {statusTabs.map((tab) => (
                   <button
                     key={tab.key}
                     onClick={() => setStatusFilter(tab.key)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                    className={`px-2.5 py-1 md:px-3 md:py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${
                       statusFilter === tab.key
                         ? "bg-primary text-white"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
                     {tab.label}
-                    <span className="ml-1.5 text-xs opacity-70">({tab.count})</span>
+                    <span className="ml-1 text-[10px] md:text-xs opacity-70">({tab.count})</span>
                   </button>
                 ))}
               </div>
@@ -404,10 +430,10 @@ export default function AdminCompanies() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search by name, email, industry..."
+                    placeholder="Search by name, email..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 bg-gray-50 border-gray-200"
+                    className="pl-9 bg-gray-50 border-gray-200 h-9 md:h-10 text-sm"
                   />
                   {searchQuery && (
                     <button
