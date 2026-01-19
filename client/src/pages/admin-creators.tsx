@@ -684,24 +684,24 @@ export default function AdminCreators() {
                 data-testid={`card-creator-${creator.id}`}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 border">
-                        <AvatarImage src={creator.profileImageUrl} alt={creator.username} />
-                        <AvatarFallback className="bg-gray-100 text-gray-600">
-                          {creator.firstName?.[0] || creator.username?.[0]?.toUpperCase() || "C"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold text-gray-900" data-testid={`text-name-${creator.id}`}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <Avatar className="h-12 w-12 border">
+                      <AvatarImage src={creator.profileImageUrl} alt={creator.username} />
+                      <AvatarFallback className="bg-gray-100 text-gray-600">
+                        {creator.firstName?.[0] || creator.username?.[0]?.toUpperCase() || "C"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-gray-900 truncate" data-testid={`text-name-${creator.id}`}>
                           {creator.firstName && creator.lastName
                             ? `${creator.firstName} ${creator.lastName}`
                             : creator.username}
                         </p>
-                        <p className="text-sm text-gray-500">{creator.email}</p>
+                        <div data-testid={`badge-status-${creator.id}`}>{getStatusBadge(creator)}</div>
                       </div>
+                      <p className="text-sm text-gray-500 truncate">{creator.email}</p>
                     </div>
-                    <div data-testid={`badge-status-${creator.id}`}>{getStatusBadge(creator)}</div>
                   </div>
 
                   {/* Platforms */}
@@ -753,9 +753,8 @@ export default function AdminCreators() {
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          Actions
-                          <MoreHorizontal className="h-4 w-4 ml-1" />
+                        <Button variant="outline" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
