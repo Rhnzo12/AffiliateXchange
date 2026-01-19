@@ -708,9 +708,11 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 lg:space-y-8">
       {!hideTopNav && <TopNavBar />}
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+
+      {/* Desktop Header */}
+      <div className="hidden lg:flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Creators by Offer</h1>
           <p className="text-muted-foreground mt-1">
@@ -765,12 +767,134 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
         </div>
       </div>
 
-      <Card className="border-card-border">
+      {/* Mobile Search & Filter Bar */}
+      <div className="lg:hidden space-y-3">
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Search by product name, ID, or SKU..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="flex-1"
+          />
+          <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1 shrink-0">
+                All Offers
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="filter-menu-scroll w-72 space-y-2">
+              <DropdownMenuLabel>Filter creators</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <Accordion type="multiple" className="space-y-1">
+                <AccordionItem value="status" className="border-none">
+                  <AccordionTrigger className="px-2 py-1 text-sm font-medium hover:no-underline">
+                    Status
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-1">
+                    {STATUS_OPTIONS.map((option) => (
+                      <DropdownMenuCheckboxItem
+                        key={option.value}
+                        checked={pendingStatusFilters.includes(option.value)}
+                        onCheckedChange={() => toggleStatusFilter(option.value)}
+                        onSelect={(event) => event.preventDefault()}
+                      >
+                        {option.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="platform" className="border-none">
+                  <AccordionTrigger className="px-2 py-1 text-sm font-medium hover:no-underline">
+                    Platform
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-1">
+                    {PLATFORM_OPTIONS.map((option) => (
+                      <DropdownMenuCheckboxItem
+                        key={option.value}
+                        checked={pendingPlatformFilters.includes(option.value)}
+                        onCheckedChange={() => togglePlatformFilter(option.value)}
+                        onSelect={(event) => event.preventDefault()}
+                      >
+                        {option.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+              <DropdownMenuSeparator />
+              <div className="flex items-center justify-between gap-2 px-2 pb-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 text-muted-foreground"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    clearFilters();
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                  Clear
+                </Button>
+                <Button
+                  size="sm"
+                  className="gap-2 border-0 bg-gray-200 text-black shadow-none hover:bg-gray-300"
+                  onClick={applyFilters}
+                >
+                  Apply
+                </Button>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            Showing <span className="font-semibold text-foreground">{totalVisibleCreators}</span> of {totalCreators}
+            {` creator${totalCreators === 1 ? "" : "s"}`}
+          </div>
+          <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Download className="h-4 w-4" />
+                Export
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Export creators</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => {
+                  setExportMenuOpen(false);
+                  exportCreatorCsv();
+                }}
+              >
+                <Download className="h-4 w-4" />
+                CSV file
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => {
+                  setExportMenuOpen(false);
+                  exportCreatorPdf();
+                }}
+              >
+                <FileText className="h-4 w-4" />
+                PDF report
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Desktop Filter Card */}
+      <Card className="border-card-border hidden lg:block">
         <CardContent className="pt-6 space-y-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-4">
             <div className="flex w-full items-center gap-2 xl:max-w-md">
               <Input
-                placeholder="Product name, ID, or SKU"
+                placeholder="Search by product name, ID, or SKU..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 className="w-full"
@@ -990,7 +1114,194 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                   const someOfferSelected = offerAppIds.some((id) => selectedApplications.has(id));
 
                   return (
-                <table className="w-full min-w-[820px] text-sm">
+                    <>
+                {/* Mobile Card View */}
+                <div className="lg:hidden space-y-4">
+                  {/* Select All Header */}
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <Checkbox
+                      checked={allOfferSelected}
+                      ref={(el) => {
+                        if (el) {
+                          (el as HTMLButtonElement).dataset.state = someOfferSelected && !allOfferSelected ? "indeterminate" : allOfferSelected ? "checked" : "unchecked";
+                        }
+                      }}
+                      onCheckedChange={() => toggleSelectAllForOffer(offerAppIds, allOfferSelected)}
+                      aria-label={`Select all creators for ${offer.offerTitle}`}
+                    />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Creator</span>
+                  </div>
+
+                  {/* Creator Cards */}
+                  {offer.items.map((application) => {
+                    const creatorInitial =
+                      (application.creator?.firstName?.[0] || application.creator?.email?.[0] || "C").toUpperCase();
+                    const fullName = `${application.creator?.firstName || ""} ${application.creator?.lastName || ""}`.trim() ||
+                      application.creator?.email ||
+                      "Creator";
+                    const isSelected = selectedApplications.has(application.id);
+
+                    const statusBadgeClass = (() => {
+                      switch (application.status) {
+                        case "pending":
+                          return "bg-amber-100 text-amber-800 border-amber-200";
+                        case "approved":
+                          return "bg-blue-100 text-blue-800 border-blue-200";
+                        case "active":
+                          return "bg-emerald-100 text-emerald-800 border-emerald-200";
+                        case "paused":
+                          return "bg-slate-200 text-slate-700 border-slate-300";
+                        case "completed":
+                          return "bg-purple-100 text-purple-800 border-purple-200";
+                        case "rejected":
+                          return "bg-red-100 text-red-700 border-red-200";
+                        default:
+                          return "bg-muted text-foreground border-border";
+                      }
+                    })();
+
+                    const performanceBadgeClass = (() => {
+                      switch (application.performanceTier) {
+                        case "high":
+                          return "bg-emerald-100 text-emerald-800 border-emerald-200";
+                        case "medium":
+                          return "bg-sky-100 text-sky-800 border-sky-200";
+                        default:
+                          return "bg-amber-100 text-amber-800 border-amber-200";
+                      }
+                    })();
+
+                    return (
+                      <div
+                        key={application.id}
+                        className={`border rounded-lg p-4 space-y-3 transition-colors ${isSelected ? "bg-primary/5 border-primary/30" : "border-gray-200"}`}
+                      >
+                        {/* Creator Info Row */}
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleApplicationSelection(application.id)}
+                            aria-label={`Select ${fullName}`}
+                            className="mt-1"
+                          />
+                          <Avatar className="h-10 w-10 flex-shrink-0">
+                            <AvatarImage src={proxiedSrc(application.creator?.profileImageUrl) || undefined} />
+                            <AvatarFallback>{creatorInitial}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-gray-900 truncate">{fullName}</div>
+                            <div className="text-sm text-muted-foreground truncate">{application.creator?.email || "No email"}</div>
+                          </div>
+                          <Select
+                            value={application.status}
+                            onValueChange={(nextStatus: string) => {
+                              if (nextStatus !== application.status) {
+                                updateStatusMutation.mutate({ applicationId: application.id, status: nextStatus });
+                              }
+                            }}
+                            disabled={statusUpdatingId === application.id || updateStatusMutation.isPending}
+                          >
+                            <SelectTrigger className={`h-8 w-auto min-w-[100px] text-xs ${statusBadgeClass} border`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Platform Badges */}
+                        <div className="flex flex-wrap gap-1.5 pl-8">
+                          {application.creator?.youtubeUrl && (
+                            <Badge variant="outline" className="gap-1 text-xs">
+                              <ExternalLink className="h-3 w-3" /> YouTube
+                            </Badge>
+                          )}
+                          {application.creator?.tiktokUrl && (
+                            <Badge variant="outline" className="gap-1 text-xs">
+                              <ExternalLink className="h-3 w-3" /> TikTok
+                            </Badge>
+                          )}
+                          {application.creator?.instagramUrl && (
+                            <Badge variant="outline" className="gap-1 text-xs">
+                              <ExternalLink className="h-3 w-3" /> Instagram
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Stats Row */}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground border-t border-b py-2">
+                          <span><span className="font-semibold text-gray-900">{application.clicks}</span> Clicks</span>
+                          <span className="text-gray-300">|</span>
+                          <span><span className="font-semibold text-gray-900">{(application.conversionRate * 100).toFixed(1)}%</span> conversion rate</span>
+                          <span className="text-gray-300">|</span>
+                          <span className="font-semibold text-gray-900">${application.earnings.toFixed(2)}</span>
+                        </div>
+
+                        {/* Performance & Date Row */}
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className={`${performanceBadgeClass}`}>
+                            {formatPerformanceLabel(application.performanceTier)}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">{formatDate(application.joinDate)}</span>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 flex-1"
+                            data-testid={`button-message-${application.id}`}
+                            onClick={() => startConversationMutation.mutate(application.id)}
+                            disabled={startConversationMutation.isPending}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            Email
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="gap-1.5 flex-1 bg-primary hover:bg-primary/90 text-white"
+                            onClick={() => {
+                              if (application.pendingPayment?.id) {
+                                approvePayoutMutation.mutate({ paymentId: application.pendingPayment.id });
+                              }
+                            }}
+                            disabled={
+                              !application.pendingPayment ||
+                              approvePayoutMutation.isPending ||
+                              payoutProcessingId === application.pendingPayment?.id
+                            }
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Approve Payout
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={() => {
+                              if (window.confirm("Pause this creator on the offer?")) {
+                                updateStatusMutation.mutate({ applicationId: application.id, status: "paused" });
+                              }
+                            }}
+                            disabled={statusUpdatingId === application.id && updateStatusMutation.isPending}
+                          >
+                            <XCircle className="h-4 w-4" />
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop Table View */}
+                <table className="hidden lg:table w-full min-w-[820px] text-sm">
                   <thead className="text-xs uppercase text-muted-foreground border-b">
                     <tr>
                       <th className="py-3 pl-2 pr-3 w-10">
@@ -1211,6 +1522,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                     })}
                   </tbody>
                 </table>
+                    </>
                   );
                 })()}
               </CardContent>
