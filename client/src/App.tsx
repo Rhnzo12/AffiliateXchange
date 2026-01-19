@@ -489,7 +489,7 @@ function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   // Define public routes
-  const publicRoutes = ['/login', '/register', '/select-role', '/forgot-password', '/reset-password', '/privacy-policy', '/terms-of-service'];
+  const publicRoutes = ['/login', '/register', '/select-role', '/forgot-password', '/reset-password', '/privacy-policy', '/terms-of-service', '/about'];
   const isPublicRoute = publicRoutes.includes(location);
 
   // While loading, show a loading state
