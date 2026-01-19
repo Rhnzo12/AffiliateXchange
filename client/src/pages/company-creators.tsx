@@ -1096,7 +1096,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                     return (
                       <div
                         key={application.id}
-                        className={`bg-white border rounded-xl p-4 space-y-3 shadow-sm ${isSelected ? "ring-2 ring-primary/30" : "border-gray-100"}`}
+                        className={`bg-white border rounded-xl p-4 space-y-4 shadow-sm ${isSelected ? "ring-2 ring-primary/30" : "border-gray-100"}`}
                       >
                         {/* Creator Info Row */}
                         <div className="flex items-start gap-3">
@@ -1113,24 +1113,6 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-gray-900">{fullName}</div>
                             <div className="text-sm text-muted-foreground truncate">{application.creator?.email || "No email"}</div>
-                            {/* Platform Badges */}
-                            <div className="flex flex-wrap gap-1.5 mt-1">
-                              {application.creator?.youtubeUrl && (
-                                <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5 font-normal">
-                                  <ExternalLink className="h-3 w-3" /> YouTube
-                                </Badge>
-                              )}
-                              {application.creator?.tiktokUrl && (
-                                <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5 font-normal">
-                                  <ExternalLink className="h-3 w-3" /> TikTok
-                                </Badge>
-                              )}
-                              {application.creator?.instagramUrl && (
-                                <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5 font-normal">
-                                  <ExternalLink className="h-3 w-3" /> Instagram
-                                </Badge>
-                              )}
-                            </div>
                           </div>
                           <Select
                             value={application.status}
@@ -1154,27 +1136,46 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                           </Select>
                         </div>
 
+                        {/* Platform Badges */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {application.creator?.youtubeUrl && (
+                            <Badge variant="outline" className="gap-1 text-xs px-2.5 py-1 font-normal rounded-md">
+                              <ExternalLink className="h-3 w-3" /> YouTube
+                            </Badge>
+                          )}
+                          {application.creator?.tiktokUrl && (
+                            <Badge variant="outline" className="gap-1 text-xs px-2.5 py-1 font-normal rounded-md">
+                              <ExternalLink className="h-3 w-3" /> TikTok
+                            </Badge>
+                          )}
+                          {application.creator?.instagramUrl && (
+                            <Badge variant="outline" className="gap-1 text-xs px-2.5 py-1 font-normal rounded-md">
+                              <ExternalLink className="h-3 w-3" /> Instagram
+                            </Badge>
+                          )}
+                        </div>
+
                         {/* Stats Row */}
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground py-2">
-                          <span><span className="font-semibold text-gray-900">{application.clicks}</span> Clicks</span>
-                          <span><span className="font-semibold text-gray-900">{(application.conversionRate * 100).toFixed(1)}%</span> conversion rate</span>
+                        <div className="flex items-center justify-between text-sm border-t border-b border-gray-100 py-3">
+                          <span><span className="font-semibold text-gray-900">{application.clicks}</span> <span className="text-muted-foreground">Clicks</span></span>
+                          <span><span className="font-semibold text-gray-900">{(application.conversionRate * 100).toFixed(1)}%</span> <span className="text-muted-foreground">conversion rate</span></span>
                           <span className="font-semibold text-gray-900">${application.earnings.toFixed(2)}</span>
                         </div>
 
                         {/* Performance & Date Row */}
                         <div className="flex items-center justify-between">
-                          <span className={`text-sm font-medium px-2 py-0.5 rounded ${performanceBadgeClass}`}>
+                          <span className={`text-sm font-medium px-3 py-1 rounded ${performanceBadgeClass}`}>
                             {formatPerformanceLabel(application.performanceTier)}
                           </span>
                           <span className="text-sm text-muted-foreground">{formatDate(application.joinDate)}</span>
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex items-center gap-2 pt-1">
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="gap-1.5 h-9 px-4"
+                            className="gap-1.5 h-10 flex-1"
                             data-testid={`button-message-${application.id}`}
                             onClick={() => startConversationMutation.mutate(application.id)}
                             disabled={startConversationMutation.isPending}
@@ -1184,7 +1185,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                           </Button>
                           <Button
                             size="sm"
-                            className="gap-1.5 h-9 px-4 bg-primary hover:bg-primary/90 text-white"
+                            className="gap-1.5 h-10 flex-1 bg-primary hover:bg-primary/90 text-white"
                             onClick={() => {
                               if (application.pendingPayment?.id) {
                                 approvePayoutMutation.mutate({ paymentId: application.pendingPayment.id });
@@ -1202,7 +1203,7 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                           <Button
                             variant="outline"
                             size="sm"
-                            className="gap-1.5 h-9 px-4 text-red-600 border-red-200 hover:bg-red-50"
+                            className="gap-1.5 h-10 flex-1 text-red-600 border-red-200 hover:bg-red-50"
                             onClick={() => {
                               if (window.confirm("Remove this creator from the offer?")) {
                                 updateStatusMutation.mutate({ applicationId: application.id, status: "paused" });
