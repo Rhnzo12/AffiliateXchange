@@ -7,7 +7,7 @@ import {
   DollarSign,
   Percent,
   RefreshCw,
-  Gift,
+  Layers,
   Target,
   CheckCircle2,
   XCircle,
@@ -15,6 +15,12 @@ import {
   Calculator,
   Scale,
   ArrowRight,
+  Clock,
+  Wallet,
+  Calendar,
+  BarChart3,
+  ShoppingCart,
+  RotateCcw,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -22,7 +28,6 @@ const commissionTypes = [
   {
     name: "Percentage-Based (CPS)",
     icon: Percent,
-    color: "bg-blue-500",
     description:
       "Earn a percentage of each sale made through your link. The more expensive the product, the higher your earnings.",
     example: "15% commission on a $100 product = $15 per sale",
@@ -33,7 +38,6 @@ const commissionTypes = [
   {
     name: "Fixed Amount (CPA)",
     icon: DollarSign,
-    color: "bg-green-500",
     description:
       "Earn a set dollar amount for each conversion, regardless of the purchase value. Predictable and straightforward.",
     example: "$25 flat commission per sale, regardless of order value",
@@ -44,7 +48,6 @@ const commissionTypes = [
   {
     name: "Recurring Commissions",
     icon: RefreshCw,
-    color: "bg-purple-500",
     description:
       "Earn commissions every time a referred customer renews their subscription. Build passive income over time.",
     example: "20% recurring monthly on $50/month subscription = $10/month ongoing",
@@ -55,7 +58,6 @@ const commissionTypes = [
   {
     name: "Tiered Commissions",
     icon: Target,
-    color: "bg-orange-500",
     description:
       "Earn higher commission rates as you hit performance milestones. Top performers are rewarded with better rates.",
     example: "10% for 1-10 sales, 15% for 11-50 sales, 20% for 50+ sales",
@@ -65,8 +67,7 @@ const commissionTypes = [
   },
   {
     name: "Hybrid Models",
-    icon: Gift,
-    color: "bg-pink-500",
+    icon: Layers,
     description:
       "Combination of commission types, like a flat fee plus percentage, or one-time bonus plus recurring.",
     example: "$50 sign-up bonus + 10% recurring commission",
@@ -81,37 +82,37 @@ const comparisonFactors = [
     factor: "Cookie Duration",
     description: "How long after a click you get credit for the sale",
     importance: "Longer is better - 30-90 days ideal",
-    icon: "🍪",
+    icon: Clock,
   },
   {
     factor: "Payment Threshold",
     description: "Minimum earnings before you can withdraw",
     importance: "Lower thresholds mean faster access to your money",
-    icon: "💰",
+    icon: Wallet,
   },
   {
     factor: "Payment Frequency",
     description: "How often commissions are paid out",
     importance: "Weekly or bi-weekly payments improve cash flow",
-    icon: "📅",
+    icon: Calendar,
   },
   {
     factor: "Conversion Rate",
     description: "Percentage of clicks that result in sales",
     importance: "Higher rates mean more earnings per click",
-    icon: "📊",
+    icon: BarChart3,
   },
   {
     factor: "Average Order Value",
     description: "Typical purchase amount from the brand",
     importance: "Higher AOV = higher percentage-based earnings",
-    icon: "🛒",
+    icon: ShoppingCart,
   },
   {
     factor: "Return Policy Impact",
     description: "How returns affect your commissions",
     importance: "Some brands claw back commissions on returns",
-    icon: "↩️",
+    icon: RotateCcw,
   },
 ];
 
@@ -120,19 +121,19 @@ const calculationExamples = [
     scenario: "Fashion Influencer",
     offer: "25% commission on clothing brand",
     assumptions: "500 clicks/month, 3% conversion rate, $80 avg order",
-    calculation: "500 × 0.03 × $80 × 0.25 = $300/month",
+    calculation: "500 x 0.03 x $80 x 0.25 = $300/month",
   },
   {
     scenario: "Tech Reviewer",
     offer: "$50 flat per software subscription",
     assumptions: "1000 clicks/month, 2% conversion rate",
-    calculation: "1000 × 0.02 × $50 = $1,000/month",
+    calculation: "1000 x 0.02 x $50 = $1,000/month",
   },
   {
     scenario: "Fitness Creator",
     offer: "15% recurring on $30/month app",
     assumptions: "20 new subscribers/month, 6-month avg retention",
-    calculation: "20 × $30 × 0.15 × 6 months = $540 lifetime per cohort",
+    calculation: "20 x $30 x 0.15 x 6 months = $540 lifetime per cohort",
   },
 ];
 
@@ -148,8 +149,8 @@ export default function HelpCommissionGuide() {
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-primary" />
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-foreground" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">Understanding Commission Structures</h1>
@@ -178,7 +179,7 @@ export default function HelpCommissionGuide() {
       {/* Commission Types */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-primary" />
+          <DollarSign className="h-5 w-5 text-foreground" />
           Commission Types Explained
         </h2>
 
@@ -188,10 +189,8 @@ export default function HelpCommissionGuide() {
             <Card key={type.name} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex items-start gap-4">
-                  <div
-                    className={`h-12 w-12 rounded-xl ${type.color} flex items-center justify-center shrink-0`}
-                  >
-                    <Icon className="h-6 w-6 text-white" />
+                  <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                    <Icon className="h-6 w-6 text-foreground" />
                   </div>
                   <div className="flex-1">
                     <CardTitle className="text-lg">{type.name}</CardTitle>
@@ -218,7 +217,7 @@ export default function HelpCommissionGuide() {
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-medium text-sm mb-2 flex items-center gap-1 text-green-600">
+                    <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Pros
                     </h4>
                     <ul className="space-y-1">
@@ -230,7 +229,7 @@ export default function HelpCommissionGuide() {
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-medium text-sm mb-2 flex items-center gap-1 text-red-600">
+                    <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
                       <XCircle className="h-3.5 w-3.5" /> Cons
                     </h4>
                     <ul className="space-y-1">
@@ -251,38 +250,43 @@ export default function HelpCommissionGuide() {
       {/* Comparison Factors */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
-          <Scale className="h-5 w-5 text-primary" />
+          <Scale className="h-5 w-5 text-foreground" />
           What to Compare Beyond Commission Rate
         </h2>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {comparisonFactors.map((factor) => (
-            <Card key={factor.factor}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">{factor.icon}</span>
-                  <div>
-                    <h4 className="font-medium text-sm">{factor.factor}</h4>
-                    <p className="text-xs text-muted-foreground mt-1">{factor.description}</p>
-                    <p className="text-xs text-primary mt-2">{factor.importance}</p>
+          {comparisonFactors.map((factor) => {
+            const Icon = factor.icon;
+            return (
+              <Card key={factor.factor}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Icon className="h-4 w-4 text-foreground" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm">{factor.factor}</h4>
+                      <p className="text-xs text-muted-foreground mt-1">{factor.description}</p>
+                      <p className="text-xs font-medium mt-2">{factor.importance}</p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
       {/* Calculation Examples */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
-          <Calculator className="h-5 w-5 text-primary" />
+          <Calculator className="h-5 w-5 text-foreground" />
           Real-World Calculation Examples
         </h2>
 
         <div className="grid gap-4 sm:grid-cols-3">
           {calculationExamples.map((example, index) => (
-            <Card key={index} className="border-primary/20">
+            <Card key={index}>
               <CardHeader className="pb-2">
                 <Badge variant="secondary" className="w-fit mb-1">
                   {example.scenario}
@@ -291,8 +295,8 @@ export default function HelpCommissionGuide() {
               </CardHeader>
               <CardContent className="pt-0 space-y-3">
                 <p className="text-xs text-muted-foreground">{example.assumptions}</p>
-                <div className="bg-primary/10 rounded-lg p-3">
-                  <p className="text-sm font-mono font-medium text-primary">{example.calculation}</p>
+                <div className="bg-muted rounded-lg p-3">
+                  <p className="text-sm font-mono font-medium">{example.calculation}</p>
                 </div>
               </CardContent>
             </Card>
@@ -301,36 +305,36 @@ export default function HelpCommissionGuide() {
       </div>
 
       {/* Pro Tips */}
-      <Card className="border-primary/20 bg-primary/5">
+      <Card>
         <CardContent className="p-6">
           <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-primary" />
+            <Lightbulb className="h-5 w-5 text-foreground" />
             Pro Tips for Choosing Offers
           </h3>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex items-start gap-2">
-              <ArrowRight className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <p className="text-sm">
                 <strong>High commission isn't everything</strong> - A 5% commission with 10%
                 conversion rate beats 20% with 0.5% conversion.
               </p>
             </div>
             <div className="flex items-start gap-2">
-              <ArrowRight className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <p className="text-sm">
                 <strong>Consider your content frequency</strong> - Recurring commissions work best
                 if you post consistently about the product.
               </p>
             </div>
             <div className="flex items-start gap-2">
-              <ArrowRight className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <p className="text-sm">
                 <strong>Match commission type to audience</strong> - Impulse buyers = flat rate;
                 researchers = percentage-based.
               </p>
             </div>
             <div className="flex items-start gap-2">
-              <ArrowRight className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <p className="text-sm">
                 <strong>Negotiate after proving value</strong> - Once you show results, brands often
                 increase your rates.

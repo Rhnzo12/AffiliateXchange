@@ -8,13 +8,14 @@ import {
   TrendingUp,
   Users,
   DollarSign,
+  Award,
   Star,
-  Sparkles,
   Target,
   Lightbulb,
-  Instagram,
-  Youtube,
   ArrowRight,
+  Clock,
+  Smartphone,
+  Video,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -24,7 +25,7 @@ const successStories = [
     handle: "@sarahfitlife",
     avatar: "SC",
     platform: "Instagram",
-    platformIcon: Instagram,
+    platformIcon: Smartphone,
     niche: "Fitness & Wellness",
     followers: "125K",
     monthlyEarnings: "$4,200",
@@ -51,7 +52,7 @@ const successStories = [
     handle: "@techwitmarc",
     avatar: "MJ",
     platform: "YouTube",
-    platformIcon: Youtube,
+    platformIcon: Video,
     niche: "Tech Reviews",
     followers: "89K",
     monthlyEarnings: "$6,800",
@@ -78,7 +79,7 @@ const successStories = [
     handle: "@emmacooks",
     avatar: "ER",
     platform: "Instagram",
-    platformIcon: Instagram,
+    platformIcon: Smartphone,
     niche: "Food & Cooking",
     followers: "67K",
     monthlyEarnings: "$2,900",
@@ -105,7 +106,7 @@ const successStories = [
     handle: "@davidgames",
     avatar: "DP",
     platform: "YouTube",
-    platformIcon: Youtube,
+    platformIcon: Video,
     niche: "Gaming",
     followers: "210K",
     monthlyEarnings: "$8,500",
@@ -132,7 +133,7 @@ const successStories = [
     handle: "@aishabeauty",
     avatar: "AW",
     platform: "Instagram",
-    platformIcon: Instagram,
+    platformIcon: Smartphone,
     niche: "Beauty & Skincare",
     followers: "156K",
     monthlyEarnings: "$5,100",
@@ -165,7 +166,7 @@ const commonThemes = [
   {
     theme: "Patience Pays Off",
     description: "Most saw significant results after 3-6 months of consistent effort",
-    icon: TrendingUp,
+    icon: Clock,
   },
   {
     theme: "Quality Over Quantity",
@@ -191,8 +192,8 @@ export default function HelpSuccessStories() {
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Heart className="h-5 w-5 text-primary" />
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+              <Award className="h-5 w-5 text-foreground" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">Creator Success Stories</h1>
@@ -227,7 +228,7 @@ export default function HelpSuccessStories() {
               <CardHeader className="pb-4">
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold text-lg">
+                    <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center text-foreground font-bold text-lg border">
                       {creator.avatar}
                     </div>
                     <div>
@@ -247,19 +248,19 @@ export default function HelpSuccessStories() {
               <CardContent className="space-y-5">
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-3 bg-green-500/10 rounded-lg">
-                    <DollarSign className="h-5 w-5 text-green-600 mx-auto mb-1" />
-                    <p className="text-lg font-bold text-green-600">{creator.monthlyEarnings}</p>
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <DollarSign className="h-5 w-5 text-foreground mx-auto mb-1" />
+                    <p className="text-lg font-bold">{creator.monthlyEarnings}</p>
                     <p className="text-xs text-muted-foreground">Monthly Earnings</p>
                   </div>
-                  <div className="text-center p-3 bg-blue-500/10 rounded-lg">
-                    <TrendingUp className="h-5 w-5 text-blue-600 mx-auto mb-1" />
-                    <p className="text-lg font-bold text-blue-600">{creator.timeOnPlatform}</p>
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <Clock className="h-5 w-5 text-foreground mx-auto mb-1" />
+                    <p className="text-lg font-bold">{creator.timeOnPlatform}</p>
                     <p className="text-xs text-muted-foreground">On Platform</p>
                   </div>
-                  <div className="text-center p-3 bg-purple-500/10 rounded-lg">
-                    <Star className="h-5 w-5 text-purple-600 mx-auto mb-1" />
-                    <p className="text-sm font-bold text-purple-600 leading-tight">
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <Star className="h-5 w-5 text-foreground mx-auto mb-1" />
+                    <p className="text-sm font-bold leading-tight">
                       {creator.topOffer}
                     </p>
                     <p className="text-xs text-muted-foreground">Top Offer</p>
@@ -273,9 +274,9 @@ export default function HelpSuccessStories() {
                 </div>
 
                 {/* Key Takeaway */}
-                <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
+                <div className="bg-muted/50 border border-border rounded-lg p-4">
                   <div className="flex items-start gap-2">
-                    <Lightbulb className="h-5 w-5 text-primary shrink-0" />
+                    <Lightbulb className="h-5 w-5 text-foreground shrink-0" />
                     <div>
                       <span className="font-semibold text-sm">Key Takeaway:</span>
                       <p className="text-sm text-muted-foreground mt-1">{creator.keyTakeaway}</p>
@@ -287,13 +288,13 @@ export default function HelpSuccessStories() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
-                      <Sparkles className="h-4 w-4 text-primary" />
+                      <Star className="h-4 w-4 text-foreground" />
                       {creator.name.split(" ")[0]}'s Tips
                     </h4>
                     <ul className="space-y-1.5">
                       {creator.tips.map((tip, tipIndex) => (
                         <li key={tipIndex} className="flex items-start gap-2 text-sm">
-                          <ArrowRight className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
                           <span className="text-muted-foreground">{tip}</span>
                         </li>
                       ))}
@@ -301,7 +302,7 @@ export default function HelpSuccessStories() {
                   </div>
                   <div>
                     <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
+                      <TrendingUp className="h-4 w-4 text-foreground" />
                       Growth Journey
                     </h4>
                     <div className="space-y-2">
@@ -316,7 +317,7 @@ export default function HelpSuccessStories() {
                               {item.before}
                             </span>
                             <ArrowRight className="h-3 w-3" />
-                            <span className="font-medium text-green-600">{item.after}</span>
+                            <span className="font-medium">{item.after}</span>
                           </div>
                         </div>
                       ))}
@@ -338,8 +339,8 @@ export default function HelpSuccessStories() {
             return (
               <Card key={index}>
                 <CardContent className="p-4 flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Icon className="h-5 w-5 text-primary" />
+                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <Icon className="h-5 w-5 text-foreground" />
                   </div>
                   <div>
                     <h4 className="font-medium">{item.theme}</h4>
@@ -353,9 +354,9 @@ export default function HelpSuccessStories() {
       </div>
 
       {/* CTA */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+      <Card>
         <CardContent className="p-6 text-center">
-          <Sparkles className="h-8 w-8 text-primary mx-auto mb-3" />
+          <Award className="h-8 w-8 text-foreground mx-auto mb-3" />
           <h3 className="font-semibold text-xl mb-2">Ready to Write Your Success Story?</h3>
           <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
             Every creator on this page started exactly where you are now. The difference? They took
