@@ -3147,7 +3147,7 @@ export default function PaymentSettings() {
       setErrorDialog({
         open: true,
         title: "Error",
-        description: "Failed to add payment method",
+        description: error.message || "Failed to add payment method",
       });
     },
   });
