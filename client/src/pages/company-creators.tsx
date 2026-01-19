@@ -742,97 +742,83 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
     <div className="space-y-4 lg:space-y-8">
       {!hideTopNav && <TopNavBar />}
 
-      {/* Mobile Search & Filter Bar - Positioned at top */}
-      <div className="lg:hidden flex items-center gap-2 -mt-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search creators..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            className="pl-9 h-9"
-          />
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
-              <Tag className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Filter by Offer</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className={offerFilter === "all" ? "bg-accent" : ""}
-              onClick={() => setOfferFilter("all")}
-            >
-              All Offers
-            </DropdownMenuItem>
-            {uniqueOffers.map(([id, title]) => (
+      {/* Mobile Search & Filter Bar */}
+      <div className="lg:hidden space-y-3">
+        {/* Row 1: Search + All Offers */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by product name, ID, or SKU..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="pl-9 h-10"
+            />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-10 gap-2 shrink-0">
+                All Offers
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Filter by Offer</DropdownMenuLabel>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
-                key={id}
-                className={offerFilter === id ? "bg-accent" : ""}
-                onClick={() => setOfferFilter(id)}
+                className={offerFilter === "all" ? "bg-accent" : ""}
+                onClick={() => setOfferFilter("all")}
               >
-                {title}
+                All Offers
               </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
-              <Clock className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className={sortOrder === "newest" ? "bg-accent" : ""}
-              onClick={() => setSortOrder("newest")}
-            >
-              Newest
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className={sortOrder === "oldest" ? "bg-accent" : ""}
-              onClick={() => setSortOrder("oldest")}
-            >
-              Oldest
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DropdownMenu open={mobileExportMenuOpen} onOpenChange={setMobileExportMenuOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
-              <Download className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Export creators</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="gap-2"
-              onClick={() => {
-                setMobileExportMenuOpen(false);
-                exportCreatorCsv();
-              }}
-            >
-              <Download className="h-4 w-4" />
-              CSV file
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="gap-2"
-              onClick={() => {
-                setMobileExportMenuOpen(false);
-                exportCreatorPdf();
-              }}
-            >
-              <FileText className="h-4 w-4" />
-              PDF report
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              {uniqueOffers.map(([id, title]) => (
+                <DropdownMenuItem
+                  key={id}
+                  className={offerFilter === id ? "bg-accent" : ""}
+                  onClick={() => setOfferFilter(id)}
+                >
+                  {title}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        {/* Row 2: Export */}
+        <div className="flex justify-end">
+          <DropdownMenu open={mobileExportMenuOpen} onOpenChange={setMobileExportMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-10 gap-2">
+                <Download className="h-4 w-4" />
+                Export
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Export creators</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => {
+                  setMobileExportMenuOpen(false);
+                  exportCreatorCsv();
+                }}
+              >
+                <Download className="h-4 w-4" />
+                CSV file
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => {
+                  setMobileExportMenuOpen(false);
+                  exportCreatorPdf();
+                }}
+              >
+                <FileText className="h-4 w-4" />
+                PDF report
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Desktop Filter Bar - Positioned at top */}
@@ -1070,21 +1056,6 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                     <>
                 {/* Mobile Card View */}
                 <div className="lg:hidden space-y-4">
-                  {/* Select All Header */}
-                  <div className="flex items-center gap-2 pb-2 border-b">
-                    <Checkbox
-                      checked={allOfferSelected}
-                      ref={(el) => {
-                        if (el) {
-                          (el as HTMLButtonElement).dataset.state = someOfferSelected && !allOfferSelected ? "indeterminate" : allOfferSelected ? "checked" : "unchecked";
-                        }
-                      }}
-                      onCheckedChange={() => toggleSelectAllForOffer(offerAppIds, allOfferSelected)}
-                      aria-label={`Select all creators for ${offer.offerTitle}`}
-                    />
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Creator</span>
-                  </div>
-
                   {/* Creator Cards */}
                   {offer.items.map((application) => {
                     const creatorInitial =
@@ -1097,154 +1068,145 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
                     const statusBadgeClass = (() => {
                       switch (application.status) {
                         case "pending":
-                          return "bg-amber-100 text-amber-800 border-amber-200";
+                          return "bg-amber-100 text-amber-800";
                         case "approved":
-                          return "bg-emerald-50 text-emerald-700 border-emerald-200";
+                          return "bg-emerald-100 text-emerald-700";
                         case "active":
-                          return "bg-emerald-100 text-emerald-800 border-emerald-200";
+                          return "bg-emerald-100 text-emerald-800";
                         case "paused":
-                          return "bg-slate-200 text-slate-700 border-slate-300";
+                          return "bg-slate-100 text-slate-700";
                         case "completed":
-                          return "bg-purple-100 text-purple-800 border-purple-200";
+                          return "bg-purple-100 text-purple-800";
                         case "rejected":
-                          return "bg-red-100 text-red-700 border-red-200";
+                          return "bg-red-100 text-red-700";
                         default:
-                          return "bg-muted text-foreground border-border";
+                          return "bg-gray-100 text-gray-700";
                       }
                     })();
 
                     const performanceBadgeClass = (() => {
                       switch (application.performanceTier) {
                         case "high":
-                          return "bg-emerald-50 text-emerald-700";
+                          return "bg-emerald-100 text-emerald-700 border border-emerald-200";
                         case "medium":
-                          return "bg-sky-50 text-sky-700";
+                          return "bg-sky-100 text-sky-700 border border-sky-200";
                         default:
-                          return "bg-amber-50 text-amber-700";
+                          return "bg-amber-100 text-amber-700 border border-amber-200";
                       }
                     })();
 
                     return (
                       <div
                         key={application.id}
-                        className={`bg-white border rounded-xl p-4 space-y-4 shadow-sm ${isSelected ? "ring-2 ring-primary/30" : "border-gray-100"}`}
+                        className={`bg-white border rounded-lg ${isSelected ? "ring-2 ring-primary/30 border-primary/30" : "border-gray-200"}`}
                       >
-                        {/* Creator Info Row */}
-                        <div className="flex items-start gap-3">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleApplicationSelection(application.id)}
-                            aria-label={`Select ${fullName}`}
-                            className="mt-2.5"
-                          />
-                          <Avatar className="h-10 w-10 flex-shrink-0 border border-gray-200">
-                            <AvatarImage src={proxiedSrc(application.creator?.profileImageUrl) || undefined} />
-                            <AvatarFallback className="bg-primary/10 text-primary">{creatorInitial}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-gray-900">{fullName}</div>
-                            <div className="text-sm text-muted-foreground truncate">{application.creator?.email || "No email"}</div>
+                        {/* Header Row: CREATOR label + Status Badge */}
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleApplicationSelection(application.id)}
+                              aria-label={`Select ${fullName}`}
+                            />
+                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Creator</span>
                           </div>
-                          <Select
-                            value={application.status}
-                            onValueChange={(nextStatus: string) => {
-                              if (nextStatus !== application.status) {
-                                updateStatusMutation.mutate({ applicationId: application.id, status: nextStatus });
-                              }
-                            }}
-                            disabled={statusUpdatingId === application.id || updateStatusMutation.isPending}
-                          >
-                            <SelectTrigger className={`h-7 w-auto min-w-[95px] text-xs rounded-full ${statusBadgeClass} border`}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Badge className={`${statusBadgeClass} text-xs font-medium px-2.5 py-0.5 border-0`}>
+                            {formatStatusLabel(application.status)}
+                          </Badge>
                         </div>
 
-                        {/* Platform Badges */}
-                        <div className="flex flex-wrap gap-1.5">
-                          {application.creator?.youtubeUrl && (
-                            <Badge variant="outline" className="gap-1 text-xs px-2.5 py-1 font-normal rounded-md">
-                              <ExternalLink className="h-3 w-3" /> YouTube
+                        <div className="p-4 space-y-4">
+                          {/* Creator Info Row */}
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 flex-shrink-0 border border-gray-200">
+                              <AvatarImage src={proxiedSrc(application.creator?.profileImageUrl) || undefined} />
+                              <AvatarFallback className="bg-primary/10 text-primary font-medium">{creatorInitial}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-gray-900">{fullName}</div>
+                              <div className="text-sm text-muted-foreground truncate">{application.creator?.email || "No email"}</div>
+                            </div>
+                          </div>
+
+                          {/* Platform Badge */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {application.creator?.youtubeUrl && (
+                              <Badge variant="outline" className="gap-1.5 text-xs px-2 py-1 font-normal">
+                                <ExternalLink className="h-3 w-3" /> YouTube
+                              </Badge>
+                            )}
+                            {application.creator?.tiktokUrl && (
+                              <Badge variant="outline" className="gap-1.5 text-xs px-2 py-1 font-normal">
+                                <ExternalLink className="h-3 w-3" /> TikTok
+                              </Badge>
+                            )}
+                            {application.creator?.instagramUrl && (
+                              <Badge variant="outline" className="gap-1.5 text-xs px-2 py-1 font-normal">
+                                <ExternalLink className="h-3 w-3" /> Instagram
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Stats Row */}
+                          <div className="flex items-center justify-between text-sm py-2">
+                            <span className="text-muted-foreground"><span className="font-semibold text-gray-900">{application.clicks}</span> Clicks</span>
+                            <span className="text-muted-foreground"><span className="font-semibold text-gray-900">{(application.conversionRate * 100).toFixed(1)}%</span> conversion rate</span>
+                            <span className="font-semibold text-gray-900">${application.earnings.toFixed(2)}</span>
+                          </div>
+
+                          {/* Performance & Date Row */}
+                          <div className="flex items-center justify-between">
+                            <Badge className={`${performanceBadgeClass} text-xs font-medium px-2.5 py-1`}>
+                              {formatPerformanceLabel(application.performanceTier)}
                             </Badge>
-                          )}
-                          {application.creator?.tiktokUrl && (
-                            <Badge variant="outline" className="gap-1 text-xs px-2.5 py-1 font-normal rounded-md">
-                              <ExternalLink className="h-3 w-3" /> TikTok
-                            </Badge>
-                          )}
-                          {application.creator?.instagramUrl && (
-                            <Badge variant="outline" className="gap-1 text-xs px-2.5 py-1 font-normal rounded-md">
-                              <ExternalLink className="h-3 w-3" /> Instagram
-                            </Badge>
-                          )}
-                        </div>
+                            <span className="text-sm text-muted-foreground">{formatDate(application.joinDate)}</span>
+                          </div>
 
-                        {/* Stats Row */}
-                        <div className="flex items-center justify-between text-sm border-t border-b border-gray-100 py-3">
-                          <span><span className="font-semibold text-gray-900">{application.clicks}</span> <span className="text-muted-foreground">Clicks</span></span>
-                          <span><span className="font-semibold text-gray-900">{(application.conversionRate * 100).toFixed(1)}%</span> <span className="text-muted-foreground">conversion rate</span></span>
-                          <span className="font-semibold text-gray-900">${application.earnings.toFixed(2)}</span>
-                        </div>
-
-                        {/* Performance & Date Row */}
-                        <div className="flex items-center justify-between">
-                          <span className={`text-sm font-medium px-3 py-1 rounded ${performanceBadgeClass}`}>
-                            {formatPerformanceLabel(application.performanceTier)}
-                          </span>
-                          <span className="text-sm text-muted-foreground">{formatDate(application.joinDate)}</span>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5 h-10 flex-1"
-                            data-testid={`button-message-${application.id}`}
-                            onClick={() => startConversationMutation.mutate(application.id)}
-                            disabled={startConversationMutation.isPending}
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                            Email
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="gap-1.5 h-10 flex-1 bg-primary hover:bg-primary/90 text-white"
-                            onClick={() => {
-                              if (application.pendingPayment?.id) {
-                                approvePayoutMutation.mutate({ paymentId: application.pendingPayment.id });
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 h-9 flex-1 text-sm"
+                              data-testid={`button-message-${application.id}`}
+                              onClick={() => startConversationMutation.mutate(application.id)}
+                              disabled={startConversationMutation.isPending}
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                              Email
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="gap-1.5 h-9 flex-1 bg-teal-600 hover:bg-teal-700 text-white text-sm"
+                              onClick={() => {
+                                if (application.pendingPayment?.id) {
+                                  approvePayoutMutation.mutate({ paymentId: application.pendingPayment.id });
+                                }
+                              }}
+                              disabled={
+                                !application.pendingPayment ||
+                                approvePayoutMutation.isPending ||
+                                payoutProcessingId === application.pendingPayment?.id
                               }
-                            }}
-                            disabled={
-                              !application.pendingPayment ||
-                              approvePayoutMutation.isPending ||
-                              payoutProcessingId === application.pendingPayment?.id
-                            }
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                            Approve Payout
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5 h-10 flex-1 text-red-600 border-red-200 hover:bg-red-50"
-                            onClick={() => {
-                              if (window.confirm("Remove this creator from the offer?")) {
-                                updateStatusMutation.mutate({ applicationId: application.id, status: "paused" });
-                              }
-                            }}
-                            disabled={statusUpdatingId === application.id && updateStatusMutation.isPending}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Remove
-                          </Button>
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                              Approve Payout
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 h-9 flex-1 text-red-600 border-red-200 hover:bg-red-50 text-sm"
+                              onClick={() => {
+                                if (window.confirm("Remove this creator from the offer?")) {
+                                  updateStatusMutation.mutate({ applicationId: application.id, status: "paused" });
+                                }
+                              }}
+                              disabled={statusUpdatingId === application.id && updateStatusMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Remove
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     );
