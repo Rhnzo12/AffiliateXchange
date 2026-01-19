@@ -36,6 +36,9 @@ import {
   Filter,
   ChevronDown,
   Trash2,
+  Search,
+  Tag,
+  Clock,
 } from "lucide-react";
 import { exportCreatorListPDF, type CreatorExportData } from "../lib/export-utils";
 import { Link, useLocation } from "wouter";
@@ -741,16 +744,21 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
 
       {/* Mobile Search & Filter Bar */}
       <div className="lg:hidden space-y-3">
-        {/* Row 1: Search + All Offers */}
-        <div className="flex items-center gap-2">
+        {/* Row 1: Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by product name, ID, or SKU..."
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            className="flex-1"
+            className="pl-9"
           />
+        </div>
+        {/* Row 2: Filter buttons */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
           <Select value={offerFilter} onValueChange={setOfferFilter}>
-            <SelectTrigger className="w-auto min-w-[100px] h-9 text-sm shrink-0">
+            <SelectTrigger className="w-auto min-w-[110px] h-9 text-sm shrink-0 gap-1.5">
+              <Tag className="h-3.5 w-3.5 text-muted-foreground" />
               <SelectValue placeholder="All Offers" />
             </SelectTrigger>
             <SelectContent>
@@ -762,148 +770,144 @@ export default function CompanyCreators({ hideTopNav = false }: CompanyCreatorsP
               ))}
             </SelectContent>
           </Select>
-        </div>
-        {/* Row 2: Showing count + Newest + Export */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            Showing <span className="font-semibold text-foreground">{totalVisibleCreators}</span> of {totalCreators}
-            {` creator${totalCreators === 1 ? "" : "s"}`}
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={sortOrder} onValueChange={setSortOrder}>
-              <SelectTrigger className="w-auto min-w-[90px] h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="oldest">Oldest</SelectItem>
-              </SelectContent>
-            </Select>
-            <DropdownMenu open={mobileExportMenuOpen} onOpenChange={setMobileExportMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 h-9">
-                  <Download className="h-4 w-4" />
-                  Export
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Export creators</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="gap-2"
-                  onClick={() => {
-                    setMobileExportMenuOpen(false);
-                    exportCreatorCsv();
-                  }}
-                >
-                  <Download className="h-4 w-4" />
-                  CSV file
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="gap-2"
-                  onClick={() => {
-                    setMobileExportMenuOpen(false);
-                    exportCreatorPdf();
-                  }}
-                >
-                  <FileText className="h-4 w-4" />
-                  PDF report
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <Select value={sortOrder} onValueChange={setSortOrder}>
+            <SelectTrigger className="w-auto min-w-[100px] h-9 text-sm shrink-0 gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
+            </SelectContent>
+          </Select>
+          <DropdownMenu open={mobileExportMenuOpen} onOpenChange={setMobileExportMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 h-9 shrink-0">
+                <Download className="h-3.5 w-3.5" />
+                Export
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Export creators</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => {
+                  setMobileExportMenuOpen(false);
+                  exportCreatorCsv();
+                }}
+              >
+                <Download className="h-4 w-4" />
+                CSV file
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => {
+                  setMobileExportMenuOpen(false);
+                  exportCreatorPdf();
+                }}
+              >
+                <FileText className="h-4 w-4" />
+                PDF report
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto shrink-0">
+            <span className="font-semibold text-foreground">{totalVisibleCreators}</span>/{totalCreators}
           </div>
         </div>
       </div>
 
-      {/* Desktop Filter Card */}
-      <Card className="border-card-border hidden lg:block">
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Input
-              placeholder="Search by product name, ID, or SKU..."
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              className="flex-1 min-w-[200px] max-w-md"
-            />
-            <Select value={offerFilter} onValueChange={setOfferFilter}>
-              <SelectTrigger className="w-auto min-w-[120px]">
-                <SelectValue placeholder="All Offers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Offers</SelectItem>
-                {uniqueOffers.map(([id, title]) => (
-                  <SelectItem key={id} value={id}>
-                    {title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={sortOrder} onValueChange={setSortOrder}>
-              <SelectTrigger className="w-auto min-w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Newest</SelectItem>
-                <SelectItem value="oldest">Oldest</SelectItem>
-              </SelectContent>
-            </Select>
-            <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
-              <div
-                onMouseEnter={() => setExportMenuOpen(true)}
-                onMouseLeave={() => setExportMenuOpen(false)}
+      {/* Desktop Filter Bar */}
+      <div className="hidden lg:flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by product name, ID, or SKU..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={offerFilter} onValueChange={setOfferFilter}>
+          <SelectTrigger className="w-auto min-w-[130px] gap-2">
+            <Tag className="h-4 w-4 text-muted-foreground" />
+            <SelectValue placeholder="All Offers" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Offers</SelectItem>
+            {uniqueOffers.map(([id, title]) => (
+              <SelectItem key={id} value={id}>
+                {title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={sortOrder} onValueChange={setSortOrder}>
+          <SelectTrigger className="w-auto min-w-[110px] gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="oldest">Oldest</SelectItem>
+          </SelectContent>
+        </Select>
+        <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
+          <div
+            onMouseEnter={() => setExportMenuOpen(true)}
+            onMouseLeave={() => setExportMenuOpen(false)}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="h-4 w-4" />
+                Export
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-48"
+              onMouseEnter={() => setExportMenuOpen(true)}
+              onMouseLeave={() => setExportMenuOpen(false)}
+            >
+              <DropdownMenuLabel>Export creators</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => {
+                  setExportMenuOpen(false);
+                  exportCreatorCsv();
+                }}
               >
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Export
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-48"
-                  onMouseEnter={() => setExportMenuOpen(true)}
-                  onMouseLeave={() => setExportMenuOpen(false)}
-                >
-                  <DropdownMenuLabel>Export creators</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="gap-2"
-                    onClick={() => {
-                      setExportMenuOpen(false);
-                      exportCreatorCsv();
-                    }}
-                  >
-                    <Download className="h-4 w-4" />
-                    CSV file
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="gap-2"
-                    onClick={() => {
-                      setExportMenuOpen(false);
-                      exportCreatorPdf();
-                    }}
-                  >
-                    <FileText className="h-4 w-4" />
-                    PDF report
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </div>
-            </DropdownMenu>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
-              Showing <span className="font-semibold text-foreground">{totalVisibleCreators}</span> of {totalCreators}
-              {` creator${totalCreators === 1 ? "" : "s"}`}
-              {hasActiveFilters && (
-                <Button variant="ghost" size="sm" className="text-xs" onClick={clearFilters}>
-                  <X className="h-3 w-3 mr-1" />
-                  Clear Filters
-                </Button>
-              )}
-            </div>
+                <Download className="h-4 w-4" />
+                CSV file
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => {
+                  setExportMenuOpen(false);
+                  exportCreatorPdf();
+                }}
+              >
+                <FileText className="h-4 w-4" />
+                PDF report
+              </DropdownMenuItem>
+            </DropdownMenuContent>
           </div>
-        </CardContent>
-      </Card>
+        </DropdownMenu>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
+          Showing <span className="font-semibold text-foreground">{totalVisibleCreators}</span> of {totalCreators}
+          {` creator${totalCreators === 1 ? "" : "s"}`}
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" className="text-xs" onClick={clearFilters}>
+              <X className="h-3 w-3 mr-1" />
+              Clear Filters
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* Bulk Actions Toolbar */}
       {selectedApplications.size > 0 && (
