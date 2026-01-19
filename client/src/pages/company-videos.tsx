@@ -482,33 +482,6 @@ export default function CompanyVideos({ hideTopNav = false }: CompanyVideosProps
                     <Eye className="h-3 w-3 mr-1" />
                     View Offer
                   </Button>
-
-                  {(video.status === 'pending' || !video.status) && (
-                    <Button
-                      size="sm"
-                      className="h-8 text-xs bg-teal-500 hover:bg-teal-600"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        approveMutation.mutate(video.id);
-                      }}
-                    >
-                      Approve
-                    </Button>
-                  )}
-
-                  {(video.status === 'pending' || !video.status) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        rejectMutation.mutate(video.id);
-                      }}
-                    >
-                      Reject
-                    </Button>
-                  )}
                 </div>
               </CardContent>
             </Card>
