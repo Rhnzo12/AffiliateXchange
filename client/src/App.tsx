@@ -76,6 +76,7 @@ import Register from "./pages/register";
 import SelectRole from "./pages/select-role";
 import PrivacyPolicy from "./pages/privacy-policy";
 import TermsOfService from "./pages/terms-of-service";
+import About from "./pages/about";
 import OAuthCallback from "./pages/oauth-callback";
 import ForgotPassword from "./pages/forgot-password";
 import ResetPassword from "./pages/reset-password";
@@ -101,6 +102,7 @@ function PublicRouter() {
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
+      <Route path="/about" component={About} />
       <Route path="/oauth-callback" component={OAuthCallback} />
       <Route component={Landing} />
     </Switch>
@@ -450,6 +452,7 @@ function ProtectedRouter() {
           <Route path="/company-profile/:id" component={CompanyProfile} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />
+          <Route path="/about" component={About} />
 
           {/* Fallback */}
           <Route component={NotFound} />

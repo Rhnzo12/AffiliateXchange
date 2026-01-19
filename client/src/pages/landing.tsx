@@ -1010,11 +1010,6 @@ export default function Landing() {
                     How It Works
                   </button>
                 </li>
-                <li>
-                  <Link href="/register" className="text-gray-400 hover:text-white transition-colors text-sm">
-                    Pricing
-                  </Link>
-                </li>
               </ul>
             </div>
 
