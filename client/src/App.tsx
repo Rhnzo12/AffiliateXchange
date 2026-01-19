@@ -80,6 +80,9 @@ import OAuthCallback from "./pages/oauth-callback";
 import ForgotPassword from "./pages/forgot-password";
 import ResetPassword from "./pages/reset-password";
 import HelpAffiliateMarketingTips from "./pages/help-affiliate-marketing-tips";
+import HelpAffiliateLinksGuide from "./pages/help-affiliate-links-guide";
+import HelpCommissionGuide from "./pages/help-commission-guide";
+import HelpSuccessStories from "./pages/help-success-stories";
 import { HeaderContentProvider, useHeaderContent } from "./components/HeaderContentContext";
 import { CompanyTourProvider } from "./contexts/CompanyTourContext";
 import { CompanyTour } from "./components/CompanyTour";
@@ -375,6 +378,9 @@ function ProtectedRouter() {
               <Route path="/creator/payment-settings" component={PaymentSettings} />
               <Route path="/payments/:id" component={PaymentDetail} />
               <Route path="/help/affiliate-marketing-tips" component={HelpAffiliateMarketingTips} />
+              <Route path="/help/affiliate-links-guide" component={HelpAffiliateLinksGuide} />
+              <Route path="/help/commission-guide" component={HelpCommissionGuide} />
+              <Route path="/help/success-stories" component={HelpSuccessStories} />
             </>
           )}
 
