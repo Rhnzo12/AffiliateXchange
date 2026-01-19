@@ -421,7 +421,7 @@ export default function AdminCreators() {
                     onClick={() => setStatusFilter(tab.key)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                       statusFilter === tab.key
-                        ? "bg-gray-900 text-white"
+                        ? "bg-primary text-white"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
