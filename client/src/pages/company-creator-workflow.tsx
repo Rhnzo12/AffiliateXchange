@@ -61,7 +61,7 @@ export default function CompanyCreatorWorkflow({ defaultTab = "videos" }: Compan
       <TopNavBar />
 
       {/* Header with Gradient Wave */}
-      <div className="relative bg-white border-b overflow-hidden">
+      <div className="relative bg-white border-b">
         {/* Gradient Wave Decoration - Hidden on mobile for cleaner look */}
         <div className="absolute top-0 right-0 w-64 md:w-96 h-full pointer-events-none overflow-hidden hidden sm:block">
           <svg
@@ -97,13 +97,13 @@ export default function CompanyCreatorWorkflow({ defaultTab = "videos" }: Compan
           </svg>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6 relative z-10">
           <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">Creator Workflow</h1>
 
           {/* Tabs - Scrollable on mobile */}
-          <div className="mt-4 md:mt-6 -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="mt-4 md:mt-6 -mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto">
             <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList className="flex w-full items-center justify-start gap-4 md:gap-6 border-b border-gray-200 bg-transparent p-0 overflow-x-auto scrollbar-hide">
+              <TabsList className="flex w-max min-w-full items-center justify-start gap-6 md:gap-8 border-b border-gray-200 bg-transparent p-0">
                 <TabsTrigger
                   value="videos"
                   className="relative h-auto rounded-none bg-transparent px-0 pb-2.5 md:pb-3 text-sm font-semibold text-gray-500 whitespace-nowrap data-[state=active]:bg-transparent data-[state=active]:text-gray-900 data-[state=active]:after:absolute data-[state=active]:after:left-0 data-[state=active]:after:top-full data-[state=active]:after:block data-[state=active]:after:h-0.5 data-[state=active]:after:w-full data-[state=active]:after:bg-primary"
