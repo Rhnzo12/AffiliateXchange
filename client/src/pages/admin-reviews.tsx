@@ -2,25 +2,54 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
-import { Star, Eye, EyeOff, Trash2, FileText, CheckCircle2, AlertCircle, Filter, Search, X, MessageSquare } from "lucide-react";
+import { Input } from "../components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+import {
+  Star,
+  Eye,
+  EyeOff,
+  Trash2,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  Search,
+  X,
+  MessageSquare,
+  MoreHorizontal,
+  ArrowUpDown,
+  ChevronLeft,
+  Clock,
+  Pencil,
+} from "lucide-react";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { TopNavBar } from "../components/TopNavBar";
 import { ListSkeleton } from "../components/skeletons";
-import { Input } from "../components/ui/input";
 import { GenericErrorDialog } from "../components/GenericErrorDialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
+import { Link } from "wouter";
+
+type SortField = "date" | "rating" | "status";
+type SortDirection = "asc" | "desc";
 
 export default function AdminReviews() {
   const { toast } = useToast();
@@ -34,9 +63,8 @@ export default function AdminReviews() {
   const [editedReview, setEditedReview] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [visibilityFilter, setVisibilityFilter] = useState("all");
-  const [ratingFilter, setRatingFilter] = useState("all");
-  const [companyFilter, setCompanyFilter] = useState("all");
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [errorDialog, setErrorDialog] = useState<{
     open: boolean;
     title: string;
@@ -68,65 +96,68 @@ export default function AdminReviews() {
     enabled: isAuthenticated,
   });
 
-  const uniqueCompanyOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    reviews.forEach((review: any) => {
-      if (review.companyId) {
-        map.set(review.companyId, review.companyName || review.companyId);
-      }
-    });
-    return Array.from(map.entries());
+  // Stats
+  const stats = useMemo(() => {
+    return {
+      total: reviews.length,
+      approved: reviews.filter((r: any) => r.isApproved && !r.isHidden).length,
+      pending: reviews.filter((r: any) => !r.isApproved).length,
+      hidden: reviews.filter((r: any) => r.isHidden).length,
+    };
   }, [reviews]);
 
+  // Filter and sort reviews
   const filteredReviews = useMemo(() => {
-    return reviews.filter((review: any) => {
-      const matchesSearch = searchTerm
-        ? [review.reviewText, review.companyId, review.creatorId]
-            .filter(Boolean)
-            .some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
-        : true;
+    let result = reviews.filter((review: any) => {
+      // Status filter
+      if (statusFilter !== "all") {
+        if (statusFilter === "approved" && (!review.isApproved || review.isHidden)) return false;
+        if (statusFilter === "pending" && review.isApproved) return false;
+        if (statusFilter === "hidden" && !review.isHidden) return false;
+      }
 
-      const matchesStatus = (() => {
-        if (statusFilter === "all") return true;
-        if (statusFilter === "approved") return review.isApproved;
-        if (statusFilter === "pending") return !review.isApproved;
-        return true;
-      })();
+      // Search filter
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        const matchesSearch =
+          review.reviewText?.toLowerCase().includes(search) ||
+          review.companyName?.toLowerCase().includes(search) ||
+          review.creatorId?.toLowerCase().includes(search);
+        if (!matchesSearch) return false;
+      }
 
-      const matchesVisibility = (() => {
-        if (visibilityFilter === "all") return true;
-        if (visibilityFilter === "hidden") return review.isHidden;
-        if (visibilityFilter === "visible") return !review.isHidden;
-        return true;
-      })();
-
-      const matchesRating = (() => {
-        if (ratingFilter === "all") return true;
-        if (ratingFilter === "5") return review.overallRating === 5;
-        if (ratingFilter === "4plus") return review.overallRating >= 4;
-        if (ratingFilter === "3orless") return review.overallRating <= 3;
-        return true;
-      })();
-
-      const matchesCompany = companyFilter === "all" || review.companyId === companyFilter;
-
-      return matchesSearch && matchesStatus && matchesVisibility && matchesRating && matchesCompany;
+      return true;
     });
-  }, [companyFilter, ratingFilter, reviews, searchTerm, statusFilter, visibilityFilter]);
 
-  const hasActiveFilters =
-    searchTerm.trim().length > 0 ||
-    statusFilter !== "all" ||
-    visibilityFilter !== "all" ||
-    ratingFilter !== "all" ||
-    companyFilter !== "all";
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case "date":
+          comparison = new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+          break;
+        case "rating":
+          comparison = (a.overallRating || 0) - (b.overallRating || 0);
+          break;
+        case "status":
+          const statusA = a.isHidden ? "hidden" : a.isApproved ? "approved" : "pending";
+          const statusB = b.isHidden ? "hidden" : b.isApproved ? "approved" : "pending";
+          comparison = statusA.localeCompare(statusB);
+          break;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
 
-  const clearFilters = () => {
-    setSearchTerm("");
-    setStatusFilter("all");
-    setVisibilityFilter("all");
-    setRatingFilter("all");
-    setCompanyFilter("all");
+    return result;
+  }, [reviews, searchTerm, statusFilter, sortField, sortDirection]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
   };
 
   const hideReviewMutation = useMutation({
@@ -307,16 +338,17 @@ export default function AdminReviews() {
     setIsEditDialogOpen(true);
   };
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number, size: "sm" | "md" = "sm") => {
+    const sizeClass = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
     return (
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
-            className={`h-4 w-4 ${
+            className={`${sizeClass} ${
               star <= rating
                 ? 'fill-yellow-400 text-yellow-400'
-                : 'text-muted-foreground/30'
+                : 'text-gray-200'
             }`}
           />
         ))}
@@ -324,324 +356,518 @@ export default function AdminReviews() {
     );
   };
 
+  const getStatusBadge = (review: any) => {
+    if (review.isHidden) {
+      return (
+        <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-100">
+          Hidden
+        </Badge>
+      );
+    }
+    if (!review.isApproved) {
+      return (
+        <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-100">
+          Pending
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-100">
+        Approved
+      </Badge>
+    );
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const truncateText = (text: string, maxLength: number = 80) => {
+    if (!text) return "-";
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + "...";
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-pulse text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  const statusTabs = [
+    { key: "all", label: "All", count: stats.total },
+    { key: "approved", label: "Approved", count: stats.approved },
+    { key: "pending", label: "Pending", count: stats.pending },
+    { key: "hidden", label: "Hidden", count: stats.hidden },
+  ];
+
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-gray-50">
       <TopNavBar />
-      <div>
-        <h1 className="text-3xl font-bold">Review Management</h1>
-        <p className="text-muted-foreground mt-1">
-          View, approve, edit, or delete reviews across the platform
-        </p>
+
+      {/* Mobile Header */}
+      <div className="md:hidden px-4 py-4 bg-white border-b">
+        <div className="flex items-center gap-3">
+          <Link href="/admin/dashboard">
+            <Button variant="ghost" size="icon" className="h-9 w-9">
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Reviews</h1>
+            <p className="text-sm text-gray-500">{stats.total} total</p>
+          </div>
+        </div>
       </div>
 
-      <Card className="border-card-border">
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Filter className="h-4 w-4" />
-              <span className="text-sm font-semibold uppercase tracking-wider">Search & Filter</span>
-            </div>
-            <div className="sm:ml-auto text-sm text-muted-foreground">
-              Showing <span className="font-semibold text-foreground">{filteredReviews.length}</span> of {reviews.length}
-              {` review${reviews.length === 1 ? "" : "s"}`}
-            </div>
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" className="text-xs sm:ml-4" onClick={clearFilters}>
-                <X className="h-3 w-3 mr-1" />
-                Clear Filters
-              </Button>
-            )}
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6 space-y-4 md:space-y-6">
+        {/* Desktop Header */}
+        <div className="hidden md:block">
+          <h1 className="text-2xl font-bold text-gray-900">Review Management</h1>
+          <p className="text-gray-500 mt-1">View and manage reviews across the platform</p>
+        </div>
 
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-sm font-medium">Search</label>
-              <Input
-                placeholder="Search review text or IDs"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
+        {/* Mobile Compact Stats */}
+        <div className="md:hidden">
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <FileText className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.total}</span>
+              <span className="text-xs text-gray-500">Total</span>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Reviews</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="pending">Pending Approval</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <CheckCircle2 className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.approved}</span>
+              <span className="text-xs text-gray-500">Approved</span>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Visibility</label>
-              <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All visibility" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Reviews</SelectItem>
-                  <SelectItem value="visible">Visible</SelectItem>
-                  <SelectItem value="hidden">Hidden</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <Clock className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.pending}</span>
+              <span className="text-xs text-gray-500">Pending</span>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Rating</label>
-              <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All ratings" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ratings</SelectItem>
-                  <SelectItem value="5">5 stars</SelectItem>
-                  <SelectItem value="4plus">4+ stars</SelectItem>
-                  <SelectItem value="3orless">3 stars & below</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-100 min-w-fit">
+              <EyeOff className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-semibold text-gray-900">{stats.hidden}</span>
+              <span className="text-xs text-gray-500">Hidden</span>
             </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-sm font-medium">Company</label>
-              <Select value={companyFilter} onValueChange={setCompanyFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All companies" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Companies</SelectItem>
-                  {uniqueCompanyOptions.map(([id, name]) => (
-                    <SelectItem key={id} value={id}>
-                      {name}
-                    </SelectItem>
+          </div>
+        </div>
+
+        {/* Desktop Stats Cards */}
+        <div className="hidden md:grid md:grid-cols-4 gap-4">
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Total Reviews</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Approved</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Pending</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Hidden</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.hidden}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <EyeOff className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-3 md:p-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+              {/* Status Tabs */}
+              <div className="flex gap-1 overflow-x-auto pb-1 md:pb-0 -mx-1 px-1">
+                {statusTabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setStatusFilter(tab.key)}
+                    className={`px-2.5 py-1 md:px-3 md:py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${
+                      statusFilter === tab.key
+                        ? "bg-primary text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    {tab.label}
+                    <span className="ml-1 text-[10px] md:text-xs opacity-70">({tab.count})</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search */}
+              <div className="flex-1 md:max-w-sm">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search reviews..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 bg-gray-50 border-gray-200 h-9 md:h-10 text-sm"
+                    data-testid="input-search-reviews"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Desktop Table */}
+        <Card className="border-0 shadow-sm hidden md:block">
+          <CardContent className="p-0">
+            {loadingReviews ? (
+              <div className="p-6">
+                <ListSkeleton count={5} />
+              </div>
+            ) : filteredReviews.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <FileText className="h-12 w-12 text-gray-300 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">No reviews found</h3>
+                <p className="text-sm text-gray-500">
+                  {searchTerm ? "Try adjusting your search terms" : "No reviews match the current filter"}
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="w-[350px]">Review</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>
+                      <button
+                        onClick={() => handleSort("rating")}
+                        className="flex items-center gap-1 font-medium text-gray-700 hover:text-gray-900"
+                      >
+                        Rating
+                        <ArrowUpDown className="h-3.5 w-3.5" />
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        onClick={() => handleSort("status")}
+                        className="flex items-center gap-1 font-medium text-gray-700 hover:text-gray-900"
+                      >
+                        Status
+                        <ArrowUpDown className="h-3.5 w-3.5" />
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        onClick={() => handleSort("date")}
+                        className="flex items-center gap-1 font-medium text-gray-700 hover:text-gray-900"
+                      >
+                        Date
+                        <ArrowUpDown className="h-3.5 w-3.5" />
+                      </button>
+                    </TableHead>
+                    <TableHead className="w-[100px] text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredReviews.map((review: any) => (
+                    <TableRow
+                      key={review.id}
+                      className={`hover:bg-gray-50 ${review.isHidden ? 'opacity-60' : ''}`}
+                      data-testid={`row-review-${review.id}`}
+                    >
+                      <TableCell>
+                        <div className="max-w-[350px]">
+                          <p className="text-sm text-gray-900 line-clamp-2">
+                            {truncateText(review.reviewText, 100)}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">By: {review.creatorId}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-700">{review.companyName || review.companyId}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {renderStars(review.overallRating)}
+                          <span className="text-sm text-gray-600">{review.overallRating}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell data-testid={`badge-status-${review.id}`}>
+                        {getStatusBadge(review)}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-600">{formatDate(review.createdAt)}</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {!review.isApproved && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => approveReviewMutation.mutate(review.id)}
+                                  className="cursor-pointer"
+                                  data-testid={`button-approve-${review.id}`}
+                                >
+                                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                                  Approve
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
+                            <DropdownMenuItem
+                              onClick={() => handleEdit(review)}
+                              className="cursor-pointer"
+                              data-testid={`button-edit-${review.id}`}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit Review
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleAddNote(review)}
+                              className="cursor-pointer"
+                              data-testid={`button-note-${review.id}`}
+                            >
+                              <FileText className="h-4 w-4 mr-2" />
+                              Add Note
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleRespond(review)}
+                              className="cursor-pointer"
+                              data-testid={`button-respond-${review.id}`}
+                            >
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Platform Response
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {review.isHidden ? (
+                              <DropdownMenuItem
+                                onClick={() => unhideReviewMutation.mutate(review.id)}
+                                className="cursor-pointer"
+                                data-testid={`button-unhide-${review.id}`}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                Show Review
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => hideReviewMutation.mutate(review.id)}
+                                className="cursor-pointer"
+                                data-testid={`button-hide-${review.id}`}
+                              >
+                                <EyeOff className="h-4 w-4 mr-2" />
+                                Hide Review
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              onClick={() => {
+                                if (confirm('Are you sure you want to permanently delete this review?')) {
+                                  deleteReviewMutation.mutate(review.id);
+                                }
+                              }}
+                              className="cursor-pointer text-red-600"
+                              data-testid={`button-delete-${review.id}`}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Review
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="border-card-border" data-testid="card-total-reviews">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Reviews</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-total-reviews">{reviews.length}</div>
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="border-card-border" data-testid="card-hidden-reviews">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Hidden</CardTitle>
-            <EyeOff className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-hidden-reviews">
-              {reviews.filter((r: any) => r.isHidden).length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-card-border" data-testid="card-pending-approval">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary" data-testid="text-pending-approval">
-              {reviews.filter((r: any) => !r.isApproved).length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {isLoading || loadingReviews ? (
-        <ListSkeleton count={5} />
-      ) : reviews.length === 0 ? (
-        <Card className="border-card-border">
-          <CardContent className="pt-6">
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No reviews yet</h3>
-              <p className="text-muted-foreground">
-                Reviews will appear here once creators start submitting them
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : filteredReviews.length === 0 ? (
-        <Card className="border-card-border">
-          <CardContent className="pt-10 pb-12 flex flex-col items-center gap-2 text-center text-muted-foreground">
-            <Search className="h-10 w-10" />
-            <h3 className="text-lg font-semibold text-foreground">No reviews match your filters</h3>
-            <p className="text-sm">Try adjusting your search terms or resetting the selected filters.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredReviews.map((review: any) => (
-            <Card
-              key={review.id}
-              className={`border-card-border ${review.isHidden ? 'opacity-50' : ''}`}
-              data-testid={`card-review-${review.id}`}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {renderStars(review.overallRating)}
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </span>
-                      {review.isHidden && (
-                        <Badge variant="secondary" data-testid={`badge-hidden-${review.id}`}>
-                          <EyeOff className="h-3 w-3 mr-1" />
-                          Hidden
-                        </Badge>
-                      )}
-                      {!review.isApproved && (
-                        <Badge variant="outline" data-testid={`badge-pending-${review.id}`}>
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          Pending Approval
-                        </Badge>
-                      )}
-                    </div>
-                    <CardTitle className="text-base">Creator ID: {review.creatorId}</CardTitle>
-                    <CardDescription>Company ID: {review.companyId}</CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    {!review.isApproved && (
-                      <Button
-                        size="sm"
-                        onClick={() => approveReviewMutation.mutate(review.id)}
-                        disabled={approveReviewMutation.isPending}
-                        data-testid={`button-approve-${review.id}`}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        Approve
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEdit(review)}
-                      data-testid={`button-edit-${review.id}`}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleAddNote(review)}
-                      data-testid={`button-note-${review.id}`}
-                    >
-                      <FileText className="h-4 w-4 mr-1" />
-                      Note
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleRespond(review)}
-                      data-testid={`button-respond-${review.id}`}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-1" />
-                      Respond
-                    </Button>
-                    {review.isHidden ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => unhideReviewMutation.mutate(review.id)}
-                        disabled={unhideReviewMutation.isPending}
-                        data-testid={`button-unhide-${review.id}`}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Show
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => hideReviewMutation.mutate(review.id)}
-                        disabled={hideReviewMutation.isPending}
-                        data-testid={`button-hide-${review.id}`}
-                      >
-                        <EyeOff className="h-4 w-4 mr-1" />
-                        Hide
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => {
-                        if (confirm('Are you sure you want to permanently delete this review?')) {
-                          deleteReviewMutation.mutate(review.id);
-                        }
-                      }}
-                      disabled={deleteReviewMutation.isPending}
-                      data-testid={`button-delete-${review.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Review Text:</h4>
-                    <p className="text-sm text-muted-foreground">{review.reviewText || 'No review text'}</p>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Payment Speed</p>
-                      {renderStars(review.paymentSpeedRating)}
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Communication</p>
-                      {renderStars(review.communicationRating)}
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Offer Quality</p>
-                      {renderStars(review.offerQualityRating)}
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Support</p>
-                      {renderStars(review.supportRating)}
-                    </div>
-                  </div>
-                  {review.companyResponse && (
-                    <div className="bg-muted p-3 rounded-md">
-                      <h4 className="text-sm font-medium mb-1">Company Response:</h4>
-                      <p className="text-sm">{review.companyResponse}</p>
-                    </div>
-                  )}
-                  {review.adminResponse && (
-                    <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md border border-blue-200 dark:border-blue-800">
-                      <h4 className="text-sm font-medium mb-1 text-blue-900 dark:text-blue-100">Platform Response:</h4>
-                      <p className="text-sm text-blue-800 dark:text-blue-200">{review.adminResponse}</p>
-                      {review.respondedAt && (
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                          Responded on {new Date(review.respondedAt).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  {review.adminNote && (
-                    <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
-                      <h4 className="text-sm font-medium mb-1">Admin Note:</h4>
-                      <p className="text-sm">{review.adminNote}</p>
-                    </div>
-                  )}
-                </div>
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-3">
+          {loadingReviews ? (
+            <ListSkeleton count={5} />
+          ) : filteredReviews.length === 0 ? (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <FileText className="h-12 w-12 text-gray-300 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">No reviews found</h3>
+                <p className="text-sm text-gray-500 text-center">
+                  {searchTerm ? "Try adjusting your search terms" : "No reviews match the current filter"}
+                </p>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            filteredReviews.map((review: any) => (
+              <Card
+                key={review.id}
+                className={`border-0 shadow-sm ${review.isHidden ? 'opacity-60' : ''}`}
+                data-testid={`card-review-${review.id}`}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {renderStars(review.overallRating, "md")}
+                        <span className="text-sm font-medium text-gray-900">{review.overallRating}/5</span>
+                      </div>
+                      <p className="text-sm text-gray-500">{review.companyName || review.companyId}</p>
+                    </div>
+                    <div data-testid={`badge-status-${review.id}`}>{getStatusBadge(review)}</div>
+                  </div>
+
+                  <p className="text-sm text-gray-700 mb-3 line-clamp-2">
+                    {review.reviewText || "No review text"}
+                  </p>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <span>By: {review.creatorId}</span>
+                      <span>{formatDate(review.createdAt)}</span>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          Actions
+                          <MoreHorizontal className="h-4 w-4 ml-1" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        {!review.isApproved && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => approveReviewMutation.mutate(review.id)}
+                              className="cursor-pointer"
+                              data-testid={`button-approve-${review.id}`}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              Approve
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
+                        <DropdownMenuItem
+                          onClick={() => handleEdit(review)}
+                          className="cursor-pointer"
+                          data-testid={`button-edit-${review.id}`}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleAddNote(review)}
+                          className="cursor-pointer"
+                          data-testid={`button-note-${review.id}`}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Note
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleRespond(review)}
+                          className="cursor-pointer"
+                          data-testid={`button-respond-${review.id}`}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Respond
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {review.isHidden ? (
+                          <DropdownMenuItem
+                            onClick={() => unhideReviewMutation.mutate(review.id)}
+                            className="cursor-pointer"
+                            data-testid={`button-unhide-${review.id}`}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Show
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={() => hideReviewMutation.mutate(review.id)}
+                            className="cursor-pointer"
+                            data-testid={`button-hide-${review.id}`}
+                          >
+                            <EyeOff className="h-4 w-4 mr-2" />
+                            Hide
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (confirm('Are you sure you want to permanently delete this review?')) {
+                              deleteReviewMutation.mutate(review.id);
+                            }
+                          }}
+                          className="cursor-pointer text-red-600"
+                          data-testid={`button-delete-${review.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
-      )}
+
+        {/* Results count */}
+        {!loadingReviews && filteredReviews.length > 0 && (
+          <p className="text-sm text-gray-500 text-center">
+            Showing {filteredReviews.length} of {reviews.length} reviews
+          </p>
+        )}
+      </div>
 
       {/* Admin Note Dialog */}
       <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
@@ -674,9 +900,9 @@ export default function AdminReviews() {
               Cancel
             </Button>
             <Button
-              onClick={() => selectedReview && saveNoteMutation.mutate({ 
-                reviewId: selectedReview.id, 
-                note: adminNote 
+              onClick={() => selectedReview && saveNoteMutation.mutate({
+                reviewId: selectedReview.id,
+                note: adminNote
               })}
               disabled={saveNoteMutation.isPending}
               data-testid="button-save-note"
