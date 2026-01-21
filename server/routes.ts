@@ -4492,27 +4492,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send("Payment not found");
       }
 
-      // \u1F4B0 PROCESS ACTUAL PAYMENT WHEN MARKING AS COMPLETED
+      // 💰 PROCESS PAYMENT USING WALLET-BASED FLOW
       if (status === 'completed') {
-        console.log(`[Payment] Processing ${payment.paymentType || 'affiliate'} payment ${id} to send $${payment.netAmount} to creator`);
+        console.log(`[Payment] Processing ${payment.paymentType || 'affiliate'} payment ${id} via wallet-based flow`);
 
-        // Import payment processor
-        const { paymentProcessor } = await import('./paymentProcessor');
+        // Import services
+        const { companyInvoiceService } = await import('./companyInvoiceService');
 
-        // Validate creator has payment settings configured
-        console.log(`[Payment] Validating payment settings for creator ${payment.creatorId}...`);
-        const validation = await paymentProcessor.validateCreatorPaymentSettings(payment.creatorId);
-        if (!validation.valid) {
-          console.error(`[Payment] ERROR: Payment validation failed: ${validation.error}`);
-          return res.status(400).send(validation.error);
+        // Check if sandbox mode is enabled
+        const isSandboxMode = process.env.PAYMENT_SANDBOX_MODE === 'true';
+
+        // Get net amount to credit
+        const netAmount = parseFloat(payment.netAmount);
+        const grossAmount = parseFloat(payment.grossAmount);
+        const platformFeeAmount = parseFloat(payment.platformFeeAmount);
+        const stripeFeeAmount = parseFloat(payment.stripeFeeAmount || '0');
+
+        // Get payment title for notifications
+        let paymentTitle = 'Payment';
+        if (payment.paymentType === 'affiliate' && payment.offerId) {
+          const offer = await storage.getOffer(payment.offerId);
+          paymentTitle = offer?.title || 'Affiliate Offer';
+        } else if (payment.paymentType === 'retainer' && payment.contractId) {
+          const contract = await storage.getRetainerContract(payment.contractId);
+          paymentTitle = contract?.title || 'Retainer Contract';
         }
-        console.log(`[Payment] Validation passed, proceeding with payment...`);
 
-        // Actually send the money via PayPal/bank/crypto/etc.
-        // Use the appropriate processor based on payment type
-        const paymentResult = payment.paymentType === 'retainer'
-          ? await paymentProcessor.processRetainerPayment(id)
-          : await paymentProcessor.processPayment(id);
+        // Check if an invoice already exists for this payment
+        const existingInvoices = await storage.getCompanyInvoicesByPayment(id);
+        const paidInvoice = existingInvoices?.find(inv => inv.status === 'paid');
+
+        // In sandbox mode: directly credit wallet when admin marks as completed
+        // In production: require invoice to be paid first (or create one)
+        if (isSandboxMode) {
+          console.log('[Payment] SANDBOX MODE - Directly crediting creator wallet');
+
+          // Credit creator's wallet directly
+          const { wallet, transaction } = await storage.creditCreatorWallet(
+            payment.creatorId,
+            netAmount,
+            `${paymentTitle} commission payment`,
+            payment.paymentType === 'retainer' ? 'retainer_payment' : 'payment',
+            payment.id
+          );
+
+          console.log(`[Payment] Credited wallet ${wallet.id} with CA$${netAmount}`);
+
+          // Generate a sandbox transaction ID
+          const sandboxTransactionId = `sandbox_wallet_${Date.now()}`;
+
+          // Create paymentResult object for consistency with the rest of the code
+          var paymentResult = {
+            success: true,
+            transactionId: sandboxTransactionId,
+            providerResponse: { mode: 'sandbox', walletId: wallet.id, transactionId: transaction.id }
+          };
+        } else if (paidInvoice) {
+          // Invoice already paid - wallet should already be credited
+          console.log(`[Payment] Invoice ${paidInvoice.invoiceNumber} already paid, wallet credited`);
+          var paymentResult = {
+            success: true,
+            transactionId: paidInvoice.stripePaymentIntentId || `invoice_${paidInvoice.id}`,
+            providerResponse: { invoiceId: paidInvoice.id, invoiceNumber: paidInvoice.invoiceNumber }
+          };
+        } else {
+          // No paid invoice - create one for the company to pay
+          console.log('[Payment] Creating invoice for company to pay');
+
+          const creator = await storage.getUserById(payment.creatorId);
+          const invoiceResult = await companyInvoiceService.createInvoiceWithCheckout({
+            paymentId: payment.id,
+            companyId: payment.companyId,
+            creatorId: payment.creatorId,
+            grossAmount,
+            platformFeeAmount,
+            stripeFeeAmount,
+            netAmount,
+            description: `Commission payment for "${paymentTitle}" - Creator: ${creator?.username || 'Unknown'}`,
+          });
+
+          if (!invoiceResult.success) {
+            return res.status(400).json({
+              error: invoiceResult.error,
+              message: "Failed to create invoice for payment."
+            });
+          }
+
+          // Don't mark as completed yet - wait for invoice to be paid
+          // Update status back to approved and notify company about invoice
+          await storage.updatePaymentOrRetainerPaymentStatus(id, 'approved', {
+            description: `Invoice ${invoiceResult.invoice?.invoiceNumber} created - awaiting company payment`,
+          });
+
+          // Notify company about the new invoice
+          if (payment.companyId) {
+            const companyProfile = await storage.getCompanyProfileById(payment.companyId);
+            if (companyProfile) {
+              const companyUser = await storage.getUserById(companyProfile.userId);
+              if (companyUser) {
+                await notificationService.sendNotification(
+                  companyUser.id,
+                  'invoice_sent',
+                  'Invoice Ready for Payment',
+                  `Invoice ${invoiceResult.invoice?.invoiceNumber} for CA$${grossAmount.toFixed(2)} is ready for payment. Please pay to complete the creator commission.`,
+                  {
+                    invoiceNumber: invoiceResult.invoice?.invoiceNumber,
+                    amount: `CA$${grossAmount.toFixed(2)}`,
+                    linkUrl: '/company/invoices',
+                  }
+                );
+              }
+            }
+          }
+
+          return res.json({
+            message: 'Invoice created for company payment',
+            invoice: invoiceResult.invoice,
+            checkoutUrl: invoiceResult.checkoutUrl,
+            status: 'approved'
+          });
+        }
 
         if (!paymentResult.success) {
           // Payment failed - update status to failed

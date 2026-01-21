@@ -894,6 +894,7 @@ export interface IStorage {
   getCompanyInvoicesByCompany(companyId: string, status?: string): Promise<CompanyInvoice[]>;
   getCompanyInvoicesByCreator(creatorId: string, status?: string): Promise<CompanyInvoice[]>;
   getCompanyInvoiceByPaymentId(paymentId: string): Promise<CompanyInvoice | null>;
+  getCompanyInvoicesByPayment(paymentId: string): Promise<CompanyInvoice[]>;
   createCompanyInvoice(invoice: InsertCompanyInvoice): Promise<CompanyInvoice>;
   updateCompanyInvoice(id: string, updates: Partial<InsertCompanyInvoice>): Promise<CompanyInvoice | null>;
   generateInvoiceNumber(): Promise<string>;
@@ -6889,6 +6890,18 @@ async deleteAllVerificationDocumentsForCompany(companyId: string): Promise<boole
       .where(eq(companyInvoices.paymentId, paymentId))
       .limit(1);
     return result[0] || null;
+  }
+
+  async getCompanyInvoicesByPayment(paymentId: string): Promise<CompanyInvoice[]> {
+    // Check both payment_id and retainer_payment_id since the payment could be either type
+    return db
+      .select()
+      .from(companyInvoices)
+      .where(or(
+        eq(companyInvoices.paymentId, paymentId),
+        eq(companyInvoices.retainerPaymentId, paymentId)
+      ))
+      .orderBy(desc(companyInvoices.createdAt));
   }
 
   async createCompanyInvoice(invoice: InsertCompanyInvoice): Promise<CompanyInvoice> {
