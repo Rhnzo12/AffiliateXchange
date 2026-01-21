@@ -178,7 +178,7 @@ export class CompanyInvoiceService {
         },
         success_url: `${baseUrl}/company/invoices/${invoice.id}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/company/invoices/${invoice.id}?payment=cancelled`,
-        expires_at: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // Expires in 24 hours
+        expires_at: Math.floor(Date.now() / 1000) + (23 * 60 * 60), // Expires in 23 hours (must be less than 24)
       });
 
       console.log('[Invoice] Created Stripe Checkout session:', session.id);
