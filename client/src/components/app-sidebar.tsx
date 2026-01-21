@@ -111,10 +111,12 @@ export function AppSidebar() {
         {
           title: "Wallet",
           url: "/creator/wallet",
+          icon: Wallet,
         },
         {
           title: "Payment Settings",
           url: "/creator/payment-settings",
+          icon: DollarSign,
         },
       ],
     },
