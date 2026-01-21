@@ -4579,8 +4579,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Don't mark as completed yet - wait for invoice to be paid
-          // Update status back to approved and notify company about invoice
-          await storage.updatePaymentOrRetainerPaymentStatus(id, 'approved', {
+          // Update status to processing and notify company about invoice
+          await storage.updatePaymentOrRetainerPaymentStatus(id, 'processing', {
             description: `Invoice ${invoiceResult.invoice?.invoiceNumber} created - awaiting company payment`,
           });
 
