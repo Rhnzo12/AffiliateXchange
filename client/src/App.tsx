@@ -38,6 +38,7 @@ import ProfileManagement from "./pages/profile-management";
 import PaymentSettings from "./pages/payment-settings";
 import PaymentDetail from "./pages/payment-details";
 import CreatorWallet from "./pages/creator-wallet";
+import CreatorAffiliateSales from "./pages/creator-affiliate-sales";
 import CompanyInvoices from "./pages/company-invoices";
 import Notifications from "./pages/notifications";
 import NotificationDetail from "./pages/notification-detail";
@@ -383,6 +384,7 @@ function ProtectedRouter() {
               <Route path="/favorites" component={Favorites} />
               <Route path="/creator/payment-settings" component={PaymentSettings} />
               <Route path="/creator/wallet" component={CreatorWallet} />
+              <Route path="/creator/sales" component={CreatorAffiliateSales} />
               <Route path="/payments/:id" component={PaymentDetail} />
               <Route path="/help/affiliate-marketing-tips" component={HelpAffiliateMarketingTips} />
               <Route path="/help/affiliate-links-guide" component={HelpAffiliateLinksGuide} />

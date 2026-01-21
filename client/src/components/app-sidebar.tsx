@@ -50,6 +50,7 @@ import {
   Mail,
   BarChart3,
   Wallet,
+  ShoppingCart,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -97,6 +98,11 @@ export function AppSidebar() {
       title: "Favorites",
       url: "/favorites",
       icon: Heart,
+    },
+    {
+      title: "Sales",
+      url: "/creator/sales",
+      icon: ShoppingCart,
     },
     {
       title: "Wallet",
