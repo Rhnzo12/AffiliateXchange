@@ -4694,16 +4694,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Send notification to creator
         const creator = await storage.getUserById(payment.creatorId);
 
-        // Get title based on payment type
-        let paymentTitle = 'Payment';
-        if (payment.paymentType === 'affiliate' && payment.offerId) {
-          const offer = await storage.getOffer(payment.offerId);
-          paymentTitle = offer?.title || 'Affiliate Offer';
-        } else if (payment.paymentType === 'retainer' && payment.contractId) {
-          const contract = await storage.getRetainerContract(payment.contractId);
-          paymentTitle = contract?.title || 'Retainer Contract';
-        }
-
         if (creator) {
           // Calculate fee percentages from payment data
           const grossAmt = parseFloat(payment.grossAmount);
