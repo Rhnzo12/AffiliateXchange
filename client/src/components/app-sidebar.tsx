@@ -49,6 +49,7 @@ import {
   Ban,
   Mail,
   BarChart3,
+  Wallet,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -98,6 +99,11 @@ export function AppSidebar() {
       icon: Heart,
     },
     {
+      title: "Wallet",
+      url: "/creator/wallet",
+      icon: Wallet,
+    },
+    {
       title: "Payment Management",
       url: "/creator/payment-settings",
       icon: DollarSign,
@@ -145,6 +151,11 @@ export function AppSidebar() {
       title: "Website Verification",
       url: "/company/website-verification",
       icon: ShieldCheck,
+    },
+    {
+      title: "Invoices",
+      url: "/company/invoices",
+      icon: FileText,
     },
     {
       title: "Payment Management",

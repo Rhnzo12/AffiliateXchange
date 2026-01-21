@@ -8,8 +8,9 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./localAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { db } from "./db";
-import { offerVideos, applications, analytics, offers, companyProfiles, payments, retainerPayments, conversations, messages, bannedKeywords, contentFlags } from "../shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { offerVideos, applications, analytics, offers, companyProfiles, payments, retainerPayments, conversations, messages, bannedKeywords, contentFlags, companyInvoices } from "../shared/schema";
+import { eq, sql, desc } from "drizzle-orm";
+import express from "express";
 import { z } from "zod";
 import { checkClickFraud, logFraudDetection } from "./fraudDetection";
 import {
@@ -11580,6 +11581,456 @@ res.json(approved);
     } catch (error: any) {
       console.error('[Batch Payment] Error:', error);
       res.status(500).json({ error: "Failed to process batch payment" });
+    }
+  });
+
+  // ============================================
+  // CREATOR WALLET ROUTES
+  // ============================================
+
+  /**
+   * Get creator's wallet
+   * GET /api/wallet
+   */
+  app.get("/api/wallet", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const wallet = await storage.getOrCreateCreatorWallet(userId);
+      res.json(wallet);
+    } catch (error: any) {
+      console.error('[Wallet] Error fetching wallet:', error);
+      res.status(500).json({ error: "Failed to fetch wallet" });
+    }
+  });
+
+  /**
+   * Get wallet transactions
+   * GET /api/wallet/transactions
+   */
+  app.get("/api/wallet/transactions", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const transactions = await storage.getWalletTransactionsByCreator(userId, limit, offset);
+      res.json(transactions);
+    } catch (error: any) {
+      console.error('[Wallet] Error fetching transactions:', error);
+      res.status(500).json({ error: "Failed to fetch transactions" });
+    }
+  });
+
+  // ============================================
+  // WITHDRAWAL ROUTES
+  // ============================================
+
+  /**
+   * Request a withdrawal
+   * POST /api/withdrawals
+   */
+  app.post("/api/withdrawals", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { amount, paymentSettingId } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Valid amount is required" });
+      }
+
+      const { withdrawalService } = await import('./withdrawalService');
+      const result = await withdrawalService.requestWithdrawal({
+        creatorId: userId,
+        amount: parseFloat(amount),
+        paymentSettingId,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json(result.withdrawal);
+    } catch (error: any) {
+      console.error('[Withdrawal] Error creating withdrawal:', error);
+      res.status(500).json({ error: "Failed to create withdrawal request" });
+    }
+  });
+
+  /**
+   * Get withdrawal history
+   * GET /api/withdrawals
+   */
+  app.get("/api/withdrawals", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { withdrawalService } = await import('./withdrawalService');
+      const withdrawals = await withdrawalService.getWithdrawalHistory(userId);
+      res.json(withdrawals);
+    } catch (error: any) {
+      console.error('[Withdrawal] Error fetching withdrawals:', error);
+      res.status(500).json({ error: "Failed to fetch withdrawals" });
+    }
+  });
+
+  /**
+   * Cancel a pending withdrawal
+   * POST /api/withdrawals/:id/cancel
+   */
+  app.post("/api/withdrawals/:id/cancel", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { id } = req.params;
+
+      // Verify withdrawal belongs to this creator
+      const withdrawal = await storage.getWithdrawal(id);
+      if (!withdrawal) {
+        return res.status(404).json({ error: "Withdrawal not found" });
+      }
+      if (withdrawal.creatorId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const { withdrawalService } = await import('./withdrawalService');
+      const result = await withdrawalService.cancelWithdrawal(id, req.body.reason);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json(result.withdrawal);
+    } catch (error: any) {
+      console.error('[Withdrawal] Error cancelling withdrawal:', error);
+      res.status(500).json({ error: "Failed to cancel withdrawal" });
+    }
+  });
+
+  /**
+   * Admin: Get all pending withdrawals
+   * GET /api/admin/withdrawals/pending
+   */
+  app.get("/api/admin/withdrawals/pending", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { withdrawalService } = await import('./withdrawalService');
+      const withdrawals = await withdrawalService.getPendingWithdrawals();
+      res.json(withdrawals);
+    } catch (error: any) {
+      console.error('[Withdrawal] Error fetching pending withdrawals:', error);
+      res.status(500).json({ error: "Failed to fetch pending withdrawals" });
+    }
+  });
+
+  /**
+   * Admin: Process a withdrawal
+   * POST /api/admin/withdrawals/:id/process
+   */
+  app.post("/api/admin/withdrawals/:id/process", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { withdrawalService } = await import('./withdrawalService');
+      const result = await withdrawalService.processWithdrawal(id);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json(result.withdrawal);
+    } catch (error: any) {
+      console.error('[Withdrawal] Error processing withdrawal:', error);
+      res.status(500).json({ error: "Failed to process withdrawal" });
+    }
+  });
+
+  // ============================================
+  // COMPANY INVOICE ROUTES
+  // ============================================
+
+  /**
+   * Get invoices for company
+   * GET /api/company/invoices
+   */
+  app.get("/api/company/invoices", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+
+      const status = req.query.status as string | undefined;
+      const invoices = await storage.getCompanyInvoicesByCompany(companyProfile.id, status);
+      res.json(invoices);
+    } catch (error: any) {
+      console.error('[Invoice] Error fetching invoices:', error);
+      res.status(500).json({ error: "Failed to fetch invoices" });
+    }
+  });
+
+  /**
+   * Get single invoice
+   * GET /api/company/invoices/:id
+   */
+  app.get("/api/company/invoices/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUser(userId);
+      const { id } = req.params;
+
+      const invoice = await storage.getCompanyInvoice(id);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+
+      // Check authorization
+      if (user?.role === 'company') {
+        const companyProfile = await storage.getCompanyProfile(userId);
+        if (!companyProfile || invoice.companyId !== companyProfile.id) {
+          return res.status(403).json({ error: "Not authorized" });
+        }
+      } else if (user?.role === 'creator') {
+        if (invoice.creatorId !== userId) {
+          return res.status(403).json({ error: "Not authorized" });
+        }
+      } else if (user?.role !== 'admin') {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      res.json(invoice);
+    } catch (error: any) {
+      console.error('[Invoice] Error fetching invoice:', error);
+      res.status(500).json({ error: "Failed to fetch invoice" });
+    }
+  });
+
+  /**
+   * Get checkout URL for invoice
+   * POST /api/company/invoices/:id/checkout
+   */
+  app.post("/api/company/invoices/:id/checkout", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { id } = req.params;
+
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+
+      const invoice = await storage.getCompanyInvoice(id);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+      if (invoice.companyId !== companyProfile.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const { companyInvoiceService } = await import('./companyInvoiceService');
+      const result = await companyInvoiceService.getCheckoutUrl(id);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({ checkoutUrl: result.url });
+    } catch (error: any) {
+      console.error('[Invoice] Error getting checkout URL:', error);
+      res.status(500).json({ error: "Failed to get checkout URL" });
+    }
+  });
+
+  /**
+   * Simulate payment for sandbox mode
+   * POST /api/company/invoices/:id/simulate-payment
+   */
+  app.post("/api/company/invoices/:id/simulate-payment", requireAuth, requireRole('company'), async (req, res) => {
+    try {
+      if (process.env.PAYMENT_SANDBOX_MODE !== 'true') {
+        return res.status(400).json({ error: "Sandbox mode is not enabled" });
+      }
+
+      const userId = (req.user as any).id;
+      const { id } = req.params;
+
+      const companyProfile = await storage.getCompanyProfile(userId);
+      if (!companyProfile) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+
+      const invoice = await storage.getCompanyInvoice(id);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+      if (invoice.companyId !== companyProfile.id) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const { companyInvoiceService } = await import('./companyInvoiceService');
+      const result = await companyInvoiceService.simulatePayment(id);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json(result.invoice);
+    } catch (error: any) {
+      console.error('[Invoice] Error simulating payment:', error);
+      res.status(500).json({ error: "Failed to simulate payment" });
+    }
+  });
+
+  /**
+   * Get invoices for creator (to see pending payments)
+   * GET /api/creator/invoices
+   */
+  app.get("/api/creator/invoices", requireAuth, requireRole('creator'), async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const status = req.query.status as string | undefined;
+      const invoices = await storage.getCompanyInvoicesByCreator(userId, status);
+      res.json(invoices);
+    } catch (error: any) {
+      console.error('[Invoice] Error fetching creator invoices:', error);
+      res.status(500).json({ error: "Failed to fetch invoices" });
+    }
+  });
+
+  /**
+   * Admin: Get all invoices
+   * GET /api/admin/invoices
+   */
+  app.get("/api/admin/invoices", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      // For now, get all invoices (could add filtering later)
+      const invoices = await db.select().from(companyInvoices).orderBy(desc(companyInvoices.createdAt)).limit(100);
+      res.json(invoices);
+    } catch (error: any) {
+      console.error('[Invoice] Error fetching all invoices:', error);
+      res.status(500).json({ error: "Failed to fetch invoices" });
+    }
+  });
+
+  // ============================================
+  // STRIPE WEBHOOK FOR INVOICE PAYMENTS
+  // ============================================
+
+  /**
+   * Stripe webhook for checkout session completion
+   * POST /api/webhooks/stripe/checkout
+   */
+  app.post("/api/webhooks/stripe/checkout", express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+      const sig = req.headers['stripe-signature'] as string;
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+      if (!webhookSecret) {
+        console.error('[Stripe Webhook] No webhook secret configured');
+        return res.status(400).send('Webhook secret not configured');
+      }
+
+      const stripe = new (await import('stripe')).default(process.env.STRIPE_SECRET_KEY || '', {
+        apiVersion: '2024-11-20.acacia',
+      });
+
+      let event;
+      try {
+        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      } catch (err: any) {
+        console.error('[Stripe Webhook] Signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      console.log('[Stripe Webhook] Received event:', event.type);
+
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object as any;
+          console.log('[Stripe Webhook] Checkout session completed:', session.id);
+
+          // Check if this is an invoice payment
+          if (session.metadata?.invoiceId) {
+            const { companyInvoiceService } = await import('./companyInvoiceService');
+            const result = await companyInvoiceService.handleSuccessfulPayment(session.id);
+
+            if (!result.success) {
+              console.error('[Stripe Webhook] Failed to process invoice payment:', result.error);
+            } else {
+              console.log('[Stripe Webhook] Invoice payment processed:', result.invoice?.id);
+            }
+          }
+          break;
+        }
+
+        case 'checkout.session.expired': {
+          const session = event.data.object as any;
+          console.log('[Stripe Webhook] Checkout session expired:', session.id);
+
+          if (session.metadata?.invoiceId) {
+            await storage.updateCompanyInvoice(session.metadata.invoiceId, {
+              status: 'expired',
+              expiredAt: new Date(),
+            });
+          }
+          break;
+        }
+
+        default:
+          console.log('[Stripe Webhook] Unhandled event type:', event.type);
+      }
+
+      res.json({ received: true });
+    } catch (error: any) {
+      console.error('[Stripe Webhook] Error:', error);
+      res.status(500).json({ error: "Webhook processing failed" });
+    }
+  });
+
+  /**
+   * Create invoice when payment is approved (replaces direct payment processing)
+   * POST /api/payments/:id/create-invoice
+   */
+  app.post("/api/payments/:id/create-invoice", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = (req.user as any).id;
+      const user = await storage.getUser(userId);
+
+      // Only admin or company can create invoices
+      if (user?.role !== 'admin' && user?.role !== 'company') {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const payment = await storage.getPayment(id);
+      if (!payment) {
+        return res.status(404).json({ error: "Payment not found" });
+      }
+
+      // If company, verify they own this payment
+      if (user?.role === 'company') {
+        const companyProfile = await storage.getCompanyProfile(userId);
+        if (!companyProfile || payment.companyId !== companyProfile.id) {
+          return res.status(403).json({ error: "Not authorized" });
+        }
+      }
+
+      // Check if invoice already exists
+      const existingInvoice = await storage.getCompanyInvoiceByPaymentId(id);
+      if (existingInvoice) {
+        return res.status(400).json({ error: "Invoice already exists for this payment", invoice: existingInvoice });
+      }
+
+      const { companyInvoiceService } = await import('./companyInvoiceService');
+      const result = await companyInvoiceService.createInvoiceForPayment(payment);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({
+        invoice: result.invoice,
+        checkoutUrl: result.checkoutUrl,
+      });
+    } catch (error: any) {
+      console.error('[Invoice] Error creating invoice:', error);
+      res.status(500).json({ error: "Failed to create invoice" });
     }
   });
 
