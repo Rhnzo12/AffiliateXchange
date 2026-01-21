@@ -168,6 +168,80 @@ function StatusBadge({ status, isDisputed = false }: { status: PaymentStatus; is
 
 function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
   const { toast } = useToast();
+  const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
+
+  // Fetch wallet data
+  const { data: wallet, isLoading: walletLoading } = useQuery<{
+    id: string;
+    availableBalance: string;
+    pendingBalance: string;
+    totalEarned: string;
+    totalWithdrawn: string;
+  }>({
+    queryKey: ["/api/wallet"],
+  });
+
+  // Fetch payment methods for withdrawal
+  const { data: paymentMethods = [] } = useQuery<PaymentMethod[]>({
+    queryKey: ["/api/payment-settings"],
+  });
+
+  // Withdraw mutation
+  const withdrawMutation = useMutation({
+    mutationFn: async (data: { amount: number; paymentSettingId?: string }) => {
+      const res = await apiRequest("POST", "/api/withdrawals", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/withdrawals"] });
+      setShowWithdrawDialog(false);
+      setWithdrawAmount("");
+      toast({
+        title: "Withdrawal Requested",
+        description: "Your withdrawal request has been submitted for processing.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Withdrawal Failed",
+        description: error.message || "Failed to process withdrawal request.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleWithdraw = () => {
+    const amount = parseFloat(withdrawAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+    withdrawMutation.mutate({
+      amount,
+      paymentSettingId: selectedPaymentMethod || undefined,
+    });
+  };
+
+  const availableBalance = parseFloat(wallet?.availableBalance || "0");
+  const minWithdrawal = 10;
+  const canWithdraw = availableBalance >= minWithdrawal && paymentMethods.length > 0;
+
+  const getPaymentMethodLabel = (method: PaymentMethod) => {
+    switch (method.payoutMethod) {
+      case "paypal": return `PayPal (${method.paypalEmail})`;
+      case "etransfer": return `E-Transfer (${method.payoutEmail})`;
+      case "wire": return `Bank Transfer (${method.bankName || "Bank"})`;
+      case "crypto": return `Crypto (${method.cryptoNetwork})`;
+      default: return method.payoutMethod;
+    }
+  };
 
   // Fetch platform fee settings for display
   const { data: feeSettings } = useQuery<{
@@ -303,6 +377,132 @@ function CreatorOverview({ payments }: { payments: CreatorPayment[] }) {
           )}
         </div>
       </div>
+
+      {/* Withdraw Balance Section */}
+      <div className="rounded-xl border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="rounded-full bg-primary/10 p-3">
+              <Wallet className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Available Balance</h3>
+              <p className="text-sm text-gray-600">Ready to withdraw to your payment method</p>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2 md:flex-row md:items-center md:gap-6">
+            <div className="text-right md:text-left">
+              <div className="text-3xl font-bold text-primary">
+                {walletLoading ? (
+                  <span className="animate-pulse">Loading...</span>
+                ) : (
+                  `CA$${availableBalance.toFixed(2)}`
+                )}
+              </div>
+              <p className="text-xs text-gray-500">No withdrawal fees</p>
+            </div>
+            {paymentMethods.length === 0 ? (
+              <Link href="/creator/payment-settings#payment-methods">
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Payment Method
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                onClick={() => setShowWithdrawDialog(true)}
+                disabled={!canWithdraw || walletLoading}
+                className="gap-2"
+              >
+                <Send className="h-4 w-4" />
+                Withdraw Funds
+              </Button>
+            )}
+          </div>
+        </div>
+        {!canWithdraw && availableBalance > 0 && availableBalance < minWithdrawal && (
+          <p className="mt-3 text-sm text-amber-600">
+            <AlertTriangle className="mr-1 inline h-4 w-4" />
+            Minimum withdrawal amount is CA${minWithdrawal.toFixed(2)}
+          </p>
+        )}
+        {availableBalance === 0 && !walletLoading && (
+          <p className="mt-3 text-sm text-gray-500">
+            Complete offers to earn commissions that will appear in your wallet.
+          </p>
+        )}
+      </div>
+
+      {/* Withdrawal Dialog */}
+      <AlertDialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-primary" />
+              Withdraw Funds
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter the amount you want to withdraw. No fees will be charged.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Amount (CAD)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  className="pl-8"
+                  min={minWithdrawal}
+                  max={availableBalance}
+                  step="0.01"
+                />
+              </div>
+              <p className="text-sm text-gray-500">
+                Available: CA${availableBalance.toFixed(2)} | Min: CA${minWithdrawal.toFixed(2)}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Payment Method</Label>
+              <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map((method) => (
+                    <SelectItem key={method.id} value={String(method.id)}>
+                      {getPaymentMethodLabel(method)}
+                      {method.isDefault && " (Default)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+              <p className="text-sm font-medium text-green-700">No Withdrawal Fees</p>
+              <p className="text-sm text-green-600">
+                You will receive the full amount: CA${parseFloat(withdrawAmount || "0").toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleWithdraw}
+              disabled={withdrawMutation.isPending || !withdrawAmount || parseFloat(withdrawAmount) < minWithdrawal || parseFloat(withdrawAmount) > availableBalance}
+            >
+              {withdrawMutation.isPending ? "Processing..." : `Withdraw CA$${parseFloat(withdrawAmount || "0").toFixed(2)}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="overflow-hidden rounded-xl border-2 border-gray-200 bg-white">
         <div className="border-b border-gray-200 p-6">
