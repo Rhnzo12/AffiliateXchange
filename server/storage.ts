@@ -38,6 +38,10 @@ import {
   niches,
   platformFundingAccounts,
   emailTemplates,
+  creatorWallets,
+  walletTransactions,
+  companyInvoices,
+  withdrawals,
   type User,
   type UpsertUser,
   type InsertUser,
@@ -90,6 +94,14 @@ import {
   type InsertCompanyVerificationDocument,
   type EmailTemplate,
   type InsertEmailTemplate,
+  type CreatorWallet,
+  type InsertCreatorWallet,
+  type WalletTransaction,
+  type InsertWalletTransaction,
+  type CompanyInvoice,
+  type InsertCompanyInvoice,
+  type Withdrawal,
+  type InsertWithdrawal,
 } from "../shared/schema";
 
 /**
@@ -607,11 +619,13 @@ export interface AdminCreatorSummary {
 export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
+  getUserById(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
   getUserByEmailVerificationToken(token: string): Promise<User | undefined>;
   getUserByPasswordResetToken(token: string): Promise<User | undefined>;
+  getAdminUsers(): Promise<User[]>;
   upsertUser(user: UpsertUser): Promise<User>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
@@ -860,6 +874,37 @@ export interface IStorage {
   updatePlatformFundingAccount(id: string, updates: Partial<InsertPlatformFundingAccount>): Promise<PlatformFundingAccount | null>;
   deletePlatformFundingAccount(id: string): Promise<void>;
   setPrimaryFundingAccount(id: string): Promise<void>;
+
+  // Creator Wallets
+  getCreatorWallet(creatorId: string): Promise<CreatorWallet | null>;
+  getOrCreateCreatorWallet(creatorId: string): Promise<CreatorWallet>;
+  updateCreatorWalletBalance(walletId: string, availableBalance: string, pendingBalance?: string): Promise<CreatorWallet | null>;
+  creditCreatorWallet(creatorId: string, amount: number, description: string, referenceType: string, referenceId: string): Promise<{ wallet: CreatorWallet; transaction: WalletTransaction }>;
+  debitCreatorWallet(creatorId: string, amount: number, description: string, referenceType: string, referenceId: string): Promise<{ wallet: CreatorWallet; transaction: WalletTransaction }>;
+
+  // Wallet Transactions
+  getWalletTransactions(walletId: string, limit?: number, offset?: number): Promise<WalletTransaction[]>;
+  getWalletTransactionsByCreator(creatorId: string, limit?: number, offset?: number): Promise<WalletTransaction[]>;
+  createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction>;
+
+  // Company Invoices
+  getCompanyInvoice(id: string): Promise<CompanyInvoice | null>;
+  getCompanyInvoiceByNumber(invoiceNumber: string): Promise<CompanyInvoice | null>;
+  getCompanyInvoiceByStripeSession(sessionId: string): Promise<CompanyInvoice | null>;
+  getCompanyInvoicesByCompany(companyId: string, status?: string): Promise<CompanyInvoice[]>;
+  getCompanyInvoicesByCreator(creatorId: string, status?: string): Promise<CompanyInvoice[]>;
+  getCompanyInvoiceByPaymentId(paymentId: string): Promise<CompanyInvoice | null>;
+  createCompanyInvoice(invoice: InsertCompanyInvoice): Promise<CompanyInvoice>;
+  updateCompanyInvoice(id: string, updates: Partial<InsertCompanyInvoice>): Promise<CompanyInvoice | null>;
+  generateInvoiceNumber(): Promise<string>;
+
+  // Withdrawals
+  getWithdrawal(id: string): Promise<Withdrawal | null>;
+  getWithdrawalsByCreator(creatorId: string, status?: string): Promise<Withdrawal[]>;
+  getWithdrawalsByWallet(walletId: string): Promise<Withdrawal[]>;
+  getPendingWithdrawals(): Promise<Withdrawal[]>;
+  createWithdrawal(withdrawal: InsertWithdrawal): Promise<Withdrawal>;
+  updateWithdrawal(id: string, updates: Partial<InsertWithdrawal>): Promise<Withdrawal | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -867,6 +912,14 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
+  }
+
+  async getUserById(id: string): Promise<User | undefined> {
+    return this.getUser(id);
+  }
+
+  async getAdminUsers(): Promise<User[]> {
+    return db.select().from(users).where(eq(users.role, 'admin'));
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
@@ -6600,6 +6653,330 @@ async deleteAllVerificationDocumentsForCompany(companyId: string): Promise<boole
         healthScore: Math.round(healthScore),
       },
     };
+  }
+
+  // Creator Wallets
+  async getCreatorWallet(creatorId: string): Promise<CreatorWallet | null> {
+    const result = await db
+      .select()
+      .from(creatorWallets)
+      .where(eq(creatorWallets.creatorId, creatorId))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async getOrCreateCreatorWallet(creatorId: string): Promise<CreatorWallet> {
+    // Try to get existing wallet
+    const existing = await this.getCreatorWallet(creatorId);
+    if (existing) return existing;
+
+    // Create new wallet
+    const [wallet] = await db
+      .insert(creatorWallets)
+      .values({
+        creatorId,
+        availableBalance: '0.00',
+        pendingBalance: '0.00',
+        totalEarned: '0.00',
+        totalWithdrawn: '0.00',
+        currency: 'CAD',
+      })
+      .returning();
+    return wallet;
+  }
+
+  async updateCreatorWalletBalance(
+    walletId: string,
+    availableBalance: string,
+    pendingBalance?: string
+  ): Promise<CreatorWallet | null> {
+    const updates: any = {
+      availableBalance,
+      updatedAt: new Date(),
+    };
+    if (pendingBalance !== undefined) {
+      updates.pendingBalance = pendingBalance;
+    }
+    const [wallet] = await db
+      .update(creatorWallets)
+      .set(updates)
+      .where(eq(creatorWallets.id, walletId))
+      .returning();
+    return wallet || null;
+  }
+
+  async creditCreatorWallet(
+    creatorId: string,
+    amount: number,
+    description: string,
+    referenceType: string,
+    referenceId: string
+  ): Promise<{ wallet: CreatorWallet; transaction: WalletTransaction }> {
+    // Get or create wallet
+    const wallet = await this.getOrCreateCreatorWallet(creatorId);
+
+    // Calculate new balances
+    const currentBalance = parseFloat(wallet.availableBalance);
+    const currentTotalEarned = parseFloat(wallet.totalEarned);
+    const newBalance = currentBalance + amount;
+    const newTotalEarned = currentTotalEarned + amount;
+
+    // Update wallet
+    const [updatedWallet] = await db
+      .update(creatorWallets)
+      .set({
+        availableBalance: newBalance.toFixed(2),
+        totalEarned: newTotalEarned.toFixed(2),
+        updatedAt: new Date(),
+      })
+      .where(eq(creatorWallets.id, wallet.id))
+      .returning();
+
+    // Create transaction record
+    const [transaction] = await db
+      .insert(walletTransactions)
+      .values({
+        walletId: wallet.id,
+        creatorId,
+        type: 'credit',
+        amount: amount.toFixed(2),
+        balanceAfter: newBalance.toFixed(2),
+        description,
+        referenceType,
+        referenceId,
+      })
+      .returning();
+
+    return { wallet: updatedWallet, transaction };
+  }
+
+  async debitCreatorWallet(
+    creatorId: string,
+    amount: number,
+    description: string,
+    referenceType: string,
+    referenceId: string
+  ): Promise<{ wallet: CreatorWallet; transaction: WalletTransaction }> {
+    // Get wallet
+    const wallet = await this.getCreatorWallet(creatorId);
+    if (!wallet) {
+      throw new Error('Creator wallet not found');
+    }
+
+    // Calculate new balances
+    const currentBalance = parseFloat(wallet.availableBalance);
+    if (currentBalance < amount) {
+      throw new Error('Insufficient balance');
+    }
+    const currentTotalWithdrawn = parseFloat(wallet.totalWithdrawn);
+    const newBalance = currentBalance - amount;
+    const newTotalWithdrawn = currentTotalWithdrawn + amount;
+
+    // Update wallet
+    const [updatedWallet] = await db
+      .update(creatorWallets)
+      .set({
+        availableBalance: newBalance.toFixed(2),
+        totalWithdrawn: newTotalWithdrawn.toFixed(2),
+        updatedAt: new Date(),
+      })
+      .where(eq(creatorWallets.id, wallet.id))
+      .returning();
+
+    // Create transaction record
+    const [transaction] = await db
+      .insert(walletTransactions)
+      .values({
+        walletId: wallet.id,
+        creatorId,
+        type: 'withdrawal',
+        amount: amount.toFixed(2),
+        balanceAfter: newBalance.toFixed(2),
+        description,
+        referenceType,
+        referenceId,
+      })
+      .returning();
+
+    return { wallet: updatedWallet, transaction };
+  }
+
+  // Wallet Transactions
+  async getWalletTransactions(walletId: string, limit = 50, offset = 0): Promise<WalletTransaction[]> {
+    return db
+      .select()
+      .from(walletTransactions)
+      .where(eq(walletTransactions.walletId, walletId))
+      .orderBy(desc(walletTransactions.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getWalletTransactionsByCreator(creatorId: string, limit = 50, offset = 0): Promise<WalletTransaction[]> {
+    return db
+      .select()
+      .from(walletTransactions)
+      .where(eq(walletTransactions.creatorId, creatorId))
+      .orderBy(desc(walletTransactions.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction> {
+    const [result] = await db
+      .insert(walletTransactions)
+      .values(transaction)
+      .returning();
+    return result;
+  }
+
+  // Company Invoices
+  async getCompanyInvoice(id: string): Promise<CompanyInvoice | null> {
+    const result = await db
+      .select()
+      .from(companyInvoices)
+      .where(eq(companyInvoices.id, id))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async getCompanyInvoiceByNumber(invoiceNumber: string): Promise<CompanyInvoice | null> {
+    const result = await db
+      .select()
+      .from(companyInvoices)
+      .where(eq(companyInvoices.invoiceNumber, invoiceNumber))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async getCompanyInvoiceByStripeSession(sessionId: string): Promise<CompanyInvoice | null> {
+    const result = await db
+      .select()
+      .from(companyInvoices)
+      .where(eq(companyInvoices.stripeCheckoutSessionId, sessionId))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async getCompanyInvoicesByCompany(companyId: string, status?: string): Promise<CompanyInvoice[]> {
+    const conditions = [eq(companyInvoices.companyId, companyId)];
+    if (status) {
+      conditions.push(eq(companyInvoices.status, status as any));
+    }
+    return db
+      .select()
+      .from(companyInvoices)
+      .where(and(...conditions))
+      .orderBy(desc(companyInvoices.createdAt));
+  }
+
+  async getCompanyInvoicesByCreator(creatorId: string, status?: string): Promise<CompanyInvoice[]> {
+    const conditions = [eq(companyInvoices.creatorId, creatorId)];
+    if (status) {
+      conditions.push(eq(companyInvoices.status, status as any));
+    }
+    return db
+      .select()
+      .from(companyInvoices)
+      .where(and(...conditions))
+      .orderBy(desc(companyInvoices.createdAt));
+  }
+
+  async getCompanyInvoiceByPaymentId(paymentId: string): Promise<CompanyInvoice | null> {
+    const result = await db
+      .select()
+      .from(companyInvoices)
+      .where(eq(companyInvoices.paymentId, paymentId))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async createCompanyInvoice(invoice: InsertCompanyInvoice): Promise<CompanyInvoice> {
+    const [result] = await db
+      .insert(companyInvoices)
+      .values(invoice)
+      .returning();
+    return result;
+  }
+
+  async updateCompanyInvoice(id: string, updates: Partial<InsertCompanyInvoice>): Promise<CompanyInvoice | null> {
+    const [result] = await db
+      .update(companyInvoices)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(companyInvoices.id, id))
+      .returning();
+    return result || null;
+  }
+
+  async generateInvoiceNumber(): Promise<string> {
+    // Generate invoice number in format: INV-YYYYMM-XXXX
+    const now = new Date();
+    const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // Get count of invoices this month for sequential numbering
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const result = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(companyInvoices)
+      .where(gte(companyInvoices.createdAt, startOfMonth));
+
+    const count = (result[0]?.count || 0) + 1;
+    return `INV-${yearMonth}-${String(count).padStart(4, '0')}`;
+  }
+
+  // Withdrawals
+  async getWithdrawal(id: string): Promise<Withdrawal | null> {
+    const result = await db
+      .select()
+      .from(withdrawals)
+      .where(eq(withdrawals.id, id))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async getWithdrawalsByCreator(creatorId: string, status?: string): Promise<Withdrawal[]> {
+    const conditions = [eq(withdrawals.creatorId, creatorId)];
+    if (status) {
+      conditions.push(eq(withdrawals.status, status as any));
+    }
+    return db
+      .select()
+      .from(withdrawals)
+      .where(and(...conditions))
+      .orderBy(desc(withdrawals.createdAt));
+  }
+
+  async getWithdrawalsByWallet(walletId: string): Promise<Withdrawal[]> {
+    return db
+      .select()
+      .from(withdrawals)
+      .where(eq(withdrawals.walletId, walletId))
+      .orderBy(desc(withdrawals.createdAt));
+  }
+
+  async getPendingWithdrawals(): Promise<Withdrawal[]> {
+    return db
+      .select()
+      .from(withdrawals)
+      .where(eq(withdrawals.status, 'pending'))
+      .orderBy(asc(withdrawals.requestedAt));
+  }
+
+  async createWithdrawal(withdrawal: InsertWithdrawal): Promise<Withdrawal> {
+    const [result] = await db
+      .insert(withdrawals)
+      .values(withdrawal)
+      .returning();
+    return result;
+  }
+
+  async updateWithdrawal(id: string, updates: Partial<InsertWithdrawal>): Promise<Withdrawal | null> {
+    const [result] = await db
+      .update(withdrawals)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(withdrawals.id, id))
+      .returning();
+    return result || null;
   }
 }
 

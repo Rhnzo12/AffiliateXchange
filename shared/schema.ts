@@ -32,6 +32,9 @@ export const applicationStatusEnum = pgEnum('application_status', [
 ]);
 export const payoutMethodEnum = pgEnum('payout_method', ['etransfer', 'wire', 'paypal', 'crypto']);
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'processing', 'completed', 'failed', 'refunded']);
+export const invoiceStatusEnum = pgEnum('invoice_status', ['draft', 'sent', 'paid', 'cancelled', 'expired', 'refunded']);
+export const walletTransactionTypeEnum = pgEnum('wallet_transaction_type', ['credit', 'debit', 'withdrawal', 'refund', 'adjustment']);
+export const withdrawalStatusEnum = pgEnum('withdrawal_status', ['pending', 'processing', 'completed', 'failed', 'cancelled']);
 export const retainerStatusEnum = pgEnum('retainer_status', ['open', 'in_progress', 'completed', 'cancelled', 'paused']);
 export const retainerApplicationStatusEnum = pgEnum('retainer_application_status', ['pending', 'approved', 'rejected']);
 export const deliverableStatusEnum = pgEnum('deliverable_status', ['pending_review', 'approved', 'revision_requested', 'rejected']);
@@ -71,7 +74,14 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'content_flagged',
   'high_risk_company',
   'account_deletion_otp',
-  'password_change_otp'
+  'password_change_otp',
+  'invoice_sent',
+  'invoice_paid',
+  'invoice_expired',
+  'wallet_credited',
+  'withdrawal_requested',
+  'withdrawal_completed',
+  'withdrawal_failed'
 ]);
 export const offerPendingActionEnum = pgEnum('offer_pending_action', ['delete', 'suspend']);
 export const keywordCategoryEnum = pgEnum('keyword_category', ['profanity', 'spam', 'legal', 'harassment', 'custom']);
@@ -1008,6 +1018,134 @@ export const platformFundingAccountsRelations = relations(platformFundingAccount
   }),
 }));
 
+// Creator Wallets - Track creator's platform balance
+export const creatorWallets = pgTable("creator_wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  creatorId: varchar("creator_id").notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  availableBalance: decimal("available_balance", { precision: 10, scale: 2 }).notNull().default('0.00'),
+  pendingBalance: decimal("pending_balance", { precision: 10, scale: 2 }).notNull().default('0.00'),
+  totalEarned: decimal("total_earned", { precision: 10, scale: 2 }).notNull().default('0.00'),
+  totalWithdrawn: decimal("total_withdrawn", { precision: 10, scale: 2 }).notNull().default('0.00'),
+  currency: varchar("currency", { length: 3 }).notNull().default('CAD'),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const creatorWalletsRelations = relations(creatorWallets, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [creatorWallets.creatorId],
+    references: [users.id],
+  }),
+  transactions: many(walletTransactions),
+  withdrawals: many(withdrawals),
+}));
+
+// Wallet Transactions - Track all wallet activity
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletId: varchar("wallet_id").notNull().references(() => creatorWallets.id, { onDelete: 'cascade' }),
+  creatorId: varchar("creator_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: walletTransactionTypeEnum("type").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  balanceAfter: decimal("balance_after", { precision: 10, scale: 2 }).notNull(),
+  description: text("description"),
+  referenceType: varchar("reference_type", { length: 50 }), // 'payment', 'retainer_payment', 'withdrawal', 'refund'
+  referenceId: varchar("reference_id"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const walletTransactionsRelations = relations(walletTransactions, ({ one }) => ({
+  wallet: one(creatorWallets, {
+    fields: [walletTransactions.walletId],
+    references: [creatorWallets.id],
+  }),
+  creator: one(users, {
+    fields: [walletTransactions.creatorId],
+    references: [users.id],
+  }),
+}));
+
+// Company Invoices - Track invoices sent to companies
+export const companyInvoices = pgTable("company_invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNumber: varchar("invoice_number", { length: 50 }).notNull().unique(),
+  companyId: varchar("company_id").notNull().references(() => companyProfiles.id, { onDelete: 'cascade' }),
+  creatorId: varchar("creator_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  paymentId: varchar("payment_id").references(() => payments.id, { onDelete: 'set null' }),
+  retainerPaymentId: varchar("retainer_payment_id").references(() => retainerPayments.id, { onDelete: 'set null' }),
+  grossAmount: decimal("gross_amount", { precision: 10, scale: 2 }).notNull(),
+  platformFeeAmount: decimal("platform_fee_amount", { precision: 10, scale: 2 }).notNull(),
+  stripeFeeAmount: decimal("stripe_fee_amount", { precision: 10, scale: 2 }).notNull(),
+  netAmount: decimal("net_amount", { precision: 10, scale: 2 }).notNull(),
+  status: invoiceStatusEnum("status").notNull().default('draft'),
+  stripeCheckoutSessionId: varchar("stripe_checkout_session_id"),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+  description: text("description"),
+  dueDate: timestamp("due_date"),
+  sentAt: timestamp("sent_at"),
+  paidAt: timestamp("paid_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  expiredAt: timestamp("expired_at"),
+  refundedAt: timestamp("refunded_at"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const companyInvoicesRelations = relations(companyInvoices, ({ one }) => ({
+  company: one(companyProfiles, {
+    fields: [companyInvoices.companyId],
+    references: [companyProfiles.id],
+  }),
+  creator: one(users, {
+    fields: [companyInvoices.creatorId],
+    references: [users.id],
+  }),
+  payment: one(payments, {
+    fields: [companyInvoices.paymentId],
+    references: [payments.id],
+  }),
+  retainerPayment: one(retainerPayments, {
+    fields: [companyInvoices.retainerPaymentId],
+    references: [retainerPayments.id],
+  }),
+}));
+
+// Withdrawals - Track creator withdrawal requests
+export const withdrawals = pgTable("withdrawals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletId: varchar("wallet_id").notNull().references(() => creatorWallets.id, { onDelete: 'cascade' }),
+  creatorId: varchar("creator_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  feeAmount: decimal("fee_amount", { precision: 10, scale: 2 }).notNull().default('0.00'),
+  netAmount: decimal("net_amount", { precision: 10, scale: 2 }).notNull(),
+  payoutMethod: varchar("payout_method", { length: 20 }).notNull(), // 'paypal', 'etransfer', 'wire', 'crypto'
+  payoutDetails: jsonb("payout_details"), // Store payout-specific details
+  status: withdrawalStatusEnum("status").notNull().default('pending'),
+  providerTransactionId: varchar("provider_transaction_id"),
+  providerResponse: jsonb("provider_response"),
+  failureReason: text("failure_reason"),
+  requestedAt: timestamp("requested_at").defaultNow(),
+  processingStartedAt: timestamp("processing_started_at"),
+  completedAt: timestamp("completed_at"),
+  failedAt: timestamp("failed_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const withdrawalsRelations = relations(withdrawals, ({ one }) => ({
+  wallet: one(creatorWallets, {
+    fields: [withdrawals.walletId],
+    references: [creatorWallets.id],
+  }),
+  creator: one(users, {
+    fields: [withdrawals.creatorId],
+    references: [users.id],
+  }),
+}));
+
 // Email Templates (for admin-managed email templates)
 export const emailTemplates = pgTable("email_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1287,6 +1425,10 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: tru
 export const insertPlatformSettingSchema = createInsertSchema(platformSettings).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertNicheSchema = createInsertSchema(niches).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPlatformFundingAccountSchema = createInsertSchema(platformFundingAccounts).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCreatorWalletSchema = createInsertSchema(creatorWallets).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({ id: true, createdAt: true });
+export const insertCompanyInvoiceSchema = createInsertSchema(companyInvoices).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertWithdrawalSchema = createInsertSchema(withdrawals).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertBannedKeywordSchema = createInsertSchema(bannedKeywords).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertContentFlagSchema = createInsertSchema(contentFlags).omit({ id: true, createdAt: true });
 export const insertCompanyVerificationDocumentSchema = createInsertSchema(companyVerificationDocuments).omit({ id: true, createdAt: true, uploadedAt: true });
@@ -1348,6 +1490,14 @@ export type Niche = typeof niches.$inferSelect;
 export type InsertNiche = z.infer<typeof insertNicheSchema>;
 export type PlatformFundingAccount = typeof platformFundingAccounts.$inferSelect;
 export type InsertPlatformFundingAccount = z.infer<typeof insertPlatformFundingAccountSchema>;
+export type CreatorWallet = typeof creatorWallets.$inferSelect;
+export type InsertCreatorWallet = z.infer<typeof insertCreatorWalletSchema>;
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
+export type CompanyInvoice = typeof companyInvoices.$inferSelect;
+export type InsertCompanyInvoice = z.infer<typeof insertCompanyInvoiceSchema>;
+export type Withdrawal = typeof withdrawals.$inferSelect;
+export type InsertWithdrawal = z.infer<typeof insertWithdrawalSchema>;
 export type BannedKeyword = typeof bannedKeywords.$inferSelect;
 export type InsertBannedKeyword = z.infer<typeof insertBannedKeywordSchema>;
 export type ContentFlag = typeof contentFlags.$inferSelect;
