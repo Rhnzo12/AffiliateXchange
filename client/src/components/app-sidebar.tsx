@@ -105,14 +105,18 @@ export function AppSidebar() {
       icon: ShoppingCart,
     },
     {
-      title: "Wallet",
-      url: "/creator/wallet",
-      icon: Wallet,
-    },
-    {
       title: "Payment Management",
-      url: "/creator/payment-settings",
-      icon: DollarSign,
+      icon: Wallet,
+      children: [
+        {
+          title: "Wallet",
+          url: "/creator/wallet",
+        },
+        {
+          title: "Payment Settings",
+          url: "/creator/payment-settings",
+        },
+      ],
     },
   ];
 
