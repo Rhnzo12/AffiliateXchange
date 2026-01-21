@@ -84,6 +84,7 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'withdrawal_failed'
 ]);
 export const offerPendingActionEnum = pgEnum('offer_pending_action', ['delete', 'suspend']);
+export const affiliateOrderStatusEnum = pgEnum('affiliate_order_status', ['pending', 'processing', 'shipped', 'delivered', 'completed', 'cancelled', 'returned', 'refunded']);
 export const keywordCategoryEnum = pgEnum('keyword_category', ['profanity', 'spam', 'legal', 'harassment', 'custom']);
 export const contentTypeEnum = pgEnum('content_type', ['message', 'review']);
 export const flagStatusEnum = pgEnum('flag_status', ['pending', 'reviewed', 'dismissed', 'action_taken']);
@@ -598,6 +599,75 @@ export const clickEventsRelations = relations(clickEvents, ({ one }) => ({
   application: one(applications, {
     fields: [clickEvents.applicationId],
     references: [applications.id],
+  }),
+}));
+
+// Affiliate Sales - tracks individual sales made through affiliate links
+export const affiliateSales = pgTable("affiliate_sales", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  applicationId: varchar("application_id").notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  offerId: varchar("offer_id").notNull().references(() => offers.id, { onDelete: 'cascade' }),
+  creatorId: varchar("creator_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  companyId: varchar("company_id").notNull().references(() => companyProfiles.id, { onDelete: 'cascade' }),
+
+  // External order info from the platform
+  externalOrderId: varchar("external_order_id").notNull(),
+  externalPlatform: varchar("external_platform"), // shopify, woocommerce, etc.
+
+  // Order details
+  orderAmount: decimal("order_amount", { precision: 10, scale: 2 }).notNull(),
+  orderCurrency: varchar("order_currency", { length: 3 }).default('CAD'),
+  itemName: varchar("item_name"),
+  itemQuantity: integer("item_quantity").default(1),
+
+  // Commission calculation
+  commissionType: commissionTypeEnum("commission_type").notNull(),
+  commissionRate: decimal("commission_rate", { precision: 10, scale: 2 }), // percentage or fixed amount
+  commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }).notNull(),
+
+  // Order status tracking
+  orderStatus: affiliateOrderStatusEnum("order_status").notNull().default('pending'),
+  statusHistory: jsonb("status_history").default(sql`'[]'::jsonb`), // [{status, timestamp, note}]
+
+  // Waiting period for returns/cancellations (in days)
+  holdPeriodDays: integer("hold_period_days").default(14),
+  holdExpiresAt: timestamp("hold_expires_at"),
+
+  // Payment tracking
+  paymentId: varchar("payment_id").references(() => payments.id, { onDelete: 'set null' }),
+  commissionReleased: boolean("commission_released").default(false),
+  commissionReleasedAt: timestamp("commission_released_at"),
+
+  // Metadata
+  customerEmail: varchar("customer_email"),
+  trackingCode: varchar("tracking_code"), // the affiliate tracking code used
+  clickEventId: varchar("click_event_id"),
+  metadata: jsonb("metadata"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const affiliateSalesRelations = relations(affiliateSales, ({ one }) => ({
+  application: one(applications, {
+    fields: [affiliateSales.applicationId],
+    references: [applications.id],
+  }),
+  offer: one(offers, {
+    fields: [affiliateSales.offerId],
+    references: [offers.id],
+  }),
+  creator: one(users, {
+    fields: [affiliateSales.creatorId],
+    references: [users.id],
+  }),
+  company: one(companyProfiles, {
+    fields: [affiliateSales.companyId],
+    references: [companyProfiles.id],
+  }),
+  payment: one(payments, {
+    fields: [affiliateSales.paymentId],
+    references: [payments.id],
   }),
 }));
 
@@ -1464,6 +1534,8 @@ export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
 export type SavedSearch = typeof savedSearches.$inferSelect;
 export type InsertSavedSearch = z.infer<typeof insertSavedSearchSchema>;
 export type Analytics = typeof analytics.$inferSelect;
+export type AffiliateSale = typeof affiliateSales.$inferSelect;
+export type InsertAffiliateSale = typeof affiliateSales.$inferInsert;
 export type PaymentSetting = typeof paymentSettings.$inferSelect;
 export type InsertPaymentSetting = z.infer<typeof insertPaymentSettingSchema>;
 export type Payment = typeof payments.$inferSelect;

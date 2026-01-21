@@ -25,6 +25,7 @@ import {
   savedSearches,
   analytics,
   clickEvents,
+  affiliateSales,
   paymentSettings,
   payments,
   retainerPayments,
@@ -102,6 +103,8 @@ import {
   type InsertCompanyInvoice,
   type Withdrawal,
   type InsertWithdrawal,
+  type AffiliateSale,
+  type InsertAffiliateSale,
 } from "../shared/schema";
 
 /**
@@ -906,6 +909,17 @@ export interface IStorage {
   getPendingWithdrawals(): Promise<Withdrawal[]>;
   createWithdrawal(withdrawal: InsertWithdrawal): Promise<Withdrawal>;
   updateWithdrawal(id: string, updates: Partial<InsertWithdrawal>): Promise<Withdrawal | null>;
+
+  // Affiliate Sales
+  getAffiliateSale(id: string): Promise<AffiliateSale | null>;
+  getAffiliateSaleByExternalOrderId(externalOrderId: string, platform?: string): Promise<AffiliateSale | null>;
+  getAffiliateSalesByCreator(creatorId: string): Promise<AffiliateSale[]>;
+  getAffiliateSalesByOffer(offerId: string): Promise<AffiliateSale[]>;
+  getAffiliateSalesWithExpiredHold(before: Date): Promise<AffiliateSale[]>;
+  createAffiliateSale(sale: InsertAffiliateSale): Promise<AffiliateSale>;
+  updateAffiliateSale(id: string, updates: Partial<InsertAffiliateSale>): Promise<AffiliateSale | null>;
+  incrementAnalyticsConversions(applicationId: string, amount: number): Promise<void>;
+  decrementAnalyticsConversions(applicationId: string, amount: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -6990,6 +7004,142 @@ async deleteAllVerificationDocumentsForCompany(companyId: string): Promise<boole
       .where(eq(withdrawals.id, id))
       .returning();
     return result || null;
+  }
+
+  // Affiliate Sales
+  async getAffiliateSale(id: string): Promise<AffiliateSale | null> {
+    const result = await db
+      .select()
+      .from(affiliateSales)
+      .where(eq(affiliateSales.id, id))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async getAffiliateSaleByExternalOrderId(externalOrderId: string, platform?: string): Promise<AffiliateSale | null> {
+    const conditions = [eq(affiliateSales.externalOrderId, externalOrderId)];
+    if (platform) {
+      conditions.push(eq(affiliateSales.externalPlatform, platform));
+    }
+    const result = await db
+      .select()
+      .from(affiliateSales)
+      .where(and(...conditions))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async getAffiliateSalesByCreator(creatorId: string): Promise<AffiliateSale[]> {
+    return db
+      .select()
+      .from(affiliateSales)
+      .where(eq(affiliateSales.creatorId, creatorId))
+      .orderBy(desc(affiliateSales.createdAt));
+  }
+
+  async getAffiliateSalesByOffer(offerId: string): Promise<AffiliateSale[]> {
+    return db
+      .select()
+      .from(affiliateSales)
+      .where(eq(affiliateSales.offerId, offerId))
+      .orderBy(desc(affiliateSales.createdAt));
+  }
+
+  async getAffiliateSalesWithExpiredHold(before: Date): Promise<AffiliateSale[]> {
+    return db
+      .select()
+      .from(affiliateSales)
+      .where(and(
+        eq(affiliateSales.commissionReleased, false),
+        lte(affiliateSales.holdExpiresAt, before)
+      ))
+      .orderBy(asc(affiliateSales.holdExpiresAt));
+  }
+
+  async createAffiliateSale(sale: InsertAffiliateSale): Promise<AffiliateSale> {
+    const [result] = await db
+      .insert(affiliateSales)
+      .values(sale)
+      .returning();
+    return result;
+  }
+
+  async updateAffiliateSale(id: string, updates: Partial<InsertAffiliateSale>): Promise<AffiliateSale | null> {
+    const [result] = await db
+      .update(affiliateSales)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(affiliateSales.id, id))
+      .returning();
+    return result || null;
+  }
+
+  async incrementAnalyticsConversions(applicationId: string, amount: number): Promise<void> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Try to update existing record for today
+    const [existing] = await db
+      .select()
+      .from(analytics)
+      .where(and(
+        eq(analytics.applicationId, applicationId),
+        gte(analytics.date, today)
+      ))
+      .limit(1);
+
+    if (existing) {
+      await db
+        .update(analytics)
+        .set({
+          conversions: (existing.conversions || 0) + 1,
+          earnings: ((parseFloat(existing.earnings || '0')) + amount).toString(),
+          updatedAt: new Date(),
+        })
+        .where(eq(analytics.id, existing.id));
+    } else {
+      // Get application to get offerId and creatorId
+      const [app] = await db
+        .select()
+        .from(applications)
+        .where(eq(applications.id, applicationId))
+        .limit(1);
+
+      if (app) {
+        await db.insert(analytics).values({
+          applicationId,
+          offerId: app.offerId,
+          creatorId: app.creatorId,
+          date: today,
+          conversions: 1,
+          earnings: amount.toString(),
+        });
+      }
+    }
+  }
+
+  async decrementAnalyticsConversions(applicationId: string, amount: number): Promise<void> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [existing] = await db
+      .select()
+      .from(analytics)
+      .where(and(
+        eq(analytics.applicationId, applicationId),
+        gte(analytics.date, today)
+      ))
+      .limit(1);
+
+    if (existing) {
+      await db
+        .update(analytics)
+        .set({
+          conversions: Math.max(0, (existing.conversions || 0) - 1),
+          earnings: Math.max(0, (parseFloat(existing.earnings || '0')) - amount).toString(),
+          updatedAt: new Date(),
+        })
+        .where(eq(analytics.id, existing.id));
+    }
   }
 }
 

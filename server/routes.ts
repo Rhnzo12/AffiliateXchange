@@ -12123,5 +12123,208 @@ res.json(approved);
     }
   });
 
+  // ============================================
+  // AFFILIATE SALES WEBHOOKS (Automatic Commission)
+  // ============================================
+
+  /**
+   * Webhook to record a new affiliate sale
+   * Called by external platforms (Shopify, WooCommerce, etc.) when a sale is made
+   * POST /api/webhooks/affiliate-sale
+   */
+  app.post("/api/webhooks/affiliate-sale", express.json(), async (req, res) => {
+    try {
+      // Validate webhook secret (optional security)
+      const webhookSecret = req.headers['x-webhook-secret'];
+      const expectedSecret = process.env.AFFILIATE_WEBHOOK_SECRET;
+
+      if (expectedSecret && webhookSecret !== expectedSecret) {
+        console.warn('[Affiliate Webhook] Invalid webhook secret');
+        return res.status(401).json({ error: 'Invalid webhook secret' });
+      }
+
+      const { automaticCommissionService } = await import('./automaticCommissionService');
+
+      const {
+        externalOrderId,
+        trackingCode,
+        orderAmount,
+        externalPlatform,
+        orderCurrency,
+        itemName,
+        itemQuantity,
+        customerEmail,
+        orderStatus,
+        metadata,
+      } = req.body;
+
+      // Validate required fields
+      if (!externalOrderId || !trackingCode || !orderAmount) {
+        return res.status(400).json({
+          error: 'Missing required fields',
+          required: ['externalOrderId', 'trackingCode', 'orderAmount'],
+        });
+      }
+
+      const result = await automaticCommissionService.recordSale({
+        externalOrderId,
+        trackingCode,
+        orderAmount: parseFloat(orderAmount),
+        externalPlatform,
+        orderCurrency,
+        itemName,
+        itemQuantity: itemQuantity ? parseInt(itemQuantity) : undefined,
+        customerEmail,
+        orderStatus,
+        metadata,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        saleId: result.saleId,
+        commissionAmount: result.commissionAmount,
+      });
+    } catch (error: any) {
+      console.error('[Affiliate Webhook] Error recording sale:', error);
+      res.status(500).json({ error: 'Failed to record sale' });
+    }
+  });
+
+  /**
+   * Webhook to update order status
+   * Called when order status changes (shipped, delivered, completed, cancelled, etc.)
+   * POST /api/webhooks/affiliate-order-status
+   */
+  app.post("/api/webhooks/affiliate-order-status", express.json(), async (req, res) => {
+    try {
+      // Validate webhook secret
+      const webhookSecret = req.headers['x-webhook-secret'];
+      const expectedSecret = process.env.AFFILIATE_WEBHOOK_SECRET;
+
+      if (expectedSecret && webhookSecret !== expectedSecret) {
+        console.warn('[Affiliate Webhook] Invalid webhook secret');
+        return res.status(401).json({ error: 'Invalid webhook secret' });
+      }
+
+      const { automaticCommissionService } = await import('./automaticCommissionService');
+
+      const {
+        externalOrderId,
+        externalPlatform,
+        newStatus,
+        note,
+        metadata,
+      } = req.body;
+
+      // Validate required fields
+      if (!externalOrderId || !newStatus) {
+        return res.status(400).json({
+          error: 'Missing required fields',
+          required: ['externalOrderId', 'newStatus'],
+        });
+      }
+
+      // Validate status value
+      const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'completed', 'cancelled', 'returned', 'refunded'];
+      if (!validStatuses.includes(newStatus)) {
+        return res.status(400).json({
+          error: 'Invalid status',
+          validStatuses,
+        });
+      }
+
+      const result = await automaticCommissionService.updateOrderStatus({
+        externalOrderId,
+        externalPlatform,
+        newStatus,
+        note,
+        metadata,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        commissionReleased: result.commissionReleased,
+      });
+    } catch (error: any) {
+      console.error('[Affiliate Webhook] Error updating order status:', error);
+      res.status(500).json({ error: 'Failed to update order status' });
+    }
+  });
+
+  /**
+   * Get affiliate sales for a creator
+   * GET /api/affiliate-sales
+   */
+  app.get("/api/affiliate-sales", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      let sales;
+      if (user.role === 'creator') {
+        sales = await storage.getAffiliateSalesByCreator(userId);
+      } else if (user.role === 'company') {
+        const companyProfile = await storage.getCompanyProfile(userId);
+        if (companyProfile) {
+          const offers = await storage.getCompanyOffers(companyProfile.id);
+          const allSales = [];
+          for (const offer of offers) {
+            const offerSales = await storage.getAffiliateSalesByOffer(offer.id);
+            allSales.push(...offerSales);
+          }
+          sales = allSales.sort((a, b) =>
+            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          );
+        } else {
+          sales = [];
+        }
+      } else if (user.role === 'admin') {
+        // Admin can see all - but we'd need to paginate
+        // For now, return recent sales
+        sales = await storage.getAffiliateSalesByCreator(userId); // placeholder
+      } else {
+        sales = [];
+      }
+
+      res.json(sales);
+    } catch (error: any) {
+      console.error('[Affiliate Sales] Error fetching sales:', error);
+      res.status(500).json({ error: "Failed to fetch affiliate sales" });
+    }
+  });
+
+  /**
+   * Process expired hold periods (admin/cron endpoint)
+   * POST /api/admin/process-commission-holds
+   */
+  app.post("/api/admin/process-commission-holds", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { automaticCommissionService } = await import('./automaticCommissionService');
+      const result = await automaticCommissionService.processExpiredHoldPeriods();
+
+      res.json({
+        success: true,
+        processed: result.processed,
+        released: result.released,
+        errors: result.errors,
+      });
+    } catch (error: any) {
+      console.error('[Commission Holds] Error processing:', error);
+      res.status(500).json({ error: "Failed to process commission holds" });
+    }
+  });
+
   return httpServer;
 }
