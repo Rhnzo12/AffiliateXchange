@@ -4,6 +4,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { CompanyTourButtonSafe } from "./CompanyTourButton";
 import { CreatorTourButtonSafe } from "./CreatorTourButton";
+import { Wallet, DollarSign } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
